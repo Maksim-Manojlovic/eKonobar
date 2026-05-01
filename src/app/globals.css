@@ -189,3 +189,72 @@
 }
 .step-dot.active { background: #f97316; width: 24px; border-radius: 4px; }
 .step-dot.done   { background: #f97316; }
+
+/* ── Dashboard ───────────────────────────────────────────────────────────────── */
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+.pulse-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #737373;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+.nav-item:hover  { background: #fef9f5; color: #f97316; }
+.nav-item.active { background: #fff7ed; color: #f97316; font-weight: 700; }
+
+.dash-card {
+  background: white;
+  border-radius: 20px;
+  border: 1px solid #f0efec;
+}
+
+.alert-card {
+  background: linear-gradient(135deg, #fff7ed, #fef3e2);
+  border: 1.5px solid rgba(249, 115, 22, 0.3);
+  border-radius: 18px;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+.alert-card:hover {
+  border-color: #f97316;
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.12);
+}
+
+.badge-pending  { background: #fef9c3; color: #854d0e; border: 1px solid #fde68a; }
+.badge-accepted { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.badge-rejected { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+.prog-track { background: #f0efec; border-radius: 99px; height: 6px; overflow: hidden; }
+.prog-fill  { height: 100%; background: linear-gradient(90deg, #f97316, #ea580c); border-radius: 99px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+
+.tab-btn { transition: all 0.15s; }
+.tab-btn.active { background: white; color: #f97316; font-weight: 700; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+
+.btn-dash-orange {
+  background: #f97316; color: white; font-weight: 700;
+  border-radius: 12px; transition: all 0.15s; font-size: 12px;
+  border: none; cursor: pointer;
+}
+.btn-dash-orange:hover { background: #ea580c; transform: translateY(-1px); }
+
+.btn-dash-outline {
+  border: 1.5px solid #e5e5e3; color: #525252; font-weight: 600;
+  border-radius: 12px; transition: all 0.15s; font-size: 12px;
+  background: white; cursor: pointer;
+}
+.btn-dash-outline:hover { border-color: #f97316; color: #f97316; }
