@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  :root {
+    --font-lexend: "Lexend", system-ui, sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-lexend);
+    @apply antialiased text-neutral-900;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+}
+
+/* ── Hero background ──────────────────────────────────────────────────────── */
+
+.hero-bg {
+  background-color: #fafaf8;
+  background-image:
+    radial-gradient(ellipse 70% 60% at 5% 0%,  rgba(249, 115, 22, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 95% 100%, rgba(249, 115, 22, 0.06) 0%, transparent 55%);
+}
+
+/* ── Map marker pulse rings ───────────────────────────────────────────────── */
+
+@keyframes pulse-ring {
+  0%   { transform: scale(0.8); opacity: 0.8; }
+  70%  { transform: scale(2.4); opacity: 0;   }
+  100% { transform: scale(0.8); opacity: 0;   }
+}
+
+@keyframes pulse-ring-2 {
+  0%   { transform: scale(0.8); opacity: 0.4; }
+  70%  { transform: scale(3.2); opacity: 0;   }
+  100% { transform: scale(0.8); opacity: 0;   }
+}
+
+.pulse-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  animation: pulse-ring 2s ease-out infinite;
+  background: rgba(249, 115, 22, 0.5);
+}
+
+.pulse-ring-2 {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  animation: pulse-ring-2 2s ease-out 0.45s infinite;
+  background: rgba(249, 115, 22, 0.2);
+}
+
+/* ── Glassmorphism surface ────────────────────────────────────────────────── */
+
+.glass {
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.07), 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Map marker hover ─────────────────────────────────────────────────────── */
+
+.map-marker {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+}
+
+.map-marker:hover {
+  transform: scale(1.2) translateY(-3px);
+}
+
+/* ── Shared button transitions ────────────────────────────────────────────── */
+
+.btn-primary {
+  background: #f97316;
+  transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.32);
+}
+.btn-primary:hover {
+  background: #ea580c;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 32px rgba(249, 115, 22, 0.42);
+}
+
+.btn-secondary {
+  border: 2px solid #e5e5e3;
+  color: #404040;
+  background: white;
+  transition: all 0.18s ease;
+}
+.btn-secondary:hover {
+  border-color: #f97316;
+  color: #f97316;
+  transform: translateY(-1px);
+}

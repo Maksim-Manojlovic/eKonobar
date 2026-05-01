@@ -1,0 +1,569 @@
+// eKonobar — Prisma Schema v1.0
+// Baza: PostgreSQL
+// Generisano prema arhitekturnom dokumentu v1.0
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enumi ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  WAITER
+  VENUE_OWNER
+  HEADHUNTER
+  ADMIN
+  GUEST
+}
+
+enum VerificationTier {
+  UNVERIFIED
+  SILVER        // Verifikovano ugovorom o radu (admin odobrio)
+  GOLD          // Verifikovano invite kodom od vlasnika lokala
+  ID_VERIFIED   // Potvrđen ličnim dokumentom (JMBG) — težina ocene ×1.2
+}
+
+enum VenueType {
+  RESTAURANT
+  CAFE
+  BAR
+  CATERING
+  HOTEL
+  EVENT
+}
+
+enum EngagementType {
+  FULL_TIME
+  SEASONAL
+  WEEKEND
+  CELEBRATION
+}
+
+enum TipSystem {
+  INDIVIDUAL      // Konobar zadržava bakšiš za sebe
+  SHARED          // Zajednički fond, podela po dogovoru
+  VENUE_POLICY    // Politika lokala (opisano u tipDescription)
+}
+
+enum JobPostStatus {
+  ACTIVE
+  PAUSED
+  FILLED
+  EXPIRED
+  DELETED
+}
+
+enum ApplicationStatus {
+  PENDING
+  SHORTLISTED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  COMPLETED
+}
+
+enum ReviewDirection {
+  WAITER_TO_VENUE   // Konobar ocenjuje lokal
+  VENUE_TO_WAITER   // Lokal ocenjuje konobara
+  GUEST_TO_WAITER   // Gost ocenjuje konobara (zahteva geofencing)
+}
+
+enum ReviewStatus {
+  PENDING     // Čeka objavu (window period)
+  PUBLISHED
+  DISPUTED
+  REMOVED
+}
+
+enum ZoneType {
+  FESTIVAL_ZONE   // = EXPO — Sajam, festival
+  TRANSIT_HUB     // = METRO — Čvorište prevoza
+  DEVELOPMENT     // = INFRASTRUCTURE — Nova zona razvoja
+  NIGHTLIFE       // = NIGHTLIFE — Noćni klubovi
+  TOURIST_AREA    // = QUIET_ZONE — Turistička zona
+  STUDENT_AREA    // = STUDENT_FAKULTETI
+  RESIDENTIAL     // = STUDENT_DOM — Stambena zona
+}
+
+enum SanitaryStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+// ─── User ─────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String           @id @default(cuid())
+  email         String           @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  hashedPassword String?
+
+  role              Role             @default(WAITER)
+  verificationTier  VerificationTier @default(UNVERIFIED)
+
+  // JMBG — čuvamo samo hash, nikad plaintext (privatnost)
+  jmbgHash      String?   @unique
+  idVerifiedAt  DateTime?
+
+  rememberMe    Boolean   @default(false)
+  lastLoginAt   DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  // Relacije
+  accounts          Account[]
+  sessions          Session[]
+  venues            Venue[]
+  jobPosts          JobPost[]
+  applications      JobApplication[]
+  reviewsGiven      Review[]            @relation("ReviewAuthor")
+  reviewsReceived   Review[]            @relation("ReviewSubject")
+  waiterPassport    WaiterPassport?
+  engagementRecords EngagementRecord[]  @relation("WaiterEngagements")
+  sanitaryBook      SanitaryBook?
+  savedProfiles     SavedProfile[]      @relation("HeadhunterSaved")
+  invitesSent       Invite[]            @relation("InviteSender")
+  invitesUsed       Invite[]            @relation("InviteRecipient")
+  rateLimits        RateLimit[]
+
+  @@index([role])
+  @@index([verificationTier])
+  @@index([deletedAt])
+}
+
+// ─── NextAuth ─────────────────────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Venue (Lokal) ────────────────────────────────────────────────────────────
+
+model Venue {
+  id          String    @id @default(cuid())
+  ownerId     String
+  owner       User      @relation(fields: [ownerId], references: [id])
+
+  name        String
+  description String?   @db.Text
+  address     String
+  municipality String
+  city        String    @default("Beograd")
+
+  venueType   VenueType
+  cuisineTypes String[]
+  capacity    Int?
+
+  latitude    Float
+  longitude   Float
+  reviewRadiusKm Float  @default(0.15)  // 150m default za geofencing
+
+  // Cenovni raspon (RSD/h)
+  priceRangeMin Float?
+  priceRangeMax Float?
+
+  images      String[]
+
+  trustScore  Float     @default(0)
+  venueInsights Json?   // venueZone, blizina, tip — analogno growthInsights
+
+  website     String?
+  phone       String?
+  instagram   String?
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  // Relacije
+  jobPosts          JobPost[]
+  reviews           Review[]
+  engagementRecords EngagementRecord[]
+  venueTrustScore   VenueTrustScore?
+  zones             VenueZoneRelation[]
+
+  @@index([municipality])
+  @@index([venueType])
+  @@index([latitude, longitude])
+  @@index([deletedAt])
+  @@index([trustScore])
+}
+
+// ─── JobPost (Oglas za posao) ─────────────────────────────────────────────────
+
+model JobPost {
+  id      String  @id @default(cuid())
+  venueId String
+  venue   Venue   @relation(fields: [venueId], references: [id])
+  ownerId String
+  owner   User    @relation(fields: [ownerId], references: [id])
+
+  title       String
+  description String  @db.Text
+
+  engagementType  EngagementType
+  salaryMin       Float?
+  salaryMax       Float?
+
+  tipSystem       TipSystem
+  tipDescription  String?   // "Bakšiš se deli 70/30 kuhinja-sala"
+
+  sanitaryRequired Boolean  @default(false)
+
+  startDate       DateTime?
+  endDate         DateTime?     // null = stalna pozicija
+  applicationDeadline DateTime?
+
+  // Red Alert — hitna smena
+  redAlert        Boolean   @default(false)
+  redAlertNote    String?   // "Potreban danas do 18h"
+
+  inviteCode      String?   @unique  // za direktno pozivanje konobara
+
+  status          JobPostStatus @default(ACTIVE)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  applications    JobApplication[]
+  engagementRecords EngagementRecord[]
+
+  @@index([venueId, status])
+  @@index([engagementType])
+  @@index([redAlert])
+  @@index([sanitaryRequired])
+  @@index([deletedAt])
+}
+
+// ─── JobApplication (Prijava na oglas) ───────────────────────────────────────
+
+model JobApplication {
+  id        String  @id @default(cuid())
+  jobPostId String
+  jobPost   JobPost @relation(fields: [jobPostId], references: [id])
+  waiterId  String
+  waiter    User    @relation(fields: [waiterId], references: [id])
+
+  coverNote   String?  @db.Text
+  status      ApplicationStatus @default(PENDING)
+
+  appliedAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([jobPostId, waiterId])
+  @@index([waiterId])
+  @@index([status])
+}
+
+// ─── Review (Recenzija) ───────────────────────────────────────────────────────
+
+model Review {
+  id        String  @id @default(cuid())
+  authorId  String
+  author    User    @relation("ReviewAuthor", fields: [authorId], references: [id])
+  subjectId String?
+  subject   User?   @relation("ReviewSubject", fields: [subjectId], references: [id])
+  venueId   String?
+  venue     Venue?  @relation(fields: [venueId], references: [id])
+
+  direction   ReviewDirection
+  status      ReviewStatus    @default(PENDING)
+
+  // Zajednički
+  overallRating Int   // 0-100 (klijent šalje 1-5 zvezdica × 20)
+  comment       String? @db.Text
+
+  // Težina ocene — ID_VERIFIED autori dobijaju ×1.2 pri kreiranju review-a
+  weight             Float @default(1.0)
+
+  // WAITER_TO_VENUE kategorije
+  ratingAtmosphere   Int?  // Radna atmosfera
+  ratingOrganization Int?  // Organizacija smena
+  ratingPay          Int?  // Redovnost isplate
+  ratingTips         Int?  // Sistem podele bakšiša
+  ratingHygieneWork  Int?  // Higijenske uslove u lokalu (radni uslovi)
+  ratingManagement   Int?  // Komunikacija menadžmenta
+
+  // VENUE_TO_WAITER kategorije
+  ratingPunctuality        Int?  // Tačnost i pouzdanost
+  ratingSkill              Int?  // Profesionalne veštine
+  ratingGuestCommunication Int?  // Komunikacija sa gostima
+  ratingPersonalHygiene    Int?  // Lična higijena konobara
+  ratingTeamwork           Int?  // Timski rad
+  ratingSpeed              Int?  // Brzina usluge
+
+  // GUEST_TO_WAITER kategorije
+  ratingFriendliness   Int?  // Ljubaznost
+  ratingGuestSpeed     Int?  // Brzina usluge (gostinska percepcija)
+  ratingAttentiveness  Int?  // Pažljivost
+
+  // Geofencing (samo za GUEST_TO_WAITER)
+  guestLatitude   Float?
+  guestLongitude  Float?
+  geolocationHash String?  // SHA-256(lat+lng+timestamp) — dokaz lokacije
+
+  pendingUntil  DateTime?   // Kada se objavljuje (PENDING → PUBLISHED)
+  publishedAt   DateTime?
+  disputedAt    DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([subjectId, direction])
+  @@index([venueId, direction])
+  @@index([status])
+  @@index([pendingUntil])
+}
+
+// ─── WaiterPassport (Digitalni pasoš) ────────────────────────────────────────
+
+model WaiterPassport {
+  id      String  @id @default(cuid())
+  userId  String  @unique
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  score               Float   @default(0)   // 0-100 Bayesian
+  badges              String[]
+  reviewCount         Int     @default(0)
+  totalEngagements    Int     @default(0)
+  avgEngagementMonths Float   @default(0)
+
+  skills              String[]  // ["cocktail", "fine dining", "kafe aparat", "sommelier"]
+  languages           String[]  // ["srpski", "engleski", "nemački"]
+  yearsExperience     Int       @default(0)
+
+  sanitaryBookValid   Boolean   @default(false)
+  sanitaryExpiry      DateTime?
+
+  currentlyAvailable  Boolean   @default(true)
+
+  shareToken          String?   @unique
+  shareTokenExpiry    DateTime?
+
+  bio                 String?   @db.Text
+  profilePhoto        String?
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  trustScore          PassportTrustScore?
+}
+
+// ─── Trust Score modeli ───────────────────────────────────────────────────────
+
+model PassportTrustScore {
+  id        String         @id @default(cuid())
+  passportId String        @unique
+  passport  WaiterPassport @relation(fields: [passportId], references: [id], onDelete: Cascade)
+
+  // Dimenzije za konobara (0-100 Bayesian)
+  punctuality       Float @default(0)
+  skill             Float @default(0)
+  guestCommunication Float @default(0)
+  personalHygiene   Float @default(0)
+  teamwork          Float @default(0)
+  speed             Float @default(0)
+
+  composite         Float @default(0)
+  sampleSize        Int   @default(0)
+
+  updatedAt         DateTime @updatedAt
+}
+
+model VenueTrustScore {
+  id      String  @id @default(cuid())
+  venueId String  @unique
+  venue   Venue   @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  // Dimenzije za lokal (0-100 Bayesian)
+  atmosphere    Float @default(0)
+  organization  Float @default(0)
+  pay           Float @default(0)
+  tips          Float @default(0)
+  hygieneStandards Float @default(0)
+  management    Float @default(0)
+
+  composite     Float @default(0)
+  sampleSize    Int   @default(0)
+
+  updatedAt     DateTime @updatedAt
+}
+
+// ─── EngagementRecord (Istorija angažmana) ───────────────────────────────────
+
+model EngagementRecord {
+  id        String  @id @default(cuid())
+  waiterId  String
+  waiter    User    @relation("WaiterEngagements", fields: [waiterId], references: [id])
+  venueId   String
+  venue     Venue   @relation(fields: [venueId], references: [id])
+  jobPostId String?
+  jobPost   JobPost? @relation(fields: [jobPostId], references: [id])
+
+  startDate       DateTime
+  endDate         DateTime?
+  engagementType  EngagementType
+
+  verified        Boolean   @default(false)  // true = vlasnik lokala potvrdio
+  verifiedAt      DateTime?
+
+  notes           String?   @db.Text  // privatna beleška konobara
+
+  createdAt       DateTime  @default(now())
+
+  @@index([waiterId])
+  @@index([venueId])
+}
+
+// ─── SanitaryBook (Sanitarna knjižica) ───────────────────────────────────────
+
+model SanitaryBook {
+  id      String  @id @default(cuid())
+  userId  String  @unique
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  fileUrl     String
+  status      SanitaryStatus @default(PENDING)
+  expiryDate  DateTime?
+
+  reviewedBy  String?  // Admin userId
+  reviewedAt  DateTime?
+  rejectReason String?
+
+  uploadedAt  DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// ─── Invite (Pozivnica za verifikaciju) ──────────────────────────────────────
+
+model Invite {
+  id          String  @id @default(cuid())
+  senderId    String
+  sender      User    @relation("InviteSender", fields: [senderId], references: [id])
+  recipientId String?
+  recipient   User?   @relation("InviteRecipient", fields: [recipientId], references: [id])
+
+  code        String    @unique @default(cuid())
+  venueId     String?
+  jobPostId   String?
+
+  usedAt      DateTime?
+  expiresAt   DateTime
+
+  createdAt   DateTime  @default(now())
+
+  @@index([code])
+  @@index([senderId])
+}
+
+// ─── VenueZone (Zona na mapi) ─────────────────────────────────────────────────
+
+model VenueZone {
+  id          String    @id @default(cuid())
+  name        String
+  zoneType    ZoneType
+  description String?
+
+  // GeoJSON polygon ili bounding box
+  geoJson     Json
+
+  // Centar zone (za distance kalkulacije)
+  centerLat   Float
+  centerLng   Float
+  radiusKm    Float  @default(1.0)  // radijus zone za intersection check
+
+  // Analitika zone
+  projectedGrowthPercent Float   @default(0)
+  operatorTip            String? // savjet za vlasnike lokala u zoni
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  venues      VenueZoneRelation[]
+
+  @@index([zoneType])
+}
+
+model VenueZoneRelation {
+  venueId   String
+  venue     Venue     @relation(fields: [venueId], references: [id])
+  zoneId    String
+  zone      VenueZone @relation(fields: [zoneId], references: [id])
+
+  @@id([venueId, zoneId])
+}
+
+// ─── SavedProfile (Headhunter — sačuvani profili) ────────────────────────────
+
+model SavedProfile {
+  id            String  @id @default(cuid())
+  headhunterId  String
+  headhunter    User    @relation("HeadhunterSaved", fields: [headhunterId], references: [id])
+
+  savedWaiterId String
+  notes         String?
+
+  savedAt       DateTime @default(now())
+
+  @@unique([headhunterId, savedWaiterId])
+  @@index([headhunterId])
+}
+
+// ─── RateLimit (DB-backed rate limiter) ──────────────────────────────────────
+
+model RateLimit {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  action    String   // npr. "post_review", "apply_job"
+  count     Int      @default(1)
+  windowStart DateTime
+
+  @@unique([userId, action, windowStart])
+  @@index([userId, action])
+}
