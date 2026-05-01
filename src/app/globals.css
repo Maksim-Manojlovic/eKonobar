@@ -105,3 +105,87 @@
   color: #f97316;
   transform: translateY(-1px);
 }
+
+/* ── Auth pages ───────────────────────────────────────────────────────────── */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.fade-up   { animation: fadeUp 0.4s ease both; }
+.fade-up-2 { animation: fadeUp 0.4s ease 0.08s both; }
+.fade-up-3 { animation: fadeUp 0.4s ease 0.16s both; }
+.slide-in  { animation: slideIn 0.3s ease both; }
+
+.auth-bg {
+  background-color: #fafaf8;
+  background-image:
+    radial-gradient(ellipse 60% 50% at 0% 0%,   rgba(249, 115, 22, 0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 50% at 100% 100%, rgba(249, 115, 22, 0.05) 0%, transparent 55%);
+}
+
+.auth-input {
+  width: 100%;
+  border: 1.5px solid #e5e5e3;
+  border-radius: 14px;
+  padding: 13px 16px;
+  font-family: var(--font-lexend), sans-serif;
+  font-size: 14px;
+  color: #171717;
+  background: white;
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.auth-input::placeholder { color: #a3a3a0; }
+.auth-input:focus {
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+.social-btn {
+  border: 1.5px solid #e5e5e3;
+  background: white;
+  border-radius: 14px;
+  transition: all 0.15s ease;
+}
+.social-btn:hover { border-color: #f97316; background: #fef9f5; }
+
+.divider-line { flex: 1; height: 1px; background: #e5e5e3; }
+
+.role-card {
+  border: 2px solid #e5e5e3;
+  border-radius: 18px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  background: white;
+  flex: 1;
+}
+.role-card:hover { border-color: #fdba74; background: #fef9f5; }
+.role-card.selected {
+  border-color: #f97316;
+  background: #fff7ed;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+.strength-bar {
+  height: 4px;
+  border-radius: 99px;
+  flex: 1;
+  background: #f0f0ee;
+  transition: background 0.3s;
+}
+
+.step-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #e5e5e3;
+  transition: all 0.2s ease;
+}
+.step-dot.active { background: #f97316; width: 24px; border-radius: 4px; }
+.step-dot.done   { background: #f97316; }
