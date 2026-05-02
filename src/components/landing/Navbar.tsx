@@ -1,4 +1,13 @@
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+function dashboardUrl(role: string | undefined): string {
+  if (role === "VENUE_OWNER")  return "/venue";
+  if (role === "ADMIN")        return "/admin";
+  if (role === "HEADHUNTER")   return "/headhunter";
+  return "/waiter";
+}
 
 const LogoMark = () => (
   <div
@@ -16,7 +25,10 @@ const LogoMark = () => (
   </div>
 );
 
-export function Navbar() {
+export async function Navbar() {
+  const session = await getServerSession(authOptions);
+  const href = session ? dashboardUrl(session.user?.role) : null;
+
   return (
     <nav className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
       <Link href="/" className="flex items-center gap-3">
@@ -31,18 +43,29 @@ export function Navbar() {
       </div>
 
       <div className="flex items-center gap-3">
-        <Link
-          href="/login"
-          className="text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors px-4 py-2"
-        >
-          Prijava
-        </Link>
-        <Link
-          href="/register"
-          className="btn-primary text-white text-sm font-semibold px-5 py-2.5 rounded-2xl"
-        >
-          Registracija
-        </Link>
+        {href ? (
+          <Link
+            href={href}
+            className="btn-primary text-white text-sm font-semibold px-5 py-2.5 rounded-2xl"
+          >
+            Dashboard →
+          </Link>
+        ) : (
+          <>
+            <Link
+              href="/login"
+              className="text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors px-4 py-2"
+            >
+              Prijava
+            </Link>
+            <Link
+              href="/register"
+              className="btn-primary text-white text-sm font-semibold px-5 py-2.5 rounded-2xl"
+            >
+              Registracija
+            </Link>
+          </>
+        )}
       </div>
     </nav>
   );
