@@ -16,6 +16,36 @@ async function main() {
     create: { name: "Marko Nikolić", email: "waiter@test.com", hashedPassword, role: "WAITER" },
   });
 
+  const waiter2 = await prisma.user.upsert({
+    where: { email: "waiter2@test.com" },
+    update: {},
+    create: { name: "Ana Petrović", email: "waiter2@test.com", hashedPassword, role: "WAITER" },
+  });
+
+  const waiter3 = await prisma.user.upsert({
+    where: { email: "waiter3@test.com" },
+    update: {},
+    create: { name: "Stefan Đorđević", email: "waiter3@test.com", hashedPassword, role: "WAITER" },
+  });
+
+  const waiter4 = await prisma.user.upsert({
+    where: { email: "waiter4@test.com" },
+    update: {},
+    create: { name: "Jelena Milošević", email: "waiter4@test.com", hashedPassword, role: "WAITER" },
+  });
+
+  const waiter5 = await prisma.user.upsert({
+    where: { email: "waiter5@test.com" },
+    update: {},
+    create: { name: "Nikola Stanković", email: "waiter5@test.com", hashedPassword, role: "WAITER" },
+  });
+
+  const waiter6 = await prisma.user.upsert({
+    where: { email: "waiter6@test.com" },
+    update: {},
+    create: { name: "Milica Vasić", email: "waiter6@test.com", hashedPassword, role: "WAITER" },
+  });
+
   const venueOwner = await prisma.user.upsert({
     where: { email: "venue@test.com" },
     update: {},
@@ -182,13 +212,73 @@ async function main() {
     },
   });
 
+  await prisma.jobApplication.upsert({
+    where: { jobPostId_waiterId: { jobPostId: job1.id, waiterId: waiter2.id } },
+    update: {},
+    create: {
+      jobPostId: job1.id,
+      waiterId: waiter2.id,
+      coverNote: "Tri godine iskustva u a la carte restoranima.",
+      status: "ACCEPTED",
+    },
+  });
+
+  await prisma.jobApplication.upsert({
+    where: { jobPostId_waiterId: { jobPostId: job1.id, waiterId: waiter3.id } },
+    update: {},
+    create: {
+      jobPostId: job1.id,
+      waiterId: waiter3.id,
+      coverNote: "Iskusan konobar, dostupan odmah.",
+      status: "ACCEPTED",
+    },
+  });
+
+  await prisma.jobApplication.upsert({
+    where: { jobPostId_waiterId: { jobPostId: job2.id, waiterId: waiter4.id } },
+    update: {},
+    create: {
+      jobPostId: job2.id,
+      waiterId: waiter4.id,
+      coverNote: "Volim rad sa gostima, fleksibilna sam po pitanju smena.",
+      status: "ACCEPTED",
+    },
+  });
+
+  await prisma.jobApplication.upsert({
+    where: { jobPostId_waiterId: { jobPostId: job3.id, waiterId: waiter5.id } },
+    update: {},
+    create: {
+      jobPostId: job3.id,
+      waiterId: waiter5.id,
+      coverNote: "Radim šank dve godine, znam pripremu koktela.",
+      status: "ACCEPTED",
+    },
+  });
+
+  await prisma.jobApplication.upsert({
+    where: { jobPostId_waiterId: { jobPostId: job3.id, waiterId: waiter6.id } },
+    update: {},
+    create: {
+      jobPostId: job3.id,
+      waiterId: waiter6.id,
+      coverNote: "Dostupna za popodnevne i večernje smene.",
+      status: "ACCEPTED",
+    },
+  });
+
   console.log("✓ Applications seeded");
 
   console.log(`
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Test accounts (password: ${TEST_PASSWORD})
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Waiter:      waiter@test.com
+  Waiters:     waiter@test.com  (Marko Nikolić)
+               waiter2@test.com (Ana Petrović)
+               waiter3@test.com (Stefan Đorđević)
+               waiter4@test.com (Jelena Milošević)
+               waiter5@test.com (Nikola Stanković)
+               waiter6@test.com (Milica Vasić)
   Venue owner: venue@test.com  (2 venues, 4 posts)
   Admin:       admin@test.com
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
