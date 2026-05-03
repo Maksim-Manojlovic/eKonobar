@@ -8,6 +8,22 @@ import Link from "next/link";
 type Section = "overview" | "alerts" | "jobs" | "applications" | "shifts" | "reviews" | "passport";
 type AppFilter = "all" | "accepted" | "pending" | "rejected";
 
+type WaiterShift = {
+  id: string;
+  title: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  role: string | null;
+  pay: number | null;
+  notes: string | null;
+  venue: { id: string; name: string; address: string; municipality: string };
+};
+
+const DAYS_SR   = ["Pon", "Uto", "Sre", "Čet", "Pet", "Sub", "Ned"];
+const MONTHS_SR = ["Januar", "Februar", "Mart", "April", "Maj", "Jun",
+                   "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"];
+
 /* ── API types ────────────────────────────────────────────────────────────── */
 
 type JobPost = {
@@ -41,14 +57,7 @@ type MyApplication = {
   };
 };
 
-/* ── Static placeholder data (no API yet) ────────────────────────────────── */
-
-const SHIFTS = [
-  { id: 1, venue: "Kafana Skadarlija", role: "Konobar",      date: "Petak, 2 Maj",    time: "18:00 – 02:00", pay: "3 200 RSD" },
-  { id: 2, venue: "Restoran Dva Jelena", role: "Konobar",    date: "Subota, 3 Maj",   time: "16:00 – 00:00", pay: "2 900 RSD" },
-  { id: 3, venue: "Bar Mixer", role: "Šank-asistent",        date: "Ponedeljak, 5 Maj", time: "20:00 – 04:00", pay: "3 100 RSD" },
-  { id: 4, venue: "Kafić Urban", role: "Konobar",            date: "Sreda, 7 Maj",    time: "08:00 – 16:00", pay: "2 200 RSD" },
-];
+/* ── Static placeholder data ─────────────────────────────────────────────── */
 
 const REVIEWS = [
   { id: 1, venue: "Kafana Dva Jelena", rating: 5, date: "15 Apr 2026", text: "Marko je izuzetan konobar. Brz, ljubazan i uvek sa osmehom. Definitivo ćemo ga ponovo angažovati!" },
@@ -123,8 +132,8 @@ function ApplyButton({ jobId, applied, applying, onApply }: {
 
 /* ── Section: Overview ───────────────────────────────────────────────────── */
 
-function OverviewSection({ jobs, applications, userName, onNavigate, onApply, applying }: {
-  jobs: JobPost[]; applications: MyApplication[]; userName: string;
+function OverviewSection({ jobs, applications, shifts, userName, onNavigate, onApply, applying }: {
+  jobs: JobPost[]; applications: MyApplication[]; shifts: WaiterShift[]; userName: string;
   onNavigate: (s: Section) => void; onApply: (id: string) => Promise<void>; applying: string | null;
 }) {
   const circumference = 2 * Math.PI * 40;
@@ -201,15 +210,25 @@ function OverviewSection({ jobs, applications, userName, onNavigate, onApply, ap
             <button onClick={() => onNavigate("shifts")} className="text-xs text-orange-500 font-semibold hover:underline">Sve</button>
           </div>
           <div className="flex flex-col gap-2">
-            {SHIFTS.slice(0, 3).map(s => (
-              <div key={s.id} className="flex items-center justify-between py-2 border-b border-neutral-100 last:border-0">
-                <div>
-                  <div className="text-sm font-semibold text-neutral-800">{s.venue}</div>
-                  <div className="text-xs text-neutral-400">{s.date} · {s.time}</div>
-                </div>
-                <span className="text-sm font-bold text-orange-500">{s.pay}</span>
-              </div>
-            ))}
+            {shifts.length === 0
+              ? <p className="text-sm text-neutral-400 text-center py-4">Nema predstojećih smena</p>
+              : shifts
+                  .filter(s => new Date(s.date) >= new Date(new Date().toDateString()))
+                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                  .slice(0, 3)
+                  .map(s => {
+                    const dateStr = new Date(s.date).toLocaleDateString("sr-Latn-RS", { weekday: "short", day: "numeric", month: "short" });
+                    return (
+                      <div key={s.id} className="flex items-center justify-between py-2 border-b border-neutral-100 last:border-0">
+                        <div>
+                          <div className="text-sm font-semibold text-neutral-800">{s.venue.name}</div>
+                          <div className="text-xs text-neutral-400 capitalize">{dateStr} · {s.startTime}–{s.endTime}</div>
+                        </div>
+                        {s.pay && <span className="text-sm font-bold text-orange-500">{s.pay.toLocaleString("sr-RS")} RSD</span>}
+                      </div>
+                    );
+                  })
+            }
           </div>
         </div>
 
@@ -374,27 +393,186 @@ function ApplicationsSection({ applications, loading }: { applications: MyApplic
   );
 }
 
-/* ── Static sections (no API yet) ────────────────────────────────────────── */
+/* ── Section: Shifts (waiter calendar) ───────────────────────────────────── */
 
-function ShiftsSection() {
+function ShiftsSection({ shifts, loading }: { shifts: WaiterShift[]; loading: boolean }) {
+  const now = new Date();
+  const [current, setCurrent]   = useState(new Date(now.getFullYear(), now.getMonth(), 1));
+  const [selected, setSelected] = useState<WaiterShift | null>(null);
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-16">
+      <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
+    </div>
+  );
+
+  const year  = current.getFullYear();
+  const month = current.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDay    = (new Date(year, month, 1).getDay() + 6) % 7;
+  const totalCells  = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+  const todayNum    = now.getFullYear() === year && now.getMonth() === month ? now.getDate() : -1;
+  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
+
+  const shiftsByDay: Record<number, WaiterShift[]> = {};
+  for (const s of shifts) {
+    const d = new Date(s.date);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      const day = d.getDate();
+      if (!shiftsByDay[day]) shiftsByDay[day] = [];
+      shiftsByDay[day].push(s);
+    }
+  }
+
+  const upcoming = shifts
+    .filter(s => new Date(s.date) >= new Date(now.getFullYear(), now.getMonth(), now.getDate()))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 6);
+
   return (
     <>
-      <h2 className="font-black text-neutral-900">Moje smene</h2>
-      <div className="flex flex-col gap-3">
-        {SHIFTS.map(s => (
-          <div key={s.id} className="dash-card p-5 flex items-center justify-between">
-            <div>
-              <div className="font-bold text-neutral-900">{s.venue}</div>
-              <div className="text-sm text-neutral-500">{s.role}</div>
-              <div className="text-xs text-neutral-400 mt-1">{s.date} · {s.time}</div>
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)" }}
+          onClick={e => { if (e.target === e.currentTarget) setSelected(null); }}>
+          <div className="dash-card w-full max-w-sm p-6 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-black text-neutral-900">{selected.title}</h3>
+              <button onClick={() => setSelected(null)} className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-neutral-600 text-lg">✕</button>
             </div>
-            <div className="text-right">
-              <div className="font-black text-orange-500 text-sm">{s.pay}</div>
-              <button className="mt-2 btn-dash-outline text-xs px-3 py-1.5">Detalji</button>
+            <div className="flex flex-col gap-3">
+              <div>
+                <div className="text-xs text-neutral-400 font-medium mb-0.5">Lokal</div>
+                <div className="text-sm font-bold text-neutral-900">{selected.venue.name}</div>
+                <div className="text-xs text-neutral-400">{selected.venue.address}, {selected.venue.municipality}</div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="text-xs text-neutral-400 font-medium mb-0.5">Datum</div>
+                  <div className="text-sm font-semibold text-neutral-900 capitalize">
+                    {new Date(selected.date).toLocaleDateString("sr-Latn-RS", { weekday: "long", day: "numeric", month: "long" })}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-neutral-400 font-medium mb-0.5">Vreme</div>
+                  <div className="text-sm font-semibold text-neutral-900">{selected.startTime} – {selected.endTime}</div>
+                </div>
+              </div>
+              {selected.role && (
+                <div>
+                  <div className="text-xs text-neutral-400 font-medium mb-0.5">Uloga</div>
+                  <div className="text-sm font-semibold text-neutral-900">{selected.role}</div>
+                </div>
+              )}
+              {selected.pay != null && (
+                <div>
+                  <div className="text-xs text-neutral-400 font-medium mb-0.5">Naknada</div>
+                  <div className="text-lg font-black text-orange-500">{selected.pay.toLocaleString("sr-RS")} RSD</div>
+                </div>
+              )}
+              {selected.notes && (
+                <div>
+                  <div className="text-xs text-neutral-400 font-medium mb-0.5">Napomena</div>
+                  <div className="text-sm text-neutral-600 leading-relaxed">{selected.notes}</div>
+                </div>
+              )}
             </div>
           </div>
-        ))}
+        </div>
+      )}
+
+      <h2 className="font-black text-neutral-900">Moje smene</h2>
+
+      {/* Calendar */}
+      <div className="dash-card overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
+          <button onClick={() => setCurrent(new Date(year, month - 1, 1))}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors">
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg>
+          </button>
+          <div className="flex items-center gap-3">
+            <span className="font-bold text-neutral-900">{MONTHS_SR[month]} {year}</span>
+            {!isCurrentMonth && (
+              <button onClick={() => setCurrent(new Date(now.getFullYear(), now.getMonth(), 1))}
+                className="text-xs text-orange-500 font-semibold hover:underline">Danas</button>
+            )}
+          </div>
+          <button onClick={() => setCurrent(new Date(year, month + 1, 1))}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors">
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>
+          </button>
+        </div>
+        <div className="grid grid-cols-7 border-b border-neutral-100">
+          {DAYS_SR.map(d => (
+            <div key={d} className="text-center text-[11px] font-bold text-neutral-400 py-2.5">{d}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7">
+          {Array.from({ length: totalCells }, (_, i) => {
+            const dayNum      = i - firstDay + 1;
+            const isValid     = dayNum >= 1 && dayNum <= daysInMonth;
+            const isToday     = dayNum === todayNum;
+            const isLastInRow = (i + 1) % 7 === 0;
+            const isLastRow   = i >= totalCells - 7;
+            const dayShifts   = isValid ? (shiftsByDay[dayNum] ?? []) : [];
+            return (
+              <div key={i}
+                className={[
+                  "min-h-[84px] p-1.5",
+                  !isLastInRow && "border-r border-neutral-100",
+                  !isLastRow   && "border-b border-neutral-100",
+                  !isValid     && "bg-neutral-50/40",
+                ].filter(Boolean).join(" ")}>
+                {isValid && (
+                  <>
+                    <div className={`text-xs font-bold mb-1 w-6 h-6 flex items-center justify-center rounded-full ${isToday ? "bg-orange-500 text-white" : "text-neutral-500"}`}>
+                      {dayNum}
+                    </div>
+                    <div className="flex flex-col gap-0">
+                      {dayShifts.slice(0, 2).map((s, idx) => (
+                        <div key={s.id}>
+                          {idx > 0 && <div className="h-px bg-neutral-300/60 my-0.5 mx-0.5" />}
+                          <div onClick={() => setSelected(s)}
+                            className="text-[10px] font-semibold bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded truncate cursor-pointer hover:bg-orange-200 transition-colors">
+                            {s.startTime} {s.venue.name}
+                          </div>
+                        </div>
+                      ))}
+                      {dayShifts.length > 2 && (
+                        <div className="text-[10px] text-neutral-400 font-medium px-1">+{dayShifts.length - 2}</div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
+
+      {/* Upcoming list */}
+      {shifts.length === 0 ? (
+        <div className="dash-card p-10 text-center text-neutral-400 text-sm">Nemaš dodeljenih smena</div>
+      ) : upcoming.length > 0 && (
+        <div className="dash-card p-5">
+          <h3 className="font-bold text-neutral-900 text-sm mb-3">Nadolazeće smene</h3>
+          <div className="flex flex-col gap-0">
+            {upcoming.map(s => {
+              const dateStr = new Date(s.date).toLocaleDateString("sr-Latn-RS", { weekday: "short", day: "numeric", month: "short" });
+              return (
+                <div key={s.id} onClick={() => setSelected(s)}
+                  className="flex items-center justify-between py-2.5 border-b border-neutral-100 last:border-0 cursor-pointer hover:opacity-75 transition-opacity">
+                  <div>
+                    <div className="text-sm font-semibold text-neutral-800">{s.venue.name}</div>
+                    <div className="text-xs text-neutral-400 mt-0.5 capitalize">{dateStr} · {s.startTime}–{s.endTime}</div>
+                  </div>
+                  {s.pay != null && <div className="font-black text-orange-500 text-sm flex-shrink-0 ml-4">{s.pay.toLocaleString("sr-RS")} RSD</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -497,12 +675,19 @@ export default function WaiterDashboard() {
   const [applications, setApplications] = useState<MyApplication[]>([]);
   const [loading, setLoading]           = useState(true);
   const [applying, setApplying]         = useState<string | null>(null);
+  const [shifts, setShifts]             = useState<WaiterShift[]>([]);
+  const [mobileOpen, setMobileOpen]     = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [jobsRes, appsRes] = await Promise.all([fetch("/api/jobs"), fetch("/api/jobs/applications")]);
-    if (jobsRes.ok) setJobs(await jobsRes.json());
-    if (appsRes.ok) setApplications(await appsRes.json());
+    const [jobsRes, appsRes, shiftsRes] = await Promise.all([
+      fetch("/api/jobs"),
+      fetch("/api/jobs/applications"),
+      fetch("/api/shifts"),
+    ]);
+    if (jobsRes.ok)   setJobs(await jobsRes.json());
+    if (appsRes.ok)   setApplications(await appsRes.json());
+    if (shiftsRes.ok) setShifts(await shiftsRes.json());
     setLoading(false);
   }, []);
 
@@ -525,8 +710,65 @@ export default function WaiterDashboard() {
   const alertCount    = jobs.filter(j => j.redAlert).length;
   const today = new Date().toLocaleDateString("sr-Latn-RS", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
 
+  const navContent = (closeMenu?: () => void) => (
+    <>
+      <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
+        {NAV_ITEMS.map(item => (
+          <button key={item.key}
+            onClick={() => { setSection(item.key); closeMenu?.(); }}
+            className={`nav-item ${section === item.key ? "active" : ""}`}>
+            {item.icon}{item.label}
+            {item.key === "alerts" && alertCount > 0 && (
+              <span className="ml-auto bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{alertCount}</span>
+            )}
+          </button>
+        ))}
+      </nav>
+      <div className="px-3 py-4 border-t border-neutral-100">
+        <div className="flex items-center gap-3 px-2 mb-3">
+          <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm flex-shrink-0">{initials}</div>
+          <div className="min-w-0">
+            <div className="text-sm font-bold text-neutral-900 truncate">{userName}</div>
+            <div className="text-[11px] text-neutral-400 truncate">Konobar · GOLD</div>
+          </div>
+        </div>
+        <button onClick={() => signOut({ callbackUrl: "/" })} className="nav-item text-red-400 hover:bg-red-50 hover:text-red-500 w-full">
+          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          Odjavi se
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <div className="flex min-h-screen" style={{ background: "#F6F5F2" }}>
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setMobileOpen(false)} />
+      )}
+
+      {/* Mobile drawer */}
+      <div
+        className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col md:hidden transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        style={{ background: "white", borderRight: "1px solid #f0efec" }}>
+        <div className="px-5 py-5 border-b border-neutral-100 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center text-white font-black text-sm">eK</div>
+            <span className="font-black text-neutral-900 text-base">eKonobar</span>
+          </Link>
+          <button onClick={() => setMobileOpen(false)}
+            className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-neutral-600">
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        {navContent(() => setMobileOpen(false))}
+      </div>
+
+      {/* Desktop sidebar */}
       <aside className="hidden md:flex flex-col w-60 min-h-screen sticky top-0 h-screen overflow-y-auto"
         style={{ background: "white", borderRight: "1px solid #f0efec" }}>
         <div className="px-5 py-5 border-b border-neutral-100">
@@ -535,40 +777,23 @@ export default function WaiterDashboard() {
             <span className="font-black text-neutral-900 text-base">eKonobar</span>
           </Link>
         </div>
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
-          {NAV_ITEMS.map(item => (
-            <button key={item.key} onClick={() => setSection(item.key)}
-              className={`nav-item ${section === item.key ? "active" : ""}`}>
-              {item.icon}{item.label}
-              {item.key === "alerts" && alertCount > 0 && (
-                <span className="ml-auto bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{alertCount}</span>
-              )}
-            </button>
-          ))}
-        </nav>
-        <div className="px-3 py-4 border-t border-neutral-100">
-          <div className="flex items-center gap-3 px-2 mb-3">
-            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm flex-shrink-0">{initials}</div>
-            <div className="min-w-0">
-              <div className="text-sm font-bold text-neutral-900 truncate">{userName}</div>
-              <div className="text-[11px] text-neutral-400 truncate">Konobar · GOLD</div>
-            </div>
-          </div>
-          <button onClick={() => signOut({ callbackUrl: "/" })} className="nav-item text-red-400 hover:bg-red-50 hover:text-red-500 w-full">
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-            Odjavi se
-          </button>
-        </div>
+        {navContent()}
       </aside>
 
       <main className="flex-1 overflow-y-auto">
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4"
           style={{ background: "rgba(246,245,242,0.9)", backdropFilter: "blur(8px)", borderBottom: "1px solid #f0efec" }}>
-          <div>
-            <h1 className="font-black text-neutral-900 text-lg">{SECTION_TITLES[section]}</h1>
-            <p className="text-xs text-neutral-400 capitalize">{today}</p>
+          <div className="flex items-center gap-3">
+            <button className="md:hidden w-9 h-9 rounded-xl bg-white border border-neutral-100 flex items-center justify-center hover:border-orange-300 transition-colors"
+              onClick={() => setMobileOpen(true)}>
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+            <div>
+              <h1 className="font-black text-neutral-900 text-lg">{SECTION_TITLES[section]}</h1>
+              <p className="text-xs text-neutral-400 capitalize">{today}</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <button className="relative w-9 h-9 rounded-xl bg-white border border-neutral-100 flex items-center justify-center hover:border-orange-300 transition-colors">
@@ -582,11 +807,11 @@ export default function WaiterDashboard() {
         </div>
 
         <div className="p-6 flex flex-col gap-6 max-w-5xl mx-auto">
-          {section === "overview"     && <OverviewSection jobs={jobs} applications={applications} userName={userName} onNavigate={setSection} onApply={handleApply} applying={applying} />}
+          {section === "overview"     && <OverviewSection jobs={jobs} applications={applications} shifts={shifts} userName={userName} onNavigate={setSection} onApply={handleApply} applying={applying} />}
           {section === "alerts"       && <AlertsSection jobs={jobs} loading={loading} onApply={handleApply} applying={applying} appliedJobIds={appliedJobIds} />}
           {section === "jobs"         && <JobsSection jobs={jobs} loading={loading} onApply={handleApply} applying={applying} appliedJobIds={appliedJobIds} />}
           {section === "applications" && <ApplicationsSection applications={applications} loading={loading} />}
-          {section === "shifts"       && <ShiftsSection />}
+          {section === "shifts"       && <ShiftsSection shifts={shifts} loading={loading} />}
           {section === "reviews"      && <ReviewsSection />}
           {section === "passport"     && <PassportSection />}
         </div>

@@ -5,8 +5,25 @@ import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 
-type Section = "overview" | "posts" | "applications" | "waiters" | "reviews" | "profile";
+type Section = "overview" | "posts" | "new-post" | "smene" | "applications" | "waiters" | "reviews" | "profile";
 type AppFilter = "SVE" | "PENDING" | "SHORTLISTED" | "ACCEPTED" | "REJECTED";
+
+type VenueShift = {
+  id: string;
+  title: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  role: string | null;
+  pay: number | null;
+  notes: string | null;
+  waiterId: string | null;
+  waiter: { id: string; name: string | null } | null;
+};
+
+const DAYS_SR   = ["Pon", "Uto", "Sre", "Čet", "Pet", "Sub", "Ned"];
+const MONTHS_SR = ["Januar", "Februar", "Mart", "April", "Maj", "Jun",
+                   "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"];
 
 /* ── API types ────────────────────────────────────────────────────────────── */
 
@@ -221,7 +238,7 @@ function OverviewSection({ venue, posts, applications, loading, onNavigate }: {
             ))}
           </div>
         </div>
-        <button onClick={() => onNavigate("posts")} className="btn-dash-orange px-4 py-2 self-start whitespace-nowrap">
+        <button onClick={() => onNavigate("new-post")} className="btn-dash-orange px-4 py-2 self-start whitespace-nowrap">
           + Novi oglas
         </button>
       </div>
@@ -317,13 +334,13 @@ function OverviewSection({ venue, posts, applications, loading, onNavigate }: {
 
 /* ── Section: Posts ──────────────────────────────────────────────────────── */
 
-function PostsSection({ posts, loading }: { posts: OwnPost[]; loading: boolean }) {
+function PostsSection({ posts, loading, onNavigate }: { posts: OwnPost[]; loading: boolean; onNavigate: (s: Section) => void }) {
   if (loading) return <Spinner />;
   return (
     <>
       <div className="flex items-center justify-between">
         <h2 className="font-black text-neutral-900">Moji oglasi</h2>
-        <button className="btn-dash-orange px-4 py-2">+ Novi oglas</button>
+        <button onClick={() => onNavigate("new-post")} className="btn-dash-orange px-4 py-2">+ Novi oglas</button>
       </div>
       {posts.length === 0
         ? <div className="dash-card p-10 text-center text-neutral-400 text-sm">Nema oglasa — klikni "+ Novi oglas" da počneš</div>
@@ -353,6 +370,171 @@ function PostsSection({ posts, loading }: { posts: OwnPost[]; loading: boolean }
           </div>
       }
     </>
+  );
+}
+
+/* ── Section: New Post ───────────────────────────────────────────────────── */
+
+function NewPostSection({ venue, onSuccess, onBack }: {
+  venue: Venue | null;
+  onSuccess: () => void;
+  onBack: () => void;
+}) {
+  const [form, setForm] = useState({
+    title: "", description: "", engagementType: "FULL_TIME", tipSystem: "INDIVIDUAL",
+    salaryMin: "", salaryMax: "", sanitaryRequired: false, redAlert: false,
+    redAlertNote: "", startDate: "", endDate: "", applicationDeadline: "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  if (!venue) return <EmptyVenue onNavigate={onBack} />;
+
+  const set = (k: string, v: string | boolean) => setForm(p => ({ ...p, [k]: v }));
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSaving(true);
+    const res = await fetch("/api/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        venueId: venue.id,
+        title: form.title,
+        description: form.description,
+        engagementType: form.engagementType,
+        tipSystem: form.tipSystem,
+        salaryMin: form.salaryMin ? Number(form.salaryMin) : undefined,
+        salaryMax: form.salaryMax ? Number(form.salaryMax) : undefined,
+        sanitaryRequired: form.sanitaryRequired,
+        redAlert: form.redAlert,
+        redAlertNote: form.redAlertNote || undefined,
+        startDate: form.startDate || undefined,
+        endDate: form.endDate || undefined,
+        applicationDeadline: form.applicationDeadline || undefined,
+      }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setError((d as { error?: string }).error ?? "Greška pri kreiranju oglasa.");
+      return;
+    }
+    onSuccess();
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <div className="flex items-center gap-3">
+        <button type="button" onClick={onBack}
+          className="btn-dash-outline px-3 py-1.5 text-sm flex items-center gap-1">
+          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg>
+          Nazad
+        </button>
+        <h2 className="font-black text-neutral-900">Novi oglas</h2>
+      </div>
+
+      <div className="dash-card p-6 flex flex-col gap-5">
+        <div>
+          <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Naziv pozicije *</label>
+          <input type="text" required value={form.title}
+            onChange={e => set("title", e.target.value)}
+            placeholder="npr. Konobar/ica za vikend" className="auth-input" />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Opis *</label>
+          <textarea required value={form.description}
+            onChange={e => set("description", e.target.value)}
+            placeholder="Opišite poziciju, uslove rada, iskustvo..." rows={4}
+            className="auth-input resize-none" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Tip angažmana *</label>
+            <select required value={form.engagementType}
+              onChange={e => set("engagementType", e.target.value)} className="auth-input">
+              <option value="FULL_TIME">Stalno</option>
+              <option value="SEASONAL">Sezonski</option>
+              <option value="WEEKEND">Vikend</option>
+              <option value="CELEBRATION">Slavlje</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Bakšiš sistem *</label>
+            <select required value={form.tipSystem}
+              onChange={e => set("tipSystem", e.target.value)} className="auth-input">
+              <option value="INDIVIDUAL">Individualni (konobar zadržava)</option>
+              <option value="SHARED">Zajednički fond</option>
+              <option value="VENUE_POLICY">Politika lokala</option>
+            </select>
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Plata od (RSD)</label>
+            <input type="number" min={0} value={form.salaryMin}
+              onChange={e => set("salaryMin", e.target.value)}
+              placeholder="npr. 60 000" className="auth-input" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Plata do (RSD)</label>
+            <input type="number" min={0} value={form.salaryMax}
+              onChange={e => set("salaryMax", e.target.value)}
+              placeholder="npr. 90 000" className="auth-input" />
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Datum početka</label>
+            <input type="date" value={form.startDate}
+              onChange={e => set("startDate", e.target.value)} className="auth-input" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Datum završetka</label>
+            <input type="date" value={form.endDate}
+              onChange={e => set("endDate", e.target.value)} className="auth-input" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Rok prijave</label>
+            <input type="date" value={form.applicationDeadline}
+              onChange={e => set("applicationDeadline", e.target.value)} className="auth-input" />
+          </div>
+        </div>
+        <div className="flex flex-col gap-3 pt-1">
+          <label className="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" checked={form.sanitaryRequired}
+              onChange={e => set("sanitaryRequired", e.target.checked)}
+              className="w-4 h-4 rounded accent-orange-500" />
+            <span className="text-sm text-neutral-700">Sanitarna knjižica obavezna</span>
+          </label>
+          <label className="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" checked={form.redAlert}
+              onChange={e => set("redAlert", e.target.checked)}
+              className="w-4 h-4 rounded accent-orange-500" />
+            <span className="text-sm text-neutral-700">⚡ Red Alert — hitna potreba, oglas se ističe</span>
+          </label>
+        </div>
+        {form.redAlert && (
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Napomena za Red Alert</label>
+            <input type="text" value={form.redAlertNote}
+              onChange={e => set("redAlertNote", e.target.value)}
+              placeholder="npr. Potreban odmah za vikend" className="auth-input" />
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <div className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{error}</div>
+      )}
+      <div className="flex gap-3">
+        <button type="submit" disabled={saving} className="btn-dash-orange px-6 py-2.5 disabled:opacity-60">
+          {saving ? "Objavljivanje..." : "Objavi oglas"}
+        </button>
+        <button type="button" onClick={onBack} className="btn-dash-outline px-6 py-2.5">Otkaži</button>
+      </div>
+    </form>
   );
 }
 
@@ -515,9 +697,149 @@ function ReviewsSection() {
 
 /* ── Section: Profile ────────────────────────────────────────────────────── */
 
-function ProfileSection({ venue, loading }: { venue: Venue | null; loading: boolean }) {
+function VenueCreateForm({ onCreated }: { onCreated: () => void }) {
+  const [form, setForm] = useState({
+    name: "", address: "", municipality: "", venueType: "RESTAURANT",
+    latitude: "", longitude: "", capacity: "", description: "",
+    phone: "", website: "", instagram: "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSaving(true);
+    const res = await fetch("/api/venues", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: form.name,
+        address: form.address,
+        municipality: form.municipality,
+        venueType: form.venueType,
+        latitude: Number(form.latitude),
+        longitude: Number(form.longitude),
+        capacity: form.capacity ? Number(form.capacity) : undefined,
+        description: form.description || undefined,
+        phone: form.phone || undefined,
+        website: form.website || undefined,
+        instagram: form.instagram || undefined,
+      }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setError((d as { error?: string }).error ?? "Greška pri registraciji lokala.");
+      return;
+    }
+    onCreated();
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <h2 className="font-black text-neutral-900">Registruj lokal</h2>
+      <div className="dash-card p-6 flex flex-col gap-5">
+        <div>
+          <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Naziv lokala *</label>
+          <input type="text" required value={form.name}
+            onChange={e => set("name", e.target.value)}
+            placeholder="npr. Kafana Kod Mene" className="auth-input" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Adresa *</label>
+            <input type="text" required value={form.address}
+              onChange={e => set("address", e.target.value)}
+              placeholder="npr. Skadarska 5" className="auth-input" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Opština *</label>
+            <input type="text" required value={form.municipality}
+              onChange={e => set("municipality", e.target.value)}
+              placeholder="npr. Stari Grad" className="auth-input" />
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Tip lokala *</label>
+            <select required value={form.venueType}
+              onChange={e => set("venueType", e.target.value)} className="auth-input">
+              <option value="RESTAURANT">Restoran</option>
+              <option value="CAFE">Kafić</option>
+              <option value="BAR">Bar</option>
+              <option value="CATERING">Ketering</option>
+              <option value="HOTEL">Hotel</option>
+              <option value="EVENT">Event</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Kapacitet mesta</label>
+            <input type="number" min={1} value={form.capacity}
+              onChange={e => set("capacity", e.target.value)}
+              placeholder="npr. 50" className="auth-input" />
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-neutral-600 mb-1">Koordinate *</label>
+          <p className="text-xs text-neutral-400 mb-2">
+            Otvorite Google Maps → desni klik na lokaciju → kliknite na koordinate da ih kopirate
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <input type="number" step="any" required value={form.latitude}
+              onChange={e => set("latitude", e.target.value)}
+              placeholder="Geografska širina (npr. 44.8125)" className="auth-input" />
+            <input type="number" step="any" required value={form.longitude}
+              onChange={e => set("longitude", e.target.value)}
+              placeholder="Geografska dužina (npr. 20.4612)" className="auth-input" />
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Kratki opis</label>
+          <textarea value={form.description}
+            onChange={e => set("description", e.target.value)}
+            placeholder="Kratki opis vašeg lokala..." rows={3}
+            className="auth-input resize-none" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Telefon</label>
+            <input type="tel" value={form.phone}
+              onChange={e => set("phone", e.target.value)}
+              placeholder="+381 11 123 4567" className="auth-input" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Vebsajt</label>
+            <input type="url" value={form.website}
+              onChange={e => set("website", e.target.value)}
+              placeholder="https://vaslokal.rs" className="auth-input" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Instagram</label>
+            <input type="text" value={form.instagram}
+              onChange={e => set("instagram", e.target.value)}
+              placeholder="@vaslokal" className="auth-input" />
+          </div>
+        </div>
+      </div>
+      {error && (
+        <div className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{error}</div>
+      )}
+      <button type="submit" disabled={saving}
+        className="btn-dash-orange px-6 py-2.5 self-start disabled:opacity-60">
+        {saving ? "Registrovanje..." : "Registruj lokal"}
+      </button>
+    </form>
+  );
+}
+
+function ProfileSection({ venue, loading, onVenueCreated }: {
+  venue: Venue | null; loading: boolean; onVenueCreated: () => void;
+}) {
   if (loading) return <Spinner />;
-  if (!venue) return <EmptyVenue onNavigate={() => {}} />;
+  if (!venue) return <VenueCreateForm onCreated={onVenueCreated} />;
 
   const score = Math.round(venue.trustScore) || 0;
   const circumference = 2 * Math.PI * 46;
@@ -587,11 +909,358 @@ function ProfileSection({ venue, loading }: { venue: Venue | null; loading: bool
   );
 }
 
+/* ── Shift modal ─────────────────────────────────────────────────────────── */
+
+function ShiftModal({ shift, date, venue, waiters, onSave, onDelete, onClose }: {
+  shift: VenueShift | null;
+  date: Date | null;
+  venue: Venue;
+  waiters: { id: string; name: string | null }[];
+  onSave: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  const toInput = (d: Date) => d.toLocaleDateString("sv-SE"); // "YYYY-MM-DD"
+  const [form, setForm] = useState({
+    title:     shift?.title     ?? "",
+    date:      shift ? shift.date.slice(0, 10) : (date ? toInput(date) : ""),
+    startTime: shift?.startTime ?? "18:00",
+    endTime:   shift?.endTime   ?? "02:00",
+    role:      shift?.role      ?? "",
+    pay:       shift?.pay?.toString() ?? "",
+    waiterId:  shift?.waiterId  ?? "",
+    notes:     shift?.notes     ?? "",
+  });
+  const [saving, setSaving]     = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
+  const [error, setError]       = useState("");
+
+  const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSaving(true);
+    const url    = shift ? `/api/shifts/${shift.id}` : "/api/shifts";
+    const method = shift ? "PATCH" : "POST";
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        venueId:   venue.id,
+        title:     form.title,
+        date:      form.date,
+        startTime: form.startTime,
+        endTime:   form.endTime,
+        role:      form.role     || undefined,
+        pay:       form.pay      ? Number(form.pay) : undefined,
+        waiterId:  form.waiterId || undefined,
+        notes:     form.notes    || undefined,
+      }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setError((d as { error?: string }).error ?? "Greška.");
+      return;
+    }
+    onSave();
+  }
+
+  async function handleDelete() {
+    if (!shift) return;
+    setDeleting(true);
+    await fetch(`/api/shifts/${shift.id}`, { method: "DELETE" });
+    setDeleting(false);
+    onDelete();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)" }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="dash-card w-full max-w-md p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <h3 className="font-black text-neutral-900">{shift ? "Uredi smenu" : "Nova smena"}</h3>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-neutral-600 text-lg">✕</button>
+        </div>
+        <form onSubmit={handleSave} className="flex flex-col gap-4">
+          <div>
+            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Naziv smene *</label>
+            <input type="text" required value={form.title} onChange={e => set("title", e.target.value)}
+              placeholder="npr. Večernja smena" className="auth-input" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Datum *</label>
+            <input type="date" required value={form.date} onChange={e => set("date", e.target.value)}
+              className="auth-input" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Od *</label>
+              <input type="time" required value={form.startTime} onChange={e => set("startTime", e.target.value)}
+                className="auth-input" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Do *</label>
+              <input type="time" required value={form.endTime} onChange={e => set("endTime", e.target.value)}
+                className="auth-input" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Uloga</label>
+              <input type="text" value={form.role} onChange={e => set("role", e.target.value)}
+                placeholder="npr. Konobar" className="auth-input" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Naknada (RSD)</label>
+              <input type="number" min={0} value={form.pay} onChange={e => set("pay", e.target.value)}
+                placeholder="npr. 3 000" className="auth-input" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Konobar</label>
+            <select value={form.waiterId} onChange={e => set("waiterId", e.target.value)} className="auth-input">
+              <option value="">— Nedodeljen —</option>
+              {waiters.map(w => (
+                <option key={w.id} value={w.id}>{w.name ?? w.id.slice(0, 8)}</option>
+              ))}
+            </select>
+            {waiters.length === 0 && (
+              <p className="text-[11px] text-neutral-400 mt-1">Nema prihvaćenih konobara za ovaj lokal.</p>
+            )}
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Napomena</label>
+            <textarea value={form.notes} onChange={e => set("notes", e.target.value)}
+              rows={2} className="auth-input resize-none" />
+          </div>
+          {error && <div className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</div>}
+          <div className="flex gap-2 pt-1">
+            <button type="submit" disabled={saving} className="btn-dash-orange flex-1 py-2.5 disabled:opacity-60">
+              {saving ? "Čuvanje..." : (shift ? "Sačuvaj" : "Dodaj smenu")}
+            </button>
+            {shift && !confirmDel && (
+              <button type="button" onClick={() => setConfirmDel(true)}
+                className="btn-dash-outline px-4 py-2.5 text-red-400 hover:border-red-300 hover:text-red-500">
+                Obriši
+              </button>
+            )}
+            {shift && confirmDel && (
+              <button type="button" disabled={deleting} onClick={handleDelete}
+                className="btn-dash-outline px-4 py-2.5 border-red-300 text-red-500 hover:bg-red-50 disabled:opacity-60">
+                {deleting ? "..." : "Potvrdi?"}
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ── Section: Smene (venue) ──────────────────────────────────────────────── */
+
+function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh }: {
+  venue: Venue | null;
+  shifts: VenueShift[];
+  loading: boolean;
+  acceptedWaiters: { id: string; name: string | null }[];
+  onRefresh: () => void;
+}) {
+  const now = new Date();
+  const [current, setCurrent]   = useState(new Date(now.getFullYear(), now.getMonth(), 1));
+  const [creating, setCreating] = useState<Date | null>(null);
+  const [editing, setEditing]   = useState<VenueShift | null>(null);
+
+  if (loading) return <Spinner />;
+  if (!venue)  return <EmptyVenue onNavigate={() => {}} />;
+
+  const year  = current.getFullYear();
+  const month = current.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDay    = (new Date(year, month, 1).getDay() + 6) % 7; // Mon=0
+  const totalCells  = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+  const todayNum    = now.getFullYear() === year && now.getMonth() === month ? now.getDate() : -1;
+
+  const shiftsByDay: Record<number, VenueShift[]> = {};
+  for (const s of shifts) {
+    const d = new Date(s.date);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      const day = d.getDate();
+      if (!shiftsByDay[day]) shiftsByDay[day] = [];
+      shiftsByDay[day].push(s);
+    }
+  }
+
+  const upcoming = shifts
+    .filter(s => new Date(s.date) >= new Date(now.getFullYear(), now.getMonth(), now.getDate()))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 6);
+
+  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
+
+  return (
+    <>
+      {(creating || editing) && (
+        <ShiftModal
+          shift={editing}
+          date={creating}
+          venue={venue}
+          waiters={acceptedWaiters}
+          onSave={() => { setCreating(null); setEditing(null); onRefresh(); }}
+          onDelete={() => { setEditing(null); onRefresh(); }}
+          onClose={() => { setCreating(null); setEditing(null); }}
+        />
+      )}
+
+      <div className="flex items-center justify-between">
+        <h2 className="font-black text-neutral-900">Smene</h2>
+        <button onClick={() => setCreating(now)} className="btn-dash-orange px-4 py-2">+ Nova smena</button>
+      </div>
+
+      {/* Calendar card */}
+      <div className="dash-card overflow-hidden">
+        {/* Month nav */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
+          <button onClick={() => setCurrent(new Date(year, month - 1, 1))}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors">
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg>
+          </button>
+          <div className="flex items-center gap-3">
+            <span className="font-bold text-neutral-900">{MONTHS_SR[month]} {year}</span>
+            {!isCurrentMonth && (
+              <button onClick={() => setCurrent(new Date(now.getFullYear(), now.getMonth(), 1))}
+                className="text-xs text-orange-500 font-semibold hover:underline">Danas</button>
+            )}
+          </div>
+          <button onClick={() => setCurrent(new Date(year, month + 1, 1))}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors">
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>
+          </button>
+        </div>
+
+        {/* Day headers */}
+        <div className="grid grid-cols-7 border-b border-neutral-100">
+          {DAYS_SR.map(d => (
+            <div key={d} className="text-center text-[11px] font-bold text-neutral-400 py-2.5">{d}</div>
+          ))}
+        </div>
+
+        {/* Grid cells */}
+        <div className="grid grid-cols-7">
+          {Array.from({ length: totalCells }, (_, i) => {
+            const dayNum     = i - firstDay + 1;
+            const isValid    = dayNum >= 1 && dayNum <= daysInMonth;
+            const isToday    = dayNum === todayNum;
+            const isLastInRow = (i + 1) % 7 === 0;
+            const isLastRow  = i >= totalCells - 7;
+            const dayShifts  = isValid ? (shiftsByDay[dayNum] ?? []) : [];
+            return (
+              <div key={i}
+                onClick={() => { if (isValid) setCreating(new Date(year, month, dayNum)); }}
+                className={[
+                  "min-h-[84px] p-1.5",
+                  !isLastInRow && "border-r border-neutral-100",
+                  !isLastRow   && "border-b border-neutral-100",
+                  isValid ? "cursor-pointer hover:bg-orange-50/60 transition-colors" : "bg-neutral-50/40",
+                ].filter(Boolean).join(" ")}>
+                {isValid && (
+                  <>
+                    <div className={`text-xs font-bold mb-1 w-6 h-6 flex items-center justify-center rounded-full ${isToday ? "bg-orange-500 text-white" : "text-neutral-500"}`}>
+                      {dayNum}
+                    </div>
+                    <div className="flex flex-col gap-0">
+                      {dayShifts.slice(0, 2).map((s, idx) => (
+                        <div key={s.id}>
+                          {idx > 0 && <div className="h-px bg-neutral-300/60 my-0.5 mx-0.5" />}
+                          <div
+                            onClick={e => { e.stopPropagation(); setEditing(s); }}
+                            title="Kliknite za uređivanje"
+                            className={`text-[10px] font-semibold px-1 py-0.5 rounded cursor-pointer hover:opacity-75 transition-opacity flex items-center gap-1 min-w-0 ${s.waiterId ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-600"}`}>
+                            {s.waiter
+                              ? (
+                                <span
+                                  className="w-3.5 h-3.5 rounded-full flex-shrink-0 flex items-center justify-center text-white font-black leading-none"
+                                  style={{ fontSize: "7px", background: s.waiterId ? "#15803d" : "#c2410c" }}>
+                                  {getInitials(s.waiter.name)}
+                                </span>
+                              ) : (
+                                <span className="w-3.5 h-3.5 rounded-full flex-shrink-0 border border-current opacity-40" />
+                              )
+                            }
+                            <span className="truncate">{s.startTime}</span>
+                          </div>
+                        </div>
+                      ))}
+                      {dayShifts.length > 2 && (
+                        <div className="text-[10px] text-neutral-400 font-medium px-1">+{dayShifts.length - 2}</div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-4 text-xs text-neutral-500">
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded bg-orange-100 border border-orange-200 inline-block" />Nedodeljena smena
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded bg-green-100 border border-green-200 inline-block" />Dodeljena smena
+        </span>
+        <span className="text-neutral-400">Kliknite na dan za novu smenu · kliknite na smenu za uređivanje</span>
+      </div>
+
+      {/* Upcoming list */}
+      {upcoming.length > 0 && (
+        <div className="dash-card p-5">
+          <h3 className="font-bold text-neutral-900 text-sm mb-3">Nadolazeće smene</h3>
+          <div className="flex flex-col gap-0">
+            {upcoming.map(s => {
+              const dateStr = new Date(s.date).toLocaleDateString("sr-Latn-RS", { weekday: "short", day: "numeric", month: "short" });
+              return (
+                <div key={s.id} onClick={() => setEditing(s)}
+                  className="flex items-center justify-between py-2.5 border-b border-neutral-100 last:border-0 cursor-pointer hover:opacity-75 transition-opacity">
+                  <div>
+                    <div className="text-sm font-semibold text-neutral-800">{s.title}{s.role && <span className="ml-1.5 text-[11px] text-neutral-400 font-normal">· {s.role}</span>}</div>
+                    <div className="text-xs text-neutral-400 mt-0.5 capitalize">{dateStr} · {s.startTime}–{s.endTime}</div>
+                  </div>
+                  <div className="text-right flex-shrink-0 ml-4">
+                    {s.waiter
+                      ? <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">{s.waiter.name ?? "Konobar"}</span>
+                      : <span className="text-xs font-semibold text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded-full">Nedodeljena</span>
+                    }
+                    {s.pay && <div className="text-xs font-black text-orange-500 mt-0.5">{s.pay.toLocaleString("sr-RS")} RSD</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {shifts.length === 0 && (
+        <div className="dash-card p-10 text-center text-neutral-400 text-sm">
+          Nema smena — kliknite na dan u kalendaru ili koristite "+ Nova smena"
+        </div>
+      )}
+    </>
+  );
+}
+
 /* ── Nav ─────────────────────────────────────────────────────────────────── */
 
 const NAV_ITEMS: { key: Section; label: string; icon: React.ReactNode }[] = [
   { key: "overview",     label: "Pregled",       icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg> },
   { key: "posts",        label: "Oglasi",        icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" /></svg> },
+  { key: "smene",        label: "Smene",         icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg> },
   { key: "applications", label: "Prijave",       icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="9" y1="13" x2="15" y2="13" /><line x1="9" y1="17" x2="15" y2="17" /></svg> },
   { key: "waiters",      label: "Konobari",      icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg> },
   { key: "reviews",      label: "Recenzije",     icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg> },
@@ -599,8 +1268,8 @@ const NAV_ITEMS: { key: Section; label: string; icon: React.ReactNode }[] = [
 ];
 
 const SECTION_TITLES: Record<Section, string> = {
-  overview: "Pregled", posts: "Oglasi", applications: "Prijave",
-  waiters: "Konobari", reviews: "Recenzije", profile: "Profil lokala",
+  overview: "Pregled", posts: "Oglasi", "new-post": "Novi oglas", smene: "Smene",
+  applications: "Prijave", waiters: "Konobari", reviews: "Recenzije", profile: "Profil lokala",
 };
 
 /* ── Main dashboard ──────────────────────────────────────────────────────── */
@@ -611,18 +1280,22 @@ export default function VenueDashboard() {
   const [venue, setVenue]               = useState<Venue | null>(null);
   const [posts, setPosts]               = useState<OwnPost[]>([]);
   const [applications, setApplications] = useState<IncomingApp[]>([]);
+  const [shifts, setShifts]             = useState<VenueShift[]>([]);
   const [loading, setLoading]           = useState(true);
+  const [mobileOpen, setMobileOpen]     = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [venuesRes, postsRes, appsRes] = await Promise.all([
+    const [venuesRes, postsRes, appsRes, shiftsRes] = await Promise.all([
       fetch("/api/venues"),
       fetch("/api/jobs"),
       fetch("/api/jobs/applications"),
+      fetch("/api/shifts"),
     ]);
     if (venuesRes.ok) { const vs: Venue[] = await venuesRes.json(); setVenue(vs[0] ?? null); }
     if (postsRes.ok)  setPosts(await postsRes.json());
     if (appsRes.ok)   setApplications(await appsRes.json());
+    if (shiftsRes.ok) setShifts(await shiftsRes.json());
     setLoading(false);
   }, []);
 
@@ -637,13 +1310,75 @@ export default function VenueDashboard() {
     await fetchData();
   };
 
-  const userName     = session?.user?.name ?? venue?.name ?? "Lokal";
-  const initials     = getInitials(userName);
-  const pendingCount = applications.filter(a => a.status === "PENDING").length;
+  const userName        = session?.user?.name ?? venue?.name ?? "Lokal";
+  const initials        = getInitials(userName);
+  const pendingCount    = applications.filter(a => a.status === "PENDING").length;
+  const acceptedWaiters = [...new Map(
+    applications
+      .filter(a => a.status === "ACCEPTED")
+      .map(a => [a.waiter.id, { id: a.waiter.id, name: a.waiter.name }])
+  ).values()];
   const today = new Date().toLocaleDateString("sr-Latn-RS", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
+
+  const navContent = (closeMenu?: () => void) => (
+    <>
+      <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
+        {NAV_ITEMS.map(item => (
+          <button key={item.key}
+            onClick={() => { setSection(item.key); closeMenu?.(); }}
+            className={`nav-item ${section === item.key ? "active" : ""}`}>
+            {item.icon}{item.label}
+            {item.key === "applications" && pendingCount > 0 && (
+              <span className="ml-auto bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{pendingCount}</span>
+            )}
+          </button>
+        ))}
+      </nav>
+      <div className="px-3 py-4 border-t border-neutral-100">
+        <div className="flex items-center gap-3 px-2 mb-3">
+          <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm flex-shrink-0">{initials}</div>
+          <div className="min-w-0">
+            <div className="text-sm font-bold text-neutral-900 truncate">{venue?.name ?? userName}</div>
+            <div className="text-[11px] text-neutral-400 truncate">Vlasnik lokala</div>
+          </div>
+        </div>
+        <button onClick={() => signOut({ callbackUrl: "/" })} className="nav-item text-red-400 hover:bg-red-50 hover:text-red-500 w-full">
+          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          Odjavi se
+        </button>
+      </div>
+    </>
+  );
 
   return (
     <div className="flex min-h-screen" style={{ background: "#F6F5F2" }}>
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setMobileOpen(false)} />
+      )}
+
+      {/* Mobile drawer */}
+      <div
+        className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col md:hidden transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        style={{ background: "white", borderRight: "1px solid #f0efec" }}>
+        <div className="px-5 py-5 border-b border-neutral-100 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center text-white font-black text-sm">eK</div>
+            <span className="font-black text-neutral-900 text-base">eKonobar</span>
+          </Link>
+          <button onClick={() => setMobileOpen(false)}
+            className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-neutral-600">
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        {navContent(() => setMobileOpen(false))}
+      </div>
+
+      {/* Desktop sidebar */}
       <aside className="hidden md:flex flex-col w-60 min-h-screen sticky top-0 h-screen overflow-y-auto"
         style={{ background: "white", borderRight: "1px solid #f0efec" }}>
         <div className="px-5 py-5 border-b border-neutral-100">
@@ -652,40 +1387,23 @@ export default function VenueDashboard() {
             <span className="font-black text-neutral-900 text-base">eKonobar</span>
           </Link>
         </div>
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
-          {NAV_ITEMS.map(item => (
-            <button key={item.key} onClick={() => setSection(item.key)}
-              className={`nav-item ${section === item.key ? "active" : ""}`}>
-              {item.icon}{item.label}
-              {item.key === "applications" && pendingCount > 0 && (
-                <span className="ml-auto bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{pendingCount}</span>
-              )}
-            </button>
-          ))}
-        </nav>
-        <div className="px-3 py-4 border-t border-neutral-100">
-          <div className="flex items-center gap-3 px-2 mb-3">
-            <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm flex-shrink-0">{initials}</div>
-            <div className="min-w-0">
-              <div className="text-sm font-bold text-neutral-900 truncate">{venue?.name ?? userName}</div>
-              <div className="text-[11px] text-neutral-400 truncate">Vlasnik lokala</div>
-            </div>
-          </div>
-          <button onClick={() => signOut({ callbackUrl: "/" })} className="nav-item text-red-400 hover:bg-red-50 hover:text-red-500 w-full">
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-            Odjavi se
-          </button>
-        </div>
+        {navContent()}
       </aside>
 
       <main className="flex-1 overflow-y-auto">
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4"
           style={{ background: "rgba(246,245,242,0.9)", backdropFilter: "blur(8px)", borderBottom: "1px solid #f0efec" }}>
-          <div>
-            <h1 className="font-black text-neutral-900 text-lg">{SECTION_TITLES[section]}</h1>
-            <p className="text-xs text-neutral-400 capitalize">{today}</p>
+          <div className="flex items-center gap-3">
+            <button className="md:hidden w-9 h-9 rounded-xl bg-white border border-neutral-100 flex items-center justify-center hover:border-orange-300 transition-colors"
+              onClick={() => setMobileOpen(true)}>
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+            <div>
+              <h1 className="font-black text-neutral-900 text-lg">{SECTION_TITLES[section]}</h1>
+              <p className="text-xs text-neutral-400 capitalize">{today}</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <button className="relative w-9 h-9 rounded-xl bg-white border border-neutral-100 flex items-center justify-center hover:border-orange-300 transition-colors">
@@ -700,11 +1418,13 @@ export default function VenueDashboard() {
 
         <div className="p-6 flex flex-col gap-6 max-w-5xl mx-auto">
           {section === "overview"     && <OverviewSection venue={venue} posts={posts} applications={applications} loading={loading} onNavigate={setSection} />}
-          {section === "posts"        && <PostsSection posts={posts} loading={loading} />}
+          {section === "posts"        && <PostsSection posts={posts} loading={loading} onNavigate={setSection} />}
+          {section === "new-post"     && <NewPostSection venue={venue} onSuccess={() => { fetchData(); setSection("posts"); }} onBack={() => setSection("posts")} />}
+          {section === "smene"        && <VenueSmeneSection venue={venue} shifts={shifts} loading={loading} acceptedWaiters={acceptedWaiters} onRefresh={fetchData} />}
           {section === "applications" && <ApplicationsSection applications={applications} loading={loading} onStatusChange={handleStatusChange} />}
           {section === "waiters"      && <WaitersSection applications={applications} loading={loading} />}
           {section === "reviews"      && <ReviewsSection />}
-          {section === "profile"      && <ProfileSection venue={venue} loading={loading} />}
+          {section === "profile"      && <ProfileSection venue={venue} loading={loading} onVenueCreated={fetchData} />}
         </div>
       </main>
     </div>

@@ -27,7 +27,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="sr" className={lexend.variable}>
-      <body className="min-h-screen bg-cream-50 text-neutral-900 antialiased">
+      <body className="min-h-screen bg-cream-50 text-neutral-900 antialiased" suppressHydrationWarning>
         <SessionProvider>{children}</SessionProvider>
       </body>
     </html>

@@ -131,6 +131,7 @@ model User {
   reviewsReceived   Review[]            @relation("ReviewSubject")
   waiterPassport    WaiterPassport?
   engagementRecords EngagementRecord[]  @relation("WaiterEngagements")
+  shifts            Shift[]             @relation("WaiterShifts")
   sanitaryBook      SanitaryBook?
   savedProfiles     SavedProfile[]      @relation("HeadhunterSaved")
   invitesSent       Invite[]            @relation("InviteSender")
@@ -221,6 +222,7 @@ model Venue {
   jobPosts          JobPost[]
   reviews           Review[]
   engagementRecords EngagementRecord[]
+  shifts            Shift[]
   venueTrustScore   VenueTrustScore?
   zones             VenueZoneRelation[]
 
@@ -551,6 +553,31 @@ model SavedProfile {
 
   @@unique([headhunterId, savedWaiterId])
   @@index([headhunterId])
+}
+
+// ─── Shift (Smena) ───────────────────────────────────────────────────────────
+
+model Shift {
+  id        String   @id @default(cuid())
+  venueId   String
+  venue     Venue    @relation(fields: [venueId], references: [id])
+  waiterId  String?
+  waiter    User?    @relation("WaiterShifts", fields: [waiterId], references: [id])
+
+  title     String
+  date      DateTime
+  startTime String   // "18:00"
+  endTime   String   // "02:00"
+  role      String?
+  pay       Int?
+  notes     String?  @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([venueId])
+  @@index([waiterId])
+  @@index([date])
 }
 
 // ─── RateLimit (DB-backed rate limiter) ──────────────────────────────────────
