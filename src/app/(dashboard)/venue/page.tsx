@@ -17,8 +17,7 @@ type VenueShift = {
   role: string | null;
   pay: number | null;
   notes: string | null;
-  waiterId: string | null;
-  waiter: { id: string; name: string | null } | null;
+  waiters: { id: string; name: string | null }[];
 };
 
 const DAYS_SR   = ["Pon", "Uto", "Sre", "Čet", "Pet", "Sub", "Ned"];
@@ -928,7 +927,7 @@ function ShiftModal({ shift, date, venue, waiters, onSave, onDelete, onClose }: 
     endTime:   shift?.endTime   ?? "02:00",
     role:      shift?.role      ?? "",
     pay:       shift?.pay?.toString() ?? "",
-    waiterId:  shift?.waiterId  ?? "",
+    waiterIds: shift?.waiters.map(w => w.id) ?? [] as string[],
     notes:     shift?.notes     ?? "",
   });
   const [saving, setSaving]     = useState(false);
@@ -937,6 +936,13 @@ function ShiftModal({ shift, date, venue, waiters, onSave, onDelete, onClose }: 
   const [error, setError]       = useState("");
 
   const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
+  const toggleWaiter = (id: string) =>
+    setForm(p => ({
+      ...p,
+      waiterIds: p.waiterIds.includes(id)
+        ? p.waiterIds.filter(w => w !== id)
+        : [...p.waiterIds, id],
+    }));
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -953,10 +959,10 @@ function ShiftModal({ shift, date, venue, waiters, onSave, onDelete, onClose }: 
         date:      form.date,
         startTime: form.startTime,
         endTime:   form.endTime,
-        role:      form.role     || undefined,
-        pay:       form.pay      ? Number(form.pay) : undefined,
-        waiterId:  form.waiterId || undefined,
-        notes:     form.notes    || undefined,
+        role:      form.role  || undefined,
+        pay:       form.pay   ? Number(form.pay) : undefined,
+        waiterIds: form.waiterIds,
+        notes:     form.notes || undefined,
       }),
     });
     setSaving(false);
@@ -1021,15 +1027,26 @@ function ShiftModal({ shift, date, venue, waiters, onSave, onDelete, onClose }: 
             </div>
           </div>
           <div>
-            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Konobar</label>
-            <select value={form.waiterId} onChange={e => set("waiterId", e.target.value)} className="auth-input">
-              <option value="">— Nedodeljen —</option>
-              {waiters.map(w => (
-                <option key={w.id} value={w.id}>{w.name ?? w.id.slice(0, 8)}</option>
-              ))}
-            </select>
-            {waiters.length === 0 && (
-              <p className="text-[11px] text-neutral-400 mt-1">Nema prihvaćenih konobara za ovaj lokal.</p>
+            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Konobari</label>
+            {waiters.length === 0 ? (
+              <p className="text-[11px] text-neutral-400">Nema prihvaćenih konobara za ovaj lokal.</p>
+            ) : (
+              <div className="flex flex-col gap-1.5 max-h-32 overflow-y-auto border border-neutral-200 rounded-xl p-2">
+                {waiters.map(w => (
+                  <label key={w.id} className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={form.waiterIds.includes(w.id)}
+                      onChange={() => toggleWaiter(w.id)}
+                      className="w-4 h-4 rounded accent-orange-500 flex-shrink-0"
+                    />
+                    <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-[9px] flex-shrink-0">
+                      {getInitials(w.name)}
+                    </div>
+                    <span className="text-sm text-neutral-700">{w.name ?? w.id.slice(0, 8)}</span>
+                  </label>
+                ))}
+              </div>
             )}
           </div>
           <div>
@@ -1179,18 +1196,20 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
                           <div
                             onClick={e => { e.stopPropagation(); setEditing(s); }}
                             title="Kliknite za uređivanje"
-                            className={`text-[10px] font-semibold px-1 py-0.5 rounded cursor-pointer hover:opacity-75 transition-opacity flex items-center gap-1 min-w-0 ${s.waiterId ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-600"}`}>
-                            {s.waiter
-                              ? (
-                                <span
-                                  className="w-3.5 h-3.5 rounded-full flex-shrink-0 flex items-center justify-center text-white font-black leading-none"
-                                  style={{ fontSize: "7px", background: s.waiterId ? "#15803d" : "#c2410c" }}>
-                                  {getInitials(s.waiter.name)}
-                                </span>
-                              ) : (
-                                <span className="w-3.5 h-3.5 rounded-full flex-shrink-0 border border-current opacity-40" />
-                              )
-                            }
+                            className={`text-[10px] font-semibold px-1 py-0.5 rounded cursor-pointer hover:opacity-75 transition-opacity flex items-center gap-1 min-w-0 ${s.waiters.length > 0 ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-600"}`}>
+                            {s.waiters.length > 0 ? (
+                              <div className="flex -space-x-1 flex-shrink-0">
+                                {s.waiters.slice(0, 3).map(w => (
+                                  <span key={w.id}
+                                    className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-white font-black leading-none ring-1 ring-white"
+                                    style={{ fontSize: "7px", background: "#15803d" }}>
+                                    {getInitials(w.name)}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="w-3.5 h-3.5 rounded-full flex-shrink-0 border border-current opacity-40" />
+                            )}
                             <span className="truncate">{s.startTime}</span>
                           </div>
                         </div>
@@ -1213,7 +1232,7 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
           <span className="w-3 h-3 rounded bg-orange-100 border border-orange-200 inline-block" />Nedodeljena smena
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-green-100 border border-green-200 inline-block" />Dodeljena smena
+          <span className="w-3 h-3 rounded bg-green-100 border border-green-200 inline-block" />Dodeljena smena (1+ konobara)
         </span>
         <span className="text-neutral-400">Kliknite na dan za novu smenu · kliknite na smenu za uređivanje</span>
       </div>
@@ -1233,8 +1252,8 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
                     <div className="text-xs text-neutral-400 mt-0.5 capitalize">{dateStr} · {s.startTime}–{s.endTime}</div>
                   </div>
                   <div className="text-right flex-shrink-0 ml-4">
-                    {s.waiter
-                      ? <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">{s.waiter.name ?? "Konobar"}</span>
+                    {s.waiters.length > 0
+                      ? <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">{s.waiters.map(w => w.name ?? "Konobar").join(", ")}</span>
                       : <span className="text-xs font-semibold text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded-full">Nedodeljena</span>
                     }
                     {s.pay && <div className="text-xs font-black text-orange-500 mt-0.5">{s.pay.toLocaleString("sr-RS")} RSD</div>}

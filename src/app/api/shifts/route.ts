@@ -11,7 +11,7 @@ export async function GET() {
     if (session.user.role === "VENUE_OWNER") {
       const shifts = await db.shift.findMany({
         where: { venue: { ownerId: session.user.id } },
-        include: { waiter: { select: { id: true, name: true } } },
+        include: { waiters: { select: { id: true, name: true } } },
         orderBy: [{ date: "asc" }, { startTime: "asc" }],
       });
       return NextResponse.json(shifts);
@@ -19,7 +19,7 @@ export async function GET() {
 
     if (session.user.role === "WAITER") {
       const shifts = await db.shift.findMany({
-        where: { waiterId: session.user.id },
+        where: { waiters: { some: { id: session.user.id } } },
         include: {
           venue: { select: { id: true, name: true, address: true, municipality: true } },
         },
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { venueId, title, date, startTime, endTime, role, pay, waiterId, notes } = body;
+  const { venueId, title, date, startTime, endTime, role, pay, waiterIds, notes } = body;
 
   if (!venueId || !title || !date || !startTime || !endTime) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -51,16 +51,18 @@ export async function POST(req: NextRequest) {
   const venue = await db.venue.findFirst({ where: { id: venueId, ownerId: session.user.id } });
   if (!venue) return NextResponse.json({ error: "Venue not found" }, { status: 404 });
 
-  if (waiterId) {
-    const waiter = await db.user.findFirst({ where: { id: waiterId, role: "WAITER" } });
-    if (!waiter) return NextResponse.json({ error: "Waiter not found" }, { status: 404 });
+  const ids: string[] = Array.isArray(waiterIds) ? waiterIds : [];
+  if (ids.length) {
+    const found = await db.user.findMany({ where: { id: { in: ids }, role: "WAITER" } });
+    if (found.length !== ids.length) {
+      return NextResponse.json({ error: "One or more waiters not found" }, { status: 404 });
+    }
   }
 
   try {
     const shift = await db.shift.create({
       data: {
         venueId,
-        waiterId: waiterId || undefined,
         title,
         date: new Date(date),
         startTime,
@@ -68,8 +70,9 @@ export async function POST(req: NextRequest) {
         role: role || undefined,
         pay: pay ? Math.round(Number(pay)) : undefined,
         notes: notes || undefined,
+        waiters: ids.length ? { connect: ids.map((id: string) => ({ id })) } : undefined,
       },
-      include: { waiter: { select: { id: true, name: true } } },
+      include: { waiters: { select: { id: true, name: true } } },
     });
     return NextResponse.json(shift, { status: 201 });
   } catch (err) {

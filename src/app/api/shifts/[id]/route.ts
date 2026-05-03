@@ -20,14 +20,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json();
-  const { title, date, startTime, endTime, role, pay, waiterId, notes } = body;
+  const { title, date, startTime, endTime, role, pay, waiterIds, notes } = body;
 
-  if (waiterId !== undefined && waiterId !== null && waiterId !== "") {
-    const waiter = await db.user.findFirst({ where: { id: waiterId, role: "WAITER" } });
-    if (!waiter) return NextResponse.json({ error: "Waiter not found" }, { status: 404 });
+  if (waiterIds !== undefined) {
+    const ids: string[] = Array.isArray(waiterIds) ? waiterIds : [];
+    if (ids.length) {
+      const found = await db.user.findMany({ where: { id: { in: ids }, role: "WAITER" } });
+      if (found.length !== ids.length) {
+        return NextResponse.json({ error: "One or more waiters not found" }, { status: 404 });
+      }
+    }
   }
 
   try {
+    const ids: string[] = waiterIds !== undefined
+      ? (Array.isArray(waiterIds) ? waiterIds : [])
+      : [];
+
     const shift = await db.shift.update({
       where: { id },
       data: {
@@ -37,10 +46,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         ...(endTime !== undefined && { endTime }),
         role: role !== undefined ? (role || null) : undefined,
         pay: pay !== undefined ? (pay ? Math.round(Number(pay)) : null) : undefined,
-        waiterId: waiterId !== undefined ? (waiterId || null) : undefined,
+        ...(waiterIds !== undefined && {
+          waiters: { set: ids.map((wid: string) => ({ id: wid })) },
+        }),
         notes: notes !== undefined ? (notes || null) : undefined,
       },
-      include: { waiter: { select: { id: true, name: true } } },
+      include: { waiters: { select: { id: true, name: true } } },
     });
     return NextResponse.json(shift);
   } catch (err) {

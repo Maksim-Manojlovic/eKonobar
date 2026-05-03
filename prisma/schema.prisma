@@ -131,7 +131,7 @@ model User {
   reviewsReceived   Review[]            @relation("ReviewSubject")
   waiterPassport    WaiterPassport?
   engagementRecords EngagementRecord[]  @relation("WaiterEngagements")
-  shifts            Shift[]             @relation("WaiterShifts")
+  shifts            Shift[]             @relation("ShiftWaiters")
   sanitaryBook      SanitaryBook?
   savedProfiles     SavedProfile[]      @relation("HeadhunterSaved")
   invitesSent       Invite[]            @relation("InviteSender")
@@ -561,8 +561,7 @@ model Shift {
   id        String   @id @default(cuid())
   venueId   String
   venue     Venue    @relation(fields: [venueId], references: [id])
-  waiterId  String?
-  waiter    User?    @relation("WaiterShifts", fields: [waiterId], references: [id])
+  waiters   User[]   @relation("ShiftWaiters")
 
   title     String
   date      DateTime
@@ -576,7 +575,6 @@ model Shift {
   updatedAt DateTime @updatedAt
 
   @@index([venueId])
-  @@index([waiterId])
   @@index([date])
 }
 
