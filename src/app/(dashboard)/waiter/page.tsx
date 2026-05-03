@@ -61,6 +61,26 @@ type InviteItem = {
   };
 };
 
+type PassportData = {
+  id: string;
+  score: number;
+  badges: string[];
+  reviewCount: number;
+  totalEngagements: number;
+  avgEngagementMonths: number;
+  skills: string[];
+  languages: string[];
+  yearsExperience: number;
+  sanitaryBookValid: boolean;
+  currentlyAvailable: boolean;
+  bio: string | null;
+  trustScore: {
+    punctuality: number; skill: number; guestCommunication: number;
+    personalHygiene: number; teamwork: number; speed: number;
+    composite: number; sampleSize: number;
+  } | null;
+};
+
 type MyApplication = {
   id: string;
   status: string;
@@ -611,22 +631,119 @@ function ReviewsSection() {
   );
 }
 
-function PassportSection() {
+/* ── TagInput ────────────────────────────────────────────────────────────── */
+
+function TagInput({ tags, onChange, placeholder }: {
+  tags: string[]; onChange: (t: string[]) => void; placeholder?: string;
+}) {
+  const [input, setInput] = useState("");
+  const add = (val: string) => {
+    const v = val.trim().toLowerCase();
+    if (v && !tags.includes(v)) onChange([...tags, v]);
+    setInput("");
+  };
+  const remove = (tag: string) => onChange(tags.filter(t => t !== tag));
+  const handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(input); }
+    if (e.key === "Backspace" && input === "" && tags.length > 0) remove(tags[tags.length - 1]);
+  };
+  return (
+    <div className="flex flex-wrap gap-1.5 p-2 border border-neutral-200 rounded-xl min-h-[42px] focus-within:border-orange-400 transition-colors cursor-text">
+      {tags.map(t => (
+        <span key={t} className="flex items-center gap-1 text-xs bg-orange-100 text-orange-700 font-medium px-2 py-0.5 rounded-full">
+          {t}
+          <button type="button" onClick={() => remove(t)} className="hover:text-orange-900 leading-none font-bold">&times;</button>
+        </span>
+      ))}
+      <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKey}
+        onBlur={() => { if (input) add(input); }}
+        placeholder={tags.length === 0 ? placeholder : ""}
+        className="flex-1 min-w-[140px] text-sm outline-none bg-transparent" />
+    </div>
+  );
+}
+
+/* ── Passport constants ───────────────────────────────────────────────────── */
+
+const BADGE_META: Record<string, { emoji: string; label: string; sub: string }> = {
+  sanitarna:        { emoji: "🧪", label: "Sanitarna knjižica", sub: "Verifikovan dokument" },
+  sommelier:        { emoji: "🍷", label: "Somelijer",           sub: "Kurs završen" },
+  english_b2:       { emoji: "🌍", label: "Engleski B2",         sub: "Jezik potvrđen" },
+  verified_history: { emoji: "📋", label: "Verified History",    sub: "3+ verifikovane smene" },
+  hospitality_pro:  { emoji: "🏅", label: "Hospitality Pro",     sub: "50 smena potrebno" },
+  platinum:         { emoji: "💎", label: "Platinum Waiter",     sub: "Skor 98+ potreban" },
+};
+
+const SCORE_DIMS: { key: keyof NonNullable<PassportData["trustScore"]>; label: string }[] = [
+  { key: "punctuality",         label: "Tačnost" },
+  { key: "skill",               label: "Veštine" },
+  { key: "guestCommunication",  label: "Komunikacija" },
+  { key: "personalHygiene",     label: "Higijena" },
+  { key: "teamwork",            label: "Tim" },
+  { key: "speed",               label: "Brzina" },
+];
+
+/* ── Section: Passport ───────────────────────────────────────────────────── */
+
+function PassportSection({ userName }: { userName: string }) {
+  const [passport, setPassport]   = useState<PassportData | null>(null);
+  const [loading, setLoading]     = useState(true);
+  const [saving, setSaving]       = useState(false);
+  const [saved, setSaved]         = useState(false);
+
+  const [bio, setBio]                       = useState("");
+  const [skills, setSkills]                 = useState<string[]>([]);
+  const [languages, setLanguages]           = useState<string[]>([]);
+  const [yearsExperience, setYears]         = useState(0);
+  const [currentlyAvailable, setAvailable]  = useState(true);
+
+  useEffect(() => {
+    fetch("/api/passport")
+      .then(r => r.json())
+      .then(data => {
+        if (data?.id) {
+          setPassport(data);
+          setBio(data.bio ?? "");
+          setSkills(data.skills ?? []);
+          setLanguages(data.languages ?? []);
+          setYears(data.yearsExperience ?? 0);
+          setAvailable(data.currentlyAvailable ?? true);
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    const res = await fetch("/api/passport", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bio: bio || null, skills, languages, yearsExperience, currentlyAvailable }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setPassport(data);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    }
+    setSaving(false);
+  }
+
+  if (loading) return <Spinner />;
+
+  const score         = passport?.score ?? 0;
   const circumference = 2 * Math.PI * 46;
-  const score = 92;
-  const offset = circumference - (score / 100) * circumference;
-  const badges = [
-    { emoji: "🧪", label: "Sanitarna knjižica", sub: "Verifikovan dokument", locked: false },
-    { emoji: "🍷", label: "Somelijer",            sub: "Kurs završen",        locked: false },
-    { emoji: "🌍", label: "Engleski B2",          sub: "Jezik potvrđen",      locked: false },
-    { emoji: "📋", label: "Verified History",     sub: "3+ verifikovane smene", locked: false },
-    { emoji: "🏅", label: "Hospitality Pro",      sub: "50 smena potrebno",   locked: true },
-    { emoji: "💎", label: "Platinum Waiter",      sub: "Skor 98+ potreban",   locked: true },
-  ];
+  const offset        = circumference - (score / 100) * circumference;
+  const earnedBadges  = passport?.badges ?? [];
+
   return (
     <>
       <h2 className="font-black text-neutral-900">Waiter Passport™</h2>
-      <div className="dash-card p-6 flex flex-col sm:flex-row gap-6 items-center">
+
+      {/* Score card */}
+      <div className="dash-card p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
         <div className="relative flex-shrink-0" style={{ width: 112, height: 112 }}>
           <svg width="112" height="112" viewBox="0 0 112 112" className="-rotate-90">
             <circle cx="56" cy="56" r="46" fill="none" stroke="#f0efec" strokeWidth="10" />
@@ -634,31 +751,123 @@ function PassportSection() {
               strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset} />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-3xl font-black text-neutral-900">{score}</span>
-            <span className="text-[10px] font-bold text-orange-500 uppercase tracking-wide">passport skor</span>
+            <span className="text-3xl font-black text-neutral-900">{Math.round(score)}</span>
+            <span className="text-[10px] font-bold text-orange-500 uppercase tracking-wide">skor</span>
           </div>
         </div>
-        <div className="flex-1">
-          <div className="flex gap-2 flex-wrap mb-3">
-            <span className="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-full">🥇 GOLD nivo</span>
-            <span className="text-xs text-neutral-500 self-center">Sledeći: PLATINUM</span>
+        <div className="flex-1 min-w-0">
+          <div className="font-bold text-neutral-900 text-lg">{userName}</div>
+          <div className="flex gap-2 flex-wrap mt-1.5">
+            <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${currentlyAvailable ? "bg-green-100 text-green-700" : "bg-neutral-100 text-neutral-400"}`}>
+              {currentlyAvailable ? "Dostupan" : "Zauzet"}
+            </span>
+            {passport?.sanitaryBookValid && (
+              <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700">Sanitarna ✓</span>
+            )}
           </div>
-          <div className="prog-track"><div className="prog-fill" style={{ width: "84%" }} /></div>
-          <p className="text-xs text-neutral-400 mt-1">84% do Platinum nivoa · još 8 bodova</p>
+          {bio && <p className="text-sm text-neutral-500 mt-2 leading-relaxed line-clamp-2">{bio}</p>}
+          <div className="flex gap-5 mt-3">
+            {[
+              { label: "Recenzije",     val: passport?.reviewCount ?? 0 },
+              { label: "Angažmani",     val: passport?.totalEngagements ?? 0 },
+              { label: "God. iskustva", val: yearsExperience },
+            ].map(s => (
+              <div key={s.label} className="text-center">
+                <div className="text-xl font-black text-neutral-900">{s.val}</div>
+                <div className="text-[10px] text-neutral-400 font-medium">{s.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
+
+      {/* Trust score breakdown — only if there are reviews */}
+      {passport?.trustScore && passport.trustScore.sampleSize > 0 && (
+        <div className="dash-card p-5">
+          <h3 className="font-bold text-neutral-900 text-sm mb-4">Dimenzije skora</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {SCORE_DIMS.map(({ key, label }) => {
+              const val = Math.round((passport.trustScore as NonNullable<PassportData["trustScore"]>)[key]);
+              return (
+                <div key={key}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-neutral-500">{label}</span>
+                    <span className="font-bold text-neutral-800">{val}</span>
+                  </div>
+                  <div className="h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-orange-400 rounded-full transition-all" style={{ width: `${val}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-neutral-400 mt-3">Na osnovu {passport.trustScore.sampleSize} recenzija</p>
+        </div>
+      )}
+
+      {/* Edit form */}
+      <form onSubmit={handleSave} className="dash-card p-5 flex flex-col gap-5">
+        <h3 className="font-bold text-neutral-900">Uredi profil</h3>
+
+        <div className="flex items-center justify-between py-1">
+          <div>
+            <div className="text-sm font-semibold text-neutral-700">Dostupan za angažman</div>
+            <div className="text-xs text-neutral-400 mt-0.5">Vidljivo vlasnicima lokala</div>
+          </div>
+          <button type="button" onClick={() => setAvailable(p => !p)}
+            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${currentlyAvailable ? "bg-green-500" : "bg-neutral-200"}`}>
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${currentlyAvailable ? "translate-x-5" : ""}`} />
+          </button>
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Godine iskustva</label>
+          <input type="number" min={0} max={50} value={yearsExperience}
+            onChange={e => setYears(Number(e.target.value))}
+            className="auth-input w-28" />
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Bio</label>
+          <textarea value={bio} onChange={e => setBio(e.target.value)} rows={3}
+            placeholder="Kratko predstavljanje — šta te čini dobrim konobarom?"
+            className="auth-input resize-none" />
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Veštine</label>
+          <TagInput tags={skills} onChange={setSkills} placeholder="fine dining, cocktails... (Enter za dodavanje)" />
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Jezici</label>
+          <TagInput tags={languages} onChange={setLanguages} placeholder="srpski, engleski... (Enter za dodavanje)" />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button type="submit" disabled={saving} className="btn-dash-orange px-6 py-2.5 disabled:opacity-50">
+            {saving ? "Čuvanje..." : "Sačuvaj profil"}
+          </button>
+          {saved && <span className="text-sm font-semibold text-green-600">✓ Sačuvano</span>}
+        </div>
+      </form>
+
+      {/* Badges */}
       <h3 className="font-bold text-neutral-900">Bedževi</h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {badges.map(b => (
-          <div key={b.label} className={`dash-card p-4 flex flex-col items-center text-center gap-2 ${b.locked ? "opacity-60" : ""}`}>
-            <span className="text-3xl">{b.emoji}</span>
-            <div>
-              <div className="font-bold text-neutral-900 text-sm">{b.label}</div>
-              <div className="text-xs text-neutral-400 mt-0.5">{b.sub}</div>
+        {Object.entries(BADGE_META).map(([key, meta]) => {
+          const earned = earnedBadges.includes(key);
+          return (
+            <div key={key} className={`dash-card p-4 flex flex-col items-center text-center gap-2 transition-opacity ${!earned ? "opacity-50" : ""}`}>
+              <span className="text-3xl">{meta.emoji}</span>
+              <div>
+                <div className="font-bold text-neutral-900 text-sm">{meta.label}</div>
+                <div className="text-xs text-neutral-400 mt-0.5">{meta.sub}</div>
+              </div>
+              {!earned && <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide">🔒 Zaključano</span>}
             </div>
-            {b.locked && <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide">🔒 Zaključano</span>}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </>
   );
@@ -930,7 +1139,7 @@ export default function WaiterDashboard() {
           {section === "shifts"       && <ShiftsSection shifts={shifts} loading={loading} />}
           {section === "invites"      && <InvitesSection invites={invites} loading={loading} onRespond={handleInviteRespond} />}
           {section === "reviews"      && <ReviewsSection />}
-          {section === "passport"     && <PassportSection />}
+          {section === "passport"     && <PassportSection userName={userName} />}
         </div>
       </main>
     </div>
