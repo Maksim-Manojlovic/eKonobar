@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 
-type Section = "overview" | "alerts" | "jobs" | "applications" | "shifts" | "reviews" | "passport";
+type Section = "overview" | "alerts" | "jobs" | "applications" | "shifts" | "invites" | "reviews" | "passport";
 type AppFilter = "all" | "accepted" | "pending" | "rejected";
 
 type WaiterShift = {
@@ -44,6 +44,21 @@ type JobPost = {
     trustScore: number;
   };
   _count: { applications: number };
+};
+
+type InviteItem = {
+  id: string;
+  status: string;
+  message: string | null;
+  jobPostId: string | null;
+  venueId: string | null;
+  expiresAt: string;
+  createdAt: string;
+  sender: {
+    id: string;
+    name: string | null;
+    venues: { id: string; name: string }[];
+  };
 };
 
 type MyApplication = {
@@ -649,6 +664,89 @@ function PassportSection() {
   );
 }
 
+/* ── Section: Invites ────────────────────────────────────────────────────── */
+
+function InvitesSection({ invites, loading, onRespond }: {
+  invites: InviteItem[]; loading: boolean;
+  onRespond: (id: string, status: "ACCEPTED" | "DECLINED") => Promise<void>;
+}) {
+  const [responding, setResponding] = useState<string | null>(null);
+
+  const handle = async (id: string, status: "ACCEPTED" | "DECLINED") => {
+    setResponding(id);
+    await onRespond(id, status);
+    setResponding(null);
+  };
+
+  if (loading) return <Spinner />;
+
+  const pending = invites.filter(i => i.status === "PENDING");
+  const past    = invites.filter(i => i.status !== "PENDING");
+
+  const venueName = (inv: InviteItem) => inv.sender.venues[0]?.name ?? inv.sender.name ?? "Lokal";
+
+  return (
+    <>
+      <h2 className="font-black text-neutral-900">Pozivnice</h2>
+      {pending.length === 0 && past.length === 0 && (
+        <div className="dash-card p-10 text-center text-neutral-400 text-sm">Nema pozivnica</div>
+      )}
+      {pending.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h3 className="text-sm font-bold text-neutral-600">Na čekanju</h3>
+          {pending.map(inv => (
+            <div key={inv.id} className="dash-card p-5">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold flex-shrink-0">
+                  {getInitials(venueName(inv))}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-neutral-900">{venueName(inv)}</div>
+                  {inv.message && (
+                    <p className="text-sm text-neutral-500 mt-1 leading-relaxed italic">&ldquo;{inv.message}&rdquo;</p>
+                  )}
+                  <div className="text-xs text-neutral-400 mt-1">{formatDate(inv.createdAt)}</div>
+                </div>
+                <div className="flex flex-col gap-1.5 flex-shrink-0">
+                  <button onClick={() => handle(inv.id, "ACCEPTED")} disabled={responding === inv.id}
+                    className="btn-dash-orange px-3 py-1.5 text-[11px] disabled:opacity-50">
+                    {responding === inv.id ? "..." : "Prihvati"}
+                  </button>
+                  <button onClick={() => handle(inv.id, "DECLINED")} disabled={responding === inv.id}
+                    className="btn-dash-outline px-3 py-1.5 text-[11px] disabled:opacity-50">
+                    Odbij
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {past.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h3 className="text-sm font-bold text-neutral-600">Istorija</h3>
+          {past.map(inv => (
+            <div key={inv.id} className="dash-card p-5 opacity-70">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-400 font-bold flex-shrink-0">
+                  {getInitials(venueName(inv))}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-neutral-700">{venueName(inv)}</div>
+                  <div className="text-xs text-neutral-400 mt-1">{formatDate(inv.createdAt)}</div>
+                </div>
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${inv.status === "ACCEPTED" ? "bg-green-100 text-green-700" : "bg-neutral-100 text-neutral-400"}`}>
+                  {inv.status === "ACCEPTED" ? "Prihvaćena" : "Odbijena"}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 /* ── Nav ─────────────────────────────────────────────────────────────────── */
 
 const NAV_ITEMS: { key: Section; label: string; icon: React.ReactNode }[] = [
@@ -657,13 +755,15 @@ const NAV_ITEMS: { key: Section; label: string; icon: React.ReactNode }[] = [
   { key: "jobs",         label: "Poslovi",   icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" /></svg> },
   { key: "applications", label: "Prijave",   icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="9" y1="13" x2="15" y2="13" /><line x1="9" y1="17" x2="15" y2="17" /></svg> },
   { key: "shifts",       label: "Smene",     icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg> },
+  { key: "invites",      label: "Pozivnice", icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg> },
   { key: "reviews",      label: "Recenzije", icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg> },
   { key: "passport",     label: "Passport",  icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg> },
 ];
 
 const SECTION_TITLES: Record<Section, string> = {
   overview: "Pregled", alerts: "Red Alert", jobs: "Dostupni poslovi",
-  applications: "Moje prijave", shifts: "Smene", reviews: "Recenzije", passport: "Waiter Passport™",
+  applications: "Moje prijave", shifts: "Smene", invites: "Pozivnice",
+  reviews: "Recenzije", passport: "Waiter Passport™",
 };
 
 /* ── Main dashboard ──────────────────────────────────────────────────────── */
@@ -676,18 +776,21 @@ export default function WaiterDashboard() {
   const [loading, setLoading]           = useState(true);
   const [applying, setApplying]         = useState<string | null>(null);
   const [shifts, setShifts]             = useState<WaiterShift[]>([]);
+  const [invites, setInvites]           = useState<InviteItem[]>([]);
   const [mobileOpen, setMobileOpen]     = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [jobsRes, appsRes, shiftsRes] = await Promise.all([
+    const [jobsRes, appsRes, shiftsRes, invitesRes] = await Promise.all([
       fetch("/api/jobs"),
       fetch("/api/jobs/applications"),
       fetch("/api/shifts"),
+      fetch("/api/invites"),
     ]);
-    if (jobsRes.ok)   setJobs(await jobsRes.json());
-    if (appsRes.ok)   setApplications(await appsRes.json());
-    if (shiftsRes.ok) setShifts(await shiftsRes.json());
+    if (jobsRes.ok)    setJobs(await jobsRes.json());
+    if (appsRes.ok)    setApplications(await appsRes.json());
+    if (shiftsRes.ok)  setShifts(await shiftsRes.json());
+    if (invitesRes.ok) setInvites(await invitesRes.json());
     setLoading(false);
   }, []);
 
@@ -704,10 +807,20 @@ export default function WaiterDashboard() {
     setApplying(null);
   };
 
+  const handleInviteRespond = async (id: string, status: "ACCEPTED" | "DECLINED") => {
+    await fetch(`/api/invites/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    await fetchData();
+  };
+
   const userName      = session?.user?.name ?? "Konobar";
   const initials      = getInitials(session?.user?.name);
   const appliedJobIds = new Set(applications.map(a => a.jobPost.id));
   const alertCount    = jobs.filter(j => j.redAlert).length;
+  const inviteCount   = invites.filter(i => i.status === "PENDING").length;
   const today = new Date().toLocaleDateString("sr-Latn-RS", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
 
   const navContent = (closeMenu?: () => void) => (
@@ -720,6 +833,9 @@ export default function WaiterDashboard() {
             {item.icon}{item.label}
             {item.key === "alerts" && alertCount > 0 && (
               <span className="ml-auto bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{alertCount}</span>
+            )}
+            {item.key === "invites" && inviteCount > 0 && (
+              <span className="ml-auto bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{inviteCount}</span>
             )}
           </button>
         ))}
@@ -812,6 +928,7 @@ export default function WaiterDashboard() {
           {section === "jobs"         && <JobsSection jobs={jobs} loading={loading} onApply={handleApply} applying={applying} appliedJobIds={appliedJobIds} />}
           {section === "applications" && <ApplicationsSection applications={applications} loading={loading} />}
           {section === "shifts"       && <ShiftsSection shifts={shifts} loading={loading} />}
+          {section === "invites"      && <InvitesSection invites={invites} loading={loading} onRespond={handleInviteRespond} />}
           {section === "reviews"      && <ReviewsSection />}
           {section === "passport"     && <PassportSection />}
         </div>

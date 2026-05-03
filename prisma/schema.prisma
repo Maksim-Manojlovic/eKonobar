@@ -479,26 +479,43 @@ model SanitaryBook {
   updatedAt   DateTime  @updatedAt
 }
 
-// ─── Invite (Pozivnica za verifikaciju) ──────────────────────────────────────
+enum InviteType {
+  VERIFICATION   // referral / onboarding code
+  JOB_INVITE     // venue owner inviting a waiter to a job post
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+// ─── Invite ───────────────────────────────────────────────────────────────────
 
 model Invite {
-  id          String  @id @default(cuid())
+  id          String       @id @default(cuid())
   senderId    String
-  sender      User    @relation("InviteSender", fields: [senderId], references: [id])
+  sender      User         @relation("InviteSender", fields: [senderId], references: [id])
   recipientId String?
-  recipient   User?   @relation("InviteRecipient", fields: [recipientId], references: [id])
+  recipient   User?        @relation("InviteRecipient", fields: [recipientId], references: [id])
 
-  code        String    @unique @default(cuid())
+  code        String       @unique @default(cuid())
   venueId     String?
   jobPostId   String?
+
+  type        InviteType   @default(VERIFICATION)
+  status      InviteStatus @default(PENDING)
+  message     String?      @db.Text
 
   usedAt      DateTime?
   expiresAt   DateTime
 
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime     @default(now())
 
   @@index([code])
   @@index([senderId])
+  @@index([recipientId])
 }
 
 // ─── VenueZone (Zona na mapi) ─────────────────────────────────────────────────
