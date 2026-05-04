@@ -15,6 +15,8 @@ npm run db:generate      # regenerate Prisma client after schema changes
 npm run db:migrate       # create named migration
 npm run db:seed          # seed demo data
 npm run db:studio        # Prisma Studio GUI
+npm test                 # run unit tests (Vitest)
+npm run test:watch       # run tests in watch mode
 ```
 
 ## Critical Patterns
@@ -24,6 +26,7 @@ npm run db:studio        # Prisma Studio GUI
 `db` (from `lib/db.ts`) applies a global soft-delete filter — it never returns rows where `deletedAt IS NOT NULL`. Use it everywhere except:
 - `lib/sync-scores.ts` — needs all rows for score recalculation
 - Admin routes — need to see and restore deleted records
+- `lib/rate-limit.ts` — uses `dbRaw` directly
 
 Use `dbRaw` for those cases.
 
@@ -58,11 +61,16 @@ import Map from 'react-map-gl/mapbox';
 
 ### Geofencing
 
-`isInsideVenueRadius()` in `lib/geofence.ts` is async. Always await it:
+`isInsideVenueRadius()` in `lib/geofence.ts` is **synchronous** — do not await it:
 
 ```typescript
-const inside = await isInsideVenueRadius(guestLat, guestLng, venue);
-if (!inside) return Response.json({ error: '...' }, { status: 403 });
+const result = isInsideVenueRadius({ lat: guestLat, lon: guestLon }, venue);
+if (!result.allowed) {
+  return NextResponse.json(
+    { error: `Morate biti u lokalu (${Math.round(result.distanceKm * 1000)}m od lokala)` },
+    { status: 403 },
+  );
+}
 ```
 
 ### Red Alert indexing
@@ -72,6 +80,24 @@ if (!inside) return Response.json({ error: '...' }, { status: 403 });
 ### Coordinate jitter
 
 Venues get ~100m stable coordinate jitter derived from `venueId` hash (same logic as the RentCheck base). This is intentional for privacy — do not remove it.
+
+### Rate limiting
+
+Post-auth write actions use DB-backed rate limiting via `checkRateLimit`:
+
+```typescript
+import { checkRateLimit } from "@/lib/rate-limit";
+
+const allowed = await checkRateLimit(userId, "post_review", 5);       // 5/hour
+if (!allowed) return NextResponse.json({ error: "..." }, { status: 429 });
+```
+
+Current limits:
+- `post_review` — 5 per hour
+- `apply_job` — 10 per hour
+- `post_invite` — 20 per hour
+
+Pre-auth (login) uses the in-memory `rateLimit()` function — no userId available yet.
 
 ## Database Models (key ones)
 
@@ -84,6 +110,7 @@ Venues get ~100m stable coordinate jitter derived from `venueId` hash (same logi
 - `Review` — tri tipa: `WAITER_TO_VENUE`, `VENUE_TO_WAITER`, `GUEST_TO_WAITER`
 - `VenueZone` — map zone (hotspot) for analytics
 - `Invite` — venue invite code for GOLD verification
+- `RateLimit` — DB-backed rate limit counters (userId + action + hourly window)
 
 ## Trust Score
 
@@ -100,11 +127,13 @@ Score sync flow (run via `lib/sync-scores.ts`):
 2. `syncVenueTrustScore(venueId)` — recalculates venue score
 3. `syncPassportScore(waiterId)` — recalculates waiter passport score
 
+The cron endpoint `POST /api/cron/publish-reviews` runs this flow on a schedule. Requires `Authorization: Bearer <CRON_SECRET>`.
+
 ## API Conventions
 
 - All routes use Next.js Route Handlers (`route.ts`)
 - Auth check: `getServerSession(authOptions)` from `lib/auth.ts`
-- Rate limiting: `checkRateLimit(userId, action)` from `lib/rate-limit.ts`
+- Rate limiting: `checkRateLimit(userId, action, max)` from `lib/rate-limit.ts`
 - GeoJSON endpoints (`/api/venues/geojson`, `/api/jobs/geojson`) accept bounding box params: `swLat`, `swLng`, `neLat`, `neLng`
 - `GUEST_TO_WAITER` reviews require `guestLatitude` and `guestLongitude` in the request body
 
@@ -120,7 +149,14 @@ POST /api/reviews → status: PENDING
 
 ```
 PATCH /api/jobs/applications/[id] { status: COMPLETED }
-  → addEngagementToPassport(waiterId, venueId, jobPostId)
-  → recalculatePassportScore(waiterId)
+  → creates EngagementRecord (verified: true)
   → WaiterPassport.totalEngagements++
+  → syncPassportScore(waiterId) (fire-and-forget)
 ```
+
+## Application Status State Machine
+
+Venue owner transitions: `PENDING → SHORTLISTED → ACCEPTED → COMPLETED`  
+Also allowed: `PENDING/SHORTLISTED/ACCEPTED → REJECTED`  
+Waiter transitions: `PENDING/SHORTLISTED → WITHDRAWN`  
+Any other transition returns 400.

@@ -11,6 +11,7 @@ A verified platform for the hospitality sector in Serbia. Waiters get a portable
 - **Charts:** Recharts
 - **UI:** Radix UI primitives, Tailwind CSS, lucide-react
 - **Validation:** Zod
+- **Tests:** Vitest
 
 ## Prerequisites
 
@@ -26,7 +27,7 @@ npm install
 Copy the environment file and fill in the required values:
 
 ```bash
-cp .env .env.local
+cp .env.example .env.local
 ```
 
 Required variables:
@@ -41,6 +42,7 @@ NEXT_PUBLIC_MAPBOX_TOKEN="pk.eyJ..."
 Optional:
 
 ```env
+CRON_SECRET="your-cron-secret"        # required to call /api/cron/* routes
 DEFAULT_REVIEW_RADIUS_KM=0.15
 ALERT_WEBHOOK_URL=""
 ```
@@ -81,6 +83,8 @@ App runs at [http://localhost:3000](http://localhost:3000).
 | `npm run dev` | Start dev server |
 | `npm run build` | Production build |
 | `npm run lint` | Run ESLint |
+| `npm test` | Run unit tests |
+| `npm run test:watch` | Run tests in watch mode |
 | `npm run db:generate` | Regenerate Prisma client after schema changes |
 | `npm run db:push` | Push schema changes to DB (no migration file) |
 | `npm run db:migrate` | Create and apply a named migration |
@@ -95,7 +99,20 @@ src/
     (public)/          # Landing, venue listings, job listings, public passport
     (auth)/            # Login, register, onboarding (waiter | venue | headhunter)
     (dashboard)/       # Waiter, venue owner, headhunter, admin dashboards
-    api/               # API routes
+    api/
+      cron/
+        publish-reviews/  # POST/GET — publishes due reviews + syncs trust scores
+      jobs/              # Job posts and applications
+      reviews/           # Review submission and retrieval
+      venues/            # Venue CRUD and GeoJSON
+      invites/           # Job invites
+      shifts/            # Shift scheduling
+      passport/          # Waiter passport and engagements
+      waiters/           # Waiter search (headhunter)
+      headhunter/        # Saved profiles
+      admin/             # Moderation, zones, venue management
+      verification/      # Sanitary book upload and approval
+      auth/              # NextAuth + registration
   components/
     venue/             # VenueCard, VenueInsightsBadge
     job/               # JobCard, JobPostForm, RedAlertBadge
@@ -112,7 +129,8 @@ src/
     trust-score.ts     # Bayesian scoring
     geofence.ts        # Haversine + isInsideVenueRadius()
     sync-scores.ts     # publishDueReviews, syncVenueTrustScore, syncPassportScore
-    rate-limit.ts      # DB-backed rate limiter
+    rate-limit.ts      # In-memory (pre-auth) + DB-backed (post-auth) rate limiter
+    __tests__/         # Unit tests for trust-score and geofence
   design-system/
     tokens.ts          # Color palette and design tokens
 prisma/
@@ -138,3 +156,15 @@ prisma/
 - **Geofenced Guest Reviews** — Guests can only review a waiter if they are within 150m of the venue
 - **Verification Tiers** — UNVERIFIED → SILVER (employment contract) → GOLD (venue invite code) → ID_VERIFIED (document, ×1.2 score weight)
 - **Sanitary Book** — Waiters upload a sanitary certificate; admin approves; venue owners can filter by it
+
+## Cron Jobs
+
+`POST /api/cron/publish-reviews` — publishes PENDING reviews past their embargo window and syncs affected trust scores. Requires `Authorization: Bearer <CRON_SECRET>` header.
+
+Trigger every 15 minutes with any HTTP scheduler. On Vercel, add to `vercel.json`:
+
+```json
+{
+  "crons": [{ "path": "/api/cron/publish-reviews", "schedule": "*/15 * * * *" }]
+}
+```
