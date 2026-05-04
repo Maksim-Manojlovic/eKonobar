@@ -52,21 +52,29 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { waiterId, jobPostId, message } = body;
 
-  if (!waiterId || !jobPostId) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  if (!waiterId) {
+    return NextResponse.json({ error: "waiterId required" }, { status: 400 });
   }
 
   const waiter = await db.user.findFirst({ where: { id: waiterId, role: "WAITER" } });
   if (!waiter) return NextResponse.json({ error: "Waiter not found" }, { status: 404 });
 
-  const jobPost = await db.jobPost.findFirst({
-    where: { id: jobPostId, ownerId: session.user.id },
-    include: { venue: { select: { id: true } } },
-  });
-  if (!jobPost) return NextResponse.json({ error: "Job post not found" }, { status: 404 });
+  let venueId: string | undefined;
+  if (jobPostId) {
+    const jobPost = await db.jobPost.findFirst({
+      where: { id: jobPostId, ownerId: session.user.id },
+      include: { venue: { select: { id: true } } },
+    });
+    if (!jobPost) return NextResponse.json({ error: "Job post not found" }, { status: 404 });
+    venueId = jobPost.venue.id;
+  } else {
+    // Use first venue belonging to this owner
+    const venue = await db.venue.findFirst({ where: { ownerId: session.user.id }, select: { id: true } });
+    venueId = venue?.id;
+  }
 
   const existing = await db.invite.findFirst({
-    where: { senderId: session.user.id, recipientId: waiterId, jobPostId, type: "JOB_INVITE", status: "PENDING" },
+    where: { senderId: session.user.id, recipientId: waiterId, type: "JOB_INVITE", status: "PENDING" },
   });
   if (existing) return NextResponse.json({ error: "Invite already sent" }, { status: 409 });
 
@@ -78,8 +86,8 @@ export async function POST(req: NextRequest) {
       data: {
         senderId: session.user.id,
         recipientId: waiterId,
-        venueId: jobPost.venue.id,
-        jobPostId,
+        venueId: venueId ?? null,
+        jobPostId: jobPostId ?? null,
         type: "JOB_INVITE",
         status: "PENDING",
         message: message || undefined,

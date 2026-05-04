@@ -1,90 +1,53 @@
-interface Venue {
-  initials: string;
-  gradient: string;
-  positions: number;
+"use client";
+
+import { useState, useEffect } from "react";
+
+type ApiVenue = {
+  id: string;
   name: string;
-  type: string;
-  area: string;
-  rating: number;
-  reviews: number;
-  tags: string[];
-  featured?: boolean;
-  pulsing?: boolean;
+  municipality: string;
+  venueType: string;
+  trustScore: number;
+};
+
+const VENUE_TYPE_LABELS: Record<string, string> = {
+  RESTAURANT: "Restoran", BAR: "Bar", CAFE: "Kafić",
+  NIGHTCLUB: "Noćni klub", HOTEL: "Hotel", CATERING: "Ketering", OTHER: "Lokal",
+};
+
+const VENUE_TYPE_GRADIENTS: Record<string, string> = {
+  RESTAURANT: "linear-gradient(135deg, #c2410c, #9a3412)",
+  BAR:        "linear-gradient(135deg, #b45309, #92400e)",
+  CAFE:       "linear-gradient(135deg, #a16207, #854d0e)",
+  NIGHTCLUB:  "linear-gradient(135deg, #7c3aed, #5b21b6)",
+  HOTEL:      "linear-gradient(135deg, #0f766e, #065f46)",
+  CATERING:   "linear-gradient(135deg, #be123c, #9f1239)",
+  OTHER:      "linear-gradient(135deg, #374151, #1f2937)",
+};
+
+const VENUE_TYPE_TAGS: Record<string, string[]> = {
+  RESTAURANT: ["Fine dining", "Stalna mesta"],
+  BAR:        ["Vikend smene", "Napojnice ↑"],
+  CAFE:       ["Jutarnje smene", "Fleksibilno"],
+  NIGHTCLUB:  ["Noćne smene", "Napojnice ↑"],
+  HOTEL:      ["Stalno", "Benefiti ↑"],
+  CATERING:   ["Povremeno", "Brz odgovor"],
+  OTHER:      ["Fleksibilno"],
+};
+
+function getInitials(name: string): string {
+  return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 }
 
-const venues: Venue[] = [
-  {
-    initials: "FR",
-    gradient: "linear-gradient(135deg, #c2410c, #9a3412)",
-    positions: 3,
-    name: "Freestyler",
-    type: "Noćni klub / Bar",
-    area: "Savamala",
-    rating: 4.8,
-    reviews: 94,
-    tags: ["Vikend smene", "Napojnice ↑"],
-    pulsing: true,
-  },
-  {
-    initials: "S5",
-    gradient: "linear-gradient(135deg, #b45309, #92400e)",
-    positions: 5,
-    name: "Salon 1905",
-    type: "Fine Dining",
-    area: "Stari Grad",
-    rating: 4.9,
-    reviews: 211,
-    tags: ["Stalna mesta", "Top plata ↑"],
-    featured: true,
-    pulsing: true,
-  },
-  {
-    initials: "KD",
-    gradient: "linear-gradient(135deg, #7c3aed, #5b21b6)",
-    positions: 2,
-    name: "Kafeterija Dok",
-    type: "Kafić / Brunch",
-    area: "Savamala",
-    rating: 4.4,
-    reviews: 58,
-    tags: ["Jutarnje smene", "Parking ↑"],
-  },
-  {
-    initials: "MN",
-    gradient: "linear-gradient(135deg, #0f766e, #065f46)",
-    positions: 4,
-    name: "Manufaktura",
-    type: "Restoran",
-    area: "Zemun",
-    rating: 4.7,
-    reviews: 143,
-    tags: ["Fiksni tim", "Obuka ↑"],
-    pulsing: true,
-  },
-  {
-    initials: "BC",
-    gradient: "linear-gradient(135deg, #be123c, #9f1239)",
-    positions: 1,
-    name: "Bar Central",
-    type: "Koktajl Bar",
-    area: "Dorćol",
-    rating: 4.5,
-    reviews: 76,
-    tags: ["Noćne smene", "Napojnice ↑"],
-  },
-  {
-    initials: "PT",
-    gradient: "linear-gradient(135deg, #a16207, #854d0e)",
-    positions: 6,
-    name: "Pekara Trpković",
-    type: "Café / Pekara",
-    area: "Više lokacija",
-    rating: 4.6,
-    reviews: 189,
-    tags: ["Fleksibilno", "Brz odgovor ↑"],
-    pulsing: true,
-  },
-];
+// Hardcoded fallback shown before API data loads
+const FALLBACK = [
+  { name: "Freestyler",    venueType: "NIGHTCLUB",   municipality: "Savamala",    trustScore: 96 },
+  { name: "Salon 1905",    venueType: "RESTAURANT",  municipality: "Stari Grad",  trustScore: 98 },
+  { name: "Kafeterija Dok",venueType: "CAFE",        municipality: "Savamala",    trustScore: 88 },
+  { name: "Manufaktura",   venueType: "RESTAURANT",  municipality: "Zemun",       trustScore: 94 },
+  { name: "Bar Central",   venueType: "BAR",         municipality: "Dorćol",      trustScore: 90 },
+  { name: "Pekara Trpković",venueType: "CAFE",       municipality: "Više lokacija",trustScore: 92 },
+] as const;
 
 function Stars({ rating }: { rating: number }) {
   const full = Math.floor(rating);
@@ -105,25 +68,27 @@ function Stars({ rating }: { rating: number }) {
   );
 }
 
-function VenueCard({ venue }: { venue: Venue }) {
-  const cardBg = venue.featured
-    ? "rgba(249,115,22,0.12)"
-    : "rgba(255,255,255,0.06)";
-  const cardBorder = venue.featured
-    ? "1px solid rgba(249,115,22,0.3)"
-    : "1px solid rgba(255,255,255,0.1)";
-  const tagBg = venue.featured
+function VenueCard({ venue, featured, idx }: { venue: ApiVenue; featured: boolean; idx: number }) {
+  const gradient = VENUE_TYPE_GRADIENTS[venue.venueType] ?? VENUE_TYPE_GRADIENTS.OTHER;
+  const tags = VENUE_TYPE_TAGS[venue.venueType] ?? VENUE_TYPE_TAGS.OTHER;
+  const rating = Math.round(venue.trustScore / 20 * 10) / 10;
+  const pulsing = venue.trustScore > 85;
+
+  const cardBg = featured ? "rgba(249,115,22,0.12)" : "rgba(255,255,255,0.06)";
+  const cardBorder = featured ? "1px solid rgba(249,115,22,0.3)" : "1px solid rgba(255,255,255,0.1)";
+  const tagBg = featured
     ? "bg-orange-500/10 border-orange-400/20 text-orange-300"
     : "bg-white/5 border-white/10 text-neutral-400";
-  const dividerColor = venue.featured ? "border-orange-500/20" : "border-white/[0.08]";
-  const applyColor = venue.featured ? "text-orange-300" : "text-orange-400";
+  const dividerColor = featured ? "border-orange-500/20" : "border-white/[0.08]";
+  const applyColor = featured ? "text-orange-300" : "text-orange-400";
 
   return (
-    <div
+    <a
+      href="/venues"
       className="group cursor-pointer rounded-3xl p-6 relative overflow-hidden transition-all duration-300 hover:-translate-y-1.5"
       style={{ background: cardBg, border: cardBorder, backdropFilter: "blur(20px)" }}
     >
-      {venue.featured && (
+      {featured && (
         <div className="absolute top-4 right-4 bg-orange-500 text-white text-[9px] font-black tracking-wider px-2.5 py-1 rounded-full uppercase">
           Istaknuto
         </div>
@@ -137,27 +102,26 @@ function VenueCard({ venue }: { venue: Venue }) {
         <div className="flex items-start justify-between mb-5">
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl text-white flex-shrink-0"
-            style={{ background: venue.gradient }}
+            style={{ background: gradient }}
           >
-            {venue.initials}
+            {getInitials(venue.name)}
           </div>
           <div className="flex items-center gap-1.5 bg-orange-500/15 border border-orange-500/25 px-3 py-1 rounded-full">
-            {venue.pulsing && <div className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-blink" />}
-            {!venue.pulsing && <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />}
-            <span className="text-orange-300 text-xs font-bold">{venue.positions} {venue.positions === 1 ? "pozicija" : "pozicije"}</span>
+            {pulsing && <div className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />}
+            {!pulsing && <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />}
+            <span className="text-orange-300 text-xs font-bold">{Math.round(venue.trustScore)}</span>
           </div>
         </div>
 
         <h3 className="text-white font-bold text-lg mb-1">{venue.name}</h3>
-        <p className={`text-xs font-medium mb-4 ${venue.featured ? "text-neutral-400" : "text-neutral-500"}`}>
-          {venue.area} · {venue.type}
+        <p className={`text-xs font-medium mb-4 ${featured ? "text-neutral-400" : "text-neutral-500"}`}>
+          {venue.municipality} · {VENUE_TYPE_LABELS[venue.venueType] ?? venue.venueType}
         </p>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Stars rating={venue.rating} />
-            <span className="text-white font-bold text-sm">{venue.rating}</span>
-            <span className={`text-xs ${venue.featured ? "text-neutral-400" : "text-neutral-500"}`}>· {venue.reviews} ocene</span>
+            <Stars rating={rating} />
+            <span className="text-white font-bold text-sm">{rating}</span>
           </div>
           <span className={`text-xs font-semibold group-hover:translate-x-1 transition-transform inline-block ${applyColor}`}>
             Prijavi se →
@@ -165,14 +129,14 @@ function VenueCard({ venue }: { venue: Venue }) {
         </div>
 
         <div className={`mt-4 pt-4 border-t ${dividerColor} flex gap-2`}>
-          {venue.tags.map((tag) => (
+          {tags.map((tag) => (
             <span key={tag} className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${tagBg}`}>
               {tag}
             </span>
           ))}
         </div>
       </div>
-    </div>
+    </a>
   );
 }
 
@@ -196,6 +160,23 @@ const trustItems = [
 ];
 
 export function TopVenuesSection() {
+  const [venues, setVenues] = useState<ApiVenue[]>([]);
+
+  useEffect(() => {
+    fetch("/api/venues")
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d) && d.length > 0) {
+          setVenues(d.slice(0, 6));
+        }
+      })
+      .catch(() => {/* use fallback silently */});
+  }, []);
+
+  const displayVenues: ApiVenue[] = venues.length > 0
+    ? venues
+    : (FALLBACK as unknown as ApiVenue[]);
+
   return (
     <section className="relative py-28 overflow-hidden">
       {/* Background */}
@@ -246,8 +227,8 @@ export function TopVenuesSection() {
 
         {/* Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {venues.map((v) => (
-            <VenueCard key={v.name} venue={v} />
+          {displayVenues.map((v, i) => (
+            <VenueCard key={v.name ?? i} venue={v} featured={i === 1} idx={i} />
           ))}
         </div>
 
