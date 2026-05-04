@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import ReviewWizard from "@/components/review/ReviewWizard";
 
 type Application = {
   id: string;
@@ -22,8 +23,6 @@ type Application = {
     } | null;
   };
 };
-
-type Filter = "SVE" | "PENDING" | "SHORTLISTED" | "ACCEPTED" | "REJECTED";
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "Na čekanju", SHORTLISTED: "Shortlist",
@@ -47,12 +46,15 @@ const TIER_COLORS: Record<string, string> = {
   UNVERIFIED:  "text-neutral-500 bg-neutral-50 border-neutral-300",
 };
 
+type Filter = "SVE" | "PENDING" | "SHORTLISTED" | "ACCEPTED" | "REJECTED" | "COMPLETED";
+
 const FILTERS: { key: Filter; label: string }[] = [
-  { key: "SVE", label: "Sve" },
-  { key: "PENDING", label: "Na čekanju" },
+  { key: "SVE",         label: "Sve" },
+  { key: "PENDING",     label: "Na čekanju" },
   { key: "SHORTLISTED", label: "Shortlist" },
-  { key: "ACCEPTED", label: "Prihvaćene" },
-  { key: "REJECTED", label: "Odbijene" },
+  { key: "ACCEPTED",    label: "Prihvaćene" },
+  { key: "REJECTED",    label: "Odbijene" },
+  { key: "COMPLETED",   label: "Završene" },
 ];
 
 function formatDate(iso: string) {
@@ -67,6 +69,8 @@ export default function VenueApplicationsPage() {
   const [loading, setLoading]   = useState(true);
   const [filter, setFilter]     = useState<Filter>("SVE");
   const [updating, setUpdating] = useState<string | null>(null);
+  const [reviewApp, setReviewApp] = useState<Application | null>(null);
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -190,6 +194,17 @@ export default function VenueApplicationsPage() {
                           </button>
                         </div>
                       )}
+                      {app.status === "COMPLETED" && !reviewedIds.has(app.id) && (
+                        <button
+                          onClick={() => setReviewApp(app)}
+                          className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100"
+                        >
+                          Oceni konobara
+                        </button>
+                      )}
+                      {app.status === "COMPLETED" && reviewedIds.has(app.id) && (
+                        <span className="text-[11px] font-medium text-green-600">✓ Ocenjeno</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -198,6 +213,25 @@ export default function VenueApplicationsPage() {
           </div>
         )}
       </div>
+
+      {/* Review modal */}
+      {reviewApp && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setReviewApp(null)}>
+          <div onClick={e => e.stopPropagation()}>
+            <ReviewWizard
+              direction="VENUE_TO_WAITER"
+              subjectId={reviewApp.waiter.id}
+              subjectName={reviewApp.waiter.name ?? undefined}
+              venueId={reviewApp.jobPost.venueId}
+              onSuccess={() => {
+                setReviewedIds(prev => new Set([...prev, reviewApp.id]));
+                setReviewApp(null);
+              }}
+              onCancel={() => setReviewApp(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

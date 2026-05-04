@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import PassportCard from "@/components/passport/PassportCard";
 import TrustRadar from "@/components/trust-score/TrustRadar";
 import EngagementTimeline, { type EngagementRecord } from "@/components/passport/EngagementTimeline";
-import ReviewWizard from "@/components/review/ReviewWizard";
+import GuestReviewForm from "@/components/review/GuestReviewForm";
 
 type PublicPassport = {
   passport: {
@@ -40,8 +41,11 @@ function Stars({ value }: { value: number }) {
   return <span className="text-amber-400">{"★".repeat(stars)}{"☆".repeat(5 - stars)}</span>;
 }
 
-export default function PublicPassportPage({ params }: { params: { shareToken: string } }) {
+function PublicPassportContent({ shareToken }: { shareToken: string }) {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const venueIdFromUrl = searchParams.get("venueId") ?? undefined;
+
   const [data, setData]         = useState<PublicPassport | null>(null);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
@@ -49,7 +53,7 @@ export default function PublicPassportPage({ params }: { params: { shareToken: s
   const [reviewDone, setReviewDone] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/passport/public/${params.shareToken}`)
+    fetch(`/api/passport/public/${shareToken}`)
       .then(async (r) => {
         const json = await r.json();
         if (!r.ok) { setError(json.error ?? "Greška"); return; }
@@ -153,10 +157,10 @@ export default function PublicPassportPage({ params }: { params: { shareToken: s
         {canReview && !reviewDone && (
           <div className="flex flex-col items-center gap-3">
             {showReview ? (
-              <ReviewWizard
-                direction="GUEST_TO_WAITER"
+              <GuestReviewForm
                 subjectId={passport.userId}
                 subjectName={passport.user.name ?? undefined}
+                prefillVenueId={venueIdFromUrl}
                 onSuccess={() => { setReviewDone(true); setShowReview(false); }}
                 onCancel={() => setShowReview(false)}
               />
@@ -177,5 +181,17 @@ export default function PublicPassportPage({ params }: { params: { shareToken: s
         )}
       </div>
     </div>
+  );
+}
+
+export default function PublicPassportPage({ params }: { params: { shareToken: string } }) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen hero-bg flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
+      </div>
+    }>
+      <PublicPassportContent shareToken={params.shareToken} />
+    </Suspense>
   );
 }
