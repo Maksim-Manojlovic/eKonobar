@@ -8,6 +8,7 @@ import {
   createGeolocationHash,
   parseGuestCoordinates,
 } from "@/lib/geofence";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { ReviewDirection } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -66,6 +67,11 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const allowed = await checkRateLimit(session.user.id, "post_review", 5);
+  if (!allowed) {
+    return NextResponse.json({ error: "Previše recenzija. Pokušaj ponovo za sat vremena." }, { status: 429 });
   }
 
   const body = await req.json();

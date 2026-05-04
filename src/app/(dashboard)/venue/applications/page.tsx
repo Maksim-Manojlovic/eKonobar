@@ -194,6 +194,18 @@ export default function VenueApplicationsPage() {
                           </button>
                         </div>
                       )}
+                      {app.status === "ACCEPTED" && (
+                        <div className="flex gap-1.5">
+                          <button onClick={() => updateStatus(app.id, "COMPLETED")} disabled={updating === app.id}
+                            className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 disabled:opacity-50">
+                            Završi angažman
+                          </button>
+                          <button onClick={() => updateStatus(app.id, "REJECTED")} disabled={updating === app.id}
+                            className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 disabled:opacity-50">
+                            Odbij
+                          </button>
+                        </div>
+                      )}
                       {app.status === "COMPLETED" && !reviewedIds.has(app.id) && (
                         <button
                           onClick={() => setReviewApp(app)}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -51,6 +52,11 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "WAITER") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const allowed = await checkRateLimit(session.user.id, "apply_job", 10);
+  if (!allowed) {
+    return NextResponse.json({ error: "Previše prijava. Pokušaj ponovo za sat vremena." }, { status: 429 });
   }
 
   const body = await req.json();
