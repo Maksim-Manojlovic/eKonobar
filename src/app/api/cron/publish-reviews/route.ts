@@ -1,0 +1,65 @@
+import { NextRequest, NextResponse } from "next/server";
+import { dbRaw } from "@/lib/db";
+import { publishDueReviews, syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
+
+// Accepts GET or POST.
+// Requires: Authorization: Bearer <CRON_SECRET>
+//
+// Vercel cron:  set CRON_SECRET env var, add to vercel.json crons config
+// Other:        hit with any HTTP scheduler, pass the header
+
+function isAuthorized(req: NextRequest): boolean {
+  const authHeader = req.headers.get("authorization");
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return false;
+  return authHeader === `Bearer ${secret}`;
+}
+
+async function run() {
+  const now = new Date();
+
+  // Snapshot which reviews are about to be published so we know what to sync
+  const dueReviews = await dbRaw.review.findMany({
+    where: { status: "PENDING", pendingUntil: { lte: now } },
+    select: { venueId: true, subjectId: true, direction: true },
+  });
+
+  const published = await publishDueReviews();
+
+  if (published === 0) {
+    return { published: 0, venuesSynced: 0, waitersSynced: 0 };
+  }
+
+  const venueIds  = new Set<string>();
+  const waiterIds = new Set<string>();
+
+  for (const r of dueReviews) {
+    if (r.direction === "WAITER_TO_VENUE" && r.venueId)   venueIds.add(r.venueId);
+    if ((r.direction === "VENUE_TO_WAITER" || r.direction === "GUEST_TO_WAITER") && r.subjectId) {
+      waiterIds.add(r.subjectId);
+    }
+  }
+
+  await Promise.all([
+    ...[...venueIds].map(id  => syncVenueTrustScore(id).catch(console.error)),
+    ...[...waiterIds].map(id => syncPassportScore(id).catch(console.error)),
+  ]);
+
+  return {
+    published,
+    venuesSynced:  venueIds.size,
+    waitersSynced: waiterIds.size,
+  };
+}
+
+export async function GET(req: NextRequest) {
+  if (!isAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const result = await run();
+  return NextResponse.json(result);
+}
+
+export async function POST(req: NextRequest) {
+  if (!isAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const result = await run();
+  return NextResponse.json(result);
+}
