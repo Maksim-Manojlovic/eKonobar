@@ -10,6 +10,7 @@ const TTL_REMEMBER =  7 * 24 * 60 * 60; // 7 d  — "zapamti me"
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt", maxAge: TTL_REMEMBER },
+  trustHost: true,
   pages: {
     signIn: "/login",
     newUser: "/onboarding/waiter",
