@@ -6,9 +6,8 @@ import { VenueType } from "@prisma/client";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (session.user.role === "VENUE_OWNER") {
+  if (session?.user.role === "VENUE_OWNER") {
     const venues = await db.venue.findMany({
       where: { ownerId: session.user.id },
       include: {
