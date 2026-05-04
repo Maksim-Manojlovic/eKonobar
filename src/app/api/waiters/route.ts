@@ -2,26 +2,47 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { VerificationTier } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "VENUE_OWNER") {
+  if (!session || (session.user.role !== "VENUE_OWNER" && session.user.role !== "HEADHUNTER")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { searchParams } = new URL(req.url);
-  const available = searchParams.get("available");
-  const minScore  = searchParams.get("minScore");
+
+  const available       = searchParams.get("available");
+  const minScore        = searchParams.get("minScore");
+  const sanitaryBook    = searchParams.get("sanitaryBook");
+  const tierParam       = searchParams.get("verificationTier") as VerificationTier | null;
+  const skillsParam     = searchParams.get("skills");   // comma-separated
+  const langsParam      = searchParams.get("languages"); // comma-separated
+  const minExp          = searchParams.get("minExperience");
+  const search          = searchParams.get("search");
+
+  const skills    = skillsParam   ? skillsParam.split(",").map(s => s.trim()).filter(Boolean)   : [];
+  const languages = langsParam    ? langsParam.split(",").map(l => l.trim()).filter(Boolean)     : [];
 
   const passportFilter: Record<string, unknown> = {};
-  if (available === "true") passportFilter.currentlyAvailable = true;
-  if (minScore)             passportFilter.score = { gte: Number(minScore) };
+  if (available === "true")   passportFilter.currentlyAvailable = true;
+  if (minScore)               passportFilter.score = { gte: Number(minScore) };
+  if (sanitaryBook === "true") passportFilter.sanitaryBookValid = true;
+  if (minExp)                 passportFilter.yearsExperience = { gte: Number(minExp) };
+  if (skills.length > 0)      passportFilter.skills = { hasSome: skills };
+  if (languages.length > 0)   passportFilter.languages = { hasSome: languages };
 
   try {
     const waiters = await db.user.findMany({
       where: {
         role: "WAITER",
         deletedAt: null,
+        ...(tierParam && Object.values(VerificationTier).includes(tierParam) && {
+          verificationTier: tierParam,
+        }),
+        ...(search && {
+          name: { contains: search, mode: "insensitive" },
+        }),
         ...(Object.keys(passportFilter).length > 0 && { waiterPassport: passportFilter }),
       },
       select: {
@@ -38,10 +59,16 @@ export async function GET(req: NextRequest) {
             currentlyAvailable: true,
             badges: true,
             bio: true,
+            reviewCount: true,
+            totalEngagements: true,
+            shareToken: true,
           },
         },
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: [
+        { waiterPassport: { score: "desc" } },
+      ],
+      take: 100,
     });
 
     return NextResponse.json(waiters);
