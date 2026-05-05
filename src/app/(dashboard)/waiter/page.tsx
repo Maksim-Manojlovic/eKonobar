@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
+import ImageUpload from "@/components/ui/ImageUpload";
 
 type Section = "overview" | "alerts" | "jobs" | "applications" | "shifts" | "invites" | "reviews" | "passport";
 type AppFilter = "all" | "accepted" | "pending" | "rejected";
@@ -82,6 +83,9 @@ type PassportData = {
   sanitaryBookValid: boolean;
   currentlyAvailable: boolean;
   bio: string | null;
+  galleryPhotos: string[];
+  venueTypePreferences: string[];
+  lastAvailableDate: string | null;
   recentReviews: RecentReview[];
   trustScore: {
     punctuality: number; skill: number; guestCommunication: number;
@@ -757,6 +761,15 @@ const BADGE_PROGRESS: Record<string, ((p: PassportData) => { current: number; to
   english_b2:       null,
 };
 
+const VENUE_TYPE_OPTIONS = [
+  { value: "RESTAURANT", label: "Restoran" },
+  { value: "CAFE",       label: "Kafić" },
+  { value: "BAR",        label: "Bar" },
+  { value: "NIGHT_CLUB", label: "Noćni klub" },
+  { value: "HOTEL",      label: "Hotel" },
+  { value: "CATERING",   label: "Ketering" },
+];
+
 const SCORE_DIMS: { key: keyof NonNullable<PassportData["trustScore"]>; label: string }[] = [
   { key: "punctuality",         label: "Tačnost" },
   { key: "skill",               label: "Veštine" },
@@ -774,11 +787,13 @@ function PassportSection({ userName }: { userName: string }) {
   const [saving, setSaving]       = useState(false);
   const [saved, setSaved]         = useState(false);
 
-  const [bio, setBio]                       = useState("");
-  const [skills, setSkills]                 = useState<string[]>([]);
-  const [languages, setLanguages]           = useState<string[]>([]);
-  const [yearsExperience, setYears]         = useState(0);
-  const [currentlyAvailable, setAvailable]  = useState(true);
+  const [bio, setBio]                             = useState("");
+  const [skills, setSkills]                       = useState<string[]>([]);
+  const [languages, setLanguages]                 = useState<string[]>([]);
+  const [yearsExperience, setYears]               = useState(0);
+  const [currentlyAvailable, setAvailable]        = useState(true);
+  const [venueTypePreferences, setVenuePrefs]     = useState<string[]>([]);
+  const [galleryPhotos, setGalleryPhotos]         = useState<string[]>([]);
 
   useEffect(() => {
     fetch("/api/passport")
@@ -791,6 +806,8 @@ function PassportSection({ userName }: { userName: string }) {
           setLanguages(data.languages ?? []);
           setYears(data.yearsExperience ?? 0);
           setAvailable(data.currentlyAvailable ?? true);
+          setVenuePrefs(data.venueTypePreferences ?? []);
+          setGalleryPhotos(data.galleryPhotos ?? []);
         }
         setLoading(false);
       })
@@ -803,7 +820,7 @@ function PassportSection({ userName }: { userName: string }) {
     const res = await fetch("/api/passport", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bio: bio || null, skills, languages, yearsExperience, currentlyAvailable }),
+      body: JSON.stringify({ bio: bio || null, skills, languages, yearsExperience, currentlyAvailable, venueTypePreferences }),
     });
     if (res.ok) {
       const data = await res.json();
@@ -871,6 +888,12 @@ function PassportSection({ userName }: { userName: string }) {
             <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${currentlyAvailable ? "bg-green-100 text-green-700" : "bg-neutral-100 text-neutral-400"}`}>
               {currentlyAvailable ? "Dostupan" : "Zauzet"}
             </span>
+            {currentlyAvailable && passport?.lastAvailableDate && (() => {
+              const days = Math.floor((Date.now() - new Date(passport.lastAvailableDate).getTime()) / 86_400_000) + 1;
+              return days >= 2 ? (
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-500">🔥 {days}d streak</span>
+              ) : null;
+            })()}
             {passport?.sanitaryBookValid && (
               <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700">Sanitarna ✓</span>
             )}
@@ -954,6 +977,23 @@ function PassportSection({ userName }: { userName: string }) {
           <TagInput tags={languages} onChange={setLanguages} placeholder="srpski, engleski... (Enter za dodavanje)" />
         </div>
 
+        <div>
+          <label className="text-xs font-semibold text-neutral-600 mb-2 block">Tip objekta (preferencije)</label>
+          <div className="flex flex-wrap gap-2">
+            {VENUE_TYPE_OPTIONS.map(opt => {
+              const active = venueTypePreferences.includes(opt.value);
+              return (
+                <button key={opt.value} type="button"
+                  onClick={() => setVenuePrefs(p => active ? p.filter(v => v !== opt.value) : [...p, opt.value])}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${active ? "bg-orange-500 text-white border-orange-500" : "bg-white text-neutral-500 border-neutral-200 hover:border-orange-300"}`}>
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-neutral-400 mt-1.5">Algoritam šalje Red Alert samo za odabrane tipove.</p>
+        </div>
+
         <div className="flex items-center gap-3">
           <button type="submit" disabled={saving} className="btn-dash-orange px-6 py-2.5 disabled:opacity-50">
             {saving ? "Čuvanje..." : "Sačuvaj profil"}
@@ -961,6 +1001,29 @@ function PassportSection({ userName }: { userName: string }) {
           {saved && <span className="text-sm font-semibold text-green-600">✓ Sačuvano</span>}
         </div>
       </form>
+
+      {/* Gallery */}
+      <div className="dash-card p-5 flex flex-col gap-4">
+        <div>
+          <h3 className="font-bold text-neutral-900">Galerija &ldquo;U radu&rdquo;</h3>
+          <p className="text-xs text-neutral-400 mt-0.5">Do 4 fotografije — uniforma, koktel, servis. Vizuelni dokaz iskustva.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <ImageUpload key={i} current={galleryPhotos[i]} uploadType="venue-photo" shape="rect" label=""
+              onUpload={async (url) => {
+                const updated = [...galleryPhotos];
+                updated[i] = url;
+                setGalleryPhotos(updated);
+                await fetch("/api/passport", {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ galleryPhotos: updated }),
+                });
+              }} />
+          ))}
+        </div>
+      </div>
 
       {/* Top endorsements */}
       {passport?.recentReviews && passport.recentReviews.length > 0 && (

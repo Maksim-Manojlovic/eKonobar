@@ -49,9 +49,23 @@ export async function PUT(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { bio, skills, languages, yearsExperience, currentlyAvailable, profilePhoto } = body;
+  const { bio, skills, languages, yearsExperience, currentlyAvailable, profilePhoto, galleryPhotos, venueTypePreferences } = body;
 
   try {
+    const existing = await db.waiterPassport.findUnique({
+      where: { userId: session.user.id },
+      select: { currentlyAvailable: true },
+    });
+
+    const availabilityDateUpdate =
+      currentlyAvailable !== undefined
+        ? currentlyAvailable
+          ? existing && !existing.currentlyAvailable
+            ? { lastAvailableDate: new Date() }
+            : {}
+          : { lastAvailableDate: null }
+        : {};
+
     const passport = await db.waiterPassport.upsert({
       where: { userId: session.user.id },
       create: {
@@ -61,7 +75,10 @@ export async function PUT(req: NextRequest) {
         languages: Array.isArray(languages) ? languages : [],
         yearsExperience: yearsExperience != null ? Number(yearsExperience) : 0,
         currentlyAvailable: currentlyAvailable ?? true,
+        venueTypePreferences: Array.isArray(venueTypePreferences) ? venueTypePreferences : [],
+        galleryPhotos: Array.isArray(galleryPhotos) ? galleryPhotos.slice(0, 4) : [],
         ...(profilePhoto && { profilePhoto }),
+        lastAvailableDate: currentlyAvailable !== false ? new Date() : null,
       },
       update: {
         ...(bio !== undefined && { bio: bio || null }),
@@ -70,6 +87,9 @@ export async function PUT(req: NextRequest) {
         ...(yearsExperience !== undefined && { yearsExperience: Number(yearsExperience) }),
         ...(currentlyAvailable !== undefined && { currentlyAvailable }),
         ...(profilePhoto !== undefined && { profilePhoto }),
+        ...(venueTypePreferences !== undefined && { venueTypePreferences: Array.isArray(venueTypePreferences) ? venueTypePreferences : [] }),
+        ...(galleryPhotos !== undefined && { galleryPhotos: Array.isArray(galleryPhotos) ? galleryPhotos.slice(0, 4) : [] }),
+        ...availabilityDateUpdate,
       },
       include: { trustScore: true },
     });

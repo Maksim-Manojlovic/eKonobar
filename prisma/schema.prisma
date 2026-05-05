@@ -387,6 +387,11 @@ model WaiterPassport {
 
   bio                 String?   @db.Text
   profilePhoto        String?
+  galleryPhotos       String[]
+
+  venueTypePreferences String[]  // ["RESTAURANT", "CAFE", "BAR", "NIGHT_CLUB", "HOTEL", "CATERING"]
+
+  lastAvailableDate   DateTime?  // set when currentlyAvailable flips true, cleared when flips false
 
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
