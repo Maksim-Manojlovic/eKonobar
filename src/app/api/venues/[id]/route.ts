@@ -76,13 +76,25 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { images } = body as { images?: string[] };
+  const { images, phone, website, instagram, description, capacity, priceRangeMin, priceRangeMax } =
+    body as {
+      images?: string[];
+      phone?: string | null;
+      website?: string | null;
+      instagram?: string | null;
+      description?: string | null;
+      capacity?: number | null;
+      priceRangeMin?: number | null;
+      priceRangeMax?: number | null;
+    };
 
-  if (!Array.isArray(images)) {
-    return NextResponse.json({ error: "images must be an array" }, { status: 400 });
-  }
-  if (images.length > 8) {
-    return NextResponse.json({ error: "Maksimalno 8 slika" }, { status: 400 });
+  if (images !== undefined) {
+    if (!Array.isArray(images)) {
+      return NextResponse.json({ error: "images must be an array" }, { status: 400 });
+    }
+    if (images.length > 8) {
+      return NextResponse.json({ error: "Maksimalno 8 slika" }, { status: 400 });
+    }
   }
 
   const venue = await db.venue.findUnique({ where: { id }, select: { ownerId: true } });
@@ -93,8 +105,16 @@ export async function PATCH(
 
   const updated = await db.venue.update({
     where: { id },
-    data: { images },
-    select: { id: true, images: true },
+    data: {
+      ...(images !== undefined && { images }),
+      ...(phone !== undefined && { phone: phone || null }),
+      ...(website !== undefined && { website: website || null }),
+      ...(instagram !== undefined && { instagram: instagram || null }),
+      ...(description !== undefined && { description: description || null }),
+      ...(capacity !== undefined && { capacity: capacity != null ? Number(capacity) : null }),
+      ...(priceRangeMin !== undefined && { priceRangeMin: priceRangeMin != null ? Number(priceRangeMin) : null }),
+      ...(priceRangeMax !== undefined && { priceRangeMax: priceRangeMax != null ? Number(priceRangeMax) : null }),
+    },
   });
 
   return NextResponse.json(updated);

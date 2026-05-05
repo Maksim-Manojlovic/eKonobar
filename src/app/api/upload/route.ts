@@ -8,17 +8,13 @@ const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 const UPLOAD_CONFIGS = {
   avatar: {
     folder: "ekonobar/avatars",
-    transformation: [
-      { width: 400, height: 400, crop: "fill" as const, gravity: "face" as const },
-      { quality: "auto" as const, fetch_format: "auto" as const },
-    ],
+    width: 400, height: 400, crop: "fill" as const, gravity: "face" as const,
+    quality: "auto" as const, format: "webp" as const,
   },
   "venue-photo": {
     folder: "ekonobar/venues",
-    transformation: [
-      { width: 1200, height: 800, crop: "fill" as const },
-      { quality: "auto" as const, fetch_format: "auto" as const },
-    ],
+    width: 1200, height: 800, crop: "fill" as const,
+    quality: "auto" as const, format: "webp" as const,
   },
 };
 
@@ -50,8 +46,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await cloudinary.uploader.upload(dataUri, {
-      folder: config.folder,
-      transformation: config.transformation,
+      ...config,
       overwrite: false,
     });
 

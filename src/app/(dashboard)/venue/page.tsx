@@ -40,6 +40,7 @@ type Venue = {
   phone: string | null;
   website: string | null;
   instagram: string | null;
+  description: string | null;
   priceRangeMin: number | null;
   priceRangeMax: number | null;
   images: string[];
@@ -1053,8 +1054,22 @@ function ProfileSection({ venue, loading, onVenueCreated }: {
 }) {
   const [images, setImages] = useState<string[]>([]);
   const [imgSaving, setImgSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ phone: "", website: "", instagram: "", description: "", capacity: "", priceRangeMin: "", priceRangeMax: "" });
+  const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => { setImages(venue?.images ?? []); }, [venue?.images]);
+  useEffect(() => {
+    if (venue) setEditForm({
+      phone: venue.phone ?? "",
+      website: venue.website ?? "",
+      instagram: venue.instagram ?? "",
+      description: venue.description ?? "",
+      capacity: venue.capacity?.toString() ?? "",
+      priceRangeMin: venue.priceRangeMin?.toString() ?? "",
+      priceRangeMax: venue.priceRangeMax?.toString() ?? "",
+    });
+  }, [venue]);
 
   async function saveImages(next: string[]) {
     if (!venue) return;
@@ -1110,8 +1125,84 @@ function ProfileSection({ venue, loading, onVenueCreated }: {
             <span className="bg-green-100 text-green-700 text-xs font-bold px-2.5 py-0.5 rounded-full">Aktivan</span>
           </div>
         </div>
-        <button className="btn-dash-outline px-4 py-2 self-start">Uredi profil</button>
+        <button onClick={() => setIsEditing(v => !v)} className="btn-dash-outline px-4 py-2 self-start flex-shrink-0">
+          {isEditing ? "Zatvori" : "Uredi profil"}
+        </button>
       </div>
+      {isEditing && (
+        <div className="dash-card p-5 flex flex-col gap-4">
+          <h3 className="font-bold text-neutral-900 text-sm">Uredi kontakt i detalje</h3>
+          {[
+            { key: "phone",         label: "Telefon",         placeholder: "+381 11 ..." },
+            { key: "website",       label: "Vebsajt",         placeholder: "https://..." },
+            { key: "instagram",     label: "Instagram",        placeholder: "@naziv" },
+            { key: "description",   label: "Opis lokala",      placeholder: "Kratki opis..." },
+          ].map(({ key, label, placeholder }) => (
+            <div key={key}>
+              <label className="text-xs font-semibold text-neutral-600 mb-1 block">{label}</label>
+              {key === "description" ? (
+                <textarea
+                  value={editForm[key as keyof typeof editForm]}
+                  onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                  placeholder={placeholder}
+                  rows={3}
+                  className="auth-input resize-none"
+                />
+              ) : (
+                <input
+                  value={editForm[key as keyof typeof editForm]}
+                  onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                  placeholder={placeholder}
+                  className="auth-input"
+                />
+              )}
+            </div>
+          ))}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { key: "capacity",      label: "Kapacitet (mesta)" },
+              { key: "priceRangeMin", label: "Min. plata (RSD/h)" },
+              { key: "priceRangeMax", label: "Max. plata (RSD/h)" },
+            ].map(({ key, label }) => (
+              <div key={key}>
+                <label className="text-xs font-semibold text-neutral-600 mb-1 block">{label}</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={editForm[key as keyof typeof editForm]}
+                  onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                  className="auth-input"
+                />
+              </div>
+            ))}
+          </div>
+          <button
+            disabled={editSaving}
+            onClick={async () => {
+              setEditSaving(true);
+              await fetch(`/api/venues/${venue.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  phone:        editForm.phone        || null,
+                  website:      editForm.website      || null,
+                  instagram:    editForm.instagram    || null,
+                  description:  editForm.description  || null,
+                  capacity:     editForm.capacity     ? Number(editForm.capacity)     : null,
+                  priceRangeMin: editForm.priceRangeMin ? Number(editForm.priceRangeMin) : null,
+                  priceRangeMax: editForm.priceRangeMax ? Number(editForm.priceRangeMax) : null,
+                }),
+              });
+              setEditSaving(false);
+              setIsEditing(false);
+            }}
+            className="btn-dash-orange py-2.5 disabled:opacity-50 self-start px-8"
+          >
+            {editSaving ? "Čuvanje..." : "Sačuvaj"}
+          </button>
+        </div>
+      )}
+
       <div className="dash-card p-5 grid gap-4 sm:grid-cols-2">
         {infoFields.map(({ label, value }) => (
           <div key={label}>
