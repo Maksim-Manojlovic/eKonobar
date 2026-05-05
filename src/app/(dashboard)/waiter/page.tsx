@@ -92,13 +92,14 @@ type MyApplication = {
   };
 };
 
-/* ── Static placeholder data ─────────────────────────────────────────────── */
-
-const REVIEWS = [
-  { id: 1, venue: "Kafana Dva Jelena", rating: 5, date: "15 Apr 2026", text: "Marko je izuzetan konobar. Brz, ljubazan i uvek sa osmehom. Definitivo ćemo ga ponovo angažovati!" },
-  { id: 2, venue: "Club Sindikat",     rating: 4, date: "2 Apr 2026",  text: "Profesionalan i pouzdan. Malo tih ali gosti su bili zadovoljni uslugom." },
-  { id: 3, venue: "Restoran Šešir Moj", rating: 5, date: "18 Mar 2026", text: "Jedan od boljih konobara koje smo imali. Poznaje meni, komunicira sa gostima i drži tempo celo veče." },
-];
+type WaiterReview = {
+  id: string;
+  direction: string;
+  overallRating: number;
+  comment: string | null;
+  publishedAt: string | null;
+  author: { id: string; name: string | null; verificationTier: string };
+};
 
 /* ── Utility ──────────────────────────────────────────────────────────────── */
 
@@ -612,21 +613,60 @@ function ShiftsSection({ shifts, loading }: { shifts: WaiterShift[]; loading: bo
   );
 }
 
+const DIRECTION_LABELS: Record<string, string> = {
+  VENUE_TO_WAITER: "Lokal",
+  GUEST_TO_WAITER: "Gost",
+};
+
 function ReviewsSection() {
+  const { data: session } = useSession();
+  const [reviews, setReviews]   = useState<WaiterReview[]>([]);
+  const [loading, setLoading]   = useState(true);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    fetch(`/api/reviews?subjectId=${session.user.id}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(setReviews)
+      .finally(() => setLoading(false));
+  }, [session?.user?.id]);
+
+  if (loading) return <Spinner />;
+
   return (
     <>
       <h2 className="font-black text-neutral-900">Moje recenzije</h2>
-      <div className="flex flex-col gap-4">
-        {REVIEWS.map(r => (
-          <div key={r.id} className="dash-card p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div><div className="font-bold text-neutral-900">{r.venue}</div><Stars n={r.rating} /></div>
-              <span className="text-xs text-neutral-400 flex-shrink-0">{r.date}</span>
-            </div>
-            <p className="text-sm text-neutral-600 mt-3 leading-relaxed">{r.text}</p>
-          </div>
-        ))}
-      </div>
+      {reviews.length === 0 ? (
+        <div className="dash-card p-10 text-center text-neutral-400 text-sm">Još nema recenzija</div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {reviews.map(r => {
+            const stars = Math.round(r.overallRating / 20);
+            const date = r.publishedAt
+              ? new Date(r.publishedAt).toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "short", year: "numeric" })
+              : "";
+            return (
+              <div key={r.id} className="dash-card p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <div className="font-bold text-neutral-900">{r.author.name ?? "Anonimno"}</div>
+                      <span className="text-[10px] font-bold text-neutral-400 bg-neutral-100 px-1.5 py-0.5 rounded-full">
+                        {DIRECTION_LABELS[r.direction] ?? r.direction}
+                      </span>
+                    </div>
+                    <Stars n={stars} />
+                  </div>
+                  <span className="text-xs text-neutral-400 flex-shrink-0">{date}</span>
+                </div>
+                {r.comment && (
+                  <p className="text-sm text-neutral-600 mt-3 leading-relaxed">{r.comment}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </>
   );
 }
