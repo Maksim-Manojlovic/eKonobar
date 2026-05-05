@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
+import Image from "next/image";
+import ImageUpload from "@/components/ui/ImageUpload";
 
 type Section = "overview" | "posts" | "new-post" | "smene" | "applications" | "waiters" | "discover" | "reviews" | "profile";
 type AppFilter = "SVE" | "PENDING" | "SHORTLISTED" | "ACCEPTED" | "REJECTED";
@@ -40,6 +42,7 @@ type Venue = {
   instagram: string | null;
   priceRangeMin: number | null;
   priceRangeMax: number | null;
+  images: string[];
   _count: { jobPosts: number };
   venueTrustScore: {
     atmosphere: number; organization: number; pay: number;
@@ -1048,6 +1051,23 @@ function VenueCreateForm({ onCreated }: { onCreated: () => void }) {
 function ProfileSection({ venue, loading, onVenueCreated }: {
   venue: Venue | null; loading: boolean; onVenueCreated: () => void;
 }) {
+  const [images, setImages] = useState<string[]>([]);
+  const [imgSaving, setImgSaving] = useState(false);
+
+  useEffect(() => { setImages(venue?.images ?? []); }, [venue?.images]);
+
+  async function saveImages(next: string[]) {
+    if (!venue) return;
+    setImgSaving(true);
+    await fetch(`/api/venues/${venue.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ images: next }),
+    });
+    setImages(next);
+    setImgSaving(false);
+  }
+
   if (loading) return <Spinner />;
   if (!venue) return <VenueCreateForm onCreated={onVenueCreated} />;
 
@@ -1100,6 +1120,49 @@ function ProfileSection({ venue, loading, onVenueCreated }: {
           </div>
         ))}
       </div>
+
+      {/* Photos */}
+      <div className="dash-card p-5 flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-neutral-900 text-sm">Fotografije lokala</h3>
+          <span className="text-xs text-neutral-400">{images.length}/8</span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          {images.map((src, i) => (
+            <div key={src} className="relative group rounded-xl overflow-hidden aspect-video bg-neutral-100">
+              <Image src={src} alt="" fill className="object-cover" />
+              {i === 0 && (
+                <span className="absolute top-1.5 left-1.5 bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">
+                  Naslovna
+                </span>
+              )}
+              <button
+                onClick={() => saveImages(images.filter((_, j) => j !== i))}
+                disabled={imgSaving}
+                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 disabled:opacity-40"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+
+          {images.length < 8 && (
+            <div className="aspect-video">
+              <ImageUpload
+                uploadType="venue-photo"
+                className="h-full"
+                onUpload={async (url) => saveImages([...images, url])}
+              />
+            </div>
+          )}
+        </div>
+
+        <p className="text-xs text-neutral-400">
+          Prva slika je naslovna fotografija prikazana u pretrazi. Maks. 8 slika.
+        </p>
+      </div>
+
       <div className="dash-card p-5">
         <h3 className="font-bold text-neutral-900 text-sm mb-4">Trust Score — dimenzije</h3>
         <div className="grid gap-3 sm:grid-cols-2">

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import ImageUpload from "@/components/ui/ImageUpload";
 
 type PassportData = {
   id: string;
@@ -18,6 +19,7 @@ type PassportData = {
   totalEngagements: number;
   shareToken: string | null;
   shareTokenExpiry: string | null;
+  profilePhoto: string | null;
   trustScore: {
     punctuality: number; skill: number; guestCommunication: number;
     personalHygiene: number; teamwork: number; speed: number;
@@ -230,6 +232,28 @@ export default function WaiterPassportPage() {
         {/* Edit form */}
         <form onSubmit={handleSave} className="dash-card p-5 flex flex-col gap-5">
           <h3 className="font-bold text-neutral-900">Uredi profil</h3>
+
+          <div className="flex items-center gap-5">
+            <ImageUpload
+              current={passport?.profilePhoto}
+              uploadType="avatar"
+              shape="circle"
+              label="Profilna slika"
+              onUpload={async (url) => {
+                const res = await fetch("/api/passport", {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ profilePhoto: url }),
+                });
+                if (res.ok) setPassport(await res.json());
+              }}
+            />
+            <div className="text-xs text-neutral-400">
+              <p className="font-semibold text-neutral-600 mb-0.5">Profilna fotografija</p>
+              <p>Vidljiva na pasošu i u rezultatima pretrage.</p>
+              <p>JPG, PNG, WEBP · max 5MB</p>
+            </div>
+          </div>
 
           <div className="flex items-center justify-between py-1">
             <div>

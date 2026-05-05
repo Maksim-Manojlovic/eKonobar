@@ -24,7 +24,7 @@ export async function PUT(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { bio, skills, languages, yearsExperience, currentlyAvailable } = body;
+  const { bio, skills, languages, yearsExperience, currentlyAvailable, profilePhoto } = body;
 
   try {
     const passport = await db.waiterPassport.upsert({
@@ -36,6 +36,7 @@ export async function PUT(req: NextRequest) {
         languages: Array.isArray(languages) ? languages : [],
         yearsExperience: yearsExperience != null ? Number(yearsExperience) : 0,
         currentlyAvailable: currentlyAvailable ?? true,
+        ...(profilePhoto && { profilePhoto }),
       },
       update: {
         ...(bio !== undefined && { bio: bio || null }),
@@ -43,9 +44,15 @@ export async function PUT(req: NextRequest) {
         ...(languages !== undefined && { languages: Array.isArray(languages) ? languages : [] }),
         ...(yearsExperience !== undefined && { yearsExperience: Number(yearsExperience) }),
         ...(currentlyAvailable !== undefined && { currentlyAvailable }),
+        ...(profilePhoto !== undefined && { profilePhoto }),
       },
       include: { trustScore: true },
     });
+
+    if (profilePhoto) {
+      await db.user.update({ where: { id: session.user.id }, data: { image: profilePhoto } });
+    }
+
     return NextResponse.json(passport);
   } catch (err) {
     console.error("[PUT /api/passport]", err);
