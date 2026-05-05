@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useParams } from "next/navigation";
 import PassportCard from "@/components/passport/PassportCard";
 import TrustRadar from "@/components/trust-score/TrustRadar";
 import EngagementTimeline, { type EngagementRecord } from "@/components/passport/EngagementTimeline";
@@ -60,7 +60,7 @@ function PublicPassportContent({ shareToken }: { shareToken: string }) {
         setData(json);
       })
       .finally(() => setLoading(false));
-  }, [params.shareToken]);
+  }, [shareToken]);
 
   if (loading) return <div className="min-h-screen hero-bg"><Spinner /></div>;
 
@@ -184,14 +184,19 @@ function PublicPassportContent({ shareToken }: { shareToken: string }) {
   );
 }
 
-export default function PublicPassportPage({ params }: { params: { shareToken: string } }) {
+function PublicPassportPageInner() {
+  const { shareToken } = useParams<{ shareToken: string }>();
+  return <PublicPassportContent shareToken={shareToken} />;
+}
+
+export default function PublicPassportPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen hero-bg flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
       </div>
     }>
-      <PublicPassportContent shareToken={params.shareToken} />
+      <PublicPassportPageInner />
     </Suspense>
   );
 }

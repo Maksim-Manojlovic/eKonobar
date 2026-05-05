@@ -415,7 +415,7 @@ function NewPostSection({ venue, onSuccess, onBack }: {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        venueId: venue.id,
+        venueId: venue!.id,
         title: form.title,
         description: form.description,
         engagementType: form.engagementType,

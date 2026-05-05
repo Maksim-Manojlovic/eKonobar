@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import TrustRadar from "@/components/trust-score/TrustRadar";
 import JobCard from "@/components/job/JobCard";
@@ -47,7 +48,8 @@ function Stars({ value }: { value: number }) {
   return <span className="text-amber-400">{"★".repeat(stars)}{"☆".repeat(5 - stars)}</span>;
 }
 
-export default function VenueDetailPage({ params }: { params: { id: string } }) {
+export default function VenueDetailPage() {
+  const { id } = useParams<{ id: string }>();
   const { data: session } = useSession();
   const [venue, setVenue]       = useState<VenueDetail | null>(null);
   const [loading, setLoading]   = useState(true);
@@ -55,13 +57,13 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
   const [showReview, setShowReview] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/venues/${params.id}`)
+    fetch(`/api/venues/${id}`)
       .then(async (r) => {
         if (r.status === 404) { setNotFound(true); return; }
         setVenue(await r.json());
       })
       .finally(() => setLoading(false));
-  }, [params.id]);
+  }, [id]);
 
   if (loading) return <div className="min-h-screen hero-bg"><Spinner /></div>;
   if (notFound || !venue) return (

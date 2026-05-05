@@ -10,6 +10,8 @@ const TTL_REMEMBER =  7 * 24 * 60 * 60; // 7 d  — "zapamti me"
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt", maxAge: TTL_REMEMBER },
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore — trustHost is valid at runtime in Next.js 15 but not typed in next-auth v4
   trustHost: true,
   pages: {
     signIn: "/login",

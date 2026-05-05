@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import TrustRadar from "@/components/trust-score/TrustRadar";
 
@@ -37,7 +38,8 @@ function Spinner() {
   );
 }
 
-export default function JobDetailPage({ params }: { params: { id: string } }) {
+export default function JobDetailPage() {
+  const { id } = useParams<{ id: string }>();
   const { data: session } = useSession();
   const [job, setJob]           = useState<JobDetail | null>(null);
   const [loading, setLoading]   = useState(true);
@@ -49,7 +51,7 @@ export default function JobDetailPage({ params }: { params: { id: string } }) {
   const [applyErr, setApplyErr] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/jobs/${params.id}`)
+    fetch(`/api/jobs/${id}`)
       .then(async (r) => {
         if (r.status === 404) { setNotFound(true); return; }
         const data: JobDetail = await r.json();
@@ -57,7 +59,7 @@ export default function JobDetailPage({ params }: { params: { id: string } }) {
         setApplied(data.hasApplied);
       })
       .finally(() => setLoading(false));
-  }, [params.id]);
+  }, [id]);
 
   async function handleApply() {
     if (!job) return;

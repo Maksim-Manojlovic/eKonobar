@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 
 const ENGAGEMENT_LABELS: Record<string, string> = {
@@ -25,7 +25,8 @@ function Spinner() {
   );
 }
 
-export default function ApplyPage({ params }: { params: { jobId: string } }) {
+export default function ApplyPage() {
+  const { jobId } = useParams<{ jobId: string }>();
   const { data: session, status } = useSession();
   const router = useRouter();
 
@@ -38,7 +39,7 @@ export default function ApplyPage({ params }: { params: { jobId: string } }) {
   const [done, setDone]         = useState(false);
 
   useEffect(() => {
-    fetch(`/api/jobs/${params.jobId}`)
+    fetch(`/api/jobs/${jobId}`)
       .then(async (r) => {
         if (r.status === 404) { setNotFound(true); return; }
         const data: JobSummary = await r.json();
@@ -46,17 +47,17 @@ export default function ApplyPage({ params }: { params: { jobId: string } }) {
         if (data.hasApplied) setDone(true);
       })
       .finally(() => setLoading(false));
-  }, [params.jobId]);
+  }, [jobId]);
 
   // Redirect non-waiters to login
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push(`/login?callbackUrl=/apply/${params.jobId}`);
+      router.push(`/login?callbackUrl=/apply/${jobId}`);
     }
     if (status === "authenticated" && session?.user.role !== "WAITER") {
       router.push("/");
     }
-  }, [status, session, router, params.jobId]);
+  }, [status, session, router, jobId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
