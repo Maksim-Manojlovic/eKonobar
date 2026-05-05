@@ -166,17 +166,34 @@ function ApplyButton({ jobId, applied, applying, onApply }: {
   );
 }
 
+/* ── Tier helpers ────────────────────────────────────────────────────────── */
+
+const TIER_BADGE: Record<string, { label: string; cls: string }> = {
+  BRONZE:   { label: "BRONZE",      cls: "bg-orange-100 text-orange-700" },
+  SILVER:   { label: "SILVER",      cls: "bg-neutral-200 text-neutral-600" },
+  GOLD:     { label: "🥇 GOLD",     cls: "bg-amber-100 text-amber-700" },
+  PLATINUM: { label: "💎 PLATINUM", cls: "bg-blue-100 text-blue-700" },
+};
+
+const NEXT_TIER: Record<string, string | null> = {
+  BRONZE: "SILVER", SILVER: "GOLD", GOLD: "PLATINUM", PLATINUM: null,
+};
+
 /* ── Section: Overview ───────────────────────────────────────────────────── */
 
-function OverviewSection({ jobs, applications, shifts, userName, onNavigate, onApply, applying }: {
-  jobs: JobPost[]; applications: MyApplication[]; shifts: WaiterShift[]; userName: string;
+function OverviewSection({ jobs, applications, shifts, userName, verificationTier, passport, onNavigate, onApply, applying }: {
+  jobs: JobPost[]; applications: MyApplication[]; shifts: WaiterShift[];
+  userName: string; verificationTier: string; passport: PassportData | null;
   onNavigate: (s: Section) => void; onApply: (id: string) => Promise<void>; applying: string | null;
 }) {
+  const score         = Math.round(passport?.score ?? 0);
   const circumference = 2 * Math.PI * 40;
-  const score = 92;
-  const offset = circumference - (score / 100) * circumference;
+  const offset        = circumference - (score / 100) * circumference;
   const appliedJobIds = new Set(applications.map(a => a.jobPost.id));
-  const redAlerts = jobs.filter(j => j.redAlert).slice(0, 3);
+  const redAlerts     = jobs.filter(j => j.redAlert).slice(0, 3);
+  const tier          = TIER_BADGE[verificationTier] ?? TIER_BADGE.BRONZE;
+  const nextTier      = NEXT_TIER[verificationTier];
+  const rating        = passport?.score ? (passport.score / 20).toFixed(1) : "—";
 
   return (
     <>
@@ -194,15 +211,21 @@ function OverviewSection({ jobs, applications, shifts, userName, onNavigate, onA
         </div>
         <div className="flex-1 text-center sm:text-left">
           <div className="flex flex-wrap gap-2 justify-center sm:justify-start mb-1">
-            <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2.5 py-0.5 rounded-full">🥇 GOLD</span>
-            <span className="bg-green-100 text-green-700 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block pulse-dot" />Verifikovan
-            </span>
+            <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${tier.cls}`}>{tier.label}</span>
+            {verificationTier !== "BRONZE" && (
+              <span className="bg-green-100 text-green-700 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block pulse-dot" />Verifikovan
+              </span>
+            )}
           </div>
           <h2 className="text-2xl font-black text-neutral-900">{userName}</h2>
-          <p className="text-sm text-neutral-500 mt-0.5">Konobar · Beograd</p>
+          <p className="text-sm text-neutral-500 mt-0.5">Konobar</p>
           <div className="flex gap-6 mt-4 justify-center sm:justify-start">
-            {[{ label: "Prijave", value: String(applications.length) }, { label: "Smene", value: "127" }, { label: "Ocena", value: "4.9" }].map(({ label, value }) => (
+            {[
+              { label: "Prijave",   value: String(applications.length) },
+              { label: "Angažmani", value: String(passport?.totalEngagements ?? 0) },
+              { label: "Ocena",     value: rating },
+            ].map(({ label, value }) => (
               <div key={label} className="text-center">
                 <div className="text-xl font-black text-neutral-900">{value}</div>
                 <div className="text-xs text-neutral-400 font-medium">{label}</div>
@@ -294,13 +317,15 @@ function OverviewSection({ jobs, applications, shifts, userName, onNavigate, onA
         <div className="flex items-center justify-between mb-2">
           <div>
             <h3 className="font-bold text-neutral-900 text-sm">Waiter Passport™ napredak</h3>
-            <p className="text-xs text-neutral-400">Do Platinum nivoa: još 8 bodova</p>
+            <p className="text-xs text-neutral-400">
+              {nextTier ? `Do ${nextTier} nivoa: još ${100 - score} bodova` : "Maksimalni nivo dostignut"}
+            </p>
           </div>
-          <span className="text-orange-500 font-black text-lg">84%</span>
+          <span className="text-orange-500 font-black text-lg">{score}%</span>
         </div>
-        <div className="prog-track"><div className="prog-fill" style={{ width: "84%" }} /></div>
+        <div className="prog-track"><div className="prog-fill" style={{ width: `${score}%` }} /></div>
         <div className="flex justify-between text-[10px] text-neutral-400 mt-1">
-          <span>SILVER</span><span>GOLD ✓</span><span>PLATINUM</span>
+          <span>SILVER</span><span>GOLD</span><span>PLATINUM</span>
         </div>
       </div>
     </>
@@ -1026,20 +1051,23 @@ export default function WaiterDashboard() {
   const [applying, setApplying]         = useState<string | null>(null);
   const [shifts, setShifts]             = useState<WaiterShift[]>([]);
   const [invites, setInvites]           = useState<InviteItem[]>([]);
+  const [passport, setPassport]         = useState<PassportData | null>(null);
   const [mobileOpen, setMobileOpen]     = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [jobsRes, appsRes, shiftsRes, invitesRes] = await Promise.all([
+    const [jobsRes, appsRes, shiftsRes, invitesRes, passportRes] = await Promise.all([
       fetch("/api/jobs"),
       fetch("/api/jobs/applications"),
       fetch("/api/shifts"),
       fetch("/api/invites"),
+      fetch("/api/passport"),
     ]);
-    if (jobsRes.ok)    setJobs(await jobsRes.json());
-    if (appsRes.ok)    setApplications(await appsRes.json());
-    if (shiftsRes.ok)  setShifts(await shiftsRes.json());
-    if (invitesRes.ok) setInvites(await invitesRes.json());
+    if (jobsRes.ok)     setJobs(await jobsRes.json());
+    if (appsRes.ok)     setApplications(await appsRes.json());
+    if (shiftsRes.ok)   setShifts(await shiftsRes.json());
+    if (invitesRes.ok)  setInvites(await invitesRes.json());
+    if (passportRes.ok) { const p = await passportRes.json(); if (p?.id) setPassport(p); }
     setLoading(false);
   }, []);
 
@@ -1172,7 +1200,7 @@ export default function WaiterDashboard() {
         </div>
 
         <div className="p-6 flex flex-col gap-6 max-w-5xl mx-auto">
-          {section === "overview"     && <OverviewSection jobs={jobs} applications={applications} shifts={shifts} userName={userName} onNavigate={setSection} onApply={handleApply} applying={applying} />}
+          {section === "overview"     && <OverviewSection jobs={jobs} applications={applications} shifts={shifts} userName={userName} verificationTier={session?.user?.verificationTier ?? "BRONZE"} passport={passport} onNavigate={setSection} onApply={handleApply} applying={applying} />}
           {section === "alerts"       && <AlertsSection jobs={jobs} loading={loading} onApply={handleApply} applying={applying} appliedJobIds={appliedJobIds} />}
           {section === "jobs"         && <JobsSection jobs={jobs} loading={loading} onApply={handleApply} applying={applying} appliedJobIds={appliedJobIds} />}
           {section === "applications" && <ApplicationsSection applications={applications} loading={loading} />}
