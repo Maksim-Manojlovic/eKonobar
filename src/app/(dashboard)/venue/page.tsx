@@ -349,7 +349,20 @@ function OverviewSection({ venue, posts, applications, loading, onNavigate }: {
 
 /* ── Section: Posts ──────────────────────────────────────────────────────── */
 
-function PostsSection({ posts, loading, onNavigate }: { posts: OwnPost[]; loading: boolean; onNavigate: (s: Section) => void }) {
+function PostsSection({ posts, loading, onNavigate, onStatusChange }: {
+  posts: OwnPost[]; loading: boolean;
+  onNavigate: (s: Section) => void;
+  onStatusChange: (id: string, status: "ACTIVE" | "PAUSED") => Promise<void>;
+}) {
+  const [changing, setChanging] = useState<string | null>(null);
+
+  const handleToggle = async (id: string, current: string) => {
+    const next = current === "ACTIVE" ? "PAUSED" : "ACTIVE";
+    setChanging(id);
+    await onStatusChange(id, next as "ACTIVE" | "PAUSED");
+    setChanging(null);
+  };
+
   if (loading) return <Spinner />;
   return (
     <>
@@ -375,9 +388,15 @@ function PostsSection({ posts, loading, onNavigate }: { posts: OwnPost[]; loadin
                     </div>
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
-                    {p.status === "ACTIVE" && <button className="btn-dash-outline px-3 py-1.5 text-xs">Pauziraj</button>}
-                    {p.status === "PAUSED" && <button className="btn-dash-orange px-3 py-1.5 text-xs">Aktiviraj</button>}
-                    <button className="btn-dash-outline px-3 py-1.5 text-xs">Uredi</button>
+                    {(p.status === "ACTIVE" || p.status === "PAUSED") && (
+                      <button
+                        onClick={() => handleToggle(p.id, p.status)}
+                        disabled={changing === p.id}
+                        className={`px-3 py-1.5 text-xs disabled:opacity-50 ${p.status === "ACTIVE" ? "btn-dash-outline" : "btn-dash-orange"}`}
+                      >
+                        {changing === p.id ? "..." : p.status === "ACTIVE" ? "Pauziraj" : "Aktiviraj"}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1524,6 +1543,15 @@ export default function VenueDashboard() {
     await fetchData();
   };
 
+  const handlePostStatusChange = async (postId: string, status: "ACTIVE" | "PAUSED") => {
+    await fetch(`/api/jobs/${postId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    await fetchData();
+  };
+
   const userName        = session?.user?.name ?? venue?.name ?? "Lokal";
   const initials        = getInitials(userName);
   const pendingCount    = applications.filter(a => a.status === "PENDING").length;
@@ -1633,7 +1661,7 @@ export default function VenueDashboard() {
 
         <div className="p-6 flex flex-col gap-6 max-w-5xl mx-auto">
           {section === "overview"     && <OverviewSection venue={venue} posts={posts} applications={applications} loading={loading} onNavigate={setSection} />}
-          {section === "posts"        && <PostsSection posts={posts} loading={loading} onNavigate={setSection} />}
+          {section === "posts"        && <PostsSection posts={posts} loading={loading} onNavigate={setSection} onStatusChange={handlePostStatusChange} />}
           {section === "new-post"     && <NewPostSection venue={venue} onSuccess={() => { fetchData(); setSection("posts"); }} onBack={() => setSection("posts")} />}
           {section === "smene"        && <VenueSmeneSection venue={venue} shifts={shifts} loading={loading} acceptedWaiters={acceptedWaiters} onRefresh={fetchData} />}
           {section === "applications" && <ApplicationsSection applications={applications} loading={loading} onStatusChange={handleStatusChange} />}

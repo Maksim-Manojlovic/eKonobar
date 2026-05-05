@@ -49,3 +49,48 @@ export async function GET(
 
   return NextResponse.json({ ...job, hasApplied });
 }
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== "VENUE_OWNER") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const body = await req.json();
+  const { status } = body as { status?: string };
+
+  const ALLOWED: Record<string, string> = { ACTIVE: "PAUSED", PAUSED: "ACTIVE" };
+  if (!status || !ALLOWED[status === "ACTIVE" ? "ACTIVE" : "PAUSED"]) {
+    return NextResponse.json({ error: "status must be ACTIVE or PAUSED" }, { status: 400 });
+  }
+
+  const post = await db.jobPost.findUnique({
+    where: { id },
+    select: { ownerId: true, status: true },
+  });
+
+  if (!post || post.status === "DELETED") {
+    return NextResponse.json({ error: "Oglas nije pronađen" }, { status: 404 });
+  }
+  if (post.ownerId !== session.user.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (post.status === status) {
+    return NextResponse.json({ error: "Oglas već ima ovaj status" }, { status: 409 });
+  }
+  if (!ALLOWED[post.status as string]) {
+    return NextResponse.json({ error: `Cannot change status from ${post.status}` }, { status: 400 });
+  }
+
+  const updated = await db.jobPost.update({
+    where: { id },
+    data: { status: status as "ACTIVE" | "PAUSED" },
+    select: { id: true, status: true },
+  });
+
+  return NextResponse.json(updated);
+}
