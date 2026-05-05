@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import JobCard, { type JobCardProps } from "@/components/job/JobCard";
+import Navbar from "@/components/layout/Navbar";
 
 const ENGAGEMENT_FILTERS = [
   { value: "",            label: "Svi tipovi" },
@@ -46,6 +47,7 @@ export default function JobsPage() {
 
   return (
     <div className="min-h-screen hero-bg">
+      <Navbar activePath="/jobs" />
       <div className="max-w-6xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="mb-8">

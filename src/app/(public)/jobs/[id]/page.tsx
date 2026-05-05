@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import TrustRadar from "@/components/trust-score/TrustRadar";
+import Navbar from "@/components/layout/Navbar";
 
 const ENGAGEMENT_LABELS: Record<string, string> = {
   FULL_TIME: "Stalno", SEASONAL: "Sezonski", WEEKEND: "Vikend", CELEBRATION: "Slavlje",
@@ -84,13 +85,21 @@ export default function JobDetailPage() {
     }
   }
 
-  if (loading) return <div className="min-h-screen hero-bg"><Spinner /></div>;
+  if (loading) return (
+    <div className="min-h-screen hero-bg">
+      <Navbar activePath="/jobs" />
+      <Spinner />
+    </div>
+  );
   if (notFound || !job) return (
-    <div className="min-h-screen hero-bg flex items-center justify-center">
-      <div className="text-center">
-        <p className="text-5xl mb-4">🔍</p>
-        <h2 className="font-black text-xl text-neutral-900 mb-2">Oglas nije pronađen</h2>
-        <Link href="/jobs" className="text-orange-500 font-bold hover:underline">← Svi oglasi</Link>
+    <div className="min-h-screen hero-bg">
+      <Navbar activePath="/jobs" />
+      <div className="flex items-center justify-center py-32">
+        <div className="text-center">
+          <p className="text-5xl mb-4">🔍</p>
+          <h2 className="font-black text-xl text-neutral-900 mb-2">Oglas nije pronađen</h2>
+          <Link href="/jobs" className="text-orange-500 font-bold hover:underline">← Svi oglasi</Link>
+        </div>
       </div>
     </div>
   );
@@ -106,6 +115,7 @@ export default function JobDetailPage() {
 
   return (
     <div className="min-h-screen hero-bg">
+      <Navbar activePath="/jobs" />
       <div className="max-w-3xl mx-auto px-4 py-12 flex flex-col gap-6">
         <Link href="/jobs" className="text-sm text-neutral-400 hover:text-orange-500 font-semibold transition-colors w-fit">
           ← Svi oglasi
