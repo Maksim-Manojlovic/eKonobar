@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
   let geolocationHash: string | undefined;
   let guestLat: number | undefined;
   let guestLon: number | undefined;
-  let guestVenueId = venueId;
+  const guestVenueId = venueId;
 
   if (direction === "GUEST_TO_WAITER") {
     if (!guestVenueId) {

@@ -2,10 +2,6 @@ import React from "react";
 
 // Soft-delete akcija sa potvrdom
 
-interface DeactivateVenueButtonProps {
-  // TODO: definiši props
-}
-
-export default function DeactivateVenueButton({}: DeactivateVenueButtonProps) {
+export default function DeactivateVenueButton() {
   return <div>DeactivateVenueButton</div>;
 }

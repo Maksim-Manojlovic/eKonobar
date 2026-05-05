@@ -371,7 +371,7 @@ function PostsSection({ posts, loading, onNavigate, onStatusChange }: {
         <button onClick={() => onNavigate("new-post")} className="btn-dash-orange px-4 py-2">+ Novi oglas</button>
       </div>
       {posts.length === 0
-        ? <div className="dash-card p-10 text-center text-neutral-400 text-sm">Nema oglasa — klikni "+ Novi oglas" da počneš</div>
+        ? <div className="dash-card p-10 text-center text-neutral-400 text-sm">Nema oglasa — klikni &quot;+ Novi oglas&quot; da počneš</div>
         : <div className="flex flex-col gap-3">
             {posts.map(p => (
               <div key={p.id} className="dash-card p-5">
@@ -1478,7 +1478,7 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
 
       {shifts.length === 0 && (
         <div className="dash-card p-10 text-center text-neutral-400 text-sm">
-          Nema smena — kliknite na dan u kalendaru ili koristite "+ Nova smena"
+          Nema smena — kliknite na dan u kalendaru ili koristite &quot;+ Nova smena&quot;
         </div>
       )}
     </>

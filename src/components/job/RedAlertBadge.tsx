@@ -2,10 +2,6 @@ import React from "react";
 
 // Pulsirajući badge za hitne smene
 
-interface RedAlertBadgeProps {
-  // TODO: definiši props
-}
-
-export default function RedAlertBadge({}: RedAlertBadgeProps) {
+export default function RedAlertBadge() {
   return <div>RedAlertBadge</div>;
 }

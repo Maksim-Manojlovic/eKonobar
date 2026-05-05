@@ -2,10 +2,6 @@ import React from "react";
 
 // Toast upozorenje pred istek sesije
 
-interface SessionExpiryToastProps {
-  // TODO: definiši props
-}
-
-export default function SessionExpiryToast({}: SessionExpiryToastProps) {
+export default function SessionExpiryToast() {
   return <div>SessionExpiryToast</div>;
 }

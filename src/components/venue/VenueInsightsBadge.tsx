@@ -2,10 +2,6 @@ import React from "react";
 
 // = InvestmentRadarBadge — statistike lokala
 
-interface VenueInsightsBadgeProps {
-  // TODO: definiši props
-}
-
-export default function VenueInsightsBadge({}: VenueInsightsBadgeProps) {
+export default function VenueInsightsBadge() {
   return <div>VenueInsightsBadge</div>;
 }

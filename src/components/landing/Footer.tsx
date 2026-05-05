@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 const LogoMark = () => (
   <div
@@ -108,10 +109,10 @@ export function Footer() {
             <ul className="flex flex-col gap-3">
               {jobLinks.map((label) => (
                 <li key={label}>
-                  <a href="/jobs" className="flex items-center gap-2 text-sm text-neutral-600 hover:text-orange-500 transition-colors font-medium group">
+                  <Link href="/jobs" className="flex items-center gap-2 text-sm text-neutral-600 hover:text-orange-500 transition-colors font-medium group">
                     <PinIcon />
                     {label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>

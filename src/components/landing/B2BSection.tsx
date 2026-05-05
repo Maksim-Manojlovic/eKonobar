@@ -80,7 +80,7 @@ function ReviewsCard() {
             ))}
           </div>
         </div>
-        <p className="text-[10px] text-neutral-500 leading-relaxed">"Pouzdan, profesionalan, gosti su ga voleli. Angažovaćemo ga ponovo."</p>
+        <p className="text-[10px] text-neutral-500 leading-relaxed">&ldquo;Pouzdan, profesionalan, gosti su ga voleli. Angažovaćemo ga ponovo.&rdquo;</p>
         <div className="flex items-center gap-1 mt-2">
           <svg width="8" height="8" viewBox="0 0 12 12" fill="none"><path d="M6 1C3.79 1 2 2.79 2 5C2 7.5 6 12 6 12C6 12 10 7.5 10 5C10 2.79 8.21 1 6 1Z" fill="#f97316" /></svg>
           <span className="text-[9px] text-orange-400 font-semibold">Geofencing verifikovano</span>

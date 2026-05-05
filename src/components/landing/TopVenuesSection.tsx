@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 type ApiVenue = {
   id: string;
@@ -83,7 +84,7 @@ function VenueCard({ venue, featured, idx }: { venue: ApiVenue; featured: boolea
   const applyColor = featured ? "text-orange-300" : "text-orange-400";
 
   return (
-    <a
+    <Link
       href="/venues"
       className="group cursor-pointer rounded-3xl p-6 relative overflow-hidden transition-all duration-300 hover:-translate-y-1.5"
       style={{ background: cardBg, border: cardBorder, backdropFilter: "blur(20px)" }}
@@ -136,7 +137,7 @@ function VenueCard({ venue, featured, idx }: { venue: ApiVenue; featured: boolea
           ))}
         </div>
       </div>
-    </a>
+    </Link>
   );
 }
 
@@ -214,7 +215,7 @@ export function TopVenuesSection() {
               Konobari koji su radili u ovim objektima ocenili su ih vrhunski. Tvoj sledeći angažman čeka.
             </p>
           </div>
-          <a
+          <Link
             href="/venues"
             className="flex-shrink-0 flex items-center gap-2 text-orange-400 font-semibold text-sm hover:text-orange-300 transition-colors whitespace-nowrap"
           >
@@ -222,7 +223,7 @@ export function TopVenuesSection() {
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M3 8H13M9 4L13 8L9 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </a>
+          </Link>
         </div>
 
         {/* Cards */}

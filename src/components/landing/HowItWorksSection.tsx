@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 interface StepCard {
   number: string;
@@ -160,12 +161,12 @@ export function HowItWorksSection() {
           <div className="text-orange-100 text-sm font-light mt-1">Registracija je besplatna. Bez skrivenih troškova.</div>
         </div>
         <div className="flex gap-3 flex-shrink-0">
-          <a href="/jobs" className="bg-white text-orange-500 font-bold text-sm px-6 py-3 rounded-2xl hover:bg-orange-50 transition-colors">
+          <Link href="/jobs" className="bg-white text-orange-500 font-bold text-sm px-6 py-3 rounded-2xl hover:bg-orange-50 transition-colors">
             Traži posao
-          </a>
-          <a href="/register" className="bg-orange-600 text-white font-bold text-sm px-6 py-3 rounded-2xl border border-orange-400 hover:bg-orange-700 transition-colors">
+          </Link>
+          <Link href="/register" className="bg-orange-600 text-white font-bold text-sm px-6 py-3 rounded-2xl border border-orange-400 hover:bg-orange-700 transition-colors">
             Postavi oglas
-          </a>
+          </Link>
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import ReviewWizard from "@/components/review/ReviewWizard";
 
 type Engagement = {
   id: string;
@@ -39,6 +40,7 @@ export default function WaiterHistoryPage() {
 
   const [engagements, setEngagements] = useState<Engagement[]>([]);
   const [loading, setLoading]         = useState(true);
+  const [reviewTarget, setReviewTarget] = useState<{ venueId: string; venueName: string } | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -102,6 +104,12 @@ export default function WaiterHistoryPage() {
                           </>
                         )}
                       </div>
+                      <button
+                        onClick={() => setReviewTarget({ venueId: eng.venueId, venueName: eng.venueName })}
+                        className="mt-1.5 text-[11px] font-semibold text-orange-500 hover:text-orange-700 transition-colors"
+                      >
+                        Ostavi recenziju →
+                      </button>
                     </div>
                     {i < engagements.length - 1 && (
                       <div className="absolute left-4 top-8 bottom-0 w-px bg-neutral-100" />
@@ -117,6 +125,21 @@ export default function WaiterHistoryPage() {
           Ukupno {engagements.length} angažmana · {engagements.filter(e => e.verified).length} verifikovano
         </p>
       </div>
+
+      {reviewTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setReviewTarget(null); }}
+        >
+          <ReviewWizard
+            direction="WAITER_TO_VENUE"
+            venueId={reviewTarget.venueId}
+            venueName={reviewTarget.venueName}
+            onSuccess={() => setReviewTarget(null)}
+            onCancel={() => setReviewTarget(null)}
+          />
+        </div>
+      )}
     </div>
   );
 }

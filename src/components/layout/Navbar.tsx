@@ -2,10 +2,6 @@ import React from "react";
 
 // Glavna navigacija (public + auth stanje)
 
-interface NavbarProps {
-  // TODO: definiši props
-}
-
-export default function Navbar({}: NavbarProps) {
+export default function Navbar() {
   return <div>Navbar</div>;
 }
