@@ -10,16 +10,41 @@ import ImageUpload from "@/components/ui/ImageUpload";
 type Section = "overview" | "posts" | "new-post" | "smene" | "applications" | "waiters" | "discover" | "reviews" | "profile";
 type AppFilter = "SVE" | "PENDING" | "SHORTLISTED" | "ACCEPTED" | "REJECTED";
 
+type VenueShiftAssignment = {
+  id: string;
+  waiterId: string;
+  clockInAt: string | null;
+  clockOutAt: string | null;
+  clockInMethod: string | null;
+  lateMinutes: number | null;
+  waiter: { id: string; name: string | null };
+};
+
+type VenueSwapRequest = {
+  id: string;
+  status: string;
+  requestedAt: string;
+  fromAssignment: { id: string; waiter: { id: string; name: string | null } };
+  toWaiter: { id: string; name: string | null };
+};
+
 type VenueShift = {
   id: string;
   title: string;
   date: string;
   startTime: string;
   endTime: string;
+  scheduledStart: string | null;
   role: string | null;
+  requiredCount: number;
+  tipEstimate: number | null;
   pay: number | null;
+  briefingNote: string | null;
   notes: string | null;
-  waiters: { id: string; name: string | null }[];
+  status: string;
+  swapLocked: boolean;
+  assignments: VenueShiftAssignment[];
+  swapRequests: VenueSwapRequest[];
 };
 
 const DAYS_SR   = ["Pon", "Uto", "Sre", "Čet", "Pet", "Sub", "Ned"];
@@ -1284,23 +1309,27 @@ function ShiftModal({ shift, date, venue, waiters, onSave, onDelete, onClose }: 
   onDelete: () => void;
   onClose: () => void;
 }) {
-  const toInput = (d: Date) => d.toLocaleDateString("sv-SE"); // "YYYY-MM-DD"
+  const toInput = (d: Date) => d.toLocaleDateString("sv-SE");
   const [form, setForm] = useState({
-    title:     shift?.title     ?? "",
-    date:      shift ? shift.date.slice(0, 10) : (date ? toInput(date) : ""),
-    startTime: shift?.startTime ?? "18:00",
-    endTime:   shift?.endTime   ?? "02:00",
-    role:      shift?.role      ?? "",
-    pay:       shift?.pay?.toString() ?? "",
-    waiterIds: shift?.waiters.map(w => w.id) ?? [] as string[],
-    notes:     shift?.notes     ?? "",
+    title:         shift?.title          ?? "",
+    date:          shift ? shift.date.slice(0, 10) : (date ? toInput(date) : ""),
+    startTime:     shift?.startTime      ?? "18:00",
+    endTime:       shift?.endTime        ?? "02:00",
+    role:          shift?.role           ?? "",
+    requiredCount: shift?.requiredCount?.toString() ?? "1",
+    tipEstimate:   shift?.tipEstimate?.toString()   ?? "",
+    pay:           shift?.pay?.toString()            ?? "",
+    briefingNote:  shift?.briefingNote   ?? "",
+    notes:         shift?.notes          ?? "",
+    swapLocked:    shift?.swapLocked     ?? false,
+    waiterIds:     shift?.assignments.map(a => a.waiterId) ?? [] as string[],
   });
-  const [saving, setSaving]     = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving]         = useState(false);
+  const [deleting, setDeleting]     = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
-  const [error, setError]       = useState("");
+  const [error, setError]           = useState("");
 
-  const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
+  const set = (k: string, v: string | boolean) => setForm(p => ({ ...p, [k]: v }));
   const toggleWaiter = (id: string) =>
     setForm(p => ({
       ...p,
@@ -1319,15 +1348,19 @@ function ShiftModal({ shift, date, venue, waiters, onSave, onDelete, onClose }: 
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        venueId:   venue.id,
-        title:     form.title,
-        date:      form.date,
-        startTime: form.startTime,
-        endTime:   form.endTime,
-        role:      form.role  || undefined,
-        pay:       form.pay   ? Number(form.pay) : undefined,
-        waiterIds: form.waiterIds,
-        notes:     form.notes || undefined,
+        venueId:      venue.id,
+        title:        form.title,
+        date:         form.date,
+        startTime:    form.startTime,
+        endTime:      form.endTime,
+        role:         form.role         || undefined,
+        requiredCount: Number(form.requiredCount) || 1,
+        tipEstimate:  form.tipEstimate  ? Number(form.tipEstimate) : undefined,
+        pay:          form.pay          ? Number(form.pay) : undefined,
+        briefingNote: form.briefingNote || undefined,
+        notes:        form.notes        || undefined,
+        swapLocked:   form.swapLocked,
+        waiterIds:    form.waiterIds,
       }),
     });
     setSaving(false);
@@ -1379,17 +1412,32 @@ function ShiftModal({ shift, date, venue, waiters, onSave, onDelete, onClose }: 
                 className="auth-input" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Uloga</label>
               <input type="text" value={form.role} onChange={e => set("role", e.target.value)}
-                placeholder="npr. Konobar" className="auth-input" />
+                placeholder="Konobar" className="auth-input" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Broj ljudi</label>
+              <input type="number" min={1} max={20} value={form.requiredCount} onChange={e => set("requiredCount", e.target.value)}
+                className="auth-input" />
             </div>
             <div>
               <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Naknada (RSD)</label>
               <input type="number" min={0} value={form.pay} onChange={e => set("pay", e.target.value)}
-                placeholder="npr. 3 000" className="auth-input" />
+                placeholder="3 000" className="auth-input" />
             </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Očekivani bakšiš (RSD) — prikazuje se u tržištu</label>
+            <input type="number" min={0} value={form.tipEstimate} onChange={e => set("tipEstimate", e.target.value)}
+              placeholder="npr. 2 000" className="auth-input" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Briefing za smenu</label>
+            <textarea value={form.briefingNote} onChange={e => set("briefingNote", e.target.value)}
+              rows={2} placeholder="Vidljivo samo konobaru 2h pre smene..." className="auth-input resize-none" />
           </div>
           <div>
             <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Konobari</label>
@@ -1399,12 +1447,8 @@ function ShiftModal({ shift, date, venue, waiters, onSave, onDelete, onClose }: 
               <div className="flex flex-col gap-1.5 max-h-32 overflow-y-auto border border-neutral-200 rounded-xl p-2">
                 {waiters.map(w => (
                   <label key={w.id} className="flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={form.waiterIds.includes(w.id)}
-                      onChange={() => toggleWaiter(w.id)}
-                      className="w-4 h-4 rounded accent-orange-500 flex-shrink-0"
-                    />
+                    <input type="checkbox" checked={form.waiterIds.includes(w.id)} onChange={() => toggleWaiter(w.id)}
+                      className="w-4 h-4 rounded accent-orange-500 flex-shrink-0" />
                     <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-[9px] flex-shrink-0">
                       {getInitials(w.name)}
                     </div>
@@ -1415,9 +1459,19 @@ function ShiftModal({ shift, date, venue, waiters, onSave, onDelete, onClose }: 
             )}
           </div>
           <div>
-            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Napomena</label>
+            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Interna napomena</label>
             <textarea value={form.notes} onChange={e => set("notes", e.target.value)}
               rows={2} className="auth-input resize-none" />
+          </div>
+          <div className="flex items-center justify-between py-1">
+            <div>
+              <div className="text-sm font-semibold text-neutral-700">Blokiraj zamene</div>
+              <div className="text-[11px] text-neutral-400">Konobari ne mogu menjati ovu smenu</div>
+            </div>
+            <button type="button" onClick={() => set("swapLocked", !form.swapLocked)}
+              className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${form.swapLocked ? "bg-orange-500" : "bg-neutral-200"}`}>
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.swapLocked ? "translate-x-5" : ""}`} />
+            </button>
           </div>
           {error && <div className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</div>}
           <div className="flex gap-2 pt-1">
@@ -1443,6 +1497,23 @@ function ShiftModal({ shift, date, venue, waiters, onSave, onDelete, onClose }: 
   );
 }
 
+/* ── Staffing bar ────────────────────────────────────────────────────────── */
+
+function StaffingBar({ filled, required }: { filled: number; required: number }) {
+  const pct  = required > 0 ? Math.min(filled / required, 1) : 0;
+  const cls  = pct === 0 ? "bg-red-400" : pct < 1 ? "bg-amber-400" : "bg-green-500";
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="flex-1 h-1 bg-neutral-200 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all ${cls}`} style={{ width: `${pct * 100}%` }} />
+      </div>
+      <span className={`text-[9px] font-bold ${pct === 0 ? "text-red-500" : pct < 1 ? "text-amber-600" : "text-green-700"}`}>
+        {filled}/{required}
+      </span>
+    </div>
+  );
+}
+
 /* ── Section: Smene (venue) ──────────────────────────────────────────────── */
 
 function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh }: {
@@ -1456,6 +1527,7 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
   const [current, setCurrent]   = useState(new Date(now.getFullYear(), now.getMonth(), 1));
   const [creating, setCreating] = useState<Date | null>(null);
   const [editing, setEditing]   = useState<VenueShift | null>(null);
+  const [swapActing, setSwapActing] = useState<string | null>(null);
 
   if (loading) return <Spinner />;
   if (!venue)  return <EmptyVenue onNavigate={() => {}} />;
@@ -1463,7 +1535,7 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
   const year  = current.getFullYear();
   const month = current.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDay    = (new Date(year, month, 1).getDay() + 6) % 7; // Mon=0
+  const firstDay    = (new Date(year, month, 1).getDay() + 6) % 7;
   const totalCells  = Math.ceil((firstDay + daysInMonth) / 7) * 7;
   const todayNum    = now.getFullYear() === year && now.getMonth() === month ? now.getDate() : -1;
 
@@ -1480,9 +1552,21 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
   const upcoming = shifts
     .filter(s => new Date(s.date) >= new Date(now.getFullYear(), now.getMonth(), now.getDate()))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(0, 6);
+    .slice(0, 8);
 
+  const pendingSwaps = shifts.flatMap(s => s.swapRequests ?? []);
   const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
+
+  async function handleSwapAction(swapId: string, action: "ACCEPTED" | "REJECTED") {
+    setSwapActing(swapId);
+    await fetch(`/api/shifts/swaps/${swapId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    setSwapActing(null);
+    onRefresh();
+  }
 
   return (
     <>
@@ -1500,12 +1584,49 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
 
       <div className="flex items-center justify-between">
         <h2 className="font-black text-neutral-900">Smene</h2>
-        <button onClick={() => setCreating(now)} className="btn-dash-orange px-4 py-2">+ Nova smena</button>
+        <div className="flex gap-2">
+          <button onClick={() => setCreating(now)} className="btn-dash-orange px-4 py-2">+ Nova smena</button>
+        </div>
       </div>
+
+      {/* Pending swap approvals */}
+      {pendingSwaps.length > 0 && (
+        <div className="dash-card p-4">
+          <h3 className="text-xs font-black text-amber-600 uppercase tracking-wider mb-3">Zahtevi za zamenu ({pendingSwaps.length})</h3>
+          <div className="flex flex-col gap-2">
+            {pendingSwaps.map(sw => {
+              const parentShift = shifts.find(s => s.swapRequests?.some(r => r.id === sw.id));
+              const dateStr = parentShift
+                ? new Date(parentShift.date).toLocaleDateString("sr-Latn-RS", { weekday: "short", day: "numeric", month: "short" })
+                : "";
+              return (
+                <div key={sw.id} className="flex items-center gap-3 py-2 border-b border-neutral-100 last:border-0">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-semibold text-neutral-800">
+                      {sw.fromAssignment.waiter.name ?? "Konobar"}
+                    </span>
+                    <span className="text-xs text-neutral-400 ml-1.5">→ {sw.toWaiter.name ?? "Konobar"}</span>
+                    {dateStr && <div className="text-xs text-neutral-400 mt-0.5">{parentShift?.title} · {dateStr}</div>}
+                  </div>
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    <button onClick={() => handleSwapAction(sw.id, "ACCEPTED")} disabled={swapActing === sw.id}
+                      className="text-xs font-bold bg-green-500 text-white hover:bg-green-600 px-2.5 py-1 rounded-lg transition-colors disabled:opacity-50">
+                      {swapActing === sw.id ? "..." : "Odobri"}
+                    </button>
+                    <button onClick={() => handleSwapAction(sw.id, "REJECTED")} disabled={swapActing === sw.id}
+                      className="text-xs font-bold bg-neutral-100 text-neutral-500 hover:bg-neutral-200 px-2.5 py-1 rounded-lg transition-colors disabled:opacity-50">
+                      Odbij
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Calendar card */}
       <div className="dash-card overflow-hidden">
-        {/* Month nav */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
           <button onClick={() => setCurrent(new Date(year, month - 1, 1))}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors">
@@ -1524,22 +1645,20 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
           </button>
         </div>
 
-        {/* Day headers */}
         <div className="grid grid-cols-7 border-b border-neutral-100">
           {DAYS_SR.map(d => (
             <div key={d} className="text-center text-[11px] font-bold text-neutral-400 py-2.5">{d}</div>
           ))}
         </div>
 
-        {/* Grid cells */}
         <div className="grid grid-cols-7">
           {Array.from({ length: totalCells }, (_, i) => {
-            const dayNum     = i - firstDay + 1;
-            const isValid    = dayNum >= 1 && dayNum <= daysInMonth;
-            const isToday    = dayNum === todayNum;
+            const dayNum      = i - firstDay + 1;
+            const isValid     = dayNum >= 1 && dayNum <= daysInMonth;
+            const isToday     = dayNum === todayNum;
             const isLastInRow = (i + 1) % 7 === 0;
-            const isLastRow  = i >= totalCells - 7;
-            const dayShifts  = isValid ? (shiftsByDay[dayNum] ?? []) : [];
+            const isLastRow   = i >= totalCells - 7;
+            const dayShifts   = isValid ? (shiftsByDay[dayNum] ?? []) : [];
             return (
               <div key={i}
                 onClick={() => { if (isValid) setCreating(new Date(year, month, dayNum)); }}
@@ -1554,31 +1673,29 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
                     <div className={`text-xs font-bold mb-1 w-6 h-6 flex items-center justify-center rounded-full ${isToday ? "bg-orange-500 text-white" : "text-neutral-500"}`}>
                       {dayNum}
                     </div>
-                    <div className="flex flex-col gap-0">
-                      {dayShifts.slice(0, 2).map((s, idx) => (
-                        <div key={s.id}>
-                          {idx > 0 && <div className="h-px bg-neutral-300/60 my-0.5 mx-0.5" />}
-                          <div
-                            onClick={e => { e.stopPropagation(); setEditing(s); }}
-                            title="Kliknite za uređivanje"
-                            className={`text-[10px] font-semibold px-1 py-0.5 rounded cursor-pointer hover:opacity-75 transition-opacity flex items-center gap-1 min-w-0 ${s.waiters.length > 0 ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-600"}`}>
-                            {s.waiters.length > 0 ? (
-                              <div className="flex -space-x-1 flex-shrink-0">
-                                {s.waiters.slice(0, 3).map(w => (
-                                  <span key={w.id}
-                                    className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-white font-black leading-none ring-1 ring-white"
-                                    style={{ fontSize: "7px", background: "#15803d" }}>
-                                    {getInitials(w.name)}
-                                  </span>
-                                ))}
+                    <div className="flex flex-col gap-0.5">
+                      {dayShifts.slice(0, 2).map((s, idx) => {
+                        const filled  = s.assignments.length;
+                        const clocked = s.assignments.filter(a => a.clockInAt).length;
+                        const hasSwap = (s.swapRequests?.length ?? 0) > 0;
+                        const isOpen  = s.status === "OPEN";
+                        return (
+                          <div key={s.id}>
+                            {idx > 0 && <div className="h-px bg-neutral-300/60 my-0.5 mx-0.5" />}
+                            <div
+                              onClick={e => { e.stopPropagation(); setEditing(s); }}
+                              title="Kliknite za uređivanje"
+                              className={`text-[10px] font-semibold px-1 py-0.5 rounded cursor-pointer hover:opacity-75 transition-opacity min-w-0 ${isOpen ? "bg-orange-100 text-orange-600" : hasSwap ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
+                              <div className="flex items-center gap-0.5 min-w-0">
+                                {clocked > 0 && <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />}
+                                {hasSwap && <span className="text-[8px] flex-shrink-0">🔄</span>}
+                                <span className="truncate">{s.startTime}</span>
                               </div>
-                            ) : (
-                              <span className="w-3.5 h-3.5 rounded-full flex-shrink-0 border border-current opacity-40" />
-                            )}
-                            <span className="truncate">{s.startTime}</span>
+                              <StaffingBar filled={filled} required={s.requiredCount} />
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                       {dayShifts.length > 2 && (
                         <div className="text-[10px] text-neutral-400 font-medium px-1">+{dayShifts.length - 2}</div>
                       )}
@@ -1593,36 +1710,53 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
 
       {/* Legend */}
       <div className="flex flex-wrap gap-4 text-xs text-neutral-500">
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-orange-100 border border-orange-200 inline-block" />Nedodeljena smena
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-green-100 border border-green-200 inline-block" />Dodeljena smena (1+ konobara)
-        </span>
-        <span className="text-neutral-400">Kliknite na dan za novu smenu · kliknite na smenu za uređivanje</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-orange-100 border border-orange-200 inline-block" />Slobodna smena</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-green-100 border border-green-200 inline-block" />Popunjena</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-amber-100 border border-amber-200 inline-block" />Zamena na čekanju 🔄</span>
+        <span className="text-neutral-400">Kliknite na dan za novu smenu · na smenu za uređivanje</span>
       </div>
 
-      {/* Upcoming list */}
+      {/* Upcoming list with staffing + clock-in status */}
       {upcoming.length > 0 && (
         <div className="dash-card p-5">
           <h3 className="font-bold text-neutral-900 text-sm mb-3">Nadolazeće smene</h3>
           <div className="flex flex-col gap-0">
             {upcoming.map(s => {
-              const dateStr = new Date(s.date).toLocaleDateString("sr-Latn-RS", { weekday: "short", day: "numeric", month: "short" });
+              const dateStr  = new Date(s.date).toLocaleDateString("sr-Latn-RS", { weekday: "short", day: "numeric", month: "short" });
+              const filled   = s.assignments.length;
+              const clocked  = s.assignments.filter(a => a.clockInAt && !a.clockOutAt).length;
               return (
                 <div key={s.id} onClick={() => setEditing(s)}
-                  className="flex items-center justify-between py-2.5 border-b border-neutral-100 last:border-0 cursor-pointer hover:opacity-75 transition-opacity">
-                  <div>
-                    <div className="text-sm font-semibold text-neutral-800">{s.title}{s.role && <span className="ml-1.5 text-[11px] text-neutral-400 font-normal">· {s.role}</span>}</div>
-                    <div className="text-xs text-neutral-400 mt-0.5 capitalize">{dateStr} · {s.startTime}–{s.endTime}</div>
+                  className="py-2.5 border-b border-neutral-100 last:border-0 cursor-pointer hover:opacity-75 transition-opacity">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-neutral-800 flex items-center gap-1.5">
+                        {clocked > 0 && <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 animate-pulse" />}
+                        {s.title}
+                        {s.role && <span className="ml-1 text-[11px] text-neutral-400 font-normal">· {s.role}</span>}
+                      </div>
+                      <div className="text-xs text-neutral-400 mt-0.5 capitalize">{dateStr} · {s.startTime}–{s.endTime}</div>
+                    </div>
+                    <div className="text-right flex-shrink-0 ml-4 min-w-[100px]">
+                      <StaffingBar filled={filled} required={s.requiredCount} />
+                      {filled > 0 && (
+                        <div className="text-[10px] text-neutral-500 mt-0.5 truncate">
+                          {s.assignments.map(a => a.waiter.name ?? "?").join(", ")}
+                        </div>
+                      )}
+                      {s.pay != null && <div className="text-xs font-black text-orange-500 mt-0.5">{s.pay.toLocaleString("sr-RS")} RSD</div>}
+                    </div>
                   </div>
-                  <div className="text-right flex-shrink-0 ml-4">
-                    {s.waiters.length > 0
-                      ? <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">{s.waiters.map(w => w.name ?? "Konobar").join(", ")}</span>
-                      : <span className="text-xs font-semibold text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded-full">Nedodeljena</span>
-                    }
-                    {s.pay && <div className="text-xs font-black text-orange-500 mt-0.5">{s.pay.toLocaleString("sr-RS")} RSD</div>}
-                  </div>
+                  {clocked > 0 && (
+                    <div className="mt-1 flex gap-1.5 flex-wrap">
+                      {s.assignments.filter(a => a.clockInAt && !a.clockOutAt).map(a => (
+                        <span key={a.id} className="text-[10px] font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                          {a.waiter.name ?? "Konobar"}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}

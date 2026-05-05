@@ -97,6 +97,28 @@ enum SanitaryStatus {
   EXPIRED
 }
 
+enum ShiftStatus {
+  OPEN           // no assignments yet — visible in marketplace
+  ASSIGNED       // all required slots filled
+  PENDING_SWAP   // at least one swap request live
+  LOCKED         // owner locked, no swaps allowed
+  COMPLETED
+  CANCELLED
+}
+
+enum ClockInMethod {
+  GPS
+  QR
+  MANUAL
+}
+
+enum SwapRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
 // ─── User ─────────────────────────────────────────────────────────────────────
 
 model User {
@@ -131,7 +153,8 @@ model User {
   reviewsReceived   Review[]            @relation("ReviewSubject")
   waiterPassport    WaiterPassport?
   engagementRecords EngagementRecord[]  @relation("WaiterEngagements")
-  shifts            Shift[]             @relation("ShiftWaiters")
+  shiftAssignments  ShiftAssignment[]
+  swapRequestsReceived ShiftSwapRequest[] @relation("SwapTarget")
   sanitaryBook      SanitaryBook?
   savedProfiles     SavedProfile[]      @relation("HeadhunterSaved")
   invitesSent       Invite[]            @relation("InviteSender")
@@ -223,6 +246,7 @@ model Venue {
   reviews           Review[]
   engagementRecords EngagementRecord[]
   shifts            Shift[]
+  shiftTemplates    ShiftTemplate[]
   venueTrustScore   VenueTrustScore?
   zones             VenueZoneRelation[]
 
@@ -586,21 +610,93 @@ model Shift {
   id        String   @id @default(cuid())
   venueId   String
   venue     Venue    @relation(fields: [venueId], references: [id])
-  waiters   User[]   @relation("ShiftWaiters")
 
-  title     String
-  date      DateTime
-  startTime String   // "18:00"
-  endTime   String   // "02:00"
-  role      String?
-  pay       Int?
-  notes     String?  @db.Text
+  title          String
+  date           DateTime
+  startTime      String   // "18:00" — kept for display
+  endTime        String   // "02:00" — kept for display
+  scheduledStart DateTime? // full UTC DateTime for clock-in window checks (null for legacy rows)
+  role           String?
+  requiredCount  Int      @default(1)
+  tipEstimate    Float?   // expected RSD tips — shown in marketplace
+  pay            Int?
+  briefingNote   String?  @db.Text
+  notes          String?  @db.Text
+
+  status     ShiftStatus @default(OPEN)
+  swapLocked Boolean     @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  assignments  ShiftAssignment[]
+  swapRequests ShiftSwapRequest[]
+
   @@index([venueId])
   @@index([date])
+  @@index([scheduledStart])
+  @@index([status])
+}
+
+model ShiftAssignment {
+  id       String @id @default(cuid())
+  shiftId  String
+  shift    Shift  @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  waiterId String
+  waiter   User   @relation(fields: [waiterId], references: [id])
+
+  clockInAt     DateTime?
+  clockOutAt    DateTime?
+  clockInMethod ClockInMethod?
+  clockInLat    Float?
+  clockInLng    Float?
+  earlyExitAt   DateTime?
+  lateMinutes   Int?       // actual - scheduled start in minutes
+  cancelledLate Boolean    @default(false)
+
+  createdAt DateTime @default(now())
+
+  swapRequestsFrom ShiftSwapRequest[] @relation("SwapFromAssignment")
+
+  @@unique([shiftId, waiterId])
+  @@index([waiterId])
+  @@index([shiftId])
+}
+
+model ShiftSwapRequest {
+  id               String    @id @default(cuid())
+  shiftId          String
+  shift            Shift     @relation(fields: [shiftId], references: [id])
+  fromAssignmentId String
+  fromAssignment   ShiftAssignment @relation("SwapFromAssignment", fields: [fromAssignmentId], references: [id])
+  toWaiterId       String
+  toWaiter         User      @relation("SwapTarget", fields: [toWaiterId], references: [id])
+
+  status      SwapRequestStatus @default(PENDING)
+  requestedAt DateTime          @default(now())
+  resolvedAt  DateTime?
+
+  @@index([shiftId])
+  @@index([toWaiterId])
+  @@index([status])
+}
+
+model ShiftTemplate {
+  id          String @id @default(cuid())
+  venueId     String
+  venue       Venue  @relation(fields: [venueId], references: [id])
+
+  name          String
+  dayOfWeek     Int    // 0=Sunday … 6=Saturday
+  startTime     String // "18:00"
+  endTime       String // "02:00"
+  requiredCount Int    @default(1)
+  role          String?
+  pay           Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([venueId])
 }
 
 // ─── RateLimit (DB-backed rate limiter) ──────────────────────────────────────
