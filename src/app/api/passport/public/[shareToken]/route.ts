@@ -77,7 +77,8 @@ export async function GET(
   });
 
   // Strip private fields before returning
-  const { shareToken: _, shareTokenExpiry: __, ...publicPassport } = passport;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { shareToken: _tok, shareTokenExpiry: _exp, ...publicPassport } = passport;
 
   return NextResponse.json({
     passport: publicPassport,

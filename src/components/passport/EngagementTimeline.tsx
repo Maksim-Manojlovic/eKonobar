@@ -58,7 +58,7 @@ export default function EngagementTimeline({ records, compact = false }: Engagem
       <div className="absolute left-4 top-2 bottom-2 w-px bg-neutral-100" />
 
       <div className="space-y-4">
-        {records.map((rec, i) => (
+        {records.map((rec) => (
           <div key={rec.id} className="relative flex gap-4 pl-10">
             {/* Dot */}
             <div className={`absolute left-2.5 top-3 w-3 h-3 rounded-full border-2 flex-shrink-0 ${

@@ -746,7 +746,7 @@ function InviteModal({ waiter, posts, onClose, onSent }: {
 
 /* ── Section: Discover ───────────────────────────────────────────────────── */
 
-function DiscoverSection({ posts, onInvite }: { posts: OwnPost[]; onInvite: (w: WaiterEntry) => void }) {
+function DiscoverSection({ onInvite }: { posts: OwnPost[]; onInvite: (w: WaiterEntry) => void }) {
   const [waiters, setWaiters]           = useState<WaiterEntry[]>([]);
   const [loading, setLoading]           = useState(true);
   const [filterAvailable, setFilterAvailable] = useState(false);

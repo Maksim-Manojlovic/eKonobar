@@ -1,3 +1,4 @@
+import Image from "next/image";
 import SkillBadges from "./SkillBadges";
 
 const TIER_LABELS: Record<string, { label: string; color: string }> = {
@@ -55,7 +56,7 @@ function Initials({ name }: { name?: string | null }) {
 export default function PassportCard({
   name, image, score, verificationTier, yearsExperience,
   totalEngagements, reviewCount, sanitaryBookValid, currentlyAvailable,
-  skills, languages, bio, badges,
+  skills, languages, bio,
 }: PassportCardProps) {
   const tier = TIER_LABELS[verificationTier] ?? TIER_LABELS.UNVERIFIED;
 
@@ -65,7 +66,7 @@ export default function PassportCard({
       <div className="flex gap-5 items-start">
         <div className="flex flex-col items-center gap-2">
           {image
-            ? <img src={image} alt={name ?? ""} className="w-16 h-16 rounded-full object-cover border-2 border-orange-200" />
+            ? <Image src={image} alt={name ?? ""} width={64} height={64} className="w-16 h-16 rounded-full object-cover border-2 border-orange-200" />
             : <Initials name={name} />
           }
           <ScoreCircle score={score} />

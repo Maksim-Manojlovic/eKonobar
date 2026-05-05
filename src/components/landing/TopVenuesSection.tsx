@@ -69,7 +69,7 @@ function Stars({ rating }: { rating: number }) {
   );
 }
 
-function VenueCard({ venue, featured, idx }: { venue: ApiVenue; featured: boolean; idx: number }) {
+function VenueCard({ venue, featured }: { venue: ApiVenue; featured: boolean; idx?: number }) {
   const gradient = VENUE_TYPE_GRADIENTS[venue.venueType] ?? VENUE_TYPE_GRADIENTS.OTHER;
   const tags = VENUE_TYPE_TAGS[venue.venueType] ?? VENUE_TYPE_TAGS.OTHER;
   const rating = Math.round(venue.trustScore / 20 * 10) / 10;

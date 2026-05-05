@@ -121,7 +121,7 @@ export default function HeadhunterSearch() {
       });
       setSavedIds((prev) => {
         const next = new Set(prev);
-        isSaved ? next.delete(waiterId) : next.add(waiterId);
+        if (isSaved) { next.delete(waiterId); } else { next.add(waiterId); }
         return next;
       });
     } finally {
