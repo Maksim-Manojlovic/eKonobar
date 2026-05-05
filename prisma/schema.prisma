@@ -391,6 +391,9 @@ model WaiterPassport {
 
   venueTypePreferences String[]  // ["RESTAURANT", "CAFE", "BAR", "NIGHT_CLUB", "HOTEL", "CATERING"]
 
+  avgRedAlertResponseMinutes Float?  // rolling avg minutes from Red Alert post to application
+  redAlertResponseCount      Int    @default(0)
+
   lastAvailableDate   DateTime?  // set when currentlyAvailable flips true, cleared when flips false
 
   createdAt           DateTime  @default(now())

@@ -90,5 +90,23 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  if (post.redAlert) {
+    const responseMinutes = Math.round((Date.now() - post.createdAt.getTime()) / 60_000);
+    db.waiterPassport.findUnique({
+      where: { userId: session.user.id },
+      select: { avgRedAlertResponseMinutes: true, redAlertResponseCount: true },
+    }).then(passport => {
+      if (!passport) return;
+      const count = passport.redAlertResponseCount;
+      const oldAvg = passport.avgRedAlertResponseMinutes ?? 0;
+      const newCount = count + 1;
+      const newAvg = count === 0 ? responseMinutes : Math.round((oldAvg * count + responseMinutes) / newCount);
+      return db.waiterPassport.update({
+        where: { userId: session.user.id },
+        data: { avgRedAlertResponseMinutes: newAvg, redAlertResponseCount: newCount },
+      });
+    }).catch(() => {});
+  }
+
   return NextResponse.json(application, { status: 201 });
 }

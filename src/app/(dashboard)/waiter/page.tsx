@@ -86,6 +86,8 @@ type PassportData = {
   galleryPhotos: string[];
   venueTypePreferences: string[];
   lastAvailableDate: string | null;
+  avgRedAlertResponseMinutes: number | null;
+  redAlertResponseCount: number;
   recentReviews: RecentReview[];
   trustScore: {
     punctuality: number; skill: number; guestCommunication: number;
@@ -192,6 +194,67 @@ const NEXT_TIER: Record<string, string | null> = {
   BRONZE: "SILVER", SILVER: "GOLD", GOLD: "PLATINUM", PLATINUM: null,
 };
 
+/* ── Market Insights ─────────────────────────────────────────────────────── */
+
+type MarketData = {
+  openPositions: number;
+  redAlertCount: number;
+  avgSalaryMin: number | null;
+  avgSalaryMax: number | null;
+  topMunicipalities: { name: string; count: number }[];
+};
+
+function MarketInsights() {
+  const [data, setData] = useState<MarketData | null>(null);
+
+  useEffect(() => {
+    fetch("/api/insights/market")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setData(d); })
+      .catch(() => {});
+  }, []);
+
+  if (!data) return null;
+
+  const salaryLabel = data.avgSalaryMin
+    ? `${Math.round(data.avgSalaryMin / 1000)}k${data.avgSalaryMax && data.avgSalaryMax !== data.avgSalaryMin ? `–${Math.round(data.avgSalaryMax / 1000)}k` : ""} RSD`
+    : null;
+
+  return (
+    <div className="dash-card p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-black text-neutral-400 uppercase tracking-wider">Tržište — sada</h3>
+      </div>
+      <div className="flex gap-6 flex-wrap">
+        <div className="text-center">
+          <div className="text-xl font-black text-neutral-900">{data.openPositions}</div>
+          <div className="text-[10px] text-neutral-400 font-medium">Otvorenih pozicija</div>
+        </div>
+        <div className="text-center">
+          <div className="text-xl font-black text-orange-500">{data.redAlertCount}</div>
+          <div className="text-[10px] text-neutral-400 font-medium">Red Alert</div>
+        </div>
+        {salaryLabel && (
+          <div className="text-center">
+            <div className="text-xl font-black text-neutral-900">{salaryLabel}</div>
+            <div className="text-[10px] text-neutral-400 font-medium">Prosečna plata</div>
+          </div>
+        )}
+      </div>
+      {data.topMunicipalities.length > 0 && (
+        <div className="mt-3 flex gap-1.5 flex-wrap">
+          <span className="text-[10px] text-neutral-400 font-medium self-center">Traže:</span>
+          {data.topMunicipalities.map(m => (
+            <span key={m.name} className="text-[10px] font-semibold bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded-full">
+              {m.name} ({m.count})
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Section: Overview ───────────────────────────────────────────────────── */
 
 function OverviewSection({ jobs, applications, shifts, userName, verificationTier, passport, onNavigate, onApply, applying }: {
@@ -274,6 +337,8 @@ function OverviewSection({ jobs, applications, shifts, userName, verificationTie
           </div>
         </div>
       )}
+
+      <MarketInsights />
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="dash-card p-5">
@@ -911,6 +976,15 @@ function PassportSection({ userName }: { userName: string }) {
               </div>
             ))}
           </div>
+          {passport?.avgRedAlertResponseMinutes != null && (
+            <div className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-bold bg-orange-50 text-orange-600 px-3 py-1 rounded-full">
+              ⚡ Prosečan odgovor:{" "}
+              {passport.avgRedAlertResponseMinutes < 60
+                ? `${passport.avgRedAlertResponseMinutes}min`
+                : `${Math.round(passport.avgRedAlertResponseMinutes / 60)}h`}
+              {" "}· {passport.redAlertResponseCount} Red Alert{passport.redAlertResponseCount !== 1 ? "a" : ""}
+            </div>
+          )}
         </div>
       </div>
 
