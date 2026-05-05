@@ -162,6 +162,13 @@ export default function WaiterPassportPage() {
               <span className="text-3xl font-black text-neutral-900">{Math.round(score)}</span>
               <span className="text-[10px] font-bold text-orange-500 uppercase tracking-wide">skor</span>
             </div>
+            <div className="group absolute -top-1 -right-1 z-10">
+              <div className="w-4 h-4 rounded-full bg-neutral-200 text-neutral-500 text-[9px] font-bold flex items-center justify-center cursor-help select-none">ℹ</div>
+              <div className="absolute bottom-full right-0 mb-1.5 w-52 bg-neutral-900 text-white text-[10px] rounded-xl p-2.5 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-20 leading-relaxed shadow-lg">
+                Skor raste verifikovanjem smena i pozitivnim recenzijama vlasnika i gostiju. Brzi odgovor na Red Alert povećava vidljivost na listi vlasnika.
+                <div className="absolute top-full right-3 border-4 border-transparent border-t-neutral-900" />
+              </div>
+            </div>
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-bold text-neutral-900 text-lg">{session?.user?.name}</div>

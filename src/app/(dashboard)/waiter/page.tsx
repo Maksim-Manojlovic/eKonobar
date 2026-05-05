@@ -61,6 +61,14 @@ type InviteItem = {
   };
 };
 
+type RecentReview = {
+  id: string;
+  overallRating: number;
+  comment: string;
+  publishedAt: string;
+  author: { name: string | null; venues: { name: string }[] };
+};
+
 type PassportData = {
   id: string;
   score: number;
@@ -74,6 +82,7 @@ type PassportData = {
   sanitaryBookValid: boolean;
   currentlyAvailable: boolean;
   bio: string | null;
+  recentReviews: RecentReview[];
   trustScore: {
     punctuality: number; skill: number; guestCommunication: number;
     personalHygiene: number; teamwork: number; speed: number;
@@ -739,6 +748,15 @@ const BADGE_META: Record<string, { emoji: string; label: string; sub: string }> 
   platinum:         { emoji: "💎", label: "Platinum Waiter",     sub: "Skor 98+ potreban" },
 };
 
+const BADGE_PROGRESS: Record<string, ((p: PassportData) => { current: number; total: number; unit: string }) | null> = {
+  verified_history: (p) => ({ current: Math.min(p.totalEngagements, 3),  total: 3,  unit: "smena" }),
+  hospitality_pro:  (p) => ({ current: Math.min(p.totalEngagements, 50), total: 50, unit: "smena" }),
+  platinum:         (p) => ({ current: Math.min(Math.round(p.score), 98), total: 98, unit: "skor" }),
+  sanitarna:        null,
+  sommelier:        null,
+  english_b2:       null,
+};
+
 const SCORE_DIMS: { key: keyof NonNullable<PassportData["trustScore"]>; label: string }[] = [
   { key: "punctuality",         label: "Tačnost" },
   { key: "skill",               label: "Veštine" },
@@ -796,7 +814,27 @@ function PassportSection({ userName }: { userName: string }) {
     setSaving(false);
   }
 
-  if (loading) return <Spinner />;
+  if (loading) return (
+    <div className="flex flex-col gap-4 animate-pulse">
+      <div className="h-7 w-52 bg-neutral-200 rounded-lg" />
+      <div className="dash-card p-6 flex gap-6 items-center">
+        <div className="w-28 h-28 rounded-full bg-neutral-200 flex-shrink-0" />
+        <div className="flex-1 flex flex-col gap-2.5">
+          <div className="h-5 w-36 bg-neutral-200 rounded" />
+          <div className="h-4 w-24 bg-neutral-200 rounded" />
+          <div className="h-4 w-full bg-neutral-200 rounded mt-1" />
+          <div className="h-4 w-3/4 bg-neutral-200 rounded" />
+        </div>
+      </div>
+      <div className="dash-card p-5 h-32 bg-neutral-100 rounded-2xl" />
+      <div className="dash-card p-5 h-48 bg-neutral-100 rounded-2xl" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="dash-card p-4 h-28 bg-neutral-100 rounded-2xl" />
+        ))}
+      </div>
+    </div>
+  );
 
   const score         = passport?.score ?? 0;
   const circumference = 2 * Math.PI * 46;
@@ -818,6 +856,13 @@ function PassportSection({ userName }: { userName: string }) {
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-3xl font-black text-neutral-900">{Math.round(score)}</span>
             <span className="text-[10px] font-bold text-orange-500 uppercase tracking-wide">skor</span>
+          </div>
+          <div className="group absolute -top-1 -right-1 z-10">
+            <div className="w-4 h-4 rounded-full bg-neutral-200 text-neutral-500 text-[9px] font-bold flex items-center justify-center cursor-help select-none">ℹ</div>
+            <div className="absolute bottom-full right-0 mb-1.5 w-52 bg-neutral-900 text-white text-[10px] rounded-xl p-2.5 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-20 leading-relaxed shadow-lg">
+              Skor raste verifikovanjem smena i pozitivnim recenzijama vlasnika i gostiju. Brzi odgovor na Red Alert povećava vidljivost na listi vlasnika.
+              <div className="absolute top-full right-3 border-4 border-transparent border-t-neutral-900" />
+            </div>
           </div>
         </div>
         <div className="flex-1 min-w-0">
@@ -917,19 +962,63 @@ function PassportSection({ userName }: { userName: string }) {
         </div>
       </form>
 
+      {/* Top endorsements */}
+      {passport?.recentReviews && passport.recentReviews.length > 0 && (
+        <div className="dash-card p-5">
+          <h3 className="font-bold text-neutral-900 text-sm mb-4">Poslednje recenzije vlasnika</h3>
+          <div className="flex flex-col gap-4">
+            {passport.recentReviews.map(r => (
+              <div key={r.id} className="flex gap-3">
+                <span className="text-orange-300 text-2xl leading-none font-serif">&ldquo;</span>
+                <div className="flex-1">
+                  <p className="text-sm text-neutral-700 italic leading-relaxed">{r.comment}</p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <span key={i} className={`text-xs ${i < Math.round(r.overallRating / 20) ? "text-orange-400" : "text-neutral-200"}`}>★</span>
+                      ))}
+                    </div>
+                    <span className="text-xs text-neutral-400 font-medium">
+                      {r.author.venues[0]?.name ?? r.author.name ?? "Vlasnik"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Badges */}
       <h3 className="font-bold text-neutral-900">Bedževi</h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {Object.entries(BADGE_META).map(([key, meta]) => {
           const earned = earnedBadges.includes(key);
+          const progressFn = BADGE_PROGRESS[key];
+          const progress = !earned && passport && progressFn ? progressFn(passport) : null;
           return (
-            <div key={key} className={`dash-card p-4 flex flex-col items-center text-center gap-2 transition-opacity ${!earned ? "opacity-50" : ""}`}>
+            <div key={key} className={`dash-card p-4 flex flex-col items-center text-center gap-2 transition-opacity ${!earned ? "opacity-60" : ""}`}>
               <span className="text-3xl">{meta.emoji}</span>
               <div>
                 <div className="font-bold text-neutral-900 text-sm">{meta.label}</div>
                 <div className="text-xs text-neutral-400 mt-0.5">{meta.sub}</div>
               </div>
-              {!earned && <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide">🔒 Zaključano</span>}
+              {earned && <span className="text-[10px] font-bold text-green-600 uppercase tracking-wide">✓ Otključano</span>}
+              {!earned && progress && (
+                <div className="w-full">
+                  <div className="flex justify-between text-[10px] text-neutral-400 mb-1">
+                    <span>{progress.current}/{progress.total} {progress.unit}</span>
+                    <span>{Math.round((progress.current / progress.total) * 100)}%</span>
+                  </div>
+                  <div className="h-1 bg-neutral-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-orange-400 rounded-full transition-all"
+                      style={{ width: `${Math.round((progress.current / progress.total) * 100)}%` }} />
+                  </div>
+                </div>
+              )}
+              {!earned && !progress && (
+                <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide">🔒 Zahteva verifikaciju</span>
+              )}
             </div>
           );
         })}

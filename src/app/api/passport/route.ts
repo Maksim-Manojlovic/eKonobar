@@ -9,12 +9,37 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const passport = await db.waiterPassport.findUnique({
-    where: { userId: session.user.id },
-    include: { trustScore: true },
-  });
+  const [passport, recentReviews] = await Promise.all([
+    db.waiterPassport.findUnique({
+      where: { userId: session.user.id },
+      include: { trustScore: true },
+    }),
+    db.review.findMany({
+      where: {
+        subjectId: session.user.id,
+        direction: "VENUE_TO_WAITER",
+        status: "PUBLISHED",
+        comment: { not: null },
+      },
+      orderBy: { publishedAt: "desc" },
+      take: 3,
+      select: {
+        id: true,
+        overallRating: true,
+        comment: true,
+        publishedAt: true,
+        author: {
+          select: {
+            name: true,
+            venues: { select: { name: true }, take: 1 },
+          },
+        },
+      },
+    }),
+  ]);
 
-  return NextResponse.json(passport ?? null);
+  if (!passport) return NextResponse.json(null);
+  return NextResponse.json({ ...passport, recentReviews });
 }
 
 export async function PUT(req: NextRequest) {

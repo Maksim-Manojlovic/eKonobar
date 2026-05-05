@@ -97,7 +97,7 @@ export async function syncVenueTrustScore(venueId: string): Promise<void> {
 export async function syncPassportScore(waiterId: string): Promise<void> {
   const passport = await dbRaw.waiterPassport.findUnique({
     where: { userId: waiterId },
-    select: { id: true },
+    select: { id: true, totalEngagements: true, sanitaryBookValid: true, badges: true },
   });
   if (!passport) return;
 
@@ -130,10 +130,17 @@ export async function syncPassportScore(waiterId: string): Promise<void> {
   const dimensions = calculatePassportScoreDimensions(venueReviews);
   const reviewCount = venueReviews.length + guestReviews.length;
 
+  const earned = new Set(passport.badges);
+  if (passport.sanitaryBookValid) earned.add("sanitarna");
+  if (passport.totalEngagements >= 3) earned.add("verified_history");
+  if (passport.totalEngagements >= 50) earned.add("hospitality_pro");
+  if (score >= 98) earned.add("platinum");
+  const badges = Array.from(earned);
+
   await dbRaw.$transaction([
     dbRaw.waiterPassport.update({
       where: { id: passport.id },
-      data: { score, reviewCount },
+      data: { score, reviewCount, badges },
     }),
     dbRaw.passportTrustScore.upsert({
       where: { passportId: passport.id },

@@ -7,6 +7,7 @@ import Link from "next/link";
 import TrustRadar from "@/components/trust-score/TrustRadar";
 import JobCard from "@/components/job/JobCard";
 import ReviewWizard from "@/components/review/ReviewWizard";
+import Navbar from "@/components/layout/Navbar";
 
 const VENUE_TYPE_LABELS: Record<string, string> = {
   RESTAURANT: "Restoran", CAFE: "Kafić", BAR: "Bar",
@@ -65,13 +66,21 @@ export default function VenueDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className="min-h-screen hero-bg"><Spinner /></div>;
+  if (loading) return (
+    <div className="min-h-screen hero-bg">
+      <Navbar activePath="/venues" />
+      <Spinner />
+    </div>
+  );
   if (notFound || !venue) return (
-    <div className="min-h-screen hero-bg flex items-center justify-center">
-      <div className="text-center">
-        <p className="text-5xl mb-4">🍽️</p>
-        <h2 className="font-black text-xl text-neutral-900 mb-2">Lokal nije pronađen</h2>
-        <Link href="/venues" className="text-orange-500 font-bold hover:underline">← Svi lokali</Link>
+    <div className="min-h-screen hero-bg">
+      <Navbar activePath="/venues" />
+      <div className="flex items-center justify-center py-32">
+        <div className="text-center">
+          <p className="text-5xl mb-4">🍽️</p>
+          <h2 className="font-black text-xl text-neutral-900 mb-2">Lokal nije pronađen</h2>
+          <Link href="/venues" className="text-orange-500 font-bold hover:underline">← Svi lokali</Link>
+        </div>
       </div>
     </div>
   );
@@ -80,6 +89,7 @@ export default function VenueDetailPage() {
 
   return (
     <div className="min-h-screen hero-bg">
+      <Navbar activePath="/venues" />
       <div className="max-w-4xl mx-auto px-4 py-12 flex flex-col gap-8">
         {/* Back */}
         <Link href="/venues" className="text-sm text-neutral-400 hover:text-orange-500 font-semibold transition-colors w-fit">
