@@ -104,9 +104,11 @@ export default function HeadhunterSearch() {
       .finally(() => setLoading(false));
   }, [search, minScore, tier, available, sanitaryOk, minExp, skills]);
 
+  // Initial load only — button handles subsequent searches
   useEffect(() => {
     if (status === "authenticated") runSearch();
-  }, [status, runSearch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   async function toggleSave(waiterId: string) {
     setSaving(waiterId);
