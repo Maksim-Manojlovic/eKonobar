@@ -19,6 +19,10 @@ npm test                 # run unit tests (Vitest)
 npm run test:watch       # run tests in watch mode
 ```
 
+## ESLint
+
+Config is in `eslint.config.mjs` (ESLint 9 flat config). Run with `npm run lint`. The CI job runs lint before tests — fix all errors before committing.
+
 ## Critical Patterns
 
 ### db vs dbRaw
@@ -98,6 +102,22 @@ Current limits:
 - `post_invite` — 20 per hour
 
 Pre-auth (login) uses the in-memory `rateLimit()` function — no userId available yet.
+
+### Image uploads
+
+All image uploads go through `POST /api/upload` (multipart form-data). It validates MIME type (image/* only) and size (max 5 MB), then uploads to Cloudinary. The `type` field selects the preset:
+
+| type | folder | transform |
+|---|---|---|
+| `avatar` | `ekonobar/avatars` | 400×400 face-crop |
+| `venue-photo` | `ekonobar/venues` | 1200×800 fill |
+
+The endpoint returns `{ url: string }`. Callers then persist the URL to the relevant model:
+
+- Waiter avatar → `PUT /api/passport` with `{ profilePhoto: url }` (also syncs `User.image`)
+- Venue photos → `PATCH /api/venues/[id]` with `{ images: string[] }` (max 8, owner-only)
+
+Use the `ImageUpload` component from `components/ui/ImageUpload.tsx`. It has two modes: `shape="circle"` for avatars and `shape="rect"` (default) for drag-drop photo tiles. Pass `onUpload` which receives the URL and should call the persistence endpoint.
 
 ## Database Models (key ones)
 

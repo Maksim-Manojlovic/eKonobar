@@ -9,6 +9,7 @@ A verified platform for the hospitality sector in Serbia. Waiters get a portable
 - **Auth:** NextAuth.js v4 (JWT sessions)
 - **Maps:** Mapbox GL + react-map-gl v8
 - **Charts:** Recharts
+- **Image storage:** Cloudinary
 - **UI:** Radix UI primitives, Tailwind CSS, lucide-react
 - **Validation:** Zod
 - **Tests:** Vitest
@@ -37,6 +38,9 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5433/appdb"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-secret-here"
 NEXT_PUBLIC_MAPBOX_TOKEN="pk.eyJ..."
+CLOUDINARY_CLOUD_NAME="your-cloud-name"
+CLOUDINARY_API_KEY="your-api-key"
+CLOUDINARY_API_SECRET="your-api-secret"
 ```
 
 Optional:
@@ -104,7 +108,8 @@ src/
         publish-reviews/  # POST/GET — publishes due reviews + syncs trust scores
       jobs/              # Job posts and applications
       reviews/           # Review submission and retrieval
-      venues/            # Venue CRUD and GeoJSON
+      venues/            # Venue CRUD, GeoJSON, images (PATCH /[id])
+      upload/            # POST — Cloudinary image upload (avatar, venue-photo)
       invites/           # Job invites
       shifts/            # Shift scheduling
       passport/          # Waiter passport and engagements
@@ -122,10 +127,11 @@ src/
     map/               # MapSearch, RedAlertPulse marker
     admin/             # ZoneRow, ZoneForm
     layout/            # DashboardShell, RoleGuard, Navbar
-    ui/                # Radix-based primitives
+    ui/                # Radix-based primitives + ImageUpload component
   lib/
     auth.ts            # NextAuth config
     db.ts              # Prisma client (soft-delete filtered) + dbRaw
+    cloudinary.ts      # Cloudinary v2 client (used by /api/upload)
     trust-score.ts     # Bayesian scoring
     geofence.ts        # Haversine + isInsideVenueRadius()
     sync-scores.ts     # publishDueReviews, syncVenueTrustScore, syncPassportScore
@@ -156,6 +162,7 @@ prisma/
 - **Geofenced Guest Reviews** — Guests can only review a waiter if they are within 150m of the venue
 - **Verification Tiers** — UNVERIFIED → SILVER (employment contract) → GOLD (venue invite code) → ID_VERIFIED (document, ×1.2 score weight)
 - **Sanitary Book** — Waiters upload a sanitary certificate; admin approves; venue owners can filter by it
+- **Image Uploads** — Waiters upload a profile photo; venue owners upload up to 8 venue photos; all stored on Cloudinary with auto resize and quality
 
 ## Cron Jobs
 
