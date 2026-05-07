@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { notify } from "@/lib/notify";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -66,7 +67,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "jobPostId is required" }, { status: 400 });
   }
 
-  const post = await db.jobPost.findFirst({ where: { id: jobPostId, status: "ACTIVE" } });
+  const post = await db.jobPost.findFirst({
+    where: { id: jobPostId, status: "ACTIVE" },
+    include: { venue: { select: { ownerId: true, name: true } } },
+  });
   if (!post) {
     return NextResponse.json({ error: "Job post not found or not active" }, { status: 404 });
   }
@@ -89,6 +93,15 @@ export async function POST(req: NextRequest) {
       jobPost: { select: { id: true, title: true } },
     },
   });
+
+  // Notify venue owner of new application (fire-and-forget)
+  notify(
+    post.venue.ownerId,
+    "APPLICATION_RECEIVED",
+    "Nova prijava na oglas",
+    `${session.user.name ?? "Konobar"} se prijavio na "${application.jobPost.title}"`,
+    `/dashboard/venue`,
+  ).catch(console.error);
 
   if (post.redAlert) {
     const responseMinutes = Math.round((Date.now() - post.createdAt.getTime()) / 60_000);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { notify } from "@/lib/notify";
 
 // PATCH — owner approves or rejects a swap request
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ swapId: string }> }) {
@@ -59,6 +60,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sw
       }),
       db.shift.update({ where: { id: swapReq.shiftId }, data: { status: "ASSIGNED" } }),
     ]);
+  }
+
+  const fromId  = swapReq.fromAssignment.waiterId;
+  const title   = swapReq.shift.title ?? "smena";
+  if (action === "ACCEPTED") {
+    notify(fromId, "SWAP_RESOLVED", "Zamena odobrena", `Zamena smene "${title}" je odobrena.`, `/dashboard/waiter`).catch(console.error);
+    notify(swapReq.toWaiterId, "SWAP_RESOLVED", "Dodeljeni ste na smenu", `Preuzeli ste smenu "${title}".`, `/dashboard/waiter`).catch(console.error);
+  } else {
+    notify(fromId, "SWAP_RESOLVED", "Zamena odbijena", `Zamena smene "${title}" nije odobrena.`, `/dashboard/waiter`).catch(console.error);
   }
 
   return NextResponse.json({ ok: true });

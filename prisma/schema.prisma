@@ -119,6 +119,16 @@ enum SwapRequestStatus {
   CANCELLED
 }
 
+enum NotificationType {
+  APPLICATION_RECEIVED        // waiter applied → venue owner
+  APPLICATION_STATUS_CHANGED  // status updated → waiter
+  SWAP_REQUESTED              // swap created → target waiter + venue owner
+  SWAP_RESOLVED               // swap accepted/rejected → both waiters
+  SHIFT_CLAIMED               // waiter claimed open shift → venue owner
+  SHIFT_ASSIGNED              // owner assigned waiter → waiter
+  REVIEW_PUBLISHED            // review went live → subject
+}
+
 // ─── User ─────────────────────────────────────────────────────────────────────
 
 model User {
@@ -138,6 +148,11 @@ model User {
 
   rememberMe    Boolean   @default(false)
   lastLoginAt   DateTime?
+
+  // Notification preferences
+  phone         String?
+  smsOptIn      Boolean   @default(false)  // Infobip premium SMS
+  waOptIn       Boolean   @default(false)  // WhatsApp
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -160,6 +175,8 @@ model User {
   invitesSent       Invite[]            @relation("InviteSender")
   invitesUsed       Invite[]            @relation("InviteRecipient")
   rateLimits        RateLimit[]
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
 
   @@index([role])
   @@index([verificationTier])
@@ -720,4 +737,43 @@ model RateLimit {
 
   @@unique([userId, action, windowStart])
   @@index([userId, action])
+}
+
+// ─── Notification ─────────────────────────────────────────────────────────────
+
+model Notification {
+  id       String           @id @default(cuid())
+  userId   String
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type     NotificationType
+  title    String
+  body     String
+  link     String?
+
+  read     Boolean @default(false)
+  pushSent Boolean @default(false)
+  waSent   Boolean @default(false)
+  smsSent  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+}
+
+// ─── PushSubscription (Web Push) ─────────────────────────────────────────────
+
+model PushSubscription {
+  id       String @id @default(cuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  endpoint String @unique
+  p256dh   String
+  auth     String
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

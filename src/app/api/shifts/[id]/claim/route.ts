@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { notify } from "@/lib/notify";
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -13,7 +14,10 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   const shift = await db.shift.findUnique({
     where: { id },
-    include: { assignments: { select: { waiterId: true } } },
+    include: {
+      assignments: { select: { waiterId: true } },
+      venue: { select: { ownerId: true, name: true } },
+    },
   });
   if (!shift) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (shift.status !== "OPEN") {
@@ -38,6 +42,14 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       data: { status: newStatus },
     }),
   ]);
+
+  notify(
+    shift.venue.ownerId,
+    "SHIFT_CLAIMED",
+    "Smena preuzeta",
+    `${session.user.name ?? "Konobar"} je preuzeo smenu "${shift.title}"`,
+    `/dashboard/venue`,
+  ).catch(console.error);
 
   return NextResponse.json(assignment, { status: 201 });
 }

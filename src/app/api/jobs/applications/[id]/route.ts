@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { dbRaw } from "@/lib/db";
 import { ApplicationStatus } from "@prisma/client";
 import { syncPassportScore } from "@/lib/sync-scores";
+import { notify } from "@/lib/notify";
 
 // Valid transitions per role
 const VENUE_TRANSITIONS: Partial<Record<ApplicationStatus, ApplicationStatus[]>> = {
@@ -38,11 +39,13 @@ export async function PATCH(
     include: {
       jobPost: {
         select: {
+          title: true,
           ownerId: true,
           venueId: true,
           engagementType: true,
           startDate: true,
           endDate: true,
+          venue: { select: { name: true } },
         },
       },
     },
@@ -74,6 +77,18 @@ export async function PATCH(
     where: { id },
     data: { status },
   });
+
+  // Notify waiter about status change
+  const statusMessages: Partial<Record<ApplicationStatus, string>> = {
+    ACCEPTED:    `Čestitamo! Prijava za "${application.jobPost.title}" je prihvaćena.`,
+    REJECTED:    `Prijava za "${application.jobPost.title}" nije prihvaćena.`,
+    SHORTLISTED: `Ušli ste u uži izbor za "${application.jobPost.title}".`,
+    COMPLETED:   `Angažman u lokalu "${application.jobPost.venue?.name}" je završen.`,
+  };
+  const msg = statusMessages[status];
+  if (msg && isOwner) {
+    notify(application.waiterId, "APPLICATION_STATUS_CHANGED", "Prijava ažurirana", msg, `/dashboard/waiter`).catch(console.error);
+  }
 
   // COMPLETED side-effects: create engagement record + update passport
   if (status === "COMPLETED") {

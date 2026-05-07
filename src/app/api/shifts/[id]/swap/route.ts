@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { notify } from "@/lib/notify";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -21,6 +22,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     include: {
       assignments: { select: { id: true, waiterId: true } },
       swapRequests: { where: { status: "PENDING" }, select: { fromAssignmentId: true } },
+      venue: { select: { ownerId: true, name: true } },
     },
   });
   if (!shift) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -54,6 +56,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }),
     db.shift.update({ where: { id }, data: { status: "PENDING_SWAP" } }),
   ]);
+
+  const fromName = session.user.name ?? "Konobar";
+  // Notify target waiter
+  notify(toWaiterId, "SWAP_REQUESTED", "Zahtev za zamenu smene",
+    `${fromName} traži zamenu za smenu "${shift.title}"`, `/dashboard/waiter`).catch(console.error);
+  // Notify venue owner
+  notify(shift.venue.ownerId, "SWAP_REQUESTED", "Zahtev za zamenu",
+    `${fromName} traži zamenu smene "${shift.title}"`, `/dashboard/venue`).catch(console.error);
 
   return NextResponse.json(swapReq, { status: 201 });
 }

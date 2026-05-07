@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import ImageUpload from "@/components/ui/ImageUpload";
+import { NotificationBell } from "@/components/ui/NotificationBell";
 
 type Section = "overview" | "alerts" | "jobs" | "applications" | "shifts" | "invites" | "reviews" | "passport";
 type AppFilter = "all" | "accepted" | "pending" | "rejected";
@@ -1692,13 +1693,8 @@ export default function WaiterDashboard() {
               <p className="text-xs text-neutral-400 capitalize">{today}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button className="relative w-9 h-9 rounded-xl bg-white border border-neutral-100 flex items-center justify-center hover:border-orange-300 transition-colors">
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
-              </svg>
-              {alertCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full" />}
-            </button>
+          <div className="flex items-center gap-2">
+            <NotificationBell dashboardPath="/dashboard/waiter" />
             <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm">{initials}</div>
           </div>
         </div>
