@@ -623,6 +623,9 @@ model Shift {
   briefingNote   String?  @db.Text
   notes          String?  @db.Text
 
+  templateId String?     // set when generated from ShiftTemplate
+  template   ShiftTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
   status     ShiftStatus @default(OPEN)
   swapLocked Boolean     @default(false)
 
@@ -695,6 +698,8 @@ model ShiftTemplate {
   pay           Int?
 
   createdAt DateTime @default(now())
+
+  generatedShifts Shift[]
 
   @@index([venueId])
 }

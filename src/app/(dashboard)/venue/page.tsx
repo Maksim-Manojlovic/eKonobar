@@ -47,6 +47,18 @@ type VenueShift = {
   swapRequests: VenueSwapRequest[];
 };
 
+type ShiftTemplate = {
+  id: string;
+  venueId: string;
+  name: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  requiredCount: number;
+  role: string | null;
+  pay: number | null;
+};
+
 const DAYS_SR   = ["Pon", "Uto", "Sre", "Čet", "Pet", "Sub", "Ned"];
 const MONTHS_SR = ["Januar", "Februar", "Mart", "April", "Maj", "Jun",
                    "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"];
@@ -1497,6 +1509,291 @@ function ShiftModal({ shift, date, venue, waiters, onSave, onDelete, onClose }: 
   );
 }
 
+/* ── Template modal ──────────────────────────────────────────────────────── */
+
+const DAYS_FULL_SR = ["Nedjelja", "Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak", "Subota"];
+
+function TemplateModal({ template, venueId, onSave, onClose }: {
+  template: ShiftTemplate | null;
+  venueId: string;
+  onSave: () => void;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState({
+    name:          template?.name          ?? "",
+    dayOfWeek:     template?.dayOfWeek?.toString() ?? "5", // Friday default
+    startTime:     template?.startTime     ?? "18:00",
+    endTime:       template?.endTime       ?? "02:00",
+    requiredCount: template?.requiredCount?.toString() ?? "2",
+    role:          template?.role          ?? "",
+    pay:           template?.pay?.toString() ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState("");
+
+  const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSaving(true);
+    const url    = template ? `/api/shifts/templates/${template.id}` : "/api/shifts/templates";
+    const method = template ? "PATCH" : "POST";
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        venueId,
+        name:          form.name,
+        dayOfWeek:     Number(form.dayOfWeek),
+        startTime:     form.startTime,
+        endTime:       form.endTime,
+        requiredCount: Number(form.requiredCount) || 1,
+        role:          form.role  || undefined,
+        pay:           form.pay   ? Number(form.pay) : undefined,
+      }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setError((d as { error?: string }).error ?? "Greška.");
+      return;
+    }
+    onSave();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)" }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="dash-card w-full max-w-sm p-6 flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-black text-neutral-900">{template ? "Uredi šablon" : "Novi šablon"}</h3>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-neutral-600 text-lg">✕</button>
+        </div>
+        <form onSubmit={handleSave} className="flex flex-col gap-3">
+          <div>
+            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Naziv šablona *</label>
+            <input type="text" required value={form.name} onChange={e => set("name", e.target.value)}
+              placeholder="npr. Petkom naveče" className="auth-input" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Dan u nedelji *</label>
+            <select value={form.dayOfWeek} onChange={e => set("dayOfWeek", e.target.value)} className="auth-input">
+              {DAYS_FULL_SR.map((d, i) => <option key={i} value={i}>{d}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Od *</label>
+              <input type="time" required value={form.startTime} onChange={e => set("startTime", e.target.value)} className="auth-input" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Do *</label>
+              <input type="time" required value={form.endTime} onChange={e => set("endTime", e.target.value)} className="auth-input" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Broj ljudi</label>
+              <input type="number" min={1} max={20} value={form.requiredCount} onChange={e => set("requiredCount", e.target.value)} className="auth-input" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Naknada (RSD)</label>
+              <input type="number" min={0} value={form.pay} onChange={e => set("pay", e.target.value)} placeholder="Po dogovoru" className="auth-input" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Uloga</label>
+            <input type="text" value={form.role} onChange={e => set("role", e.target.value)} placeholder="npr. Konobar" className="auth-input" />
+          </div>
+          {error && <div className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</div>}
+          <button type="submit" disabled={saving} className="btn-dash-orange py-2.5 disabled:opacity-60">
+            {saving ? "Čuvanje..." : (template ? "Sačuvaj" : "Dodaj šablon")}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ── Generate modal ──────────────────────────────────────────────────────── */
+
+function GenerateModal({ template, onDone, onClose }: {
+  template: ShiftTemplate;
+  onDone: (created: number, skipped: number) => void;
+  onClose: () => void;
+}) {
+  const today    = new Date().toISOString().slice(0, 10);
+  const fourWeeks = new Date(Date.now() + 28 * 86_400_000).toISOString().slice(0, 10);
+  const [fromDate, setFromDate] = useState(today);
+  const [toDate, setToDate]     = useState(fourWeeks);
+  const [loading, setLoading]   = useState(false);
+  const [result, setResult]     = useState<{ created: number; skipped: number } | null>(null);
+  const [error, setError]       = useState("");
+
+  async function handleGenerate() {
+    setError("");
+    setLoading(true);
+    const res = await fetch(`/api/shifts/templates/${template.id}/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fromDate, toDate }),
+    });
+    setLoading(false);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setError((d as { error?: string }).error ?? "Greška.");
+      return;
+    }
+    const data = await res.json();
+    setResult(data);
+    onDone(data.created, data.skipped);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)" }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="dash-card w-full max-w-sm p-6 flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-black text-neutral-900">Generiši smene</h3>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-neutral-600 text-lg">✕</button>
+        </div>
+        <div className="bg-neutral-50 rounded-xl p-3">
+          <div className="font-semibold text-neutral-800 text-sm">{template.name}</div>
+          <div className="text-xs text-neutral-400 mt-0.5">
+            {DAYS_FULL_SR[template.dayOfWeek]} · {template.startTime}–{template.endTime} · {template.requiredCount} {template.requiredCount === 1 ? "osoba" : "osobe"}
+          </div>
+        </div>
+        {result ? (
+          <div className="text-center py-4">
+            <div className="text-2xl font-black text-green-600">{result.created}</div>
+            <div className="text-sm text-neutral-500">smena kreirano</div>
+            {result.skipped > 0 && <div className="text-xs text-neutral-400 mt-1">{result.skipped} preskočeno (već postoje)</div>}
+            <button onClick={onClose} className="btn-dash-orange px-6 py-2 mt-4">Zatvori</button>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Od datuma</label>
+                <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="auth-input" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Do datuma</label>
+                <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="auth-input" />
+              </div>
+            </div>
+            {error && <div className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</div>}
+            <button onClick={handleGenerate} disabled={loading} className="btn-dash-orange py-2.5 disabled:opacity-60">
+              {loading ? "Generišem..." : "Generiši smene"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Shift template tab ──────────────────────────────────────────────────── */
+
+function ShiftTemplateTab({ venue, onShiftsChanged }: { venue: Venue; onShiftsChanged: () => void }) {
+  const [templates, setTemplates]   = useState<ShiftTemplate[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [creating, setCreating]     = useState(false);
+  const [editing, setEditing]       = useState<ShiftTemplate | null>(null);
+  const [generating, setGenerating] = useState<ShiftTemplate | null>(null);
+  const [deleting, setDeleting]     = useState<string | null>(null);
+
+  const fetchTemplates = () => {
+    setLoading(true);
+    fetch("/api/shifts/templates")
+      .then(r => r.ok ? r.json() : [])
+      .then(setTemplates)
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { fetchTemplates(); }, []);
+
+  async function handleDelete(id: string) {
+    setDeleting(id);
+    await fetch(`/api/shifts/templates/${id}`, { method: "DELETE" });
+    setDeleting(null);
+    fetchTemplates();
+  }
+
+  if (loading) return <Spinner />;
+
+  return (
+    <>
+      {(creating || editing) && (
+        <TemplateModal
+          template={editing}
+          venueId={venue.id}
+          onSave={() => { setCreating(false); setEditing(null); fetchTemplates(); }}
+          onClose={() => { setCreating(false); setEditing(null); }}
+        />
+      )}
+      {generating && (
+        <GenerateModal
+          template={generating}
+          onDone={() => { onShiftsChanged(); }}
+          onClose={() => setGenerating(null)}
+        />
+      )}
+
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-bold text-neutral-900">Šabloni smena</h3>
+          <p className="text-xs text-neutral-400 mt-0.5">Sačuvani obrasci za ponavljajuće smene. Kliknite &quot;Generiši&quot; za bulk kreiranje.</p>
+        </div>
+        <button onClick={() => setCreating(true)} className="btn-dash-orange px-4 py-2">+ Novi šablon</button>
+      </div>
+
+      {templates.length === 0 ? (
+        <div className="dash-card p-10 text-center text-neutral-400 text-sm">
+          Nema šablona — kreirajte prvi za ponavljajuće smene (npr. &quot;Petkom naveče&quot;)
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {templates.map(t => (
+            <div key={t.id} className="dash-card p-4 flex flex-col gap-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="font-bold text-neutral-900">{t.name}</div>
+                  <div className="text-xs text-neutral-500 mt-0.5">
+                    {DAYS_FULL_SR[t.dayOfWeek]} · {t.startTime}–{t.endTime}
+                  </div>
+                  <div className="flex gap-3 mt-1.5 text-xs text-neutral-400">
+                    <span>{t.requiredCount} {t.requiredCount === 1 ? "osoba" : "osobe"}</span>
+                    {t.role && <span>· {t.role}</span>}
+                    {t.pay != null && <span>· {t.pay.toLocaleString("sr-RS")} RSD</span>}
+                  </div>
+                </div>
+                <div className="flex gap-1.5 flex-shrink-0">
+                  <button onClick={() => setEditing(t)}
+                    className="text-xs text-neutral-400 hover:text-neutral-700 px-2 py-1 rounded-lg hover:bg-neutral-100 transition-colors">
+                    Uredi
+                  </button>
+                  <button onClick={() => handleDelete(t.id)} disabled={deleting === t.id}
+                    className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50">
+                    {deleting === t.id ? "..." : "Briši"}
+                  </button>
+                </div>
+              </div>
+              <button onClick={() => setGenerating(t)}
+                className="btn-dash-orange py-2 text-sm w-full">
+                Generiši smene
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 /* ── Staffing bar ────────────────────────────────────────────────────────── */
 
 function StaffingBar({ filled, required }: { filled: number; required: number }) {
@@ -1524,6 +1821,7 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
   onRefresh: () => void;
 }) {
   const now = new Date();
+  const [mainTab, setMainTab]   = useState<"kalendar" | "sabloni">("kalendar");
   const [current, setCurrent]   = useState(new Date(now.getFullYear(), now.getMonth(), 1));
   const [creating, setCreating] = useState<Date | null>(null);
   const [editing, setEditing]   = useState<VenueShift | null>(null);
@@ -1583,11 +1881,26 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
       )}
 
       <div className="flex items-center justify-between">
-        <h2 className="font-black text-neutral-900">Smene</h2>
-        <div className="flex gap-2">
-          <button onClick={() => setCreating(now)} className="btn-dash-orange px-4 py-2">+ Nova smena</button>
+        <div className="flex items-center gap-1 bg-neutral-100 rounded-xl p-1">
+          <button
+            onClick={() => setMainTab("kalendar")}
+            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${mainTab === "kalendar" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-700"}`}>
+            Kalendar
+          </button>
+          <button
+            onClick={() => setMainTab("sabloni")}
+            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${mainTab === "sabloni" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-700"}`}>
+            Šabloni
+          </button>
         </div>
+        {mainTab === "kalendar" && (
+          <button onClick={() => setCreating(now)} className="btn-dash-orange px-4 py-2">+ Nova smena</button>
+        )}
       </div>
+
+      {mainTab === "sabloni" && <ShiftTemplateTab venue={venue} onShiftsChanged={onRefresh} />}
+
+      {mainTab === "kalendar" && <>
 
       {/* Pending swap approvals */}
       {pendingSwaps.length > 0 && (
@@ -1769,6 +2082,8 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
           Nema smena — kliknite na dan u kalendaru ili koristite &quot;+ Nova smena&quot;
         </div>
       )}
+
+      </>}
     </>
   );
 }
