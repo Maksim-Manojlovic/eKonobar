@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
 import ImageUpload from "@/components/ui/ImageUpload";
+import { QRCodeCanvas } from "qrcode.react";
 
-type Section = "overview" | "posts" | "new-post" | "smene" | "applications" | "waiters" | "discover" | "reviews" | "profile";
+type Section = "overview" | "posts" | "new-post" | "smene" | "applications" | "waiters" | "discover" | "reviews" | "qr-review" | "profile";
 type AppFilter = "SVE" | "PENDING" | "SHORTLISTED" | "ACCEPTED" | "REJECTED";
 
 type VenueShiftAssignment = {
@@ -944,6 +945,130 @@ function ReviewsSection() {
             <p className="text-sm text-neutral-600 mt-3 leading-relaxed">{r.text}</p>
           </div>
         ))}
+      </div>
+    </>
+  );
+}
+
+/* ── Section: QR Reviews ─────────────────────────────────────────────────── */
+
+function QrReviewSection({ venue }: { venue: Venue | null }) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
+
+  if (!venue) {
+    return (
+      <>
+        <h2 className="font-black text-neutral-900">QR Recenzije</h2>
+        <div className="dash-card p-10 text-center text-neutral-400 text-sm">
+          Prvo kreirajte profil lokala da biste generisali QR kod.
+        </div>
+      </>
+    );
+  }
+
+  const venueSafe: Venue = venue;
+  const reviewUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/review/${venueSafe.id}`
+    : `/review/${venueSafe.id}`;
+
+  async function copyLink() {
+    await navigator.clipboard.writeText(reviewUrl).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function downloadQr() {
+    const canvas = wrapperRef.current?.querySelector("canvas");
+    if (!canvas) return;
+    const link = document.createElement("a");
+    link.download = `qr-recenzija-${venueSafe.name.replace(/\s+/g, "-").toLowerCase()}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }
+
+  function printQr() {
+    const canvas = wrapperRef.current?.querySelector("canvas");
+    if (!canvas) return;
+    const img = canvas.toDataURL("image/png");
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(`
+      <html><head><title>QR — ${venueSafe.name}</title><style>
+        body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: sans-serif; gap: 16px; }
+        img { width: 280px; height: 280px; }
+        p { font-size: 14px; color: #555; text-align: center; max-width: 280px; }
+        h2 { font-size: 20px; font-weight: 900; margin: 0; }
+      </style></head><body>
+        <h2>${venueSafe.name}</h2>
+        <img src="${img}" />
+        <p>Skenirajte QR kod i ostavite recenziju konobara koji vas je uslužio.</p>
+      </body></html>
+    `);
+    w.document.close();
+    w.print();
+  }
+
+  return (
+    <>
+      <h2 className="font-black text-neutral-900">QR Recenzije</h2>
+
+      <div className="dash-card p-6 flex flex-col sm:flex-row gap-6 items-start">
+        {/* QR code */}
+        <div ref={wrapperRef} className="flex-shrink-0 flex flex-col items-center gap-3">
+          <div className="p-4 bg-white border border-neutral-200 rounded-2xl">
+            <QRCodeCanvas
+              value={reviewUrl}
+              size={200}
+              bgColor="#ffffff"
+              fgColor="#1a1a1a"
+              level="M"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={downloadQr}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-neutral-100 text-neutral-600 hover:bg-neutral-200 transition-colors">
+              Preuzmi PNG
+            </button>
+            <button onClick={printQr}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-neutral-100 text-neutral-600 hover:bg-neutral-200 transition-colors">
+              Štampaj
+            </button>
+          </div>
+        </div>
+
+        {/* Info */}
+        <div className="flex flex-col gap-4 flex-1 min-w-0">
+          <div>
+            <h3 className="font-bold text-neutral-900">Gostinska recenzija za {venueSafe.name}</h3>
+            <p className="text-sm text-neutral-500 mt-1 leading-relaxed">
+              Postavite ovaj QR kod na sto, šank ili ulaz. Gosti skeniraju, biraju konobara i ostavljaju ocenu — bez registracije.
+            </p>
+          </div>
+
+          <div>
+            <div className="text-xs font-semibold text-neutral-500 mb-1.5">Link za recenziju</div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 min-w-0 bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-600 font-mono truncate">
+                {reviewUrl}
+              </div>
+              <button onClick={copyLink}
+                className={`flex-shrink-0 text-xs font-bold px-3 py-2 rounded-xl transition-colors ${copied ? "bg-green-100 text-green-700" : "bg-orange-500 text-white hover:bg-orange-600"}`}>
+                {copied ? "Kopirano!" : "Kopiraj"}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 flex flex-col gap-1.5">
+            <div className="text-xs font-black text-amber-700 uppercase tracking-wider">Kako funkcioniše</div>
+            <ul className="text-xs text-amber-700 flex flex-col gap-1">
+              <li className="flex items-start gap-1.5"><span className="flex-shrink-0 mt-0.5">1.</span>Gost skenira QR i bira konobara</li>
+              <li className="flex items-start gap-1.5"><span className="flex-shrink-0 mt-0.5">2.</span>Ocenjuje ljubaznost, brzinu i pažljivost (1–5 ★)</li>
+              <li className="flex items-start gap-1.5"><span className="flex-shrink-0 mt-0.5">3.</span>GPS potvrđuje da je gost u lokalu</li>
+              <li className="flex items-start gap-1.5"><span className="flex-shrink-0 mt-0.5">4.</span>Recenzija se objavljuje za 2h i utiče na skor konobara</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </>
   );
@@ -2256,13 +2381,14 @@ const NAV_ITEMS: { key: Section; label: string; icon: React.ReactNode }[] = [
   { key: "waiters",      label: "Konobari",      icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg> },
   { key: "discover",     label: "Pronađi",       icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg> },
   { key: "reviews",      label: "Recenzije",     icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg> },
+  { key: "qr-review",   label: "QR Recenzije",  icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3z"/><path d="M17 17h4"/><path d="M17 21v-4"/><path d="M21 14v3"/></svg> },
   { key: "profile",      label: "Profil lokala", icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg> },
 ];
 
 const SECTION_TITLES: Record<Section, string> = {
   overview: "Pregled", posts: "Oglasi", "new-post": "Novi oglas", smene: "Smene",
   applications: "Prijave", waiters: "Konobari", discover: "Pronađi konobara",
-  reviews: "Recenzije", profile: "Profil lokala",
+  reviews: "Recenzije", "qr-review": "QR Recenzije", profile: "Profil lokala",
 };
 
 /* ── Main dashboard ──────────────────────────────────────────────────────── */
@@ -2429,6 +2555,7 @@ export default function VenueDashboard() {
           {section === "waiters"      && <WaitersSection applications={applications} loading={loading} onInvite={setInviteTarget} />}
           {section === "discover"     && <DiscoverSection posts={posts} onInvite={setInviteTarget} />}
           {section === "reviews"      && <ReviewsSection />}
+          {section === "qr-review"   && <QrReviewSection venue={venue} />}
           {section === "profile"      && <ProfileSection venue={venue} loading={loading} onVenueCreated={fetchData} />}
         </div>
       </main>

@@ -327,13 +327,14 @@ model JobApplication {
 // ─── Review (Recenzija) ───────────────────────────────────────────────────────
 
 model Review {
-  id        String  @id @default(cuid())
-  authorId  String
-  author    User    @relation("ReviewAuthor", fields: [authorId], references: [id])
-  subjectId String?
-  subject   User?   @relation("ReviewSubject", fields: [subjectId], references: [id])
-  venueId   String?
-  venue     Venue?  @relation(fields: [venueId], references: [id])
+  id          String  @id @default(cuid())
+  authorId    String?                // null for anonymous guest reviews
+  author      User?   @relation("ReviewAuthor", fields: [authorId], references: [id])
+  guestHandle String?                // optional display name for guest reviews
+  subjectId   String?
+  subject     User?   @relation("ReviewSubject", fields: [subjectId], references: [id])
+  venueId     String?
+  venue       Venue?  @relation(fields: [venueId], references: [id])
 
   direction   ReviewDirection
   status      ReviewStatus    @default(PENDING)
