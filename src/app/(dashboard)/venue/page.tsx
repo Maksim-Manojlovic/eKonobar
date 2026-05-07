@@ -47,11 +47,14 @@ type VenueShift = {
   swapRequests: VenueSwapRequest[];
 };
 
+type TemplateMeta = { type?: "morning" | "evening"; label?: string; shift?: "1" | "2" };
 type ShiftTemplate = {
   id: string;
   venueId: string;
   name: string;
-  dayOfWeek: number;
+  dayOfWeek: number | null;
+  weekdaysOnly: boolean;
+  metadata: TemplateMeta | null;
   startTime: string;
   endTime: string;
   requiredCount: number;
@@ -1520,18 +1523,19 @@ function TemplateModal({ template, venueId, onSave, onClose }: {
   onClose: () => void;
 }) {
   const [form, setForm] = useState({
-    name:          template?.name          ?? "",
-    dayOfWeek:     template?.dayOfWeek?.toString() ?? "5", // Friday default
-    startTime:     template?.startTime     ?? "18:00",
-    endTime:       template?.endTime       ?? "02:00",
+    name:          template?.name              ?? "",
+    weekdaysOnly:  template?.weekdaysOnly      ?? false,
+    dayOfWeek:     template?.dayOfWeek?.toString() ?? "5",
+    startTime:     template?.startTime         ?? "18:00",
+    endTime:       template?.endTime           ?? "02:00",
     requiredCount: template?.requiredCount?.toString() ?? "2",
-    role:          template?.role          ?? "",
-    pay:           template?.pay?.toString() ?? "",
+    role:          template?.role              ?? "",
+    pay:           template?.pay?.toString()   ?? "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState("");
 
-  const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
+  const set = (k: string, v: string | boolean) => setForm(p => ({ ...p, [k]: v }));
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -1545,7 +1549,8 @@ function TemplateModal({ template, venueId, onSave, onClose }: {
       body: JSON.stringify({
         venueId,
         name:          form.name,
-        dayOfWeek:     Number(form.dayOfWeek),
+        weekdaysOnly:  form.weekdaysOnly,
+        dayOfWeek:     form.weekdaysOnly ? null : Number(form.dayOfWeek),
         startTime:     form.startTime,
         endTime:       form.endTime,
         requiredCount: Number(form.requiredCount) || 1,
@@ -1577,11 +1582,19 @@ function TemplateModal({ template, venueId, onSave, onClose }: {
             <input type="text" required value={form.name} onChange={e => set("name", e.target.value)}
               placeholder="npr. Petkom naveče" className="auth-input" />
           </div>
+          {/* Day picker */}
           <div>
-            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Dan u nedelji *</label>
-            <select value={form.dayOfWeek} onChange={e => set("dayOfWeek", e.target.value)} className="auth-input">
-              {DAYS_FULL_SR.map((d, i) => <option key={i} value={i}>{d}</option>)}
-            </select>
+            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Dani</label>
+            <button type="button"
+              onClick={() => set("weekdaysOnly", !form.weekdaysOnly)}
+              className={`w-full text-left px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors ${form.weekdaysOnly ? "border-orange-400 bg-orange-50 text-orange-700" : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300"}`}>
+              {form.weekdaysOnly ? "Radni dani (Pon–Pet)" : "Jedan dan u nedelji →"}
+            </button>
+            {!form.weekdaysOnly && (
+              <select value={form.dayOfWeek} onChange={e => set("dayOfWeek", e.target.value)} className="auth-input mt-2">
+                {DAYS_FULL_SR.map((d, i) => <option key={i} value={i}>{d}</option>)}
+              </select>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -1663,7 +1676,7 @@ function GenerateModal({ template, onDone, onClose }: {
         <div className="bg-neutral-50 rounded-xl p-3">
           <div className="font-semibold text-neutral-800 text-sm">{template.name}</div>
           <div className="text-xs text-neutral-400 mt-0.5">
-            {DAYS_FULL_SR[template.dayOfWeek]} · {template.startTime}–{template.endTime} · {template.requiredCount} {template.requiredCount === 1 ? "osoba" : "osobe"}
+            {template.weekdaysOnly ? "Radni dani (Pon–Pet)" : DAYS_FULL_SR[template.dayOfWeek ?? 0]} · {template.startTime}–{template.endTime} · {template.requiredCount} {template.requiredCount === 1 ? "osoba" : "osobe"}
           </div>
         </div>
         {result ? (
@@ -1698,6 +1711,39 @@ function GenerateModal({ template, onDone, onClose }: {
 
 /* ── Shift template tab ──────────────────────────────────────────────────── */
 
+// Parse "HH:MM" → minutes, treating midnight-crossing (end < start) by adding 1440 to end
+function toMins(t: string) {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+function shiftsOverlap(a: ShiftTemplate, b: ShiftTemplate) {
+  let aS = toMins(a.startTime), aE = toMins(a.endTime);
+  let bS = toMins(b.startTime), bE = toMins(b.endTime);
+  if (aE <= aS) aE += 1440; // overnight
+  if (bE <= bS) bE += 1440;
+  // both weekdaysOnly or share a day → could be scheduled same day
+  const sameDay = a.weekdaysOnly || b.weekdaysOnly || a.dayOfWeek === b.dayOfWeek;
+  return sameDay && aS < bE && bS < aE;
+}
+
+const QUICK_APPLY_PRESETS: Array<{
+  name: string; startTime: string; endTime: string;
+  meta: TemplateMeta; label: string; sublabel: string;
+}> = [
+  { name: "Jutarnja Standard", startTime: "08:00", endTime: "16:00",
+    meta: { type: "morning", label: "Jutarnja Standard", shift: "1" },
+    label: "Smena 1", sublabel: "08:00 – 16:00 · Radni dani" },
+  { name: "Jutarnja Kasna", startTime: "09:00", endTime: "17:00",
+    meta: { type: "morning", label: "Jutarnja Kasna", shift: "1" },
+    label: "Smena 1", sublabel: "09:00 – 17:00 · Radni dani" },
+  { name: "Popodnevna Standard", startTime: "16:00", endTime: "23:30",
+    meta: { type: "evening", label: "Popodnevna Standard", shift: "2" },
+    label: "Smena 2", sublabel: "16:00 – 23:30 · Radni dani" },
+  { name: "Popodnevna Kasna", startTime: "17:00", endTime: "00:00",
+    meta: { type: "evening", label: "Popodnevna Kasna", shift: "2" },
+    label: "Smena 2", sublabel: "17:00 – 00:00 · Radni dani" },
+];
+
 function ShiftTemplateTab({ venue, onShiftsChanged }: { venue: Venue; onShiftsChanged: () => void }) {
   const [templates, setTemplates]   = useState<ShiftTemplate[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -1705,6 +1751,7 @@ function ShiftTemplateTab({ venue, onShiftsChanged }: { venue: Venue; onShiftsCh
   const [editing, setEditing]       = useState<ShiftTemplate | null>(null);
   const [generating, setGenerating] = useState<ShiftTemplate | null>(null);
   const [deleting, setDeleting]     = useState<string | null>(null);
+  const [applying, setApplying]     = useState<string | null>(null);
 
   const fetchTemplates = () => {
     setLoading(true);
@@ -1723,7 +1770,96 @@ function ShiftTemplateTab({ venue, onShiftsChanged }: { venue: Venue; onShiftsCh
     fetchTemplates();
   }
 
+  async function applyPreset(preset: typeof QUICK_APPLY_PRESETS[0]) {
+    setApplying(preset.name);
+    await fetch("/api/shifts/templates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        venueId:      venue.id,
+        name:         preset.name,
+        weekdaysOnly: true,
+        dayOfWeek:    null,
+        metadata:     preset.meta,
+        startTime:    preset.startTime,
+        endTime:      preset.endTime,
+        requiredCount: 2,
+      }),
+    });
+    setApplying(null);
+    fetchTemplates();
+  }
+
+  // Overlap detection across all template pairs
+  const overlapPairs: [string, string][] = [];
+  for (let i = 0; i < templates.length; i++) {
+    for (let j = i + 1; j < templates.length; j++) {
+      if (shiftsOverlap(templates[i], templates[j])) {
+        overlapPairs.push([templates[i].name, templates[j].name]);
+      }
+    }
+  }
+
+  // Group by metadata.shift; ungrouped in "Ostalo"
+  const group1  = templates.filter(t => t.metadata?.shift === "1");
+  const group2  = templates.filter(t => t.metadata?.shift === "2");
+  const groupOther = templates.filter(t => !t.metadata?.shift);
+
+  function TemplateCard({ t }: { t: ShiftTemplate }) {
+    const dayLabel = t.weekdaysOnly ? "Radni dani" : (DAYS_FULL_SR[t.dayOfWeek ?? 0] ?? "");
+    return (
+      <div className="dash-card p-4 flex flex-col gap-3">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="font-bold text-neutral-900">{t.name}</div>
+              {t.metadata?.shift && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${t.metadata.type === "morning" ? "bg-amber-100 text-amber-700" : "bg-indigo-100 text-indigo-700"}`}>
+                  Smena {t.metadata.shift}
+                </span>
+              )}
+            </div>
+            <div className="text-xs text-neutral-500 mt-0.5">{dayLabel} · {t.startTime}–{t.endTime}</div>
+            <div className="flex gap-3 mt-1.5 text-xs text-neutral-400">
+              <span>{t.requiredCount} {t.requiredCount === 1 ? "osoba" : "osobe"}</span>
+              {t.role && <span>· {t.role}</span>}
+              {t.pay != null && <span>· {t.pay.toLocaleString("sr-RS")} RSD</span>}
+            </div>
+          </div>
+          <div className="flex gap-1.5 flex-shrink-0">
+            <button onClick={() => setEditing(t)}
+              className="text-xs text-neutral-400 hover:text-neutral-700 px-2 py-1 rounded-lg hover:bg-neutral-100 transition-colors">
+              Uredi
+            </button>
+            <button onClick={() => handleDelete(t.id)} disabled={deleting === t.id}
+              className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50">
+              {deleting === t.id ? "..." : "Briši"}
+            </button>
+          </div>
+        </div>
+        <button onClick={() => setGenerating(t)} className="btn-dash-orange py-2 text-sm w-full">
+          Generiši smene
+        </button>
+      </div>
+    );
+  }
+
+  function GroupSection({ title, items, color }: { title: string; items: ShiftTemplate[]; color: string }) {
+    if (items.length === 0) return null;
+    return (
+      <div>
+        <div className={`text-xs font-black uppercase tracking-wider mb-2 ${color}`}>{title}</div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {items.map(t => <TemplateCard key={t.id} t={t} />)}
+        </div>
+      </div>
+    );
+  }
+
   if (loading) return <Spinner />;
+
+  // Which presets already exist (match by name)
+  const existingNames = new Set(templates.map(t => t.name));
 
   return (
     <>
@@ -1751,43 +1887,65 @@ function ShiftTemplateTab({ venue, onShiftsChanged }: { venue: Venue; onShiftsCh
         <button onClick={() => setCreating(true)} className="btn-dash-orange px-4 py-2">+ Novi šablon</button>
       </div>
 
+      {/* Quick-Apply preset cards */}
+      <div className="dash-card p-4">
+        <div className="text-xs font-black text-neutral-400 uppercase tracking-wider mb-3">Brzo dodaj predefinisanu smenu</div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {QUICK_APPLY_PRESETS.map(p => {
+            const exists = existingNames.has(p.name);
+            return (
+              <button
+                key={p.name}
+                onClick={() => !exists && applyPreset(p)}
+                disabled={exists || applying === p.name}
+                className={[
+                  "relative flex flex-col items-start p-3 rounded-xl border text-left transition-all",
+                  exists
+                    ? "border-green-200 bg-green-50 cursor-default"
+                    : "border-neutral-200 bg-white hover:border-orange-300 hover:bg-orange-50/40 cursor-pointer",
+                  applying === p.name ? "opacity-60" : "",
+                ].join(" ")}>
+                <span className={`text-[10px] font-black uppercase tracking-wider mb-1 ${p.meta.type === "morning" ? "text-amber-500" : "text-indigo-500"}`}>
+                  {p.label}
+                </span>
+                <span className="text-xs font-bold text-neutral-800 leading-tight">{p.name}</span>
+                <span className="text-[11px] text-neutral-400 mt-0.5">{p.sublabel}</span>
+                {exists && (
+                  <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                    <svg width="8" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </span>
+                )}
+                {applying === p.name && <span className="text-[10px] text-orange-500 mt-1">Dodajem...</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Overlap warning */}
+      {overlapPairs.length > 0 && (
+        <div className="rounded-xl border border-amber-200 px-4 py-3 flex items-start gap-3"
+          style={{ background: "rgba(251,191,36,0.08)", backdropFilter: "blur(8px)" }}>
+          <svg className="flex-shrink-0 mt-0.5 text-amber-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <div>
+            <div className="text-xs font-bold text-amber-700">Vremensko preklapanje smena</div>
+            <div className="text-xs text-amber-600 mt-0.5">
+              {overlapPairs.map(([a, b]) => `"${a}" i "${b}"`).join(" · ")} — isti konobar ne može biti u obe smene.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Template list grouped by shift */}
       {templates.length === 0 ? (
         <div className="dash-card p-10 text-center text-neutral-400 text-sm">
-          Nema šablona — kreirajte prvi za ponavljajuće smene (npr. &quot;Petkom naveče&quot;)
+          Nema šablona — koristite brzo dodavanje iznad ili &quot;+ Novi šablon&quot;
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {templates.map(t => (
-            <div key={t.id} className="dash-card p-4 flex flex-col gap-3">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="font-bold text-neutral-900">{t.name}</div>
-                  <div className="text-xs text-neutral-500 mt-0.5">
-                    {DAYS_FULL_SR[t.dayOfWeek]} · {t.startTime}–{t.endTime}
-                  </div>
-                  <div className="flex gap-3 mt-1.5 text-xs text-neutral-400">
-                    <span>{t.requiredCount} {t.requiredCount === 1 ? "osoba" : "osobe"}</span>
-                    {t.role && <span>· {t.role}</span>}
-                    {t.pay != null && <span>· {t.pay.toLocaleString("sr-RS")} RSD</span>}
-                  </div>
-                </div>
-                <div className="flex gap-1.5 flex-shrink-0">
-                  <button onClick={() => setEditing(t)}
-                    className="text-xs text-neutral-400 hover:text-neutral-700 px-2 py-1 rounded-lg hover:bg-neutral-100 transition-colors">
-                    Uredi
-                  </button>
-                  <button onClick={() => handleDelete(t.id)} disabled={deleting === t.id}
-                    className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50">
-                    {deleting === t.id ? "..." : "Briši"}
-                  </button>
-                </div>
-              </div>
-              <button onClick={() => setGenerating(t)}
-                className="btn-dash-orange py-2 text-sm w-full">
-                Generiši smene
-              </button>
-            </div>
-          ))}
+        <div className="flex flex-col gap-5">
+          <GroupSection title="Smena 1 — Jutarnja" items={group1} color="text-amber-600" />
+          <GroupSection title="Smena 2 — Popodnevna" items={group2} color="text-indigo-600" />
+          <GroupSection title="Ostalo" items={groupOther} color="text-neutral-500" />
         </div>
       )}
     </>

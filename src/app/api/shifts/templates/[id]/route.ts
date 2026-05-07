@@ -18,13 +18,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json();
-  const { name, dayOfWeek, startTime, endTime, requiredCount, role, pay } = body;
+  const { name, dayOfWeek, weekdaysOnly, metadata, startTime, endTime, requiredCount, role, pay } = body;
 
   const template = await db.shiftTemplate.update({
     where: { id },
     data: {
       ...(name !== undefined && { name }),
-      ...(dayOfWeek !== undefined && { dayOfWeek: Number(dayOfWeek) }),
+      ...(weekdaysOnly !== undefined && { weekdaysOnly: Boolean(weekdaysOnly) }),
+      ...(dayOfWeek !== undefined && { dayOfWeek: dayOfWeek === null ? null : Number(dayOfWeek) }),
+      ...(metadata !== undefined && { metadata: metadata ?? null }),
       ...(startTime !== undefined && { startTime }),
       ...(endTime !== undefined && { endTime }),
       ...(requiredCount !== undefined && { requiredCount: Math.max(1, Number(requiredCount)) }),

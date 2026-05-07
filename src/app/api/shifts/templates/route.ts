@@ -25,13 +25,13 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { venueId, name, dayOfWeek, startTime, endTime, requiredCount, role, pay } = body;
+  const { venueId, name, dayOfWeek, weekdaysOnly, metadata, startTime, endTime, requiredCount, role, pay } = body;
 
-  if (!venueId || !name || dayOfWeek === undefined || !startTime || !endTime) {
+  if (!venueId || !name || !startTime || !endTime) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
-  if (dayOfWeek < 0 || dayOfWeek > 6) {
-    return NextResponse.json({ error: "dayOfWeek must be 0–6" }, { status: 400 });
+  if (!weekdaysOnly && (dayOfWeek === undefined || dayOfWeek < 0 || dayOfWeek > 6)) {
+    return NextResponse.json({ error: "dayOfWeek must be 0–6 when weekdaysOnly is false" }, { status: 400 });
   }
 
   const venue = await db.venue.findFirst({ where: { id: venueId, ownerId: session.user.id } });
@@ -41,7 +41,9 @@ export async function POST(req: NextRequest) {
     data: {
       venueId,
       name,
-      dayOfWeek: Number(dayOfWeek),
+      dayOfWeek: weekdaysOnly ? null : Number(dayOfWeek),
+      weekdaysOnly: Boolean(weekdaysOnly),
+      metadata: metadata ?? undefined,
       startTime,
       endTime,
       requiredCount: requiredCount ? Math.max(1, Number(requiredCount)) : 1,

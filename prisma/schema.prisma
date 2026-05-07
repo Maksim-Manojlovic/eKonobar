@@ -690,10 +690,12 @@ model ShiftTemplate {
   venue       Venue  @relation(fields: [venueId], references: [id])
 
   name          String
-  dayOfWeek     Int    // 0=Sunday … 6=Saturday
-  startTime     String // "18:00"
-  endTime       String // "02:00"
-  requiredCount Int    @default(1)
+  dayOfWeek     Int?           // 0=Sun…6=Sat; null when weekdaysOnly=true
+  weekdaysOnly  Boolean        @default(false)
+  metadata      Json?          // { type: "morning"|"evening", label: string, shift: "1"|"2" }
+  startTime     String
+  endTime       String
+  requiredCount Int            @default(1)
   role          String?
   pay           Int?
 

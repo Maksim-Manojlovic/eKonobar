@@ -34,13 +34,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Range max 90 days" }, { status: 400 });
   }
 
-  // Find dates in range matching template.dayOfWeek (0=Sun, 6=Sat)
+  // Find dates matching: weekdays Mon-Fri (1-5) when weekdaysOnly, else specific dayOfWeek
   const matchingDates: string[] = [];
   const cursor = new Date(from);
   while (cursor <= to) {
-    if (cursor.getDay() === template.dayOfWeek) {
-      matchingDates.push(cursor.toISOString().slice(0, 10));
-    }
+    const dow = cursor.getDay();
+    const matches = template.weekdaysOnly
+      ? dow >= 1 && dow <= 5
+      : dow === template.dayOfWeek;
+    if (matches) matchingDates.push(cursor.toISOString().slice(0, 10));
     cursor.setDate(cursor.getDate() + 1);
   }
 
