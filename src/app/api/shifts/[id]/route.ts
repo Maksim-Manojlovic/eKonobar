@@ -3,22 +3,16 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { computeScheduledStart } from "@/lib/shift-utils";
-
-async function getOwnedShift(id: string, ownerId: string) {
-  return db.shift.findFirst({
-    where: { id, venue: { ownerId } },
-    include: { assignments: { select: { waiterId: true } } },
-  });
-}
+import { getManagedShift } from "@/lib/shift-auth";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "VENUE_OWNER") {
+  if (!session || (session.user.role !== "VENUE_OWNER" && session.user.role !== "WAITER")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { id } = await params;
-  const existing = await getOwnedShift(id, session.user.id);
+  const existing = await getManagedShift(id, session.user.id, session.user.role);
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json();
@@ -89,12 +83,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "VENUE_OWNER") {
+  if (!session || (session.user.role !== "VENUE_OWNER" && session.user.role !== "WAITER")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { id } = await params;
-  const existing = await getOwnedShift(id, session.user.id);
+  const existing = await getManagedShift(id, session.user.id, session.user.role);
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   try {

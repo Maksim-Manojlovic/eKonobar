@@ -161,7 +161,8 @@ model User {
   // Relacije
   accounts          Account[]
   sessions          Session[]
-  venues            Venue[]
+  venues            Venue[]             @relation("VenueOwner")
+  headWaiterVenues  Venue[]             @relation("VenueHeadWaiter")
   jobPosts          JobPost[]
   applications      JobApplication[]
   reviewsGiven      Review[]            @relation("ReviewAuthor")
@@ -224,7 +225,10 @@ model VerificationToken {
 model Venue {
   id          String    @id @default(cuid())
   ownerId     String
-  owner       User      @relation(fields: [ownerId], references: [id])
+  owner       User      @relation("VenueOwner", fields: [ownerId], references: [id])
+
+  headWaiterId String?
+  headWaiter   User?   @relation("VenueHeadWaiter", fields: [headWaiterId], references: [id])
 
   name        String
   description String?   @db.Text

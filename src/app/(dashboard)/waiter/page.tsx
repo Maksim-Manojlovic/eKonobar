@@ -7,7 +7,7 @@ import Link from "next/link";
 import ImageUpload from "@/components/ui/ImageUpload";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 
-type Section = "overview" | "alerts" | "jobs" | "applications" | "shifts" | "invites" | "reviews" | "passport";
+type Section = "overview" | "alerts" | "jobs" | "applications" | "shifts" | "invites" | "reviews" | "passport" | "manage";
 type AppFilter = "all" | "accepted" | "pending" | "rejected";
 
 type ShiftAssignment = {
@@ -64,6 +64,40 @@ type SwapRequest = {
     venue: { id: string; name: string; address: string; municipality: string };
   };
   fromAssignment: { waiter: { id: string; name: string | null } };
+};
+
+type ManagedShiftAssignment = {
+  id: string;
+  waiterId: string;
+  clockInAt: string | null;
+  clockOutAt: string | null;
+  clockInMethod: string | null;
+  lateMinutes: number | null;
+  waiter: { id: string; name: string | null };
+};
+
+type ManagedSwapRequest = {
+  id: string;
+  status: string;
+  requestedAt: string;
+  fromAssignment: { id: string; waiter: { id: string; name: string | null } };
+  toWaiter: { id: string; name: string | null };
+};
+
+type ManagedShift = {
+  id: string;
+  title: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  requiredCount: number;
+  pay: number | null;
+  tipEstimate: number | null;
+  briefingNote: string | null;
+  status: string;
+  swapLocked: boolean;
+  assignments: ManagedShiftAssignment[];
+  swapRequests: ManagedSwapRequest[];
 };
 
 const DAYS_SR   = ["Pon", "Uto", "Sre", "Čet", "Pet", "Sub", "Ned"];
@@ -1000,6 +1034,201 @@ const DIRECTION_LABELS: Record<string, string> = {
   GUEST_TO_WAITER: "Gost",
 };
 
+/* ── Head Waiter Shift Management Section ────────────────────────────────── */
+
+function HeadWaiterSmeneSection({ venue, shifts, loading, onRefresh }: {
+  venue: { id: string; name: string };
+  shifts: ManagedShift[];
+  loading: boolean;
+  onRefresh: () => void;
+}) {
+  const [creating, setCreating]   = useState(false);
+  const [swapActing, setSwapActing] = useState<string | null>(null);
+  const [form, setForm]           = useState({ title: "", date: "", startTime: "18:00", endTime: "02:00", requiredCount: "1", pay: "", tipEstimate: "" });
+  const [saving, setSaving]       = useState(false);
+  const [formError, setFormError] = useState("");
+
+  const now = new Date();
+  const upcoming = shifts
+    .filter(s => new Date(s.date) >= new Date(now.getFullYear(), now.getMonth(), now.getDate()))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 20);
+
+  const pendingSwaps = shifts.flatMap(s => s.swapRequests ?? []);
+
+  const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
+
+  async function handleSwapAction(swapId: string, action: "ACCEPTED" | "REJECTED") {
+    setSwapActing(swapId);
+    await fetch(`/api/shifts/swaps/${swapId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    setSwapActing(null);
+    onRefresh();
+  }
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError("");
+    setSaving(true);
+    const res = await fetch("/api/shifts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        venueId:      venue.id,
+        title:        form.title,
+        date:         form.date,
+        startTime:    form.startTime,
+        endTime:      form.endTime,
+        requiredCount: Number(form.requiredCount) || 1,
+        pay:          form.pay ? Number(form.pay) : undefined,
+        tipEstimate:  form.tipEstimate ? Number(form.tipEstimate) : undefined,
+      }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setFormError((d as { error?: string }).error ?? "Greška.");
+      return;
+    }
+    setCreating(false);
+    setForm({ title: "", date: "", startTime: "18:00", endTime: "02:00", requiredCount: "1", pay: "", tipEstimate: "" });
+    onRefresh();
+  }
+
+  if (loading) return <div className="flex items-center justify-center py-20 text-neutral-400 text-sm">Učitavanje…</div>;
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-xs font-semibold text-orange-500 uppercase tracking-wide mb-0.5">Šef konobara</div>
+          <div className="text-lg font-black text-neutral-900">{venue.name}</div>
+        </div>
+        <button
+          onClick={() => setCreating(true)}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 transition-colors">
+          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Nova smena
+        </button>
+      </div>
+
+      {/* Create form */}
+      {creating && (
+        <div className="dash-card p-5 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <span className="font-black text-neutral-900">Nova smena</span>
+            <button onClick={() => setCreating(false)} className="text-neutral-400 hover:text-neutral-600 text-lg">✕</button>
+          </div>
+          <form onSubmit={handleCreate} className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <label className="text-xs font-semibold text-neutral-600 mb-1 block">Naziv *</label>
+              <input required value={form.title} onChange={e => set("title", e.target.value)} placeholder="npr. Večernja smena" className="auth-input" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-neutral-600 mb-1 block">Datum *</label>
+              <input type="date" required value={form.date} onChange={e => set("date", e.target.value)} className="auth-input" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-neutral-600 mb-1 block">Broj mesta</label>
+              <input type="number" min="1" value={form.requiredCount} onChange={e => set("requiredCount", e.target.value)} className="auth-input" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-neutral-600 mb-1 block">Početak</label>
+              <input type="time" value={form.startTime} onChange={e => set("startTime", e.target.value)} className="auth-input" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-neutral-600 mb-1 block">Kraj</label>
+              <input type="time" value={form.endTime} onChange={e => set("endTime", e.target.value)} className="auth-input" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-neutral-600 mb-1 block">Plata (RSD)</label>
+              <input type="number" value={form.pay} onChange={e => set("pay", e.target.value)} placeholder="po dogovoru" className="auth-input" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-neutral-600 mb-1 block">Bakšiš procena (RSD)</label>
+              <input type="number" value={form.tipEstimate} onChange={e => set("tipEstimate", e.target.value)} placeholder="opciono" className="auth-input" />
+            </div>
+            {formError && <div className="col-span-2 text-xs text-red-500">{formError}</div>}
+            <div className="col-span-2 flex gap-2 justify-end">
+              <button type="button" onClick={() => setCreating(false)} className="px-4 py-2 text-sm font-semibold text-neutral-500 hover:text-neutral-700">Otkaži</button>
+              <button type="submit" disabled={saving} className="px-5 py-2 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 disabled:opacity-50">
+                {saving ? "Čuvanje…" : "Sačuvaj"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Pending swaps */}
+      {pendingSwaps.length > 0 && (
+        <div className="dash-card p-4 flex flex-col gap-3">
+          <div className="text-sm font-black text-neutral-900">Zahtevi za zamenu ({pendingSwaps.length})</div>
+          {pendingSwaps.map(sw => (
+            <div key={sw.id} className="flex items-center gap-3 py-2 border-t border-neutral-50">
+              <div className="flex-1 min-w-0 text-xs text-neutral-700">
+                <span className="font-semibold">{sw.fromAssignment.waiter.name ?? "?"}</span>
+                {" → "}
+                <span className="font-semibold">{sw.toWaiter.name ?? "?"}</span>
+              </div>
+              <button
+                onClick={() => handleSwapAction(sw.id, "ACCEPTED")}
+                disabled={swapActing === sw.id}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50">
+                Odobri
+              </button>
+              <button
+                onClick={() => handleSwapAction(sw.id, "REJECTED")}
+                disabled={swapActing === sw.id}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50">
+                Odbij
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Upcoming shifts */}
+      <div className="dash-card overflow-hidden">
+        <div className="px-4 py-3 border-b border-neutral-100 text-sm font-black text-neutral-900">
+          Nadolazeće smene ({upcoming.length})
+        </div>
+        {upcoming.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm text-neutral-400">Nema nadolazećih smena</div>
+        ) : (
+          <div className="divide-y divide-neutral-50">
+            {upcoming.map(s => {
+              const d = new Date(s.date);
+              return (
+                <div key={s.id} className="px-4 py-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-neutral-100 flex flex-col items-center justify-center flex-shrink-0">
+                    <span className="text-[10px] font-bold text-neutral-500">{DAYS_SR[(d.getDay() + 6) % 7]}</span>
+                    <span className="text-sm font-black text-neutral-900">{d.getDate()}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-neutral-900 truncate">{s.title}</div>
+                    <div className="text-xs text-neutral-400">{s.startTime}–{s.endTime} · {s.assignments.length}/{s.requiredCount} konobara</div>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    s.status === "OPEN" ? "bg-blue-50 text-blue-600" :
+                    s.status === "ASSIGNED" ? "bg-green-50 text-green-700" :
+                    s.status === "PENDING_SWAP" ? "bg-yellow-50 text-yellow-700" :
+                    "bg-neutral-100 text-neutral-500"
+                  }`}>{s.status === "OPEN" ? "Otvorena" : s.status === "ASSIGNED" ? "Popunjena" : s.status === "PENDING_SWAP" ? "Zamena" : s.status}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ReviewsSection() {
   const { data: session } = useSession();
   const [reviews, setReviews]   = useState<WaiterReview[]>([]);
@@ -1542,7 +1771,7 @@ const NAV_ITEMS: { key: Section; label: string; icon: React.ReactNode }[] = [
 const SECTION_TITLES: Record<Section, string> = {
   overview: "Pregled", alerts: "Red Alert", jobs: "Dostupni poslovi",
   applications: "Moje prijave", shifts: "Smene", invites: "Pozivnice",
-  reviews: "Recenzije", passport: "Waiter Passport™",
+  reviews: "Recenzije", passport: "Waiter Passport™", manage: "Šef konobara",
 };
 
 /* ── Main dashboard ──────────────────────────────────────────────────────── */
@@ -1558,21 +1787,28 @@ export default function WaiterDashboard() {
   const [invites, setInvites]           = useState<InviteItem[]>([]);
   const [passport, setPassport]         = useState<PassportData | null>(null);
   const [mobileOpen, setMobileOpen]     = useState(false);
+  const [managedVenue, setManagedVenue] = useState<{ id: string; name: string } | null>(null);
+  const [managedShifts, setManagedShifts] = useState<ManagedShift[]>([]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [jobsRes, appsRes, shiftsRes, invitesRes, passportRes] = await Promise.all([
+    const [jobsRes, appsRes, shiftsRes, invitesRes, passportRes, manageRes] = await Promise.all([
       fetch("/api/jobs"),
       fetch("/api/jobs/applications"),
       fetch("/api/shifts"),
       fetch("/api/invites"),
       fetch("/api/passport"),
+      fetch("/api/shifts?view=manage"),
     ]);
     if (jobsRes.ok)     setJobs(await jobsRes.json());
     if (appsRes.ok)     setApplications(await appsRes.json());
     if (shiftsRes.ok)   setShifts(await shiftsRes.json());
     if (invitesRes.ok)  setInvites(await invitesRes.json());
     if (passportRes.ok) { const p = await passportRes.json(); if (p?.id) setPassport(p); }
+    if (manageRes.ok) {
+      const m = await manageRes.json();
+      if (m?.venue) { setManagedVenue(m.venue); setManagedShifts(m.shifts ?? []); }
+    }
     setLoading(false);
   }, []);
 
@@ -1621,6 +1857,18 @@ export default function WaiterDashboard() {
             )}
           </button>
         ))}
+        {managedVenue && (
+          <button
+            onClick={() => { setSection("manage"); closeMenu?.(); }}
+            className={`nav-item ${section === "manage" ? "active" : ""}`}>
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            Šef konobara
+            <span className="ml-auto text-[9px] bg-orange-100 text-orange-600 font-bold px-1.5 py-0.5 rounded-full">ŠEFOV</span>
+          </button>
+        )}
       </nav>
       <div className="px-3 py-4 border-t border-neutral-100">
         <div className="flex items-center gap-3 px-2 mb-3">
@@ -1708,6 +1956,7 @@ export default function WaiterDashboard() {
           {section === "invites"      && <InvitesSection invites={invites} loading={loading} onRespond={handleInviteRespond} />}
           {section === "reviews"      && <ReviewsSection />}
           {section === "passport"     && <PassportSection userName={userName} />}
+          {section === "manage"       && managedVenue && <HeadWaiterSmeneSection venue={managedVenue} shifts={managedShifts} loading={loading} onRefresh={fetchData} />}
         </div>
       </main>
     </div>

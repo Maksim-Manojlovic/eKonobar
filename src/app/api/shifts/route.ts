@@ -42,6 +42,30 @@ export async function GET(req: NextRequest) {
     }
 
     if (session.user.role === "WAITER") {
+      if (view === "manage") {
+        const managedVenue = await db.venue.findFirst({
+          where: { headWaiterId: session.user.id },
+          select: { id: true, name: true },
+        });
+        if (!managedVenue) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+        const shifts = await db.shift.findMany({
+          where: { venueId: managedVenue.id },
+          include: {
+            assignments: { include: { waiter: { select: { id: true, name: true } } } },
+            swapRequests: {
+              where: { status: "PENDING" },
+              include: {
+                fromAssignment: { include: { waiter: { select: { id: true, name: true } } } },
+                toWaiter: { select: { id: true, name: true } },
+              },
+            },
+          },
+          orderBy: [{ date: "asc" }, { startTime: "asc" }],
+        });
+        return NextResponse.json({ venue: managedVenue, shifts });
+      }
+
       if (view === "open") {
         const shifts = await db.shift.findMany({
           where: { status: "OPEN" },
@@ -95,7 +119,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "VENUE_OWNER") {
+  if (!session || (session.user.role !== "VENUE_OWNER" && session.user.role !== "WAITER")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -110,7 +134,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  const venue = await db.venue.findFirst({ where: { id: venueId, ownerId: session.user.id } });
+  const venueFilter = session.user.role === "VENUE_OWNER"
+    ? { id: venueId, ownerId: session.user.id }
+    : { id: venueId, headWaiterId: session.user.id };
+
+  const venue = await db.venue.findFirst({ where: venueFilter });
   if (!venue) return NextResponse.json({ error: "Venue not found" }, { status: 404 });
 
   const ids: string[] = Array.isArray(waiterIds) ? waiterIds : [];

@@ -13,6 +13,7 @@ export async function GET() {
       include: {
         _count: { select: { jobPosts: true } },
         venueTrustScore: true,
+        headWaiter: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: "desc" },
     });

@@ -5,12 +5,16 @@ import { db } from "@/lib/db";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "VENUE_OWNER") {
+  if (!session || (session.user.role !== "VENUE_OWNER" && session.user.role !== "WAITER")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const venueFilter = session.user.role === "VENUE_OWNER"
+    ? { venue: { ownerId: session.user.id } }
+    : { venue: { headWaiterId: session.user.id } };
+
   const templates = await db.shiftTemplate.findMany({
-    where: { venue: { ownerId: session.user.id } },
+    where: venueFilter,
     include: { venue: { select: { id: true, name: true } } },
     orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
   });
@@ -20,7 +24,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "VENUE_OWNER") {
+  if (!session || (session.user.role !== "VENUE_OWNER" && session.user.role !== "WAITER")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -34,7 +38,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "dayOfWeek must be 0–6 when weekdaysOnly is false" }, { status: 400 });
   }
 
-  const venue = await db.venue.findFirst({ where: { id: venueId, ownerId: session.user.id } });
+  const venueFilter = session.user.role === "VENUE_OWNER"
+    ? { id: venueId, ownerId: session.user.id }
+    : { id: venueId, headWaiterId: session.user.id };
+
+  const venue = await db.venue.findFirst({ where: venueFilter });
   if (!venue) return NextResponse.json({ error: "Venue not found" }, { status: 404 });
 
   const template = await db.shiftTemplate.create({

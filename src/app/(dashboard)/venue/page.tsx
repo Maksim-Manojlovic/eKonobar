@@ -86,6 +86,8 @@ type Venue = {
   priceRangeMin: number | null;
   priceRangeMax: number | null;
   images: string[];
+  headWaiterId: string | null;
+  headWaiter: { id: string; name: string | null } | null;
   _count: { jobPosts: number };
   venueTrustScore: {
     atmosphere: number; organization: number; pay: number;
@@ -2095,6 +2097,83 @@ function StaffingBar({ filled, required }: { filled: number; required: number })
   );
 }
 
+/* ── Head Waiter Panel ───────────────────────────────────────────────────── */
+
+function HeadWaiterPanel({ venue, waiters, onRefresh }: {
+  venue: Venue;
+  waiters: { id: string; name: string | null }[];
+  onRefresh: () => void;
+}) {
+  const [busy, setBusy]           = useState(false);
+  const [selectId, setSelectId]   = useState("");
+
+  async function appoint() {
+    if (!selectId) return;
+    setBusy(true);
+    await fetch(`/api/venues/${venue.id}/head-waiter`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ waiterId: selectId }),
+    });
+    setBusy(false);
+    setSelectId("");
+    onRefresh();
+  }
+
+  async function remove() {
+    setBusy(true);
+    await fetch(`/api/venues/${venue.id}/head-waiter`, { method: "DELETE" });
+    setBusy(false);
+    onRefresh();
+  }
+
+  return (
+    <div className="dash-card p-4 flex items-center gap-4 flex-wrap">
+      <div className="flex-1 min-w-0">
+        <div className="text-xs font-semibold text-neutral-500 mb-0.5">Šef konobara</div>
+        {venue.headWaiter ? (
+          <div className="flex items-center gap-2">
+            <span className="w-7 h-7 rounded-full bg-orange-100 text-orange-700 text-xs font-black flex items-center justify-center">
+              {(venue.headWaiter.name ?? "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}
+            </span>
+            <span className="text-sm font-bold text-neutral-900">{venue.headWaiter.name ?? "—"}</span>
+            <span className="text-[10px] bg-orange-50 text-orange-600 font-semibold px-2 py-0.5 rounded-full">Aktivan</span>
+          </div>
+        ) : (
+          <div className="text-sm text-neutral-400">Nije postavljen</div>
+        )}
+      </div>
+
+      {venue.headWaiter ? (
+        <button
+          onClick={remove}
+          disabled={busy}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 border border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50">
+          Ukloni
+        </button>
+      ) : (
+        <div className="flex items-center gap-2">
+          <select
+            value={selectId}
+            onChange={e => setSelectId(e.target.value)}
+            className="auth-input py-1.5 text-xs w-44">
+            <option value="">Izaberi konobara…</option>
+            {waiters.map(w => (
+              <option key={w.id} value={w.id}>{w.name ?? w.id}</option>
+            ))}
+          </select>
+          <button
+            onClick={appoint}
+            disabled={!selectId || busy}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-40">
+            Postavi
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Section: Smene (venue) ──────────────────────────────────────────────── */
 
 function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh }: {
@@ -2163,6 +2242,8 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
           onClose={() => { setCreating(null); setEditing(null); }}
         />
       )}
+
+      <HeadWaiterPanel venue={venue} waiters={acceptedWaiters} onRefresh={onRefresh} />
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1 bg-neutral-100 rounded-xl p-1">

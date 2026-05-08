@@ -4,10 +4,10 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notify } from "@/lib/notify";
 
-// PATCH — owner approves or rejects a swap request
+// PATCH — owner or head waiter approves or rejects a swap request
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ swapId: string }> }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "VENUE_OWNER") {
+  if (!session || (session.user.role !== "VENUE_OWNER" && session.user.role !== "WAITER")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -21,13 +21,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sw
   const swapReq = await db.shiftSwapRequest.findUnique({
     where: { id: swapId },
     include: {
-      shift: { include: { venue: { select: { ownerId: true } }, assignments: { select: { waiterId: true } } } },
+      shift: { include: { venue: { select: { ownerId: true, headWaiterId: true } }, assignments: { select: { waiterId: true } } } },
       fromAssignment: { select: { id: true, waiterId: true } },
     },
   });
 
   if (!swapReq) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (swapReq.shift.venue.ownerId !== session.user.id) {
+
+  const venue = swapReq.shift.venue;
+  const canManage =
+    (session.user.role === "VENUE_OWNER" && venue.ownerId === session.user.id) ||
+    (session.user.role === "WAITER" && venue.headWaiterId === session.user.id);
+  if (!canManage) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   if (swapReq.status !== "PENDING") {

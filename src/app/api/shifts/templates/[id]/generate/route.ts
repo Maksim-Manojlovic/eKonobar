@@ -6,7 +6,7 @@ import { computeScheduledStart } from "@/lib/shift-utils";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "VENUE_OWNER") {
+  if (!session || (session.user.role !== "VENUE_OWNER" && session.user.role !== "WAITER")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -18,8 +18,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "fromDate and toDate required" }, { status: 400 });
   }
 
+  const venueFilter = session.user.role === "VENUE_OWNER"
+    ? { venue: { ownerId: session.user.id } }
+    : { venue: { headWaiterId: session.user.id } };
+
   const template = await db.shiftTemplate.findFirst({
-    where: { id, venue: { ownerId: session.user.id } },
+    where: { id, ...venueFilter },
   });
   if (!template) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
