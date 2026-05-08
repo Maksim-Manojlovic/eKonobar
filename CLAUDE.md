@@ -144,6 +144,33 @@ Providers are no-ops when env vars are missing — safe in development.
 
 `NotificationType` enum values: `APPLICATION_RECEIVED`, `APPLICATION_STATUS_CHANGED`, `SWAP_REQUESTED`, `SWAP_RESOLVED`, `SHIFT_CLAIMED`, `SHIFT_ASSIGNED`, `REVIEW_PUBLISHED`.
 
+### NotificationBell
+
+`components/ui/NotificationBell.tsx` — bell icon + dropdown/sheet UI. Props:
+
+```typescript
+<NotificationBell
+  dashboardPath="/venue"          // fallback nav when onViewAll is not provided
+  onViewAll={() => setSection("notifications")}   // switch to in-page section
+  onUnreadChange={(count) => setNotifUnread(count)} // sync nav badge count
+/>
+```
+
+- Desktop: `w-80` absolute dropdown (max-h 480px)
+- Mobile: `fixed inset-0` bottom sheet with `sheet-up` animation, `82dvh` max-height, safe-area-inset-bottom footer padding, body scroll lock while open
+- Polls every 30s; marks all read on open if unread > 0
+- Exports `NotificationItem` type, `TYPE_ICONS` map, and `timeAgo()` helper — imported by `NotificationsSection`
+
+### NotificationsSection
+
+`components/ui/NotificationsSection.tsx` — full-page notification feed. Renders inside the dashboard when `section === "notifications"`:
+
+- Filter chips: Sve / Prijave / Smene / Zamene / Recenzije (maps to `NotificationType` subsets)
+- Notifications grouped by day: "Danas" / "Juče" / weekday + date (Serbian locale)
+- Click any row → marks as read + navigates to `n.link`
+- "Označi sve pročitanim" button when unread > 0
+- Per-item read via `PATCH /api/notifications { ids: [id] }` (optimistic UI, then confirm)
+
 ### Shift utilities
 
 Use `lib/shift-utils.ts` for DateTime computation — never manually concatenate date + time strings:
@@ -168,6 +195,26 @@ When `template.weekdaysOnly === true`, generation loops Mon–Fri (days 1–5) a
 `POST /api/reviews/guest` accepts unauthenticated submissions. `Review.authorId` is nullable — null means guest. Display as "Gost" in UI. `guestHandle` is an optional display name (max 50 chars). The route is rate-limited by IP and geofenced server-side.
 
 The public venue info endpoint `GET /api/venues/[id]/public` returns venue + accepted waiters list — no auth required.
+
+### Dark dashboard theme
+
+Both venue-owner (`src/app/(dashboard)/venue/page.tsx`) and waiter (`src/app/(dashboard)/waiter/page.tsx`) dashboards share a dark visual theme:
+
+- **Background:** `#120a00` with an orange-brown grid via `background-image: linear-gradient(...)` inline style on the outer div
+- **Mouse spotlight:** `useRef<HTMLDivElement>(null)` pointing at a `position: fixed; inset: 0; z-index: 1; pointer-events: none` div. `onMouseMove` on the outer div updates its `style.background` directly (no state, no re-renders):
+  ```typescript
+  spotlightRef.current.style.background =
+    `radial-gradient(600px circle at ${x}px ${y}px, rgba(249,115,22,0.07), transparent 70%)`;
+  ```
+- **Sidebar / mobile drawer:** `#0e0700` + same grid, `border-white/10`. Apply `dark-sidebar` class to the `<aside>` element — this enables the CSS overrides for `.nav-item` without affecting light-mode pages.
+- **`.dark-sidebar` CSS class** (in `globals.css`):
+  ```css
+  .dark-sidebar .nav-item              { color: rgba(255,255,255,0.55); }
+  .dark-sidebar .nav-item:hover        { background: rgba(249,115,22,0.12); color: #fb923c; }
+  .dark-sidebar .nav-item.active       { background: rgba(249,115,22,0.20); color: #fb923c; }
+  ```
+- **z-index layering:** spotlight at `z-1` (fixed), sidebar + main content at `z-2` (relative) so spotlight renders behind interactive elements.
+- **Headings on dark background:** use `text-white`. Headings inside white `dash-card`s stay `text-neutral-900`.
 
 ### Prisma client caching (dev)
 

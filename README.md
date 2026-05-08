@@ -164,7 +164,7 @@ src/
     map/               # MapSearch, RedAlertPulse marker
     admin/             # ZoneRow, ZoneForm
     layout/            # DashboardShell, RoleGuard, Navbar
-    ui/                # Radix-based primitives, ImageUpload, NotificationBell
+    ui/                # Radix-based primitives, ImageUpload, NotificationBell, NotificationsSection
   lib/
     auth.ts            # NextAuth config
     db.ts              # Prisma client (soft-delete filtered) + dbRaw
@@ -212,7 +212,8 @@ prisma/
 - **Headhunter Tools** — Save waiter profiles with notes; enriched passport data returned
 - **Zone Analytics** — Admin-managed map zones (FESTIVAL_ZONE, TRANSIT_HUB, DEVELOPMENT, …) with projected growth %. Venue zone insights cached as JSON on the Venue model
 - **Market Insights** — Aggregate stats: open positions, red alert count, average salary range, top municipalities
-- **3-Layer Notifications** — In-app bell (30s polling + Web Push), WhatsApp Business API (opt-in), Infobip SMS (opt-in)
+- **Dark Dashboard Theme** — Both venue-owner and waiter dashboards use a deep `#120a00` background with an orange-brown grid overlay and a mouse-following radial spotlight rendered via `useRef` (no re-renders). Sidebar and mobile drawer match (`#0e0700` + grid). The `.dark-sidebar` CSS class overrides `.nav-item` colors without touching light-mode pages
+- **3-Layer Notifications** — In-app bell with desktop dropdown + mobile bottom sheet (30s polling + Web Push), WhatsApp Business API (opt-in), Infobip SMS (opt-in). Full notifications page with day-grouped feed and type filter chips (`NotificationsSection`)
 - **Admin Moderation** — Disputed review queue with publish/remove actions; GDPR hard-delete for venues
 - **Image Uploads** — Waiter avatars (400×400 face-crop) and venue photos (up to 8, 1200×800 fill); all on Cloudinary
 
