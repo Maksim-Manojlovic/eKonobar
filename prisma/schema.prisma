@@ -108,6 +108,7 @@ enum ShiftStatus {
 
 enum ClockInMethod {
   GPS
+  GPS_GRACE
   QR
   MANUAL
 }
@@ -120,13 +121,15 @@ enum SwapRequestStatus {
 }
 
 enum NotificationType {
-  APPLICATION_RECEIVED        // waiter applied → venue owner
-  APPLICATION_STATUS_CHANGED  // status updated → waiter
-  SWAP_REQUESTED              // swap created → target waiter + venue owner
-  SWAP_RESOLVED               // swap accepted/rejected → both waiters
-  SHIFT_CLAIMED               // waiter claimed open shift → venue owner
-  SHIFT_ASSIGNED              // owner assigned waiter → waiter
-  REVIEW_PUBLISHED            // review went live → subject
+  APPLICATION_RECEIVED           // waiter applied → venue owner
+  APPLICATION_STATUS_CHANGED     // status updated → waiter
+  SWAP_REQUESTED                 // swap created → target waiter + venue owner
+  SWAP_RESOLVED                  // swap accepted/rejected → both waiters
+  SHIFT_CLAIMED                  // waiter claimed open shift → venue owner
+  SHIFT_ASSIGNED                 // owner assigned waiter → waiter
+  REVIEW_PUBLISHED               // review went live → subject
+  CLOCKIN_APPROVAL_REQUESTED     // waiter outside geofence → venue owner
+  CLOCKIN_RESOLVED               // owner approved/rejected clock-in → waiter
 }
 
 // ─── User ─────────────────────────────────────────────────────────────────────
@@ -675,9 +678,10 @@ model ShiftAssignment {
   clockInMethod ClockInMethod?
   clockInLat    Float?
   clockInLng    Float?
-  earlyExitAt   DateTime?
-  lateMinutes   Int?       // actual - scheduled start in minutes
-  cancelledLate Boolean    @default(false)
+  earlyExitAt    DateTime?
+  lateMinutes    Int?       // actual - scheduled start in minutes
+  cancelledLate  Boolean    @default(false)
+  pendingClockIn Boolean    @default(false) // awaiting manager approval (GPS outside geofence)
 
   createdAt DateTime @default(now())
 

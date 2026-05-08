@@ -142,7 +142,7 @@ notify(userId, "APPLICATION_RECEIVED", "Nova prijava", "Marko se prijavio...", "
 
 Providers are no-ops when env vars are missing — safe in development.
 
-`NotificationType` enum values: `APPLICATION_RECEIVED`, `APPLICATION_STATUS_CHANGED`, `SWAP_REQUESTED`, `SWAP_RESOLVED`, `SHIFT_CLAIMED`, `SHIFT_ASSIGNED`, `REVIEW_PUBLISHED`.
+`NotificationType` enum values: `APPLICATION_RECEIVED`, `APPLICATION_STATUS_CHANGED`, `SWAP_REQUESTED`, `SWAP_RESOLVED`, `SHIFT_CLAIMED`, `SHIFT_ASSIGNED`, `REVIEW_PUBLISHED`, `CLOCKIN_APPROVAL_REQUESTED`, `CLOCKIN_RESOLVED`.
 
 ### NotificationBell
 
@@ -233,7 +233,7 @@ The Prisma client is cached on `globalThis._prisma`. After every `db:push` that 
 - `Invite` — venue invite code for GOLD verification
 - `RateLimit` — DB-backed rate limit counters (userId + action + hourly window)
 - `Shift` — a scheduled shift. Has `scheduledStart DateTime?`, `status ShiftStatus`, `requiredCount`, `templateId?`, `swapLocked`, `briefingNote`, `tipEstimate`.
-- `ShiftAssignment` — explicit waiter-to-shift assignment (replaced implicit M2M). Has clock-in fields: `clockInAt`, `clockOutAt`, `clockInMethod`, `clockInLat`, `clockInLng`, `lateMinutes`, `earlyExitAt`.
+- `ShiftAssignment` — explicit waiter-to-shift assignment (replaced implicit M2M). Has clock-in fields: `clockInAt`, `clockOutAt`, `clockInMethod` (GPS | GPS_GRACE | QR | MANUAL), `clockInLat`, `clockInLng`, `lateMinutes`, `earlyExitAt`, `pendingClockIn` (awaiting manager approval).
 - `ShiftSwapRequest` — swap request between two waiters. Status: `PENDING → ACCEPTED | REJECTED | CANCELLED`.
 - `ShiftTemplate` — recurring shift pattern. Has `dayOfWeek Int?` (null when `weekdaysOnly=true`), `weekdaysOnly Boolean`, `metadata Json?` (`{ type, label, shift }`). Used for bulk generation.
 - `Notification` — in-app notification record. Has `type NotificationType`, `title`, `body`, `link`, `read`, `pushSent`, `waSent`, `smsSent`.
@@ -297,11 +297,28 @@ Any other transition returns 400.
 
 ```
 POST /api/shifts/[id]/clockin
-  Body: { method: "GPS" | "QR" | "MANUAL", latitude?, longitude? }
+  Body: { method: "GPS" | "QR", latitude?, longitude? }
   Window: scheduledStart - 15min to scheduledStart + 60min
-  GPS: isInsideVenueRadius at 50m (radiusOverrideKm: 0.05)
-  → records clockInAt, clockInMethod, lateMinutes on ShiftAssignment
+
+  GPS distance logic (three tiers):
+    < 50m              → clockInMethod: GPS, auto-approved
+    50–150m            → clockInMethod: GPS_GRACE, auto-approved silently
+    > 150m or no GPS   → pendingClockIn: true, notifies venue owner
+                          returns { pending: true } with HTTP 202
+
+  → records clockInAt, clockInMethod, lateMinutes on ShiftAssignment (if approved)
+  → sets pendingClockIn = true if outside grace zone (awaits manager approval)
+
+PATCH /api/shifts/assignments/[id]/approve-clockin
+  VENUE_OWNER only (must own the shift venue).
+  Body: { action: "approve" | "reject" }
+  approve → clockInAt = now, clockInMethod = MANUAL, pendingClockIn = false, notifies waiter
+  reject  → pendingClockIn = false, notifies waiter
 ```
+
+**Waiter UI:** `ClockInButton` shows amber "Čekamo odobrenje..." pill when `pendingClockIn`. No auto-MANUAL fallback — GPS failure triggers pending approval instead.
+
+**Venue UI:** `PendingClockInRow` renders on shift cards for assignments with `pendingClockIn = true`. One-tap Odobri/Odbij buttons call the approve-clockin route and refresh.
 
 ### Clock-out flow
 

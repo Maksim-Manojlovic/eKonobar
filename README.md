@@ -134,8 +134,10 @@ src/
       upload/                # POST — Cloudinary image upload (avatar, venue-photo)
       invites/               # Job invites: send (owner), respond (waiter)
       shifts/                # Shift scheduling, marketplace, templates
-        [id]/clockin/        # POST — clock-in (GPS | QR | MANUAL)
+        [id]/clockin/        # POST — clock-in (GPS 3-tier: auto / grace / pending approval)
         [id]/clockout/       # POST — clock-out with early-exit detection
+        assignments/
+          [id]/approve-clockin/ # PATCH — venue owner approves/rejects pending clock-in
         [id]/claim/          # POST — marketplace claim (WAITER)
         [id]/swap/           # POST — initiate swap request
         swaps/[swapId]/      # PATCH — owner approves/rejects swap
@@ -203,7 +205,7 @@ prisma/
 - **Job Posts** — Venue owners post shifts with mandatory transparency fields (tip system, sanitary requirement, engagement type)
 - **Red Alert** — Urgent shifts pulse on the map with a highlighted marker; indexed for fast queries
 - **Geofenced Guest Reviews** — Guests can only review a waiter within 150m of the venue; no auth required
-- **Shift Scheduling** — Full shift lifecycle: create → marketplace claim → GPS/QR/manual clock-in → clock-out with early-exit detection → swap requests with owner approval
+- **Shift Scheduling** — Full shift lifecycle: create → marketplace claim → GPS clock-in with 3-tier geofence (50m auto, 50–150m grace, >150m manager approval) → clock-out with early-exit detection → swap requests with owner approval
 - **Shift Templates** — Recurring shift patterns with bulk generation (up to 90 days). Supports specific day-of-week or weekdays-only mode
 - **Verification Tiers** — UNVERIFIED → SILVER (employment contract) → GOLD (venue invite code) → ID_VERIFIED (document, ×1.2 score weight)
 - **Sanitary Book** — Waiters upload a sanitary certificate; admin approves/rejects; syncs `sanitaryBookValid` flag on passport; venue owners can filter by it

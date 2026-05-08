@@ -19,6 +19,7 @@ type ShiftAssignment = {
   clockInMethod: string | null;
   lateMinutes: number | null;
   earlyExitAt: string | null;
+  pendingClockIn: boolean;
 };
 
 type WaiterShift = {
@@ -622,9 +623,11 @@ function ClockInButton({ shift, onDone }: { shift: WaiterShift; onDone: () => vo
   const [msg, setMsg]   = useState("");
 
   if (!myAssignment) return null;
+
   if (myAssignment.clockOutAt) {
     return <span className="text-[10px] font-bold text-neutral-400 bg-neutral-100 px-2 py-1 rounded-full">Odjavljeni ✓</span>;
   }
+
   if (myAssignment.clockInAt) {
     return (
       <button onClick={async () => {
@@ -639,6 +642,10 @@ function ClockInButton({ shift, onDone }: { shift: WaiterShift; onDone: () => vo
     );
   }
 
+  if (myAssignment.pendingClockIn) {
+    return <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full">Čekamo odobrenje...</span>;
+  }
+
   // Check if within clock-in window (15min before scheduledStart)
   if (!shift.scheduledStart) return null;
   const windowOpen = new Date(new Date(shift.scheduledStart).getTime() - 15 * 60 * 1000);
@@ -647,25 +654,34 @@ function ClockInButton({ shift, onDone }: { shift: WaiterShift; onDone: () => vo
   async function handleClockIn() {
     setBusy(true);
     setMsg("");
+
+    let body: Record<string, unknown> = { method: "GPS" };
     try {
       const pos = await new Promise<GeolocationPosition>((res, rej) =>
         navigator.geolocation.getCurrentPosition(res, rej, { timeout: 8000 })
       );
-      const r = await fetch(`/api/shifts/${shift.id}/clockin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, method: "GPS" }),
-      });
-      if (r.ok) { onDone(); } else { const d = await r.json().catch(() => ({})); setMsg((d as { error?: string }).error ?? "Greška"); }
+      body = { method: "GPS", latitude: pos.coords.latitude, longitude: pos.coords.longitude };
     } catch {
-      // GPS failed — try manual
-      const r = await fetch(`/api/shifts/${shift.id}/clockin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ method: "MANUAL" }),
-      });
-      if (r.ok) { onDone(); } else { const d = await r.json().catch(() => ({})); setMsg((d as { error?: string }).error ?? "GPS nedostupan"); }
+      // GPS unavailable — send without coords, backend requests manager approval
     }
+
+    const r = await fetch(`/api/shifts/${shift.id}/clockin`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (r.ok) {
+      const data = await r.json().catch(() => ({})) as { pending?: boolean };
+      if (data.pending) {
+        setMsg("Zahtev poslat vlasniku ✓");
+      }
+      onDone();
+    } else {
+      const d = await r.json().catch(() => ({}));
+      setMsg((d as { error?: string }).error ?? "Greška");
+    }
+
     setBusy(false);
   }
 
@@ -675,7 +691,7 @@ function ClockInButton({ shift, onDone }: { shift: WaiterShift; onDone: () => vo
         className="text-xs font-bold bg-green-500 text-white hover:bg-green-600 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 animate-pulse">
         {busy ? "..." : "Check-in"}
       </button>
-      {msg && <span className="text-[10px] text-red-500">{msg}</span>}
+      {msg && <span className="text-[10px] text-neutral-500">{msg}</span>}
     </div>
   );
 }

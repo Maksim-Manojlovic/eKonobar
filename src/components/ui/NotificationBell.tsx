@@ -13,13 +13,15 @@ export type NotificationItem = {
 };
 
 export const TYPE_ICONS: Record<string, string> = {
-  APPLICATION_RECEIVED:       "📋",
-  APPLICATION_STATUS_CHANGED: "✅",
-  SWAP_REQUESTED:             "🔄",
-  SWAP_RESOLVED:              "🔄",
-  SHIFT_CLAIMED:              "📅",
-  SHIFT_ASSIGNED:             "📅",
-  REVIEW_PUBLISHED:           "⭐",
+  APPLICATION_RECEIVED:        "📋",
+  APPLICATION_STATUS_CHANGED:  "✅",
+  SWAP_REQUESTED:              "🔄",
+  SWAP_RESOLVED:               "🔄",
+  SHIFT_CLAIMED:               "📅",
+  SHIFT_ASSIGNED:              "📅",
+  REVIEW_PUBLISHED:            "⭐",
+  CLOCKIN_APPROVAL_REQUESTED:  "⏰",
+  CLOCKIN_RESOLVED:            "✅",
 };
 
 export function timeAgo(iso: string) {

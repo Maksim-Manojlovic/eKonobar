@@ -20,6 +20,7 @@ type VenueShiftAssignment = {
   clockOutAt: string | null;
   clockInMethod: string | null;
   lateMinutes: number | null;
+  pendingClockIn: boolean;
   waiter: { id: string; name: string | null };
 };
 
@@ -2179,6 +2180,48 @@ function HeadWaiterPanel({ venue, waiters, onRefresh }: {
   );
 }
 
+/* ── Pending clock-in approval row ───────────────────────────────────────── */
+
+function PendingClockInRow({ assignment, onDone }: {
+  assignment: VenueShiftAssignment;
+  onDone: () => void;
+}) {
+  const [acting, setActing] = useState<"approve" | "reject" | null>(null);
+
+  async function handle(action: "approve" | "reject") {
+    setActing(action);
+    await fetch(`/api/shifts/assignments/${assignment.id}/approve-clockin`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    setActing(null);
+    onDone();
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-2 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+      <span className="text-[10px] font-semibold text-amber-800 truncate">
+        {assignment.waiter.name ?? "Konobar"} — čeka prijavu
+      </span>
+      <div className="flex gap-1.5 flex-shrink-0">
+        <button
+          onClick={() => handle("approve")}
+          disabled={acting !== null}
+          className="text-[10px] font-bold bg-green-500 text-white px-2 py-0.5 rounded-full hover:bg-green-600 disabled:opacity-50 transition-colors">
+          {acting === "approve" ? "..." : "Odobri"}
+        </button>
+        <button
+          onClick={() => handle("reject")}
+          disabled={acting !== null}
+          className="text-[10px] font-bold bg-neutral-200 text-neutral-700 px-2 py-0.5 rounded-full hover:bg-neutral-300 disabled:opacity-50 transition-colors">
+          {acting === "reject" ? "..." : "Odbij"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ── Section: Smene (venue) ──────────────────────────────────────────────── */
 
 function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh }: {
@@ -2455,6 +2498,13 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
                           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                           {a.waiter.name ?? "Konobar"}
                         </span>
+                      ))}
+                    </div>
+                  )}
+                  {s.assignments.some(a => a.pendingClockIn) && (
+                    <div className="mt-1.5 flex flex-col gap-1">
+                      {s.assignments.filter(a => a.pendingClockIn).map(a => (
+                        <PendingClockInRow key={a.id} assignment={a} onDone={onRefresh} />
                       ))}
                     </div>
                   )}

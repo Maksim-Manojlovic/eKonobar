@@ -12,6 +12,7 @@ const ASSIGNMENT_SELECT = {
   clockInMethod: true,
   lateMinutes: true,
   earlyExitAt: true,
+  pendingClockIn: true,
   waiter: { select: { id: true, name: true } },
 };
 
