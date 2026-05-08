@@ -2376,6 +2376,19 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
                                 <span className="truncate">{s.startTime}</span>
                               </div>
                               <StaffingBar filled={filled} required={s.requiredCount} />
+                              {s.assignments.length > 0 && (
+                                <div className="flex gap-0.5 mt-0.5 flex-wrap">
+                                  {s.assignments.slice(0, 3).map(a => (
+                                    <span key={a.id} title={a.waiter.name ?? "Konobar"}
+                                      className="w-3 h-3 rounded-full bg-white/70 text-orange-700 flex items-center justify-center text-[7px] font-black flex-shrink-0 border border-orange-200">
+                                      {getInitials(a.waiter.name).slice(0, 1)}
+                                    </span>
+                                  ))}
+                                  {s.assignments.length > 3 && (
+                                    <span className="text-[7px] text-neutral-400 leading-3 self-center">+{s.assignments.length - 3}</span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
@@ -2424,8 +2437,13 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
                     <div className="text-right flex-shrink-0 ml-4 min-w-[100px]">
                       <StaffingBar filled={filled} required={s.requiredCount} />
                       {filled > 0 && (
-                        <div className="text-[10px] text-neutral-500 mt-0.5 truncate">
-                          {s.assignments.map(a => a.waiter.name ?? "?").join(", ")}
+                        <div className="flex gap-1 mt-1 flex-wrap justify-end">
+                          {s.assignments.map(a => (
+                            <span key={a.id} title={a.waiter.name ?? "Konobar"}
+                              className="w-5 h-5 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-[9px] font-bold flex-shrink-0">
+                              {getInitials(a.waiter.name)}
+                            </span>
+                          ))}
                         </div>
                       )}
                       {s.pay != null && <div className="text-xs font-black text-orange-500 mt-0.5">{s.pay.toLocaleString("sr-RS")} RSD</div>}
