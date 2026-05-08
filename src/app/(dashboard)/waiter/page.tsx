@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
@@ -506,7 +506,7 @@ function AlertsSection({ jobs, loading, onApply, applying, appliedJobIds }: {
             <span className="w-2 h-2 rounded-full bg-white" />
           </span>
         </div>
-        <h2 className="font-black text-neutral-900 text-sm uppercase tracking-wider">Red Alert — Hitni Angažmani</h2>
+        <h2 className="font-black text-white text-sm uppercase tracking-wider">Red Alert — Hitni Angažmani</h2>
       </div>
       <p className="text-xs text-neutral-400 -mt-3">Ovi angažmani zahtevaju brzu odluku.</p>
       {alerts.length === 0
@@ -538,7 +538,7 @@ function JobsSection({ jobs, loading, onApply, applying, appliedJobIds }: {
   if (loading) return <Spinner />;
   return (
     <>
-      <h2 className="font-black text-neutral-900">Dostupni poslovi</h2>
+      <h2 className="font-black text-white">Dostupni poslovi</h2>
       {jobs.length === 0
         ? <div className="dash-card p-10 text-center text-neutral-400 text-sm">Nema dostupnih oglasa</div>
         : <div className="flex flex-col gap-3">
@@ -583,7 +583,7 @@ function ApplicationsSection({ applications, loading }: { applications: MyApplic
   ];
   return (
     <>
-      <h2 className="font-black text-neutral-900">Moje prijave</h2>
+      <h2 className="font-black text-white">Moje prijave</h2>
       <div className="bg-neutral-100 rounded-xl p-1 flex gap-1 w-fit">
         {tabs.map(t => (
           <button key={t.key} onClick={() => setFilter(t.key)}
@@ -832,7 +832,7 @@ function ShiftsSection({ shifts, loading, onRefresh }: { shifts: WaiterShift[]; 
       )}
 
       <div className="flex items-center justify-between">
-        <h2 className="font-black text-neutral-900">Smene</h2>
+        <h2 className="font-black text-white">Smene</h2>
       </div>
 
       {/* Tab switcher */}
@@ -1241,7 +1241,7 @@ function ReviewsSection() {
 
   return (
     <>
-      <h2 className="font-black text-neutral-900">Moje recenzije</h2>
+      <h2 className="font-black text-white">Moje recenzije</h2>
       {reviews.length === 0 ? (
         <div className="dash-card p-10 text-center text-neutral-400 text-sm">Još nema recenzija</div>
       ) : (
@@ -1428,7 +1428,7 @@ function PassportSection({ userName }: { userName: string }) {
 
   return (
     <>
-      <h2 className="font-black text-neutral-900">Waiter Passport™</h2>
+      <h2 className="font-black text-white">Waiter Passport™</h2>
 
       {/* Score card */}
       <div className="dash-card p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
@@ -1690,7 +1690,7 @@ function InvitesSection({ invites, loading, onRespond }: {
 
   return (
     <>
-      <h2 className="font-black text-neutral-900">Pozivnice</h2>
+      <h2 className="font-black text-white">Pozivnice</h2>
       {pending.length === 0 && past.length === 0 && (
         <div className="dash-card p-10 text-center text-neutral-400 text-sm">Nema pozivnica</div>
       )}
@@ -1829,6 +1829,14 @@ export default function WaiterDashboard() {
     await fetchData();
   };
 
+  const spotlightRef = useRef<HTMLDivElement>(null);
+  function handleMouseMove(e: { clientX: number; clientY: number }) {
+    if (spotlightRef.current) {
+      spotlightRef.current.style.background =
+        `radial-gradient(circle 520px at ${e.clientX}px ${e.clientY}px, rgba(249,115,22,0.13) 0%, transparent 70%)`;
+    }
+  }
+
   const userName      = session?.user?.name ?? "Konobar";
   const initials      = getInitials(session?.user?.name);
   const appliedJobIds = new Set(applications.map(a => a.jobPost.id));
@@ -1861,19 +1869,19 @@ export default function WaiterDashboard() {
               <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
             Šef konobara
-            <span className="ml-auto text-[9px] bg-orange-100 text-orange-600 font-bold px-1.5 py-0.5 rounded-full">ŠEFOV</span>
+            <span className="ml-auto text-[9px] bg-orange-500/20 text-orange-300 font-bold px-1.5 py-0.5 rounded-full border border-orange-500/30">ŠEFOV</span>
           </button>
         )}
       </nav>
-      <div className="px-3 py-4 border-t border-neutral-100">
+      <div className="px-3 py-4 border-t border-white/10">
         <div className="flex items-center gap-3 px-2 mb-3">
-          <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm flex-shrink-0">{initials}</div>
+          <div className="w-8 h-8 rounded-full bg-orange-900/40 flex items-center justify-center text-orange-300 font-bold text-sm flex-shrink-0 border border-orange-500/30">{initials}</div>
           <div className="min-w-0">
-            <div className="text-sm font-bold text-neutral-900 truncate">{userName}</div>
-            <div className="text-[11px] text-neutral-400 truncate">Konobar · GOLD</div>
+            <div className="text-sm font-bold text-white truncate">{userName}</div>
+            <div className="text-[11px] text-white/40 truncate">Konobar</div>
           </div>
         </div>
-        <button onClick={() => signOut({ callbackUrl: "/" })} className="nav-item text-red-400 hover:bg-red-50 hover:text-red-500 w-full">
+        <button onClick={() => signOut({ callbackUrl: "/" })} className="nav-item text-red-400/80 hover:bg-red-900/20 hover:text-red-300 w-full">
           <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
           </svg>
@@ -1884,7 +1892,18 @@ export default function WaiterDashboard() {
   );
 
   return (
-    <div className="flex min-h-screen" style={{ background: "#F6F5F2" }}>
+    <div className="flex min-h-screen" onMouseMove={handleMouseMove}
+      style={{
+        background: "#120a00",
+        backgroundImage: [
+          "linear-gradient(rgba(180,90,20,0.11) 1px, transparent 1px)",
+          "linear-gradient(90deg, rgba(180,90,20,0.11) 1px, transparent 1px)",
+        ].join(", "),
+        backgroundSize: "40px 40px",
+      }}>
+      {/* Mouse spotlight overlay */}
+      <div ref={spotlightRef} className="pointer-events-none fixed inset-0" style={{ zIndex: 1 }} />
+
       {/* Mobile overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setMobileOpen(false)} />
@@ -1910,35 +1929,42 @@ export default function WaiterDashboard() {
       </div>
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col w-60 min-h-screen sticky top-0 h-screen overflow-y-auto"
-        style={{ background: "white", borderRight: "1px solid #f0efec" }}>
-        <div className="px-5 py-5 border-b border-neutral-100">
+      <aside className="dark-sidebar hidden md:flex flex-col w-60 min-h-screen sticky top-0 h-screen overflow-y-auto"
+        style={{
+          background: "#0e0700",
+          backgroundImage: ["linear-gradient(rgba(180,90,20,0.10) 1px, transparent 1px)", "linear-gradient(90deg, rgba(180,90,20,0.10) 1px, transparent 1px)"].join(", "),
+          backgroundSize: "40px 40px",
+          borderRight: "1px solid rgba(180,90,20,0.18)",
+          position: "relative",
+          zIndex: 2,
+        }}>
+        <div className="px-5 py-5 border-b border-white/10">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center text-white font-black text-sm">eK</div>
-            <span className="font-black text-neutral-900 text-base">eKonobar</span>
+            <span className="font-black text-white text-base">eKonobar</span>
           </Link>
         </div>
         {navContent()}
       </aside>
 
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto" style={{ position: "relative", zIndex: 2 }}>
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4"
-          style={{ background: "rgba(246,245,242,0.9)", backdropFilter: "blur(8px)", borderBottom: "1px solid #f0efec" }}>
+          style={{ background: "rgba(18,10,0,0.88)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(180,90,20,0.2)" }}>
           <div className="flex items-center gap-3">
-            <button className="md:hidden w-9 h-9 rounded-xl bg-white border border-neutral-100 flex items-center justify-center hover:border-orange-300 transition-colors"
+            <button className="md:hidden w-9 h-9 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center hover:border-orange-400/50 transition-colors text-white"
               onClick={() => setMobileOpen(true)}>
               <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
             <div>
-              <h1 className="font-black text-neutral-900 text-lg">{SECTION_TITLES[section]}</h1>
-              <p className="text-xs text-neutral-400 capitalize">{today}</p>
+              <h1 className="font-black text-white text-lg">{SECTION_TITLES[section]}</h1>
+              <p className="text-xs text-orange-300/60 capitalize">{today}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <NotificationBell dashboardPath="/dashboard/waiter" />
-            <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm">{initials}</div>
+            <div className="w-9 h-9 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-300 font-bold text-sm border border-orange-500/30">{initials}</div>
           </div>
         </div>
 

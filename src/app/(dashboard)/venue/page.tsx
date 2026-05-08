@@ -415,7 +415,7 @@ function PostsSection({ posts, loading, onNavigate, onStatusChange }: {
   return (
     <>
       <div className="flex items-center justify-between">
-        <h2 className="font-black text-neutral-900">Moji oglasi</h2>
+        <h2 className="font-black text-white">Moji oglasi</h2>
         <button onClick={() => onNavigate("new-post")} className="btn-dash-orange px-4 py-2">+ Novi oglas</button>
       </div>
       {posts.length === 0
@@ -514,7 +514,7 @@ function NewPostSection({ venue, onSuccess, onBack }: {
           <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg>
           Nazad
         </button>
-        <h2 className="font-black text-neutral-900">Novi oglas</h2>
+        <h2 className="font-black text-white">Novi oglas</h2>
       </div>
 
       <div className="dash-card p-6 flex flex-col gap-5">
@@ -646,7 +646,7 @@ function ApplicationsSection({ applications, loading, onStatusChange }: {
 
   return (
     <>
-      <h2 className="font-black text-neutral-900">Prijave konobara</h2>
+      <h2 className="font-black text-white">Prijave konobara</h2>
       <div className="bg-neutral-100 rounded-xl p-1 flex gap-1 flex-wrap">
         {tabs.map(t => (
           <button key={t.key} onClick={() => setFilter(t.key)}
@@ -813,7 +813,7 @@ function DiscoverSection({ onInvite }: { posts: OwnPost[]; onInvite: (w: WaiterE
 
   return (
     <>
-      <h2 className="font-black text-neutral-900">Pronađi konobara</h2>
+      <h2 className="font-black text-white">Pronađi konobara</h2>
       <div className="flex flex-wrap gap-2">
         <button onClick={() => setFilterAvailable(p => !p)}
           className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${filterAvailable ? "bg-green-500 text-white border-green-500" : "bg-white text-neutral-600 border-neutral-200 hover:border-green-400"}`}>
@@ -889,7 +889,7 @@ function WaitersSection({ applications, loading, onInvite, venue }: { applicatio
   );
   return (
     <>
-      <h2 className="font-black text-neutral-900">Konobari koji su se prijavili</h2>
+      <h2 className="font-black text-white">Konobari koji su se prijavili</h2>
       {unique.length === 0
         ? <div className="dash-card p-10 text-center text-neutral-400 text-sm">Još nema prijava</div>
         : <div className="grid gap-3 sm:grid-cols-2">
@@ -943,7 +943,7 @@ function WaitersSection({ applications, loading, onInvite, venue }: { applicatio
 function ReviewsSection() {
   return (
     <>
-      <h2 className="font-black text-neutral-900">Recenzije konobara o lokalu</h2>
+      <h2 className="font-black text-white">Recenzije konobara o lokalu</h2>
       <div className="flex flex-col gap-4">
         {REVIEWS.map(r => (
           <div key={r.id} className="dash-card p-5">
@@ -968,7 +968,7 @@ function QrReviewSection({ venue }: { venue: Venue | null }) {
   if (!venue) {
     return (
       <>
-        <h2 className="font-black text-neutral-900">QR Recenzije</h2>
+        <h2 className="font-black text-white">QR Recenzije</h2>
         <div className="dash-card p-10 text-center text-neutral-400 text-sm">
           Prvo kreirajte profil lokala da biste generisali QR kod.
         </div>
@@ -1020,7 +1020,7 @@ function QrReviewSection({ venue }: { venue: Venue | null }) {
 
   return (
     <>
-      <h2 className="font-black text-neutral-900">QR Recenzije</h2>
+      <h2 className="font-black text-white">QR Recenzije</h2>
 
       <div className="dash-card p-6 flex flex-col sm:flex-row gap-6 items-start">
         {/* QR code */}
@@ -1128,7 +1128,7 @@ function VenueCreateForm({ onCreated }: { onCreated: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      <h2 className="font-black text-neutral-900">Registruj lokal</h2>
+      <h2 className="font-black text-white">Registruj lokal</h2>
       <div className="dash-card p-6 flex flex-col gap-5">
         <div>
           <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Naziv lokala *</label>
@@ -1278,7 +1278,7 @@ function ProfileSection({ venue, loading, onVenueCreated }: {
 
   return (
     <>
-      <h2 className="font-black text-neutral-900">Profil lokala</h2>
+      <h2 className="font-black text-white">Profil lokala</h2>
       <div className="dash-card p-6 flex flex-col sm:flex-row gap-6 items-center">
         <div className="relative flex-shrink-0" style={{ width: 112, height: 112 }}>
           <svg width="112" height="112" viewBox="0 0 112 112" className="-rotate-90">
@@ -2015,8 +2015,8 @@ function ShiftTemplateTab({ venue, onShiftsChanged }: { venue: Venue; onShiftsCh
 
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-bold text-neutral-900">Šabloni smena</h3>
-          <p className="text-xs text-neutral-400 mt-0.5">Sačuvani obrasci za ponavljajuće smene. Kliknite &quot;Generiši&quot; za bulk kreiranje.</p>
+          <h3 className="font-bold text-white">Šabloni smena</h3>
+          <p className="text-xs text-white/40 mt-0.5">Sačuvani obrasci za ponavljajuće smene. Kliknite &quot;Generiši&quot; za bulk kreiranje.</p>
         </div>
         <button onClick={() => setCreating(true)} className="btn-dash-orange px-4 py-2">+ Novi šablon</button>
       </div>
@@ -2252,15 +2252,15 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
       <HeadWaiterPanel venue={venue} waiters={acceptedWaiters} onRefresh={onRefresh} />
 
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1 bg-neutral-100 rounded-xl p-1">
+        <div className="flex items-center gap-1 rounded-xl p-1" style={{ background: "rgba(255,255,255,0.07)" }}>
           <button
             onClick={() => setMainTab("kalendar")}
-            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${mainTab === "kalendar" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-700"}`}>
+            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${mainTab === "kalendar" ? "bg-white/15 text-white shadow-sm" : "text-white/50 hover:text-white/80"}`}>
             Kalendar
           </button>
           <button
             onClick={() => setMainTab("sabloni")}
-            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${mainTab === "sabloni" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-700"}`}>
+            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${mainTab === "sabloni" ? "bg-white/15 text-white shadow-sm" : "text-white/50 hover:text-white/80"}`}>
             Šabloni
           </button>
         </div>
@@ -2406,11 +2406,11 @@ function VenueSmeneSection({ venue, shifts, loading, acceptedWaiters, onRefresh 
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-4 text-xs text-neutral-500">
+      <div className="flex flex-wrap gap-4 text-xs text-white/45">
         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-orange-100 border border-orange-200 inline-block" />Slobodna smena</span>
         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-green-100 border border-green-200 inline-block" />Popunjena</span>
         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-amber-100 border border-amber-200 inline-block" />Zamena na čekanju 🔄</span>
-        <span className="text-neutral-400">Kliknite na dan za novu smenu · na smenu za uređivanje</span>
+        <span className="text-white/30">Kliknite na dan za novu smenu · na smenu za uređivanje</span>
       </div>
 
       {/* Upcoming list with staffing + clock-in status */}
@@ -2545,6 +2545,14 @@ export default function VenueDashboard() {
     await fetchData();
   };
 
+  const spotlightRef = useRef<HTMLDivElement>(null);
+  function handleMouseMove(e: React.MouseEvent) {
+    if (spotlightRef.current) {
+      spotlightRef.current.style.background =
+        `radial-gradient(circle 520px at ${e.clientX}px ${e.clientY}px, rgba(249,115,22,0.13) 0%, transparent 70%)`;
+    }
+  }
+
   const userName        = session?.user?.name ?? venue?.name ?? "Lokal";
   const initials        = getInitials(userName);
   const pendingCount    = applications.filter(a => a.status === "PENDING").length;
@@ -2569,15 +2577,15 @@ export default function VenueDashboard() {
           </button>
         ))}
       </nav>
-      <div className="px-3 py-4 border-t border-neutral-100">
+      <div className="px-3 py-4 border-t border-white/10">
         <div className="flex items-center gap-3 px-2 mb-3">
-          <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm flex-shrink-0">{initials}</div>
+          <div className="w-8 h-8 rounded-full bg-orange-900/40 flex items-center justify-center text-orange-300 font-bold text-sm flex-shrink-0 border border-orange-500/30">{initials}</div>
           <div className="min-w-0">
-            <div className="text-sm font-bold text-neutral-900 truncate">{venue?.name ?? userName}</div>
-            <div className="text-[11px] text-neutral-400 truncate">Vlasnik lokala</div>
+            <div className="text-sm font-bold text-white truncate">{venue?.name ?? userName}</div>
+            <div className="text-[11px] text-white/40 truncate">Vlasnik lokala</div>
           </div>
         </div>
-        <button onClick={() => signOut({ callbackUrl: "/" })} className="nav-item text-red-400 hover:bg-red-50 hover:text-red-500 w-full">
+        <button onClick={() => signOut({ callbackUrl: "/" })} className="nav-item text-red-400/80 hover:bg-red-900/20 hover:text-red-300 w-full">
           <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
           </svg>
@@ -2589,7 +2597,18 @@ export default function VenueDashboard() {
 
   return (
     <>
-    <div className="flex min-h-screen" style={{ background: "#F6F5F2" }}>
+    <div className="flex min-h-screen" onMouseMove={handleMouseMove}
+      style={{
+        background: "#120a00",
+        backgroundImage: [
+          "linear-gradient(rgba(180,90,20,0.11) 1px, transparent 1px)",
+          "linear-gradient(90deg, rgba(180,90,20,0.11) 1px, transparent 1px)",
+        ].join(", "),
+        backgroundSize: "40px 40px",
+      }}>
+      {/* Mouse spotlight overlay */}
+      <div ref={spotlightRef} className="pointer-events-none fixed inset-0" style={{ zIndex: 1 }} />
+
       {/* Mobile overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setMobileOpen(false)} />
@@ -2615,35 +2634,42 @@ export default function VenueDashboard() {
       </div>
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col w-60 min-h-screen sticky top-0 h-screen overflow-y-auto"
-        style={{ background: "white", borderRight: "1px solid #f0efec" }}>
-        <div className="px-5 py-5 border-b border-neutral-100">
+      <aside className="dark-sidebar hidden md:flex flex-col w-60 min-h-screen sticky top-0 h-screen overflow-y-auto"
+        style={{
+          background: "#0e0700",
+          backgroundImage: ["linear-gradient(rgba(180,90,20,0.10) 1px, transparent 1px)", "linear-gradient(90deg, rgba(180,90,20,0.10) 1px, transparent 1px)"].join(", "),
+          backgroundSize: "40px 40px",
+          borderRight: "1px solid rgba(180,90,20,0.18)",
+          position: "relative",
+          zIndex: 2,
+        }}>
+        <div className="px-5 py-5 border-b border-white/10">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center text-white font-black text-sm">eK</div>
-            <span className="font-black text-neutral-900 text-base">eKonobar</span>
+            <span className="font-black text-white text-base">eKonobar</span>
           </Link>
         </div>
         {navContent()}
       </aside>
 
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto" style={{ position: "relative", zIndex: 2 }}>
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4"
-          style={{ background: "rgba(246,245,242,0.9)", backdropFilter: "blur(8px)", borderBottom: "1px solid #f0efec" }}>
+          style={{ background: "rgba(18,10,0,0.88)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(180,90,20,0.2)" }}>
           <div className="flex items-center gap-3">
-            <button className="md:hidden w-9 h-9 rounded-xl bg-white border border-neutral-100 flex items-center justify-center hover:border-orange-300 transition-colors"
+            <button className="md:hidden w-9 h-9 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center hover:border-orange-400/50 transition-colors text-white"
               onClick={() => setMobileOpen(true)}>
               <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
             <div>
-              <h1 className="font-black text-neutral-900 text-lg">{SECTION_TITLES[section]}</h1>
-              <p className="text-xs text-neutral-400 capitalize">{today}</p>
+              <h1 className="font-black text-white text-lg">{SECTION_TITLES[section]}</h1>
+              <p className="text-xs text-orange-300/60 capitalize">{today}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <NotificationBell dashboardPath="/dashboard/venue" />
-            <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm">{initials}</div>
+            <div className="w-9 h-9 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-300 font-bold text-sm border border-orange-500/30">{initials}</div>
           </div>
         </div>
 

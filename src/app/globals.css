@@ -217,6 +217,10 @@
 .nav-item:hover  { background: #fef9f5; color: #f97316; }
 .nav-item.active { background: #fff7ed; color: #f97316; font-weight: 700; }
 
+.dark-sidebar .nav-item              { color: rgba(255,255,255,0.55); }
+.dark-sidebar .nav-item:hover        { background: rgba(249,115,22,0.12); color: #fb923c; }
+.dark-sidebar .nav-item.active       { background: rgba(249,115,22,0.20); color: #fb923c; font-weight: 700; }
+
 .dash-card {
   background: white;
   border-radius: 20px;
