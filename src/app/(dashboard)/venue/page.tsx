@@ -8,8 +8,9 @@ import Image from "next/image";
 import ImageUpload from "@/components/ui/ImageUpload";
 import { QRCodeCanvas } from "qrcode.react";
 import { NotificationBell } from "@/components/ui/NotificationBell";
+import { NotificationsSection } from "@/components/ui/NotificationsSection";
 
-type Section = "overview" | "posts" | "new-post" | "smene" | "applications" | "waiters" | "discover" | "reviews" | "qr-review" | "profile";
+type Section = "overview" | "posts" | "new-post" | "smene" | "applications" | "waiters" | "discover" | "reviews" | "qr-review" | "profile" | "notifications";
 type AppFilter = "SVE" | "PENDING" | "SHORTLISTED" | "ACCEPTED" | "REJECTED";
 
 type VenueShiftAssignment = {
@@ -1020,15 +1021,13 @@ function QrReviewSection({ venue }: { venue: Venue | null }) {
 
   return (
     <>
-      <h2 className="font-black text-white">QR Recenzije</h2>
-
-      <div className="dash-card p-6 flex flex-col sm:flex-row gap-6 items-start">
-        {/* QR code */}
-        <div ref={wrapperRef} className="flex-shrink-0 flex flex-col items-center gap-3">
-          <div className="p-4 bg-white border border-neutral-200 rounded-2xl">
+      <div className="dash-card p-4 sm:p-6 flex flex-col sm:flex-row gap-6">
+        {/* QR code — centered on mobile, top-aligned on sm+ */}
+        <div ref={wrapperRef} className="flex-shrink-0 flex flex-col items-center gap-3 self-center sm:self-start">
+          <div className="p-3 sm:p-4 bg-white border border-neutral-200 rounded-2xl">
             <QRCodeCanvas
               value={reviewUrl}
-              size={200}
+              size={180}
               bgColor="#ffffff"
               fgColor="#1a1a1a"
               level="M"
@@ -1049,7 +1048,7 @@ function QrReviewSection({ venue }: { venue: Venue | null }) {
         {/* Info */}
         <div className="flex flex-col gap-4 flex-1 min-w-0">
           <div>
-            <h3 className="font-bold text-neutral-900">Gostinska recenzija za {venueSafe.name}</h3>
+            <h3 className="font-bold text-neutral-900 break-words">Gostinska recenzija za {venueSafe.name}</h3>
             <p className="text-sm text-neutral-500 mt-1 leading-relaxed">
               Postavite ovaj QR kod na sto, šank ili ulaz. Gosti skeniraju, biraju konobara i ostavljaju ocenu — bez registracije.
             </p>
@@ -1057,24 +1056,24 @@ function QrReviewSection({ venue }: { venue: Venue | null }) {
 
           <div>
             <div className="text-xs font-semibold text-neutral-500 mb-1.5">Link za recenziju</div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 min-w-0 bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-600 font-mono truncate">
+            <div className="flex items-stretch gap-2">
+              <div className="flex-1 min-w-0 bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-600 font-mono truncate flex items-center">
                 {reviewUrl}
               </div>
               <button onClick={copyLink}
                 className={`flex-shrink-0 text-xs font-bold px-3 py-2 rounded-xl transition-colors ${copied ? "bg-green-100 text-green-700" : "bg-orange-500 text-white hover:bg-orange-600"}`}>
-                {copied ? "Kopirano!" : "Kopiraj"}
+                {copied ? "✓" : "Kopiraj"}
               </button>
             </div>
           </div>
 
           <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 flex flex-col gap-1.5">
             <div className="text-xs font-black text-amber-700 uppercase tracking-wider">Kako funkcioniše</div>
-            <ul className="text-xs text-amber-700 flex flex-col gap-1">
-              <li className="flex items-start gap-1.5"><span className="flex-shrink-0 mt-0.5">1.</span>Gost skenira QR i bira konobara</li>
-              <li className="flex items-start gap-1.5"><span className="flex-shrink-0 mt-0.5">2.</span>Ocenjuje ljubaznost, brzinu i pažljivost (1–5 ★)</li>
-              <li className="flex items-start gap-1.5"><span className="flex-shrink-0 mt-0.5">3.</span>GPS potvrđuje da je gost u lokalu</li>
-              <li className="flex items-start gap-1.5"><span className="flex-shrink-0 mt-0.5">4.</span>Recenzija se objavljuje za 2h i utiče na skor konobara</li>
+            <ul className="text-xs text-amber-700 flex flex-col gap-1.5">
+              <li className="flex items-start gap-2"><span className="flex-shrink-0 font-bold">1.</span><span>Gost skenira QR i bira konobara</span></li>
+              <li className="flex items-start gap-2"><span className="flex-shrink-0 font-bold">2.</span><span>Ocenjuje ljubaznost, brzinu i pažljivost (1–5 ★)</span></li>
+              <li className="flex items-start gap-2"><span className="flex-shrink-0 font-bold">3.</span><span>GPS potvrđuje da je gost u lokalu</span></li>
+              <li className="flex items-start gap-2"><span className="flex-shrink-0 font-bold">4.</span><span>Recenzija se objavljuje za 2h i utiče na skor konobara</span></li>
             </ul>
           </div>
         </div>
@@ -2488,13 +2487,15 @@ const NAV_ITEMS: { key: Section; label: string; icon: React.ReactNode }[] = [
   { key: "discover",     label: "Pronađi",       icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg> },
   { key: "reviews",      label: "Recenzije",     icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg> },
   { key: "qr-review",   label: "QR Recenzije",  icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3z"/><path d="M17 17h4"/><path d="M17 21v-4"/><path d="M21 14v3"/></svg> },
-  { key: "profile",      label: "Profil lokala", icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg> },
+  { key: "profile",       label: "Profil lokala",  icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg> },
+  { key: "notifications", label: "Obaveštenja",    icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> },
 ];
 
 const SECTION_TITLES: Record<Section, string> = {
   overview: "Pregled", posts: "Oglasi", "new-post": "Novi oglas", smene: "Smene",
   applications: "Prijave", waiters: "Konobari", discover: "Pronađi konobara",
   reviews: "Recenzije", "qr-review": "QR Recenzije", profile: "Profil lokala",
+  notifications: "Obaveštenja",
 };
 
 /* ── Main dashboard ──────────────────────────────────────────────────────── */
@@ -2509,6 +2510,7 @@ export default function VenueDashboard() {
   const [loading, setLoading]           = useState(true);
   const [mobileOpen, setMobileOpen]     = useState(false);
   const [inviteTarget, setInviteTarget] = useState<WaiterEntry | null>(null);
+  const [notifUnread, setNotifUnread]   = useState(0);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -2573,6 +2575,9 @@ export default function VenueDashboard() {
             {item.icon}{item.label}
             {item.key === "applications" && pendingCount > 0 && (
               <span className="ml-auto bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{pendingCount}</span>
+            )}
+            {item.key === "notifications" && notifUnread > 0 && (
+              <span className="ml-auto bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{notifUnread > 9 ? "9+" : notifUnread}</span>
             )}
           </button>
         ))}
@@ -2673,7 +2678,11 @@ export default function VenueDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <NotificationBell dashboardPath="/dashboard/venue" />
+            <NotificationBell
+              dashboardPath="/dashboard/venue"
+              onViewAll={() => { setSection("notifications"); }}
+              onUnreadChange={setNotifUnread}
+            />
             <div className="w-9 h-9 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-300 font-bold text-sm border border-orange-500/30">{initials}</div>
           </div>
         </div>
@@ -2688,7 +2697,8 @@ export default function VenueDashboard() {
           {section === "discover"     && <DiscoverSection posts={posts} onInvite={setInviteTarget} />}
           {section === "reviews"      && <ReviewsSection />}
           {section === "qr-review"   && <QrReviewSection venue={venue} />}
-          {section === "profile"      && <ProfileSection venue={venue} loading={loading} onVenueCreated={fetchData} />}
+          {section === "profile"        && <ProfileSection venue={venue} loading={loading} onVenueCreated={fetchData} />}
+          {section === "notifications"  && <NotificationsSection />}
         </div>
       </main>
     </div>
