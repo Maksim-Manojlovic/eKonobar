@@ -754,6 +754,85 @@ async function main() {
 
   console.log("✓ Invites seeded");
 
+  // ── Notifications (venue owner) ───────────────────────────────────────────
+
+  const now = Date.now();
+  const notifData = [
+    {
+      id: "seed-notif-1",
+      type: "APPLICATION_RECEIVED" as const,
+      title: "Nova prijava",
+      body: "Marko Nikolić se prijavio na oglas 'Senior Konobar'.",
+      link: "/dashboard/venue",
+      read: true,
+      createdAt: new Date(now - 3 * 24 * 60 * 60 * 1000),
+    },
+    {
+      id: "seed-notif-2",
+      type: "APPLICATION_RECEIVED" as const,
+      title: "Nova prijava",
+      body: "Ana Petrović se prijavila na oglas 'Senior Konobar' i priložila radno iskustvo.",
+      link: "/dashboard/venue",
+      read: true,
+      createdAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+    },
+    {
+      id: "seed-notif-3",
+      type: "SHIFT_CLAIMED" as const,
+      title: "Smena preuzeta",
+      body: "Nikola Stanković je preuzeo jutarnju smenu u Kafana Skadarlija (Pon, 12. Maj).",
+      link: "/dashboard/venue",
+      read: true,
+      createdAt: new Date(now - 26 * 60 * 60 * 1000),
+    },
+    {
+      id: "seed-notif-4",
+      type: "REVIEW_PUBLISHED" as const,
+      title: "Nova recenzija",
+      body: "Objavljena je recenzija za Kafana Skadarlija — ocena 4/5.",
+      link: "/dashboard/venue",
+      read: true,
+      createdAt: new Date(now - 18 * 60 * 60 * 1000),
+    },
+    {
+      id: "seed-notif-5",
+      type: "SWAP_REQUESTED" as const,
+      title: "Zahtev za zamenu smene",
+      body: "Marko Nikolić traži zamenu smene sa Anom Petrović za sredu 14. Maj.",
+      link: "/dashboard/venue",
+      read: false,
+      createdAt: new Date(now - 45 * 60 * 1000),
+    },
+    {
+      id: "seed-notif-6",
+      type: "APPLICATION_RECEIVED" as const,
+      title: "Nova prijava",
+      body: "Stefan Đorđević se prijavio na oglas 'Konobar — vikend smene'.",
+      link: "/dashboard/venue",
+      read: false,
+      createdAt: new Date(now - 12 * 60 * 1000),
+    },
+    {
+      id: "seed-notif-7",
+      type: "SHIFT_CLAIMED" as const,
+      title: "Smena preuzeta",
+      body: "Jelena Milošević je preuzela popodnevnu smenu u Bar Mixer (Uto, 13. Maj).",
+      link: "/dashboard/venue",
+      read: false,
+      createdAt: new Date(now - 3 * 60 * 1000),
+    },
+  ];
+
+  for (const n of notifData) {
+    await prisma.notification.upsert({
+      where: { id: n.id },
+      update: { read: n.read },
+      create: { userId: venueOwner.id, ...n },
+    });
+  }
+
+  console.log("✓ Notifications seeded");
+
   console.log(`
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Test accounts (password: ${TEST_PASSWORD})

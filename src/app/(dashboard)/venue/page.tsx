@@ -2616,15 +2616,20 @@ export default function VenueDashboard() {
 
       {/* Mobile drawer */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col md:hidden transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
-        style={{ background: "white", borderRight: "1px solid #f0efec" }}>
-        <div className="px-5 py-5 border-b border-neutral-100 flex items-center justify-between">
+        className={`dark-sidebar fixed inset-y-0 left-0 z-50 w-64 flex flex-col md:hidden transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        style={{
+          background: "#0e0700",
+          backgroundImage: ["linear-gradient(rgba(180,90,20,0.10) 1px, transparent 1px)", "linear-gradient(90deg, rgba(180,90,20,0.10) 1px, transparent 1px)"].join(", "),
+          backgroundSize: "40px 40px",
+          borderRight: "1px solid rgba(180,90,20,0.18)",
+        }}>
+        <div className="px-5 py-5 border-b border-white/10 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center text-white font-black text-sm">eK</div>
-            <span className="font-black text-neutral-900 text-base">eKonobar</span>
+            <span className="font-black text-white text-base">eKonobar</span>
           </Link>
           <button onClick={() => setMobileOpen(false)}
-            className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-neutral-600">
+            className="w-8 h-8 flex items-center justify-center text-white/40 hover:text-white/80">
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
