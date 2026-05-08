@@ -48,7 +48,27 @@ Optional:
 ```env
 CRON_SECRET="your-cron-secret"        # required to call /api/cron/* routes
 DEFAULT_REVIEW_RADIUS_KM=0.15
-ALERT_WEBHOOK_URL=""
+
+# Web Push (VAPID) — run: npx web-push generate-vapid-keys
+VAPID_PUBLIC_KEY=""
+VAPID_PRIVATE_KEY=""
+NEXT_PUBLIC_VAPID_KEY=""              # same as VAPID_PUBLIC_KEY, browser-exposed
+
+# WhatsApp Business API (Meta Cloud API) — opt-in notifications
+WA_ACCESS_TOKEN=""
+WA_PHONE_NUMBER_ID=""
+WA_TEMPLATE_NAME="ekonobar_notification"
+
+# Infobip SMS — premium opt-in notifications
+INFOBIP_API_KEY=""
+INFOBIP_BASE_URL="https://api.infobip.com"
+INFOBIP_FROM="eKonobar"
+
+# OAuth providers
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""
+FACEBOOK_CLIENT_ID=""
+FACEBOOK_CLIENT_SECRET=""
 ```
 
 ### Database
@@ -100,24 +120,41 @@ App runs at [http://localhost:3000](http://localhost:3000).
 ```
 src/
   app/
-    (public)/          # Landing, venue listings, job listings, public passport
+    (public)/          # Landing, venue listings, job listings, public passport (/passport/[shareToken])
     (auth)/            # Login, register, onboarding (waiter | venue | headhunter)
     (dashboard)/       # Waiter, venue owner, headhunter, admin dashboards
     api/
       cron/
-        publish-reviews/  # POST/GET — publishes due reviews + syncs trust scores
-      jobs/              # Job posts and applications
-      reviews/           # Review submission and retrieval
-      venues/            # Venue CRUD, GeoJSON, images (PATCH /[id])
-      upload/            # POST — Cloudinary image upload (avatar, venue-photo)
-      invites/           # Job invites
-      shifts/            # Shift scheduling
-      passport/          # Waiter passport and engagements
-      waiters/           # Waiter search (headhunter)
-      headhunter/        # Saved profiles
-      admin/             # Moderation, zones, venue management
-      verification/      # Sanitary book upload and approval
-      auth/              # NextAuth + registration
+        publish-reviews/     # POST — publishes due reviews + syncs trust scores
+      jobs/                  # Job posts (CRUD), applications, GeoJSON
+        applications/        # Application lifecycle (PATCH status transitions)
+      reviews/               # Review submission; /guest for unauthenticated guest reviews
+      venues/                # Venue CRUD, GeoJSON, images
+        [id]/public/         # GET — public venue info + accepted waiters (no auth)
+      upload/                # POST — Cloudinary image upload (avatar, venue-photo)
+      invites/               # Job invites: send (owner), respond (waiter)
+      shifts/                # Shift scheduling, marketplace, templates
+        [id]/clockin/        # POST — clock-in (GPS | QR | MANUAL)
+        [id]/clockout/       # POST — clock-out with early-exit detection
+        [id]/claim/          # POST — marketplace claim (WAITER)
+        [id]/swap/           # POST — initiate swap request
+        swaps/[swapId]/      # PATCH — owner approves/rejects swap
+        templates/           # Shift template CRUD + bulk generation
+      passport/              # Waiter passport read/write, engagements
+        share/               # POST — generate 30-day share link
+        public/[shareToken]/ # GET — public passport view (no auth)
+      waiters/               # GET — waiter search (VENUE_OWNER, HEADHUNTER)
+      headhunter/saved/      # Saved waiter profiles (GET | POST | DELETE)
+      insights/market/       # GET — market stats (open positions, avg salary, top municipalities)
+      admin/
+        reviews/             # GET DISPUTED reviews; PATCH publish/remove
+        venues/[id]/         # DELETE — GDPR hard-delete
+        zones/               # Zone CRUD (public read, admin write)
+      verification/
+        sanitary/            # Sanitary book submit (waiter) + approve/reject (admin)
+      notifications/         # GET + PATCH mark-read
+      push/subscribe/        # POST — register Web Push subscription
+      auth/                  # NextAuth + registration
   components/
     venue/             # VenueCard, VenueInsightsBadge
     job/               # JobCard, JobPostForm, RedAlertBadge
@@ -127,7 +164,7 @@ src/
     map/               # MapSearch, RedAlertPulse marker
     admin/             # ZoneRow, ZoneForm
     layout/            # DashboardShell, RoleGuard, Navbar
-    ui/                # Radix-based primitives + ImageUpload component
+    ui/                # Radix-based primitives, ImageUpload, NotificationBell
   lib/
     auth.ts            # NextAuth config
     db.ts              # Prisma client (soft-delete filtered) + dbRaw
@@ -136,6 +173,12 @@ src/
     geofence.ts        # Haversine + isInsideVenueRadius()
     sync-scores.ts     # publishDueReviews, syncVenueTrustScore, syncPassportScore
     rate-limit.ts      # In-memory (pre-auth) + DB-backed (post-auth) rate limiter
+    analytics.ts       # Zone insight cache: getVenueZoneInsights, refreshVenueZoneCache
+    notify.ts          # Unified notification dispatch (DB + push + WhatsApp + SMS)
+    webpush.ts         # Web Push (VAPID) sender
+    whatsapp.ts        # WhatsApp Business API sender
+    sms.ts             # Infobip SMS sender
+    shift-utils.ts     # computeScheduledStart / computeScheduledEnd helpers
     __tests__/         # Unit tests for trust-score and geofence
   design-system/
     tokens.ts          # Color palette and design tokens
@@ -156,13 +199,22 @@ prisma/
 
 ## Key Features
 
-- **Waiter Passport** — Portable reputation profile with Bayesian trust score, engagement history, skill badges, and a shareable link
+- **Waiter Passport** — Portable reputation profile with Bayesian trust score, engagement history, skill badges, and a 30-day shareable link (`/passport/[shareToken]`)
 - **Job Posts** — Venue owners post shifts with mandatory transparency fields (tip system, sanitary requirement, engagement type)
-- **Red Alert** — Urgent shifts pulse on the map with a highlighted marker
-- **Geofenced Guest Reviews** — Guests can only review a waiter if they are within 150m of the venue
+- **Red Alert** — Urgent shifts pulse on the map with a highlighted marker; indexed for fast queries
+- **Geofenced Guest Reviews** — Guests can only review a waiter within 150m of the venue; no auth required
+- **Shift Scheduling** — Full shift lifecycle: create → marketplace claim → GPS/QR/manual clock-in → clock-out with early-exit detection → swap requests with owner approval
+- **Shift Templates** — Recurring shift patterns with bulk generation (up to 90 days). Supports specific day-of-week or weekdays-only mode
 - **Verification Tiers** — UNVERIFIED → SILVER (employment contract) → GOLD (venue invite code) → ID_VERIFIED (document, ×1.2 score weight)
-- **Sanitary Book** — Waiters upload a sanitary certificate; admin approves; venue owners can filter by it
-- **Image Uploads** — Waiters upload a profile photo; venue owners upload up to 8 venue photos; all stored on Cloudinary with auto resize and quality
+- **Sanitary Book** — Waiters upload a sanitary certificate; admin approves/rejects; syncs `sanitaryBookValid` flag on passport; venue owners can filter by it
+- **Invites** — Venue owners send targeted job invites to waiters (rate-limited, 7-day expiry); waiters accept or decline
+- **Waiter Search** — VENUE_OWNER and HEADHUNTER can filter by score, availability, sanitary book, verification tier, skills, languages, and experience
+- **Headhunter Tools** — Save waiter profiles with notes; enriched passport data returned
+- **Zone Analytics** — Admin-managed map zones (FESTIVAL_ZONE, TRANSIT_HUB, DEVELOPMENT, …) with projected growth %. Venue zone insights cached as JSON on the Venue model
+- **Market Insights** — Aggregate stats: open positions, red alert count, average salary range, top municipalities
+- **3-Layer Notifications** — In-app bell (30s polling + Web Push), WhatsApp Business API (opt-in), Infobip SMS (opt-in)
+- **Admin Moderation** — Disputed review queue with publish/remove actions; GDPR hard-delete for venues
+- **Image Uploads** — Waiter avatars (400×400 face-crop) and venue photos (up to 8, 1200×800 fill); all on Cloudinary
 
 ## Cron Jobs
 
