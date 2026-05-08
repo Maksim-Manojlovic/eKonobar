@@ -1845,8 +1845,8 @@ function toMins(t: string) {
   return h * 60 + m;
 }
 function shiftsOverlap(a: ShiftTemplate, b: ShiftTemplate) {
-  let aS = toMins(a.startTime), aE = toMins(a.endTime);
-  let bS = toMins(b.startTime), bE = toMins(b.endTime);
+  const aS = toMins(a.startTime); let aE = toMins(a.endTime);
+  const bS = toMins(b.startTime); let bE = toMins(b.endTime);
   if (aE <= aS) aE += 1440; // overnight
   if (bE <= bS) bE += 1440;
   // both weekdaysOnly or share a day → could be scheduled same day

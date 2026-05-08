@@ -688,7 +688,6 @@ function ShiftsSection({ shifts, loading, onRefresh }: { shifts: WaiterShift[]; 
   const [swapReqs, setSwapReqs]       = useState<SwapRequest[]>([]);
   const [tabLoading, setTabLoading]   = useState(false);
   const [claiming, setClaiming]       = useState<string | null>(null);
-  const [swapActing, setSwapActing]   = useState<string | null>(null);
 
   useEffect(() => {
     if (tab === "open") {
@@ -711,13 +710,9 @@ function ShiftsSection({ shifts, loading, onRefresh }: { shifts: WaiterShift[]; 
     }
   }
 
-  async function handleSwapRespond(swapId: string) {
-    setSwapActing(swapId);
-    // Waiter accepting = they just claim the shift by navigating; for now just acknowledge
-    // The owner must approve — so we don't do anything server-side here from waiter side
-    setSwapActing(null);
+  function handleSwapRespond(_swapId: string) {
+    // Owner must approve — waiter side is informational only
   }
-  void handleSwapRespond; // used via swap UI
 
   if (loading) return (
     <div className="flex items-center justify-center py-16">
