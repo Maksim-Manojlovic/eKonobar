@@ -879,7 +879,7 @@ function DiscoverSection({ onInvite }: { posts: OwnPost[]; onInvite: (w: WaiterE
 
 /* ── Section: Waiters ────────────────────────────────────────────────────── */
 
-function WaitersSection({ applications, loading, onInvite }: { applications: IncomingApp[]; loading: boolean; onInvite: (w: WaiterEntry) => void }) {
+function WaitersSection({ applications, loading, onInvite, venue }: { applications: IncomingApp[]; loading: boolean; onInvite: (w: WaiterEntry) => void; venue: Venue | null }) {
   if (loading) return <Spinner />;
   const unique = Object.values(
     applications.reduce<Record<string, IncomingApp>>((acc, a) => {
@@ -903,6 +903,12 @@ function WaitersSection({ applications, loading, onInvite }: { applications: Inc
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-neutral-900">{a.waiter.name ?? "Konobar"}</span>
                       <TierBadge tier={a.waiter.verificationTier} />
+                      {venue?.headWaiterId === a.waiter.id && (
+                        <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
+                          <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                          Šef konobara
+                        </span>
+                      )}
                     </div>
                     {a.waiter.waiterPassport && (
                       <div className="flex items-center gap-2 mt-1">
@@ -2629,7 +2635,7 @@ export default function VenueDashboard() {
           {section === "new-post"     && <NewPostSection venue={venue} onSuccess={() => { fetchData(); setSection("posts"); }} onBack={() => setSection("posts")} />}
           {section === "smene"        && <VenueSmeneSection venue={venue} shifts={shifts} loading={loading} acceptedWaiters={acceptedWaiters} onRefresh={fetchData} />}
           {section === "applications" && <ApplicationsSection applications={applications} loading={loading} onStatusChange={handleStatusChange} />}
-          {section === "waiters"      && <WaitersSection applications={applications} loading={loading} onInvite={setInviteTarget} />}
+          {section === "waiters"      && <WaitersSection applications={applications} loading={loading} onInvite={setInviteTarget} venue={venue} />}
           {section === "discover"     && <DiscoverSection posts={posts} onInvite={setInviteTarget} />}
           {section === "reviews"      && <ReviewsSection />}
           {section === "qr-review"   && <QrReviewSection venue={venue} />}
