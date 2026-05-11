@@ -286,12 +286,12 @@ export default function ForVenuesPage() {
             {
               problem: '"Sezona je. Treba mi 6 ljudi za vikend, hitno."',
               before: "Letnja bašta, novogodišnja noć, rezervacija od 80 ljudi — i ti gledaš telefon u panici.",
-              after: <>Postaviš <strong>„sezonski paket"</strong> — sistem ga šalje samo Gold/Platinum konobarima sa istorijom za tu vrstu posla. Ekipa od 6 popunjena za sat vremena.</>,
+              after: <>Postaviš <strong>„sezonski paket&rdquo;</strong> — sistem ga šalje samo Gold/Platinum konobarima sa istorijom za tu vrstu posla. Ekipa od 6 popunjena za sat vremena.</>,
             },
             {
               problem: '"Dobar konobar zna gosta. Novi je svaki put nov."',
               before: `Vrtiš stalno različite ljude — gosti to osete. Stara klijentela počne da pita „gde je Stefan?".`,
-              after: <><strong>„Tvoj tim"</strong> — označavaš omiljene konobare, sistem ih prvo pita za svaku narednu smenu. Stalna ekipa bez stalnog ugovora.</>,
+              after: <><strong>„Tvoj tim&rdquo;</strong> — označavaš omiljene konobare, sistem ih prvo pita za svaku narednu smenu. Stalna ekipa bez stalnog ugovora.</>,
             },
           ].map((card, i) => (
             <div key={i} className="pain-card p-7">

@@ -50,7 +50,7 @@ const faqItems: FAQItem[] = [
     answer: (
       <>
         Tier ne opada nikada — broj smena ostaje. Ali aktivnost u poslednjih 90 dana{" "}
-        <strong className="font-semibold text-neutral-700">poboljšava prioritet</strong> u algoritmu preporuke. Ako planiraš pauzu, postaviš status „nedostupan" i ne kvariš statistiku.
+        <strong className="font-semibold text-neutral-700">poboljšava prioritet</strong> u algoritmu preporuke. Ako planiraš pauzu, postaviš status „nedostupan&rdquo; i ne kvariš statistiku.
       </>
     ),
   },
@@ -447,7 +447,7 @@ export default function ForWaitersPage() {
                 Vlasnici vide<br />tačno <span className="text-orange-400">isto</span> što i ti.
               </h2>
               <p className="text-base text-neutral-400 font-light leading-relaxed max-w-md">
-                Bez skrivenih napomena, bez „off-the-record" sistema. Tvoj passport je transparentan dokument koji svi gledaju iz iste tačke.
+                Bez skrivenih napomena, bez „off-the-record&rdquo; sistema. Tvoj passport je transparentan dokument koji svi gledaju iz iste tačke.
               </p>
               <div className="flex flex-col gap-4">
                 {[
