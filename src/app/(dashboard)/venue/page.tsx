@@ -252,9 +252,10 @@ function EmptyVenue({ onNavigate }: { onNavigate: (s: Section) => void }) {
 
 /* ── Section: Overview ───────────────────────────────────────────────────── */
 
-function OverviewSection({ venue, posts, applications, loading, onNavigate }: {
+function OverviewSection({ venue, posts, applications, loading, onNavigate, geofenceEnabled, geofenceSaving, onGeofenceToggle }: {
   venue: Venue | null; posts: OwnPost[]; applications: IncomingApp[];
   loading: boolean; onNavigate: (s: Section) => void;
+  geofenceEnabled: boolean; geofenceSaving: boolean; onGeofenceToggle: (val: boolean) => void;
 }) {
   if (loading) return <Spinner />;
   if (!venue) return <EmptyVenue onNavigate={onNavigate} />;
@@ -393,6 +394,21 @@ function OverviewSection({ venue, posts, applications, loading, onNavigate }: {
         {!venue.venueTrustScore && (
           <p className="text-xs text-neutral-400 mt-3 text-center">Trust Score se računa nakon prvih recenzija</p>
         )}
+      </div>
+
+      <div className="dash-card p-5 flex items-center justify-between gap-4">
+        <div>
+          <div className="text-sm font-semibold text-neutral-800">GPS geofencing za recenzije</div>
+          <div className="text-xs text-neutral-400 mt-0.5">Gosti moraju biti fizički u lokalu da bi ostavili recenziju</div>
+        </div>
+        <button
+          onClick={() => onGeofenceToggle(!geofenceEnabled)}
+          disabled={geofenceSaving}
+          aria-pressed={geofenceEnabled}
+          className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${geofenceEnabled ? "bg-orange-500" : "bg-neutral-300"}`}
+        >
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${geofenceEnabled ? "translate-x-6" : "translate-x-1"}`} />
+        </button>
       </div>
     </>
   );
@@ -1224,31 +1240,27 @@ function VenueCreateForm({ onCreated }: { onCreated: () => void }) {
   );
 }
 
-function ProfileSection({ venue, loading, onVenueCreated }: {
+function ProfileSection({ venue, loading, onVenueCreated, geofenceEnabled, geofenceSaving, onGeofenceToggle }: {
   venue: Venue | null; loading: boolean; onVenueCreated: () => void;
+  geofenceEnabled: boolean; geofenceSaving: boolean; onGeofenceToggle: (val: boolean) => void;
 }) {
   const [images, setImages] = useState<string[]>([]);
   const [imgSaving, setImgSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ phone: "", website: "", instagram: "", description: "", capacity: "", priceRangeMin: "", priceRangeMax: "" });
   const [editSaving, setEditSaving] = useState(false);
-  const [geofenceEnabled, setGeofenceEnabled] = useState(false);
-  const [geofenceSaving, setGeofenceSaving] = useState(false);
 
   useEffect(() => { setImages(venue?.images ?? []); }, [venue?.images]);
   useEffect(() => {
-    if (venue) {
-      setEditForm({
-        phone: venue.phone ?? "",
-        website: venue.website ?? "",
-        instagram: venue.instagram ?? "",
-        description: venue.description ?? "",
-        capacity: venue.capacity?.toString() ?? "",
-        priceRangeMin: venue.priceRangeMin?.toString() ?? "",
-        priceRangeMax: venue.priceRangeMax?.toString() ?? "",
-      });
-      setGeofenceEnabled(venue.geofenceEnabled);
-    }
+    if (venue) setEditForm({
+      phone: venue.phone ?? "",
+      website: venue.website ?? "",
+      instagram: venue.instagram ?? "",
+      description: venue.description ?? "",
+      capacity: venue.capacity?.toString() ?? "",
+      priceRangeMin: venue.priceRangeMin?.toString() ?? "",
+      priceRangeMax: venue.priceRangeMax?.toString() ?? "",
+    });
   }, [venue]);
 
   async function saveImages(next: string[]) {
@@ -1261,18 +1273,6 @@ function ProfileSection({ venue, loading, onVenueCreated }: {
     });
     setImages(next);
     setImgSaving(false);
-  }
-
-  async function toggleGeofence(val: boolean) {
-    if (!venue) return;
-    setGeofenceEnabled(val);
-    setGeofenceSaving(true);
-    await fetch(`/api/venues/${venue.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ geofenceEnabled: val }),
-    });
-    setGeofenceSaving(false);
   }
 
   if (loading) return <Spinner />;
@@ -1413,7 +1413,7 @@ function ProfileSection({ venue, loading, onVenueCreated }: {
             <div className="text-xs text-neutral-400 mt-0.5">Gosti moraju biti fizički u lokalu da bi ostavili recenziju. Konobarima je potrebna lokacija za čekiranje smene.</div>
           </div>
           <button
-            onClick={() => toggleGeofence(!geofenceEnabled)}
+            onClick={() => onGeofenceToggle(!geofenceEnabled)}
             disabled={geofenceSaving}
             aria-pressed={geofenceEnabled}
             className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${geofenceEnabled ? "bg-orange-500" : "bg-neutral-300"}`}
@@ -2598,6 +2598,8 @@ export default function VenueDashboard() {
   const [mobileOpen, setMobileOpen]     = useState(false);
   const [inviteTarget, setInviteTarget] = useState<WaiterEntry | null>(null);
   const [notifUnread, setNotifUnread]   = useState(0);
+  const [geofenceEnabled, setGeofenceEnabled] = useState(false);
+  const [geofenceSaving, setGeofenceSaving]   = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -2615,6 +2617,19 @@ export default function VenueDashboard() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { if (venue) setGeofenceEnabled(venue.geofenceEnabled); }, [venue]);
+
+  async function toggleGeofence(val: boolean) {
+    if (!venue) return;
+    setGeofenceEnabled(val);
+    setGeofenceSaving(true);
+    await fetch(`/api/venues/${venue.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ geofenceEnabled: val }),
+    });
+    setGeofenceSaving(false);
+  }
 
   const handleStatusChange = async (appId: string, status: string) => {
     await fetch(`/api/jobs/applications/${appId}`, {
@@ -2775,7 +2790,7 @@ export default function VenueDashboard() {
         </div>
 
         <div className="p-6 flex flex-col gap-6 max-w-5xl mx-auto">
-          {section === "overview"     && <OverviewSection venue={venue} posts={posts} applications={applications} loading={loading} onNavigate={setSection} />}
+          {section === "overview"     && <OverviewSection venue={venue} posts={posts} applications={applications} loading={loading} onNavigate={setSection} geofenceEnabled={geofenceEnabled} geofenceSaving={geofenceSaving} onGeofenceToggle={toggleGeofence} />}
           {section === "posts"        && <PostsSection posts={posts} loading={loading} onNavigate={setSection} onStatusChange={handlePostStatusChange} />}
           {section === "new-post"     && <NewPostSection venue={venue} onSuccess={() => { fetchData(); setSection("posts"); }} onBack={() => setSection("posts")} />}
           {section === "smene"        && <VenueSmeneSection venue={venue} shifts={shifts} loading={loading} acceptedWaiters={acceptedWaiters} onRefresh={fetchData} />}
@@ -2784,7 +2799,7 @@ export default function VenueDashboard() {
           {section === "discover"     && <DiscoverSection posts={posts} onInvite={setInviteTarget} />}
           {section === "reviews"      && <ReviewsSection />}
           {section === "qr-review"   && <QrReviewSection venue={venue} />}
-          {section === "profile"        && <ProfileSection venue={venue} loading={loading} onVenueCreated={fetchData} />}
+          {section === "profile"        && <ProfileSection venue={venue} loading={loading} onVenueCreated={fetchData} geofenceEnabled={geofenceEnabled} geofenceSaving={geofenceSaving} onGeofenceToggle={toggleGeofence} />}
           {section === "notifications"  && <NotificationsSection />}
         </div>
       </main>
