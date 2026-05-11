@@ -90,6 +90,7 @@ type Venue = {
   priceRangeMax: number | null;
   geofenceEnabled: boolean;
   images: string[];
+  logo?: string | null;
   headWaiterId: string | null;
   headWaiter: { id: string; name: string | null } | null;
   _count: { jobPosts: number };
@@ -292,7 +293,16 @@ function OverviewSection({ venue, posts, applications, loading, onNavigate, geof
               {VENUE_TYPE_LABELS[venue.venueType] ?? venue.venueType}
             </span>
           </div>
-          <h2 className="text-2xl font-black text-neutral-900">{venue.name}</h2>
+          <div className="flex items-center gap-2">
+            {venue.logo ? (
+              <Image src={venue.logo} alt="" width={32} height={32} className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-orange-200" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-xs flex-shrink-0">
+                {getInitials(venue.name)}
+              </div>
+            )}
+            <h2 className="text-2xl font-black text-neutral-900">{venue.name}</h2>
+          </div>
           <p className="text-sm text-neutral-500 mt-0.5">{venue.address} · {venue.municipality}</p>
           <div className="flex gap-6 mt-4">
             {[
@@ -1258,11 +1268,15 @@ function ProfileSection({ venue, loading, onVenueCreated, geofenceEnabled, geofe
 }) {
   const [images, setImages] = useState<string[]>([]);
   const [imgSaving, setImgSaving] = useState(false);
+  const [logo, setLogo] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ phone: "", website: "", instagram: "", description: "", capacity: "", priceRangeMin: "", priceRangeMax: "" });
   const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => { setImages(venue?.images ?? []); }, [venue?.images]);
+  useEffect(() => { setLogo(venue?.logo ?? null); }, [venue?.logo]);
   useEffect(() => {
     if (venue) setEditForm({
       phone: venue.phone ?? "",
@@ -1285,6 +1299,27 @@ function ProfileSection({ venue, loading, onVenueCreated, geofenceEnabled, geofe
     });
     setImages(next);
     setImgSaving(false);
+  }
+
+  async function handleLogoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !venue) return;
+    setLogoUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("type", "avatar");
+    const res = await fetch("/api/upload", { method: "POST", body: fd });
+    const data = await res.json();
+    if (res.ok) {
+      await fetch(`/api/venues/${venue.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ logo: data.url }),
+      });
+      setLogo(data.url);
+    }
+    setLogoUploading(false);
   }
 
   if (loading) return <Spinner />;
@@ -1310,6 +1345,27 @@ function ProfileSection({ venue, loading, onVenueCreated, geofenceEnabled, geofe
     <>
       <h2 className="font-black text-white">Profil lokala</h2>
       <div className="dash-card p-6 flex flex-col sm:flex-row gap-6 items-center">
+        <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => logoInputRef.current?.click()}
+            disabled={logoUploading}
+            className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-dashed border-neutral-300 hover:border-orange-400 transition-colors group disabled:opacity-60"
+          >
+            {logo ? (
+              <Image src={logo} alt="" fill className="object-cover" />
+            ) : (
+              <div className="w-full h-full bg-orange-100 flex items-center justify-center text-orange-600 font-black text-2xl">
+                {getInitials(venue.name)}
+              </div>
+            )}
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <span className="text-white text-xs font-bold">{logoUploading ? "..." : "Izmeni"}</span>
+            </div>
+          </button>
+          <span className="text-[10px] text-neutral-400">Logo lokala</span>
+          <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoFile} />
+        </div>
         <div className="relative flex-shrink-0" style={{ width: 112, height: 112 }}>
           <svg width="112" height="112" viewBox="0 0 112 112" className="-rotate-90">
             <circle cx="56" cy="56" r="46" fill="none" stroke="#f0efec" strokeWidth="10" />
@@ -2710,7 +2766,11 @@ export default function VenueDashboard() {
       </nav>
       <div className="px-3 py-4 border-t border-white/10">
         <div className="flex items-center gap-3 px-2 mb-3">
-          <div className="w-8 h-8 rounded-full bg-orange-900/40 flex items-center justify-center text-orange-300 font-bold text-sm flex-shrink-0 border border-orange-500/30">{initials}</div>
+          {venue?.logo ? (
+            <Image src={venue.logo} alt="" width={32} height={32} className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-orange-500/30" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-orange-900/40 flex items-center justify-center text-orange-300 font-bold text-sm flex-shrink-0 border border-orange-500/30">{initials}</div>
+          )}
           <div className="min-w-0">
             <div className="text-sm font-bold text-white truncate">{venue?.name ?? userName}</div>
             <div className="text-[11px] text-white/40 truncate">Vlasnik lokala</div>
@@ -2812,7 +2872,11 @@ export default function VenueDashboard() {
                 onUnreadChange={setNotifUnread}
               />
             </div>
-            <div id="tour-profile-avatar" className="w-9 h-9 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-300 font-bold text-sm border border-orange-500/30">{initials}</div>
+            {venue?.logo ? (
+              <Image src={venue.logo} alt="" width={36} height={36} id="tour-profile-avatar" className="w-9 h-9 rounded-xl object-cover border border-orange-500/30" />
+            ) : (
+              <div id="tour-profile-avatar" className="w-9 h-9 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-300 font-bold text-sm border border-orange-500/30">{initials}</div>
+            )}
           </div>
         </div>
 

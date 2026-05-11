@@ -76,9 +76,10 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { images, phone, website, instagram, description, capacity, priceRangeMin, priceRangeMax, geofenceEnabled } =
+  const { images, logo, phone, website, instagram, description, capacity, priceRangeMin, priceRangeMax, geofenceEnabled } =
     body as {
       images?: string[];
+      logo?: string | null;
       phone?: string | null;
       website?: string | null;
       instagram?: string | null;
@@ -108,6 +109,7 @@ export async function PATCH(
     where: { id },
     data: {
       ...(images !== undefined && { images }),
+      ...(logo !== undefined && { logo: logo || null }),
       ...(phone !== undefined && { phone: phone || null }),
       ...(website !== undefined && { website: website || null }),
       ...(instagram !== undefined && { instagram: instagram || null }),

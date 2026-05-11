@@ -254,6 +254,7 @@ model Venue {
   priceRangeMax Float?
 
   images      String[]
+  logo        String?
 
   trustScore  Float     @default(0)
   venueInsights Json?   // venueZone, blizina, tip — analogno growthInsights
