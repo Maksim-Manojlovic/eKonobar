@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Lexend } from "next/font/google";
 import { SessionProvider } from "@/components/providers/SessionProvider";
+import { LanguageProvider } from "@/components/providers/LanguageProvider";
 import "./globals.css";
 
 const lexend = Lexend({
@@ -28,7 +29,9 @@ export default function RootLayout({
   return (
     <html lang="sr" className={lexend.variable}>
       <body className="min-h-screen bg-cream-50 text-neutral-900 antialiased" suppressHydrationWarning>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <LanguageProvider>{children}</LanguageProvider>
+        </SessionProvider>
       </body>
     </html>
   );

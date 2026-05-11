@@ -1,10 +1,16 @@
+"use client";
+
 import Link from "next/link";
 import { Building2, ChefHat } from "lucide-react";
+import { useLang } from "@/components/providers/LanguageProvider";
+import { FlagSwitcher } from "@/components/ui/FlagSwitcher";
 
 export default function PreloaderPage() {
+  const { t } = useLang();
+
   return (
     <main
-      className="min-h-screen flex flex-col items-center justify-center px-4"
+      className="relative min-h-screen flex flex-col items-center justify-center px-4"
       style={{
         backgroundColor: "#120a00",
         backgroundImage:
@@ -17,7 +23,12 @@ export default function PreloaderPage() {
         <h1 className="text-4xl font-bold text-white tracking-tight">
           e<span className="text-orange-400">Konobar</span>
         </h1>
-        <p className="mt-2 text-white/50 text-sm">Digitalni pasoš za ugostiteljstvo</p>
+        <p className="mt-2 text-white/50 text-sm">
+          {t("preloader", "tagline")}
+        </p>
+        <div className="mt-4 flex justify-center">
+          <FlagSwitcher />
+        </div>
       </div>
 
       {/* Role cards */}
@@ -30,11 +41,15 @@ export default function PreloaderPage() {
             <Building2 size={32} />
           </div>
           <div>
-            <p className="text-lg font-semibold text-white">Nastavi kao vlasnik</p>
-            <p className="mt-1 text-sm text-white/50">Objavite oglase, verifikujte osoblje</p>
+            <p className="text-lg font-semibold text-white">
+              {t("preloader", "ownerTitle")}
+            </p>
+            <p className="mt-1 text-sm text-white/50">
+              {t("preloader", "ownerSubtitle")}
+            </p>
           </div>
           <span className="mt-2 inline-flex items-center gap-1 rounded-full border border-orange-400/30 px-3 py-1 text-xs text-orange-400">
-            Za lokale →
+            {t("preloader", "ownerBadge")} →
           </span>
         </Link>
 
@@ -46,20 +61,24 @@ export default function PreloaderPage() {
             <ChefHat size={32} />
           </div>
           <div>
-            <p className="text-lg font-semibold text-white">Nastavi kao konobar</p>
-            <p className="mt-1 text-sm text-white/50">Izgradite digitalni pasoš karijere</p>
+            <p className="text-lg font-semibold text-white">
+              {t("preloader", "waiterTitle")}
+            </p>
+            <p className="mt-1 text-sm text-white/50">
+              {t("preloader", "waiterSubtitle")}
+            </p>
           </div>
           <span className="mt-2 inline-flex items-center gap-1 rounded-full border border-orange-400/30 px-3 py-1 text-xs text-orange-400">
-            Za konobara →
+            {t("preloader", "waiterBadge")} →
           </span>
         </Link>
       </div>
 
       {/* Skip link */}
       <p className="mt-10 text-xs text-white/30">
-        Već imate nalog?{" "}
+        {t("preloader", "haveAccount")}{" "}
         <Link href="/login" className="text-orange-400/70 hover:text-orange-400 transition-colors">
-          Prijavite se
+          {t("preloader", "signIn")}
         </Link>
       </p>
     </main>
