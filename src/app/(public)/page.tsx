@@ -34,7 +34,7 @@ export default function PreloaderPage() {
       {/* Role cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-2xl">
         <Link
-          href="/landing"
+          href="/for-venues"
           className="group relative flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-10 text-center transition-all duration-200 hover:border-orange-400/50 hover:bg-orange-400/10 hover:scale-[1.02]"
         >
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-400/15 text-orange-400 transition-colors group-hover:bg-orange-400/25">
@@ -54,7 +54,7 @@ export default function PreloaderPage() {
         </Link>
 
         <Link
-          href="/landing"
+          href="/for-waiters"
           className="group relative flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-10 text-center transition-all duration-200 hover:border-orange-400/50 hover:bg-orange-400/10 hover:scale-[1.02]"
         >
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-400/15 text-orange-400 transition-colors group-hover:bg-orange-400/25">

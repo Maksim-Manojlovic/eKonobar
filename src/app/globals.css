@@ -190,6 +190,64 @@
 .step-dot.active { background: #f97316; width: 24px; border-radius: 4px; }
 .step-dot.done   { background: #f97316; }
 
+/* ── Landing pages shared ────────────────────────────────────────────────────── */
+
+.logo-mark {
+  background: #f97316;
+  box-shadow: 0 2px 8px rgba(249,115,22,0.35);
+}
+
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+.blink { animation: blink 1.5s ease-in-out infinite; }
+
+@keyframes float {
+  0%,100% { transform: translateY(0px); }
+  50%      { transform: translateY(-8px); }
+}
+.float-card { animation: float 5s ease-in-out infinite; }
+
+.tier-bronze   { background: linear-gradient(135deg, #d97706, #b45309); }
+.tier-silver   { background: linear-gradient(135deg, #a8a29e, #78716c); }
+.tier-gold     { background: linear-gradient(135deg, #f97316, #ea580c); }
+.tier-platinum { background: linear-gradient(135deg, #1c1209, #44291d); }
+
+.tier-card { transition: all 0.25s cubic-bezier(.4,0,.2,1); }
+.tier-card:hover { transform: translateY(-4px); }
+
+.badge-item { transition: all 0.2s ease; }
+.badge-item:hover { transform: translateY(-2px); border-color: #fed7aa; }
+
+.section-divider { background: linear-gradient(90deg, transparent, #f5f4f0 20%, #f5f4f0 80%, transparent); height: 1px; }
+
+.page-bg {
+  background-color: #fafaf8;
+  background-image:
+    radial-gradient(ellipse 70% 60% at 5% 0%, rgba(249,115,22,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 100% 8%, rgba(249,115,22,0.05) 0%, transparent 55%);
+}
+
+.pain-card {
+  background: white;
+  border: 1px solid #f0efec;
+  border-radius: 24px;
+  transition: all 0.25s ease;
+}
+.pain-card:hover { border-color: #fed7aa; transform: translateY(-3px); }
+
+.cmp-row { display: grid; grid-template-columns: 1.6fr 1fr 1fr; }
+.cmp-cell { padding: 18px 24px; border-top: 1px solid #f0efec; font-size: 14px; }
+.cmp-cell.head { padding-top: 22px; padding-bottom: 22px; border-top: none; }
+.cmp-x { color: #a8a29e; }
+
+@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+.marquee-track { animation: marquee 32s linear infinite; }
+
+@keyframes count-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.stat { animation: count-up 0.6s ease-out forwards; }
+
+.check-row { display: flex; gap: 12px; align-items: flex-start; }
+.tier-pill { font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.05em; }
+
 /* ── Dashboard ───────────────────────────────────────────────────────────────── */
 
 @keyframes slide-up {
