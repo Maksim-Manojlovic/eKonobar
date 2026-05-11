@@ -222,7 +222,7 @@ The Prisma client is cached on `globalThis._prisma`. After every `db:push` that 
 
 ## Database Models (key ones)
 
-- `User` — all roles in one table, `role` field discriminates. Has `phone`, `smsOptIn`, `waOptIn` for notification prefs.
+- `User` — all roles in one table, `role` field discriminates. Has `phone`, `smsOptIn`, `waOptIn` for notification prefs. `tourCompleted Boolean @default(false)` — set true after first-login dashboard tour closes; carried in JWT so no extra DB call at runtime.
 - `Venue` — lokal, owned by `VENUE_OWNER`
 - `JobPost` — oglas za posao, belongs to `Venue`
 - `JobApplication` — konobar applies to a `JobPost`
@@ -238,6 +238,80 @@ The Prisma client is cached on `globalThis._prisma`. After every `db:push` that 
 - `ShiftTemplate` — recurring shift pattern. Has `dayOfWeek Int?` (null when `weekdaysOnly=true`), `weekdaysOnly Boolean`, `metadata Json?` (`{ type, label, shift }`). Used for bulk generation.
 - `Notification` — in-app notification record. Has `type NotificationType`, `title`, `body`, `link`, `read`, `pushSent`, `waSent`, `smsSent`.
 - `PushSubscription` — browser Web Push subscription per user. Has `endpoint` (unique), `p256dh`, `auth`.
+
+## i18n (Language Switcher)
+
+Lightweight React Context — no next-intl, no route restructuring.
+
+- `src/lib/i18n.ts` — `Lang` type (`"sr" | "en" | "ru"`), `FLAGS` array (inline SVG, no emoji), translation map keyed by namespace + key
+- `src/components/providers/LanguageProvider.tsx` — `useState<Lang>("sr")`, reads/writes `ek_lang` to `localStorage`, type-safe `t(namespace, key)` helper
+- `src/components/ui/FlagSwitcher.tsx` — three inline SVG flag buttons (Serbia, UK, Russia); active = orange ring + scale-110. Use emoji flags nowhere — they don't render on Windows 10.
+
+Currently only the preloader page (`/`) is translated. Add new keys to `src/lib/i18n.ts` under the relevant namespace.
+
+## Public Landing Pages
+
+Three pages under `src/app/(public)/`:
+
+| Route | File | Purpose |
+|---|---|---|
+| `/` | `page.tsx` | Role-picker preloader — two cards linking to `/for-venues` and `/for-waiters` |
+| `/for-venues` | `for-venues/page.tsx` | Venue owner landing — hero, pain points, ROI section, comparison table, pricing (`#cenovnik`), demo form (`#demo`) |
+| `/for-waiters` | `for-waiters/page.tsx` | Waiter Passport™ landing — animated passport card, tier ladder, owner-view mockup, FAQ |
+| `/landing` | `landing/page.tsx` | Original shared landing page (preserved) |
+
+Both `/for-venues` and `/for-waiters` have **page-specific in-page nav menus** (no cross-links). Anchor IDs:
+- for-venues: `#kako-radi`, `#cenovnik`, `#faq`, `#demo`
+- for-waiters: `#kako-radi`, `#tierovi`, `#faq`
+
+### NavAuthButton
+
+`components/ui/NavAuthButton.tsx` — client component used in both landing page navs.
+
+- Logged out → renders "Prijava" → `/login`
+- Logged in → renders "Dashboard →" → role-based path (`/venue`, `/waiter`, `/headhunter`, `/admin`)
+
+Uses `useSession` from next-auth/react. Import and drop into any public nav.
+
+## Dashboard Tour
+
+First-login guided tour for venue owners via `driver.js`.
+
+### Hook: `useDashboardTour`
+
+`src/hooks/useDashboardTour.ts` — call inside `VenueDashboard`:
+
+```typescript
+const { startTour } = useDashboardTour(session?.user);
+```
+
+- Auto-fires when `session.user.tourCompleted === false` (first login only)
+- `startTour()` is also returned for manual re-trigger (wired to "Vodič" button on Pregled)
+- Detects mobile (`window.innerWidth < 768`) and builds steps with correct ID prefixes
+- On tour close/finish: `PATCH /api/user/tour-complete` (fire-and-forget)
+
+### Tour element IDs
+
+Mobile and desktop nav items have **different ID prefixes** to avoid `querySelector` collision (both are in the DOM simultaneously, mobile drawer is `display:none` on desktop):
+
+| Element | Desktop ID | Mobile ID |
+|---|---|---|
+| Sidebar container | `tour-sidebar-desktop` | `tour-sidebar` |
+| Nav items | `tour-nav-{key}` | `mob-tour-nav-{key}` |
+| Notification bell wrapper | `tour-notifications` | `tour-notifications` |
+| Profile avatar | `tour-profile-avatar` | `tour-profile-avatar` |
+
+`navContent()` in venue/page.tsx accepts an `idPrefix` param — pass `"mob-tour"` for the mobile drawer call, default `"tour"` for desktop.
+
+On mobile, `handleStartTour` calls `setMobileOpen(true)` + `setTimeout(startTour, 320)` to let the drawer slide animation finish before driver.js queries element positions.
+
+### tourCompleted in JWT
+
+`User.tourCompleted` is seeded into the JWT at login (`authorize → jwt → session` callbacks in `lib/auth.ts`). No DB query needed at runtime. Caveat: if a user completes the tour, the JWT still shows `false` until they re-login. The `PATCH /api/user/tour-complete` call is idempotent so re-showing and re-completing is harmless.
+
+### Styling
+
+driver.js popover overrides are in `globals.css` under `/* ── driver.js tour overrides */`. Background `#1a0e02`, orange title/buttons. `backdrop-filter: none` + `transform: translateZ(0)` prevent blur bleed-through from the sticky header's `backdropFilter: blur(12px)`.
 
 ## Trust Score
 

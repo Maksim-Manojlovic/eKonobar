@@ -11,6 +11,7 @@ A verified platform for the hospitality sector in Serbia. Waiters get a portable
 - **Charts:** Recharts
 - **Image storage:** Cloudinary
 - **UI:** Radix UI primitives, Tailwind CSS, lucide-react
+- **Tour:** driver.js (first-login guided walkthrough)
 - **Validation:** Zod
 - **Tests:** Vitest
 
@@ -120,7 +121,12 @@ App runs at [http://localhost:3000](http://localhost:3000).
 ```
 src/
   app/
-    (public)/          # Landing, venue listings, job listings, public passport (/passport/[shareToken])
+    (public)/          # Public-facing pages
+      page.tsx         # Role-picker preloader (/ route) — two cards → /for-venues, /for-waiters
+      for-venues/      # Venue owner landing page (in-page nav: #kako-radi, #cenovnik, #faq, #demo)
+      for-waiters/     # Waiter Passport™ landing page (in-page nav: #kako-radi, #tierovi, #faq)
+      landing/         # Original shared landing page (/landing)
+                       # Also: venue listings, job listings, public passport (/passport/[shareToken])
     (auth)/            # Login, register, onboarding (waiter | venue | headhunter)
     (dashboard)/       # Waiter, venue owner, headhunter, admin dashboards
     api/
@@ -145,6 +151,8 @@ src/
       passport/              # Waiter passport read/write, engagements
         share/               # POST — generate 30-day share link
         public/[shareToken]/ # GET — public passport view (no auth)
+      user/
+        tour-complete/       # PATCH — mark User.tourCompleted = true (called on tour close)
       waiters/               # GET — waiter search (VENUE_OWNER, HEADHUNTER)
       headhunter/saved/      # Saved waiter profiles (GET | POST | DELETE)
       insights/market/       # GET — market stats (open positions, avg salary, top municipalities)
@@ -166,8 +174,13 @@ src/
     map/               # MapSearch, RedAlertPulse marker
     admin/             # ZoneRow, ZoneForm
     layout/            # DashboardShell, RoleGuard, Navbar
-    ui/                # Radix-based primitives, ImageUpload, NotificationBell, NotificationsSection
+    providers/         # LanguageProvider (i18n context, localStorage persistence)
+    ui/                # Radix-based primitives, ImageUpload, NotificationBell,
+                       # NotificationsSection, FAQAccordion, FlagSwitcher, NavAuthButton
+  hooks/
+    useDashboardTour.ts  # driver.js first-login tour; returns { startTour } for manual re-trigger
   lib/
+    i18n.ts            # Lang type, FLAGS array (inline SVG), translation map (sr/en/ru)
     auth.ts            # NextAuth config
     db.ts              # Prisma client (soft-delete filtered) + dbRaw
     cloudinary.ts      # Cloudinary v2 client (used by /api/upload)
@@ -201,6 +214,9 @@ prisma/
 
 ## Key Features
 
+- **Role-Specific Landing Pages** — `/for-venues` (venue owner B2B funnel with demo form) and `/for-waiters` (Passport™ feature showcase). Each has its own in-page anchor nav. The root `/` route is a role-picker preloader with SR/EN/RU language switcher (inline SVG flags, `LanguageProvider` context).
+- **Session-Aware Nav** — `NavAuthButton` component swaps "Prijava" → role-based "Dashboard →" link when the user is already authenticated. Used on both landing pages.
+- **First-Login Guided Tour** — `driver.js` tour fires automatically on first venue-owner login (`User.tourCompleted`). Re-triggerable via "Vodič" button on the Pregled section. Mobile-aware: auto-opens sidebar drawer before starting. `tourCompleted` is carried in the JWT — no extra DB call at runtime.
 - **Waiter Passport** — Portable reputation profile with Bayesian trust score, engagement history, skill badges, and a 30-day shareable link (`/passport/[shareToken]`)
 - **Job Posts** — Venue owners post shifts with mandatory transparency fields (tip system, sanitary requirement, engagement type)
 - **Red Alert** — Urgent shifts pulse on the map with a highlighted marker; indexed for fast queries
