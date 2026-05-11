@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useLang } from "@/components/providers/LanguageProvider";
 import { Lang } from "@/lib/i18n";
 
@@ -34,7 +35,7 @@ const RussiaFlag = () => (
   </svg>
 );
 
-const FLAG_COMPONENTS: Record<Lang, { component: () => JSX.Element; name: string }> = {
+const FLAG_COMPONENTS: Record<Lang, { component: () => React.ReactElement; name: string }> = {
   sr: { component: SerbiaFlag, name: "Srpski" },
   en: { component: UKFlag,     name: "English" },
   ru: { component: RussiaFlag, name: "Русский" },
