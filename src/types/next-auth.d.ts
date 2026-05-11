@@ -8,6 +8,7 @@ declare module "next-auth" {
     role: Role;
     verificationTier: VerificationTier;
     rememberMe: boolean;
+    tourCompleted: boolean;
   }
 
   interface Session {
@@ -18,6 +19,7 @@ declare module "next-auth" {
       image?: string | null;
       role: Role;
       verificationTier: VerificationTier;
+      tourCompleted: boolean;
     };
     sessionExpiry: number;
   }
@@ -29,5 +31,6 @@ declare module "next-auth/jwt" {
     role: Role;
     verificationTier: VerificationTier;
     sessionExpiry: number;
+    tourCompleted: boolean;
   }
 }

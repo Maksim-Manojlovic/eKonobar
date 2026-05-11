@@ -332,3 +332,81 @@
   background: white; cursor: pointer;
 }
 .btn-dash-outline:hover { border-color: #f97316; color: #f97316; }
+
+/* ── driver.js tour overrides ────────────────────────────────────────────────── */
+
+.driver-popover {
+  background: #1a0e02 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(249,115,22,0.35) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(249,115,22,0.15) !important;
+  color: #fff !important;
+  font-family: var(--font-lexend) !important;
+  max-width: 320px !important;
+  transform: translateZ(0) !important;
+}
+
+.driver-popover-title {
+  color: #fb923c !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  margin-bottom: 6px !important;
+}
+
+.driver-popover-description {
+  color: rgba(255,255,255,0.75) !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+}
+
+.driver-popover-progress-text {
+  color: rgba(255,255,255,0.35) !important;
+  font-size: 11px !important;
+}
+
+.driver-popover-navigation-btns button {
+  background: #f97316 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  padding: 7px 14px !important;
+  cursor: pointer !important;
+  transition: background 0.15s !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: translateZ(0) !important;
+  text-shadow: none !important;
+  -webkit-font-smoothing: subpixel-antialiased !important;
+}
+
+.driver-popover-navigation-btns button:hover {
+  background: #ea580c !important;
+}
+
+.driver-popover-prev-btn {
+  background: transparent !important;
+  color: rgba(255,255,255,0.5) !important;
+  border: 1px solid rgba(255,255,255,0.15) !important;
+}
+
+.driver-popover-prev-btn:hover {
+  background: rgba(255,255,255,0.07) !important;
+  color: white !important;
+}
+
+.driver-popover-close-btn {
+  color: rgba(255,255,255,0.35) !important;
+}
+.driver-popover-close-btn:hover {
+  color: white !important;
+}
+
+.driver-popover-arrow-side-left .driver-popover-arrow  { border-right-color: #1a0e02 !important; }
+.driver-popover-arrow-side-right .driver-popover-arrow { border-left-color:  #1a0e02 !important; }
+.driver-popover-arrow-side-top .driver-popover-arrow   { border-bottom-color: #1a0e02 !important; }
+.driver-popover-arrow-side-bottom .driver-popover-arrow { border-top-color:  #1a0e02 !important; }

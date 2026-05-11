@@ -50,6 +50,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           verificationTier: user.verificationTier,
           rememberMe: credentials.rememberMe === "true",
+          tourCompleted: user.tourCompleted,
         };
       },
     }),
@@ -60,6 +61,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = user.role as Role;
         token.verificationTier = user.verificationTier as VerificationTier;
+        token.tourCompleted = user.tourCompleted;
         const ttl = user.rememberMe ? TTL_REMEMBER : TTL_DEFAULT;
         token.sessionExpiry = Math.floor(Date.now() / 1000) + ttl;
       }
@@ -69,6 +71,7 @@ export const authOptions: NextAuthOptions = {
       session.user.id = token.id as string;
       session.user.role = token.role as Role;
       session.user.verificationTier = token.verificationTier as VerificationTier;
+      session.user.tourCompleted = token.tourCompleted;
       // Izlažemo sessionExpiry klijentu za SessionExpiryToast.
       // Namerno NE overridujemo session.expires — to bi izazvalo
       // beskonačne re-fetch petlje u SessionProvider-u dok je JWT

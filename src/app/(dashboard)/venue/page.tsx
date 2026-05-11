@@ -9,6 +9,7 @@ import ImageUpload from "@/components/ui/ImageUpload";
 import { QRCodeCanvas } from "qrcode.react";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { NotificationsSection } from "@/components/ui/NotificationsSection";
+import { useDashboardTour } from "@/hooks/useDashboardTour";
 
 type Section = "overview" | "posts" | "new-post" | "smene" | "applications" | "waiters" | "discover" | "reviews" | "qr-review" | "profile" | "notifications";
 type AppFilter = "SVE" | "PENDING" | "SHORTLISTED" | "ACCEPTED" | "REJECTED";
@@ -252,10 +253,11 @@ function EmptyVenue({ onNavigate }: { onNavigate: (s: Section) => void }) {
 
 /* ── Section: Overview ───────────────────────────────────────────────────── */
 
-function OverviewSection({ venue, posts, applications, loading, onNavigate, geofenceEnabled, geofenceSaving, onGeofenceToggle }: {
+function OverviewSection({ venue, posts, applications, loading, onNavigate, geofenceEnabled, geofenceSaving, onGeofenceToggle, onStartTour }: {
   venue: Venue | null; posts: OwnPost[]; applications: IncomingApp[];
   loading: boolean; onNavigate: (s: Section) => void;
   geofenceEnabled: boolean; geofenceSaving: boolean; onGeofenceToggle: (val: boolean) => void;
+  onStartTour: () => void;
 }) {
   if (loading) return <Spinner />;
   if (!venue) return <EmptyVenue onNavigate={onNavigate} />;
@@ -305,9 +307,19 @@ function OverviewSection({ venue, posts, applications, loading, onNavigate, geof
             ))}
           </div>
         </div>
-        <button onClick={() => onNavigate("new-post")} className="btn-dash-orange px-4 py-2 self-start whitespace-nowrap">
-          + Novi oglas
-        </button>
+        <div className="flex flex-col gap-2 self-start">
+          <button onClick={() => onNavigate("new-post")} className="btn-dash-orange px-4 py-2 whitespace-nowrap">
+            + Novi oglas
+          </button>
+          <button
+            onClick={onStartTour}
+            title="Pokreni vodič"
+            className="flex items-center justify-center gap-1.5 text-xs text-neutral-400 hover:text-orange-400 transition-colors px-2 py-1"
+          >
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5"/><path d="M8 11V8M8 5.5V5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            Vodič
+          </button>
+        </div>
       </div>
 
       {pendingCount > 0 && (
@@ -2619,6 +2631,17 @@ export default function VenueDashboard() {
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { if (venue) setGeofenceEnabled(venue.geofenceEnabled); }, [venue]);
 
+  const { startTour } = useDashboardTour(session?.user);
+
+  const handleStartTour = useCallback(() => {
+    if (window.innerWidth < 768) {
+      setMobileOpen(true);
+      setTimeout(startTour, 320);
+    } else {
+      startTour();
+    }
+  }, [startTour]);
+
   async function toggleGeofence(val: boolean) {
     if (!venue) return;
     setGeofenceEnabled(val);
@@ -2667,11 +2690,12 @@ export default function VenueDashboard() {
   ).values()];
   const today = new Date().toLocaleDateString("sr-Latn-RS", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
 
-  const navContent = (closeMenu?: () => void) => (
+  const navContent = (closeMenu?: () => void, idPrefix = "tour") => (
     <>
       <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
         {NAV_ITEMS.map(item => (
           <button key={item.key}
+            id={`${idPrefix}-nav-${item.key}`}
             onClick={() => { setSection(item.key); closeMenu?.(); }}
             className={`nav-item ${section === item.key ? "active" : ""}`}>
             {item.icon}{item.label}
@@ -2723,6 +2747,7 @@ export default function VenueDashboard() {
 
       {/* Mobile drawer */}
       <div
+        id="tour-sidebar"
         className={`dark-sidebar fixed inset-y-0 left-0 z-50 w-64 flex flex-col md:hidden transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
         style={{
           background: "#0e0700",
@@ -2742,11 +2767,11 @@ export default function VenueDashboard() {
             </svg>
           </button>
         </div>
-        {navContent(() => setMobileOpen(false))}
+        {navContent(() => setMobileOpen(false), "mob-tour")}
       </div>
 
       {/* Desktop sidebar */}
-      <aside className="dark-sidebar hidden md:flex flex-col w-60 min-h-screen sticky top-0 h-screen overflow-y-auto"
+      <aside id="tour-sidebar-desktop" className="dark-sidebar hidden md:flex flex-col w-60 min-h-screen sticky top-0 h-screen overflow-y-auto"
         style={{
           background: "#0e0700",
           backgroundImage: ["linear-gradient(rgba(180,90,20,0.10) 1px, transparent 1px)", "linear-gradient(90deg, rgba(180,90,20,0.10) 1px, transparent 1px)"].join(", "),
@@ -2780,17 +2805,19 @@ export default function VenueDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <NotificationBell
-              dashboardPath="/dashboard/venue"
-              onViewAll={() => { setSection("notifications"); }}
-              onUnreadChange={setNotifUnread}
-            />
-            <div className="w-9 h-9 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-300 font-bold text-sm border border-orange-500/30">{initials}</div>
+            <div id="tour-notifications">
+              <NotificationBell
+                dashboardPath="/dashboard/venue"
+                onViewAll={() => { setSection("notifications"); }}
+                onUnreadChange={setNotifUnread}
+              />
+            </div>
+            <div id="tour-profile-avatar" className="w-9 h-9 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-300 font-bold text-sm border border-orange-500/30">{initials}</div>
           </div>
         </div>
 
         <div className="p-6 flex flex-col gap-6 max-w-5xl mx-auto">
-          {section === "overview"     && <OverviewSection venue={venue} posts={posts} applications={applications} loading={loading} onNavigate={setSection} geofenceEnabled={geofenceEnabled} geofenceSaving={geofenceSaving} onGeofenceToggle={toggleGeofence} />}
+          {section === "overview"     && <OverviewSection venue={venue} posts={posts} applications={applications} loading={loading} onNavigate={setSection} geofenceEnabled={geofenceEnabled} geofenceSaving={geofenceSaving} onGeofenceToggle={toggleGeofence} onStartTour={handleStartTour} />}
           {section === "posts"        && <PostsSection posts={posts} loading={loading} onNavigate={setSection} onStatusChange={handlePostStatusChange} />}
           {section === "new-post"     && <NewPostSection venue={venue} onSuccess={() => { fetchData(); setSection("posts"); }} onBack={() => setSection("posts")} />}
           {section === "smene"        && <VenueSmeneSection venue={venue} shifts={shifts} loading={loading} acceptedWaiters={acceptedWaiters} onRefresh={fetchData} />}

@@ -149,8 +149,9 @@ model User {
   jmbgHash      String?   @unique
   idVerifiedAt  DateTime?
 
-  rememberMe    Boolean   @default(false)
-  lastLoginAt   DateTime?
+  rememberMe      Boolean   @default(false)
+  lastLoginAt     DateTime?
+  tourCompleted   Boolean   @default(false)
 
   // Notification preferences
   phone         String?
