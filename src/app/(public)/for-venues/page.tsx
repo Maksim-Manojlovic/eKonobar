@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { FAQAccordion, type FAQItem } from "@/components/ui/FAQAccordion";
+import { NavAuthButton } from "@/components/ui/NavAuthButton";
 
 const LogoMark = () => (
   <div className="logo-mark w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -89,13 +90,12 @@ export default function ForVenuesPage() {
           <span className="hidden lg:inline-block whitespace-nowrap text-[10px] font-bold tracking-[0.18em] uppercase text-orange-500 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full ml-1">za vlasnike</span>
         </Link>
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-neutral-400">
-          <Link href="/for-waiters" className="hover:text-neutral-800 transition-colors">Za konobare</Link>
-          <Link href="/for-waiters" className="hover:text-neutral-800 transition-colors">Passport™</Link>
-          <Link href="/for-venues" className="text-orange-500 font-semibold">Za lokale</Link>
-          <Link href="#cenovnik" className="hover:text-neutral-800 transition-colors">Cenovnik</Link>
+          <a href="#kako-radi" className="hover:text-neutral-800 transition-colors">Kako funkcioniše</a>
+          <a href="#cenovnik" className="hover:text-neutral-800 transition-colors">Cenovnik</a>
+          <a href="#faq" className="hover:text-neutral-800 transition-colors">FAQ</a>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/login" className="hidden sm:inline-block text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors px-4 py-2">Prijava</Link>
+          <NavAuthButton />
           <Link href="#demo" className="btn-primary text-white text-sm font-semibold px-5 py-2.5 rounded-2xl">Zakaži demo</Link>
         </div>
       </nav>
@@ -363,7 +363,7 @@ export default function ForVenuesPage() {
       </section>
 
       {/* ── KAKO RADI ── */}
-      <section className="max-w-7xl mx-auto px-6 py-24">
+      <section id="kako-radi" className="max-w-7xl mx-auto px-6 py-24">
         <div className="text-center max-w-2xl mx-auto mb-16">
           <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Kako radi</span>
           <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">Tri koraka. Pet minuta. Smena popunjena.</h2>
@@ -524,7 +524,7 @@ export default function ForVenuesPage() {
       </section>
 
       {/* ── FAQ ── */}
-      <section className="max-w-4xl mx-auto px-6 py-24">
+      <section id="faq" className="max-w-4xl mx-auto px-6 py-24">
         <div className="text-center mb-12">
           <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">FAQ</span>
           <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">Pitanja vlasnika lokala</h2>
