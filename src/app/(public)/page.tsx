@@ -1,23 +1,67 @@
-import { Navbar } from "@/components/landing/Navbar";
-import { HeroSection } from "@/components/landing/HeroSection";
-import { B2BSection } from "@/components/landing/B2BSection";
-import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
-import { PassportShowcase } from "@/components/landing/PassportShowcase";
-import { TopVenuesSection } from "@/components/landing/TopVenuesSection";
-import { FAQSection } from "@/components/landing/FAQSection";
-import { Footer } from "@/components/landing/Footer";
+import Link from "next/link";
+import { Building2, ChefHat } from "lucide-react";
 
-export default async function LandingPage() {
+export default function PreloaderPage() {
   return (
-    <main className="bg-white">
-      <Navbar />
-      <HeroSection />
-      <B2BSection />
-      <HowItWorksSection />
-      <PassportShowcase />
-      <TopVenuesSection />
-      <FAQSection />
-      <Footer />
+    <main
+      className="min-h-screen flex flex-col items-center justify-center px-4"
+      style={{
+        backgroundColor: "#120a00",
+        backgroundImage:
+          "linear-gradient(rgba(249,115,22,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(249,115,22,0.06) 1px, transparent 1px)",
+        backgroundSize: "40px 40px",
+      }}
+    >
+      {/* Logo */}
+      <div className="mb-12 text-center">
+        <h1 className="text-4xl font-bold text-white tracking-tight">
+          e<span className="text-orange-400">Konobar</span>
+        </h1>
+        <p className="mt-2 text-white/50 text-sm">Digitalni pasoš za ugostiteljstvo</p>
+      </div>
+
+      {/* Role cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-2xl">
+        <Link
+          href="/landing"
+          className="group relative flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-10 text-center transition-all duration-200 hover:border-orange-400/50 hover:bg-orange-400/10 hover:scale-[1.02]"
+        >
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-400/15 text-orange-400 transition-colors group-hover:bg-orange-400/25">
+            <Building2 size={32} />
+          </div>
+          <div>
+            <p className="text-lg font-semibold text-white">Nastavi kao vlasnik</p>
+            <p className="mt-1 text-sm text-white/50">Objavite oglase, verifikujte osoblje</p>
+          </div>
+          <span className="mt-2 inline-flex items-center gap-1 rounded-full border border-orange-400/30 px-3 py-1 text-xs text-orange-400">
+            Za lokale →
+          </span>
+        </Link>
+
+        <Link
+          href="/landing"
+          className="group relative flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-10 text-center transition-all duration-200 hover:border-orange-400/50 hover:bg-orange-400/10 hover:scale-[1.02]"
+        >
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-400/15 text-orange-400 transition-colors group-hover:bg-orange-400/25">
+            <ChefHat size={32} />
+          </div>
+          <div>
+            <p className="text-lg font-semibold text-white">Nastavi kao konobar</p>
+            <p className="mt-1 text-sm text-white/50">Izgradite digitalni pasoš karijere</p>
+          </div>
+          <span className="mt-2 inline-flex items-center gap-1 rounded-full border border-orange-400/30 px-3 py-1 text-xs text-orange-400">
+            Za konobara →
+          </span>
+        </Link>
+      </div>
+
+      {/* Skip link */}
+      <p className="mt-10 text-xs text-white/30">
+        Već imate nalog?{" "}
+        <Link href="/login" className="text-orange-400/70 hover:text-orange-400 transition-colors">
+          Prijavite se
+        </Link>
+      </p>
     </main>
   );
 }
