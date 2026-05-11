@@ -3,9 +3,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { Session } from "next-auth";
 
-interface TourUser extends NonNullable<Session["user"]> {
-  tourCompleted?: boolean;
-}
+type TourUser = NonNullable<Session["user"]>;
 
 function buildSteps(mobile: boolean) {
   const sidebarId = mobile ? "#tour-sidebar" : "#tour-sidebar-desktop";
@@ -70,6 +68,7 @@ function buildSteps(mobile: boolean) {
 
 async function buildDriver() {
   const { driver } = await import("driver.js");
+  // @ts-expect-error — no type declarations for CSS asset
   await import("driver.js/dist/driver.css");
   return driver;
 }
