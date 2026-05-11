@@ -139,33 +139,38 @@ export async function POST(req: NextRequest) {
     if (!guestVenueId) {
       return NextResponse.json({ error: "venueId required for guest reviews" }, { status: 400 });
     }
-    const coords = parseGuestCoordinates(guestLatitude, guestLongitude);
-    if (!coords) {
-      return NextResponse.json(
-        { error: "Validne koordinate su obavezne za gostinsku recenziju" },
-        { status: 400 },
-      );
-    }
 
     const venue = await db.venue.findUnique({
       where: { id: guestVenueId },
-      select: { latitude: true, longitude: true, reviewRadiusKm: true },
+      select: { latitude: true, longitude: true, reviewRadiusKm: true, geofenceEnabled: true },
     });
     if (!venue) {
       return NextResponse.json({ error: "Lokal nije pronađen" }, { status: 404 });
     }
 
-    const geofence = isInsideVenueRadius(coords, venue);
-    if (!geofence.allowed) {
-      return NextResponse.json(
-        { error: `Morate biti u lokalu da biste ostavili recenziju (${Math.round(geofence.distanceKm * 1000)}m od lokala, dozvoljeno ${Math.round(geofence.radiusKm * 1000)}m)` },
-        { status: 403 },
-      );
+    const coords = parseGuestCoordinates(guestLatitude, guestLongitude);
+
+    if (venue.geofenceEnabled) {
+      if (!coords) {
+        return NextResponse.json(
+          { error: "Validne koordinate su obavezne za gostinsku recenziju" },
+          { status: 400 },
+        );
+      }
+      const geofence = isInsideVenueRadius(coords, venue);
+      if (!geofence.allowed) {
+        return NextResponse.json(
+          { error: `Morate biti u lokalu da biste ostavili recenziju (${Math.round(geofence.distanceKm * 1000)}m od lokala, dozvoljeno ${Math.round(geofence.radiusKm * 1000)}m)` },
+          { status: 403 },
+        );
+      }
     }
 
-    guestLat = coords.lat;
-    guestLon = coords.lon;
-    geolocationHash = createGeolocationHash(coords.lat, coords.lon);
+    if (coords) {
+      guestLat = coords.lat;
+      guestLon = coords.lon;
+      geolocationHash = createGeolocationHash(coords.lat, coords.lon);
+    }
   }
 
   // Weight: ID_VERIFIED authors count ×1.2

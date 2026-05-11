@@ -76,7 +76,7 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { images, phone, website, instagram, description, capacity, priceRangeMin, priceRangeMax } =
+  const { images, phone, website, instagram, description, capacity, priceRangeMin, priceRangeMax, geofenceEnabled } =
     body as {
       images?: string[];
       phone?: string | null;
@@ -86,6 +86,7 @@ export async function PATCH(
       capacity?: number | null;
       priceRangeMin?: number | null;
       priceRangeMax?: number | null;
+      geofenceEnabled?: boolean;
     };
 
   if (images !== undefined) {
@@ -114,6 +115,7 @@ export async function PATCH(
       ...(capacity !== undefined && { capacity: capacity != null ? Number(capacity) : null }),
       ...(priceRangeMin !== undefined && { priceRangeMin: priceRangeMin != null ? Number(priceRangeMin) : null }),
       ...(priceRangeMax !== undefined && { priceRangeMax: priceRangeMax != null ? Number(priceRangeMax) : null }),
+      ...(geofenceEnabled !== undefined && { geofenceEnabled: Boolean(geofenceEnabled) }),
     },
   });
 

@@ -87,6 +87,7 @@ type Venue = {
   description: string | null;
   priceRangeMin: number | null;
   priceRangeMax: number | null;
+  geofenceEnabled: boolean;
   images: string[];
   headWaiterId: string | null;
   headWaiter: { id: string; name: string | null } | null;
@@ -1231,18 +1232,23 @@ function ProfileSection({ venue, loading, onVenueCreated }: {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ phone: "", website: "", instagram: "", description: "", capacity: "", priceRangeMin: "", priceRangeMax: "" });
   const [editSaving, setEditSaving] = useState(false);
+  const [geofenceEnabled, setGeofenceEnabled] = useState(false);
+  const [geofenceSaving, setGeofenceSaving] = useState(false);
 
   useEffect(() => { setImages(venue?.images ?? []); }, [venue?.images]);
   useEffect(() => {
-    if (venue) setEditForm({
-      phone: venue.phone ?? "",
-      website: venue.website ?? "",
-      instagram: venue.instagram ?? "",
-      description: venue.description ?? "",
-      capacity: venue.capacity?.toString() ?? "",
-      priceRangeMin: venue.priceRangeMin?.toString() ?? "",
-      priceRangeMax: venue.priceRangeMax?.toString() ?? "",
-    });
+    if (venue) {
+      setEditForm({
+        phone: venue.phone ?? "",
+        website: venue.website ?? "",
+        instagram: venue.instagram ?? "",
+        description: venue.description ?? "",
+        capacity: venue.capacity?.toString() ?? "",
+        priceRangeMin: venue.priceRangeMin?.toString() ?? "",
+        priceRangeMax: venue.priceRangeMax?.toString() ?? "",
+      });
+      setGeofenceEnabled(venue.geofenceEnabled);
+    }
   }, [venue]);
 
   async function saveImages(next: string[]) {
@@ -1255,6 +1261,18 @@ function ProfileSection({ venue, loading, onVenueCreated }: {
     });
     setImages(next);
     setImgSaving(false);
+  }
+
+  async function toggleGeofence(val: boolean) {
+    if (!venue) return;
+    setGeofenceEnabled(val);
+    setGeofenceSaving(true);
+    await fetch(`/api/venues/${venue.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ geofenceEnabled: val }),
+    });
+    setGeofenceSaving(false);
   }
 
   if (loading) return <Spinner />;
@@ -1384,6 +1402,25 @@ function ProfileSection({ venue, loading, onVenueCreated }: {
             <div className="text-sm font-semibold text-neutral-900">{value}</div>
           </div>
         ))}
+      </div>
+
+      {/* Settings */}
+      <div className="dash-card p-5 flex flex-col gap-3">
+        <h3 className="font-bold text-neutral-900 text-sm">Podešavanja lokala</h3>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="text-sm font-semibold text-neutral-800">GPS geofencing za recenzije</div>
+            <div className="text-xs text-neutral-400 mt-0.5">Gosti moraju biti fizički u lokalu da bi ostavili recenziju. Konobarima je potrebna lokacija za čekiranje smene.</div>
+          </div>
+          <button
+            onClick={() => toggleGeofence(!geofenceEnabled)}
+            disabled={geofenceSaving}
+            aria-pressed={geofenceEnabled}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${geofenceEnabled ? "bg-orange-500" : "bg-neutral-300"}`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${geofenceEnabled ? "translate-x-6" : "translate-x-1"}`} />
+          </button>
+        </div>
       </div>
 
       {/* Photos */}

@@ -13,6 +13,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       latitude: true,
       longitude: true,
       reviewRadiusKm: true,
+      geofenceEnabled: true,
       images: true,
     },
   });

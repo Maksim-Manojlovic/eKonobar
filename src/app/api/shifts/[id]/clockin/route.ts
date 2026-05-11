@@ -23,7 +23,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const shift = await db.shift.findUnique({
     where: { id },
     include: {
-      venue: { select: { latitude: true, longitude: true, reviewRadiusKm: true, ownerId: true, name: true } },
+      venue: { select: { latitude: true, longitude: true, reviewRadiusKm: true, geofenceEnabled: true, ownerId: true, name: true } },
       assignments: { where: { waiterId: session.user.id } },
     },
   });
@@ -53,6 +53,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   if (inputMethod === "GPS") {
     const coords = parseGuestCoordinates(latitude, longitude);
+
+    if (!shift.venue.geofenceEnabled) {
+      // Geofencing disabled — auto-approve regardless of distance
+      return clockIn(assignment.id, "GPS", coords?.lat ?? null, coords?.lon ?? null, shift, now);
+    }
 
     if (coords) {
       const strict = isInsideVenueRadius(

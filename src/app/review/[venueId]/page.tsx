@@ -7,6 +7,7 @@ type Waiter = { id: string; name: string | null; image: string | null };
 type VenueInfo = {
   id: string; name: string; address: string | null;
   latitude: number | null; longitude: number | null; reviewRadiusKm: number | null;
+  geofenceEnabled: boolean;
   images: string[];
 };
 
@@ -68,19 +69,26 @@ export default function GuestReviewPage() {
     setStep("submitting");
     setErrorMsg("");
 
-    // Request GPS
-    const coords = await new Promise<GeolocationCoordinates | null>(resolve => {
-      if (!navigator.geolocation) { resolve(null); return; }
-      navigator.geolocation.getCurrentPosition(
-        p => resolve(p.coords),
-        () => resolve(null),
-        { timeout: 10000, maximumAge: 0 },
-      );
-    });
+    let guestLatitude: number | undefined;
+    let guestLongitude: number | undefined;
 
-    if (!coords) {
-      setStep("geo-denied");
-      return;
+    if (venue?.geofenceEnabled) {
+      const coords = await new Promise<GeolocationCoordinates | null>(resolve => {
+        if (!navigator.geolocation) { resolve(null); return; }
+        navigator.geolocation.getCurrentPosition(
+          p => resolve(p.coords),
+          () => resolve(null),
+          { timeout: 10000, maximumAge: 0 },
+        );
+      });
+
+      if (!coords) {
+        setStep("geo-denied");
+        return;
+      }
+
+      guestLatitude = coords.latitude;
+      guestLongitude = coords.longitude;
     }
 
     const res = await fetch("/api/reviews/guest", {
@@ -95,8 +103,8 @@ export default function GuestReviewPage() {
         ratingGuestSpeed:    speed     ? speed     * 20 : undefined,
         ratingAttentiveness: attentive ? attentive * 20 : undefined,
         comment:             comment   || undefined,
-        guestLatitude:       coords.latitude,
-        guestLongitude:      coords.longitude,
+        guestLatitude,
+        guestLongitude,
       }),
     });
 

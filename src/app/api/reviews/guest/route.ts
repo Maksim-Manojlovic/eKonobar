@@ -38,32 +38,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "overallRating must be 0-100" }, { status: 400 });
   }
 
-  // Geofence check
-  const coords = parseGuestCoordinates(guestLatitude, guestLongitude);
-  if (!coords) {
-    return NextResponse.json(
-      { error: "Koordinate su obavezne za gostinsku recenziju" },
-      { status: 400 },
-    );
-  }
-
   const venue = await db.venue.findUnique({
     where: { id: venueId },
-    select: { latitude: true, longitude: true, reviewRadiusKm: true },
+    select: { latitude: true, longitude: true, reviewRadiusKm: true, geofenceEnabled: true },
   });
   if (!venue) return NextResponse.json({ error: "Lokal nije pronađen" }, { status: 404 });
 
-  const geofence = isInsideVenueRadius(coords, venue);
-  if (!geofence.allowed) {
-    return NextResponse.json(
-      {
-        error: `Morate biti u lokalu da biste ostavili recenziju (${Math.round(geofence.distanceKm * 1000)}m od lokala, dozvoljeno ${Math.round(geofence.radiusKm * 1000)}m)`,
-      },
-      { status: 403 },
-    );
+  const coords = parseGuestCoordinates(guestLatitude, guestLongitude);
+
+  if (venue.geofenceEnabled) {
+    if (!coords) {
+      return NextResponse.json(
+        { error: "Koordinate su obavezne za gostinsku recenziju" },
+        { status: 400 },
+      );
+    }
+    const geofence = isInsideVenueRadius(coords, venue);
+    if (!geofence.allowed) {
+      return NextResponse.json(
+        {
+          error: `Morate biti u lokalu da biste ostavili recenziju (${Math.round(geofence.distanceKm * 1000)}m od lokala, dozvoljeno ${Math.round(geofence.radiusKm * 1000)}m)`,
+        },
+        { status: 403 },
+      );
+    }
   }
 
-  const geolocationHash = createGeolocationHash(coords.lat, coords.lon);
+  const geolocationHash = coords ? createGeolocationHash(coords.lat, coords.lon) : undefined;
 
   // Embargo: 2 hours before publishing
   const pendingUntil = new Date(Date.now() + 2 * 60 * 60 * 1000);
@@ -79,9 +80,9 @@ export async function POST(req: NextRequest) {
       comment:       comment ? String(comment).slice(0, 1000) : null,
       weight:        1.0,
       pendingUntil,
-      guestLatitude:  coords.lat,
-      guestLongitude: coords.lon,
-      geolocationHash,
+      guestLatitude:  coords?.lat ?? null,
+      guestLongitude: coords?.lon ?? null,
+      geolocationHash: geolocationHash ?? null,
       ratingFriendliness:  ratingFriendliness  != null ? Number(ratingFriendliness)  : null,
       ratingGuestSpeed:    ratingGuestSpeed    != null ? Number(ratingGuestSpeed)    : null,
       ratingAttentiveness: ratingAttentiveness != null ? Number(ratingAttentiveness) : null,
