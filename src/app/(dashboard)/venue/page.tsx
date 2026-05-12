@@ -2892,6 +2892,8 @@ export default function VenueDashboard() {
   const [mobileOpen, setMobileOpen]     = useState(false);
   const [inviteTarget, setInviteTarget] = useState<WaiterEntry | null>(null);
   const [notifUnread, setNotifUnread]   = useState(0);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const [geofenceEnabled, setGeofenceEnabled] = useState(false);
   const [geofenceSaving, setGeofenceSaving]   = useState(false);
 
@@ -2912,6 +2914,17 @@ export default function VenueDashboard() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { if (venue) setGeofenceEnabled(venue.geofenceEnabled); }, [venue]);
+
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [profileMenuOpen]);
 
   const { startTour } = useDashboardTour(session?.user);
 
@@ -3098,11 +3111,48 @@ export default function VenueDashboard() {
                 onUnreadChange={setNotifUnread}
               />
             </div>
-            {venue?.logo ? (
-              <Image src={venue.logo} alt="" width={36} height={36} id="tour-profile-avatar" className="w-9 h-9 rounded-xl object-cover border border-orange-500/30" />
-            ) : (
-              <div id="tour-profile-avatar" className="w-9 h-9 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-300 font-bold text-sm border border-orange-500/30">{initials}</div>
-            )}
+            <div ref={profileMenuRef} className="relative">
+              <button
+                id="tour-profile-avatar"
+                onClick={() => setProfileMenuOpen(o => !o)}
+                className="focus:outline-none"
+              >
+                {venue?.logo ? (
+                  <Image src={venue.logo} alt="" width={36} height={36} className="w-9 h-9 rounded-xl object-cover border border-orange-500/30 hover:border-orange-400/60 transition-colors" />
+                ) : (
+                  <div className="w-9 h-9 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-300 font-bold text-sm border border-orange-500/30 hover:border-orange-400/60 transition-colors">{initials}</div>
+                )}
+              </button>
+              {profileMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-44 rounded-xl border border-white/10 bg-[#1a0e02] shadow-xl z-50 overflow-hidden">
+                  <button
+                    onClick={() => { setSection("profile"); setProfileMenuOpen(false); }}
+                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-orange-100/80 hover:bg-orange-500/10 hover:text-orange-300 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
+                    Profil
+                  </button>
+                  <button
+                    onClick={() => { setSection("notifications"); setProfileMenuOpen(false); }}
+                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-orange-100/80 hover:bg-orange-500/10 hover:text-orange-300 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" /></svg>
+                    Notifikacije
+                    {notifUnread > 0 && (
+                      <span className="ml-auto bg-orange-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center">{notifUnread}</span>
+                    )}
+                  </button>
+                  <div className="border-t border-white/10 mx-3" />
+                  <button
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-400/80 hover:bg-red-900/20 hover:text-red-300 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" /></svg>
+                    Odjavi se
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
