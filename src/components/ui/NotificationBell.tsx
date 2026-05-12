@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 
 export type NotificationItem = {
   id: string;
@@ -19,6 +20,7 @@ export const TYPE_ICONS: Record<string, string> = {
   SWAP_RESOLVED:               "🔄",
   SHIFT_CLAIMED:               "📅",
   SHIFT_ASSIGNED:              "📅",
+  REVIEW_RECEIVED:             "⭐",
   REVIEW_PUBLISHED:            "⭐",
   CLOCKIN_APPROVAL_REQUESTED:  "⏰",
   CLOCKIN_RESOLVED:            "✅",
@@ -207,9 +209,9 @@ export function NotificationBell({
         </div>
       )}
 
-      {/* ── Mobile bottom sheet (<md) ─────────────────────────── */}
-      {open && (
-        <div className="fixed inset-0 z-50 md:hidden">
+      {/* ── Mobile bottom sheet (<md) — rendered via portal to escape backdrop-filter stacking context ── */}
+      {open && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[9999] md:hidden">
           {/* Backdrop */}
           <div className="fade-in-bg absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />
 
@@ -244,7 +246,8 @@ export function NotificationBell({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
