@@ -1557,52 +1557,63 @@ function ProfileSection({ venue, loading, onVenueCreated, geofenceEnabled, geofe
   return (
     <>
       <h2 className="font-black text-white">Profil lokala</h2>
-      <div className="dash-card p-6 flex flex-col sm:flex-row gap-6 items-center">
-        <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
-          <button
-            type="button"
-            onClick={() => logoInputRef.current?.click()}
-            disabled={logoUploading}
-            className="group disabled:opacity-60"
-          >
-            <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-dashed border-neutral-300 group-hover:border-orange-400 transition-colors" style={{ isolation: "isolate" }}>
-              {logo ? (
-                <Image src={logo} alt="" width={80} height={80} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-orange-100 flex items-center justify-center text-orange-600 font-black text-2xl">
-                  {getInitials(venue.name)}
+      <div className="dash-card p-5">
+        <div className="flex flex-wrap items-center gap-4 sm:flex-nowrap sm:gap-6">
+          {/* Logo */}
+          <div className="flex flex-col items-center gap-1 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => logoInputRef.current?.click()}
+              disabled={logoUploading}
+              className="group disabled:opacity-60"
+            >
+              <div className="relative w-[72px] h-[72px] rounded-full overflow-hidden border-2 border-dashed border-neutral-300 group-hover:border-orange-400 transition-colors" style={{ isolation: "isolate" }}>
+                {logo ? (
+                  <Image src={logo} alt="" width={72} height={72} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-orange-100 flex items-center justify-center text-orange-600 font-black text-xl">
+                    {getInitials(venue.name)}
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">{logoUploading ? "..." : "Izmeni"}</span>
                 </div>
-              )}
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <span className="text-white text-xs font-bold">{logoUploading ? "..." : "Izmeni"}</span>
               </div>
+            </button>
+            <span className="text-[10px] text-neutral-400">Logo lokala</span>
+            <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoFile} />
+          </div>
+
+          {/* Trust score */}
+          <div className="relative flex-shrink-0" style={{ width: 96, height: 96 }}>
+            <svg width="96" height="96" viewBox="0 0 96 96" className="-rotate-90">
+              <circle cx="48" cy="48" r="38" fill="none" stroke="#f0efec" strokeWidth="9" />
+              <circle cx="48" cy="48" r="38" fill="none" stroke="#f97316" strokeWidth="9"
+                strokeLinecap="round"
+                strokeDasharray={2 * Math.PI * 38}
+                strokeDashoffset={2 * Math.PI * 38 - (score / 100) * 2 * Math.PI * 38} />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-2xl font-black text-neutral-900">{score || "—"}</span>
+              <span className="text-[9px] font-bold text-orange-500 uppercase tracking-wide">trust skor</span>
             </div>
+          </div>
+
+          {/* Info */}
+          <div className="w-full sm:flex-1 sm:w-auto min-w-0">
+            <h3 className="text-xl font-black text-neutral-900">{venue.name}</h3>
+            <p className="text-sm text-neutral-500 mt-0.5">{venue.address} · {venue.municipality} · {venue.city}</p>
+            <div className="flex gap-2 flex-wrap mt-2">
+              <span className="bg-blue-50 text-blue-600 text-xs font-bold px-2.5 py-0.5 rounded-full">{VENUE_TYPE_LABELS[venue.venueType] ?? venue.venueType}</span>
+              <span className="bg-green-100 text-green-700 text-xs font-bold px-2.5 py-0.5 rounded-full">Aktivan</span>
+            </div>
+          </div>
+
+          {/* Edit button */}
+          <button onClick={() => setIsEditing(v => !v)} className="btn-dash-outline px-4 py-2 w-full sm:w-auto flex-shrink-0 sm:self-start">
+            {isEditing ? "Zatvori" : "Uredi profil"}
           </button>
-          <span className="text-[10px] text-neutral-400">Logo lokala</span>
-          <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoFile} />
         </div>
-        <div className="relative flex-shrink-0" style={{ width: 112, height: 112 }}>
-          <svg width="112" height="112" viewBox="0 0 112 112" className="-rotate-90">
-            <circle cx="56" cy="56" r="46" fill="none" stroke="#f0efec" strokeWidth="10" />
-            <circle cx="56" cy="56" r="46" fill="none" stroke="#f97316" strokeWidth="10"
-              strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset} />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-3xl font-black text-neutral-900">{score || "—"}</span>
-            <span className="text-[10px] font-bold text-orange-500 uppercase tracking-wide">trust skor</span>
-          </div>
-        </div>
-        <div className="flex-1">
-          <h3 className="text-xl font-black text-neutral-900">{venue.name}</h3>
-          <p className="text-sm text-neutral-500 mt-0.5">{venue.address} · {venue.municipality} · {venue.city}</p>
-          <div className="flex gap-2 flex-wrap mt-3">
-            <span className="bg-blue-50 text-blue-600 text-xs font-bold px-2.5 py-0.5 rounded-full">{VENUE_TYPE_LABELS[venue.venueType] ?? venue.venueType}</span>
-            <span className="bg-green-100 text-green-700 text-xs font-bold px-2.5 py-0.5 rounded-full">Aktivan</span>
-          </div>
-        </div>
-        <button onClick={() => setIsEditing(v => !v)} className="btn-dash-outline px-4 py-2 self-start flex-shrink-0">
-          {isEditing ? "Zatvori" : "Uredi profil"}
-        </button>
       </div>
       {isEditing && (
         <div className="dash-card p-5 flex flex-col gap-4">
