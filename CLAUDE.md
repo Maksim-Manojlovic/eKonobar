@@ -23,6 +23,15 @@ npm run test:watch       # run tests in watch mode
 
 Config is in `eslint.config.mjs` (ESLint 9 flat config). Run with `npm run lint`. The CI job runs lint before tests — fix all errors before committing.
 
+## Tests
+
+Two patterns in use:
+
+- **Pure function tests** (`src/lib/__tests__/`) — no mocking; test trust-score and geofence helpers directly.
+- **Route handler tests** (`src/app/api/reviews/[id]/__tests__/`) — use `vi.mock()` to mock `next-auth`, `@/lib/db`, and `@/lib/sync-scores`; call the exported handler function directly; assert on `Response.status` and mock call args.
+
+When adding route handler tests, mock at the module level with `vi.mock(...)` before imports, use `vi.clearAllMocks()` in `beforeEach`, and flush fire-and-forget promises with `await new Promise(r => setTimeout(r, 0))`.
+
 ## Critical Patterns
 
 ### db vs dbRaw
@@ -142,7 +151,9 @@ notify(userId, "APPLICATION_RECEIVED", "Nova prijava", "Marko se prijavio...", "
 
 Providers are no-ops when env vars are missing — safe in development.
 
-`NotificationType` enum values: `APPLICATION_RECEIVED`, `APPLICATION_STATUS_CHANGED`, `SWAP_REQUESTED`, `SWAP_RESOLVED`, `SHIFT_CLAIMED`, `SHIFT_ASSIGNED`, `REVIEW_PUBLISHED`, `CLOCKIN_APPROVAL_REQUESTED`, `CLOCKIN_RESOLVED`.
+`NotificationType` enum values: `APPLICATION_RECEIVED`, `APPLICATION_STATUS_CHANGED`, `SWAP_REQUESTED`, `SWAP_RESOLVED`, `SHIFT_CLAIMED`, `SHIFT_ASSIGNED`, `REVIEW_RECEIVED`, `REVIEW_PUBLISHED`, `CLOCKIN_APPROVAL_REQUESTED`, `CLOCKIN_RESOLVED`.
+
+- `REVIEW_RECEIVED` — fires to venue owner when any review is submitted (WAITER_TO_VENUE, GUEST_TO_VENUE, GUEST_TO_WAITER)
 
 ### NotificationBell
 
@@ -192,7 +203,14 @@ When `template.weekdaysOnly === true`, generation loops Mon–Fri (days 1–5) a
 
 ### Guest reviews (public, no auth)
 
-`POST /api/reviews/guest` accepts unauthenticated submissions. `Review.authorId` is nullable — null means guest. Display as "Gost" in UI. `guestHandle` is an optional display name (max 50 chars). The route is rate-limited by IP and geofenced server-side.
+`POST /api/reviews/guest` accepts unauthenticated submissions. Supports two directions via the `direction` field (default: `"GUEST_TO_WAITER"`):
+
+- `GUEST_TO_WAITER` — requires `subjectId` (waiter); stores `ratingFriendliness`, `ratingGuestSpeed`, `ratingAttentiveness`; fires `syncPassportScore`
+- `GUEST_TO_VENUE` — no `subjectId`; stores `ratingAtmosphere`, `ratingOrganization`, `ratingHygieneWork`; fires `syncVenueTrustScore`
+
+`Review.authorId` is nullable — null means guest. Display as "Gost" in UI. `guestHandle` is an optional display name (max 50 chars). The route is rate-limited by IP (3/hour) and geofenced server-side (150m). After creation, `REVIEW_RECEIVED` is sent to the venue owner.
+
+The `/review/[venueId]` public page presents a 3-choice flow: "Oceni restoran" (GUEST_TO_VENUE), "Oceni konobara" (GUEST_TO_WAITER), "Oceni oba" (both — two sequential POSTs sharing the same geolocation coords).
 
 The public venue info endpoint `GET /api/venues/[id]/public` returns venue + accepted waiters list — no auth required.
 
@@ -223,12 +241,12 @@ The Prisma client is cached on `globalThis._prisma`. After every `db:push` that 
 ## Database Models (key ones)
 
 - `User` — all roles in one table, `role` field discriminates. Has `phone`, `smsOptIn`, `waOptIn` for notification prefs. `tourCompleted Boolean @default(false)` — set true after first-login dashboard tour closes; carried in JWT so no extra DB call at runtime.
-- `Venue` — lokal, owned by `VENUE_OWNER`
+- `Venue` — lokal, owned by `VENUE_OWNER`. Has `logo String?` — displayed as circle avatar in sidebar and top bar instead of initials when set.
 - `JobPost` — oglas za posao, belongs to `Venue`
 - `JobApplication` — konobar applies to a `JobPost`
 - `WaiterPassport` — one-to-one with `WAITER` User
 - `EngagementRecord` — verified work history entry on the passport
-- `Review` — three types: `WAITER_TO_VENUE`, `VENUE_TO_WAITER`, `GUEST_TO_WAITER`. `authorId` is nullable (null = guest).
+- `Review` — four directions: `WAITER_TO_VENUE`, `VENUE_TO_WAITER`, `GUEST_TO_WAITER`, `GUEST_TO_VENUE`. `authorId` is nullable (null = guest).
 - `VenueZone` — map zone (hotspot) for analytics
 - `Invite` — venue invite code for GOLD verification
 - `RateLimit` — DB-backed rate limit counters (userId + action + hourly window)
@@ -338,15 +356,29 @@ The cron endpoint `POST /api/cron/publish-reviews` runs this flow on a schedule.
 - Auth check: `getServerSession(authOptions)` from `lib/auth.ts`
 - Rate limiting: `checkRateLimit(userId, action, max)` from `lib/rate-limit.ts`
 - GeoJSON endpoints (`/api/venues/geojson`, `/api/jobs/geojson`) accept bounding box params: `swLat`, `swLng`, `neLat`, `neLng`
-- `GUEST_TO_WAITER` reviews require `guestLatitude` and `guestLongitude` in the request body
+- `GUEST_TO_WAITER` and `GUEST_TO_VENUE` reviews require `guestLatitude` and `guestLongitude` in the request body (when `geofenceEnabled`)
 - Guest review submissions go to `POST /api/reviews/guest` (no auth) — not the main `/api/reviews` route
+- `GET /api/venues/[id]/reviews` — owner-only feed; returns all non-REMOVED reviews across all directions for the venue
 
 ## Review Lifecycle
 
 ```
-POST /api/reviews → status: PENDING
+POST /api/reviews (or /guest) → status: PENDING, notifies venue owner (REVIEW_RECEIVED)
+  Venue owner can immediately PATCH /api/reviews/[id] { action: "approve" | "reject" }
+    approve → PUBLISHED, publishedAt = now, triggers score sync
+    reject  → REMOVED (drops from all feeds)
+  OR wait for cron:
   2h later (guest) / 48h later (venue/waiter) → publishDueReviews() → PUBLISHED
   if isHighFriction() (score ≥60 swing) → DISPUTED
+```
+
+```
+PATCH /api/reviews/[id]  { action: "approve" | "reject" }
+  VENUE_OWNER only (must own the review's venue). Only PENDING reviews.
+  approve → status: PUBLISHED, publishedAt: now
+          → syncVenueTrustScore (WAITER_TO_VENUE | GUEST_TO_VENUE)
+          → syncPassportScore   (VENUE_TO_WAITER | GUEST_TO_WAITER)
+  reject  → status: REMOVED, no score sync
 ```
 
 ## Engagement Completion Flow

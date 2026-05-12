@@ -134,7 +134,9 @@ src/
         publish-reviews/     # POST — publishes due reviews + syncs trust scores
       jobs/                  # Job posts (CRUD), applications, GeoJSON
         applications/        # Application lifecycle (PATCH status transitions)
-      reviews/               # Review submission; /guest for unauthenticated guest reviews
+      reviews/               # Review submission (WAITER_TO_VENUE, VENUE_TO_WAITER)
+        guest/               # POST — unauthenticated guest reviews (GUEST_TO_VENUE | GUEST_TO_WAITER)
+        [id]/                # PATCH — venue owner approve/reject PENDING reviews
       venues/                # Venue CRUD, GeoJSON, images
         [id]/public/         # GET — public venue info + accepted waiters (no auth)
       upload/                # POST — Cloudinary image upload (avatar, venue-photo)
@@ -194,7 +196,8 @@ src/
     whatsapp.ts        # WhatsApp Business API sender
     sms.ts             # Infobip SMS sender
     shift-utils.ts     # computeScheduledStart / computeScheduledEnd helpers
-    __tests__/         # Unit tests for trust-score and geofence
+    __tests__/         # Unit tests for trust-score and geofence (pure functions)
+  app/api/reviews/[id]/__tests__/  # Route handler tests (vi.mock() pattern)
   design-system/
     tokens.ts          # Color palette and design tokens
 prisma/
@@ -210,7 +213,7 @@ prisma/
 | `VENUE_OWNER` | Venue profile, job posts, staff verification |
 | `HEADHUNTER` | Advanced search of verified talent |
 | `ADMIN` | Moderation, sanitary book verification, zone analytics |
-| `GUEST` | Can leave geofenced reviews for waiters |
+| `GUEST` | Can leave geofenced reviews for waiters or venues (no account required) |
 
 ## Key Features
 
@@ -220,7 +223,7 @@ prisma/
 - **Waiter Passport** — Portable reputation profile with Bayesian trust score, engagement history, skill badges, and a 30-day shareable link (`/passport/[shareToken]`)
 - **Job Posts** — Venue owners post shifts with mandatory transparency fields (tip system, sanitary requirement, engagement type)
 - **Red Alert** — Urgent shifts pulse on the map with a highlighted marker; indexed for fast queries
-- **Geofenced Guest Reviews** — Guests can only review a waiter within 150m of the venue; no auth required
+- **Geofenced Guest Reviews** — QR code at the table opens a 3-choice flow: review the venue (GUEST_TO_VENUE), a specific waiter (GUEST_TO_WAITER), or both. No auth required; GPS-geofenced within 150m. Venue owners receive a `REVIEW_RECEIVED` notification and can approve or reject PENDING reviews before auto-publish
 - **Shift Scheduling** — Full shift lifecycle: create → marketplace claim → GPS clock-in with 3-tier geofence (50m auto, 50–150m grace, >150m manager approval) → clock-out with early-exit detection → swap requests with owner approval
 - **Shift Templates** — Recurring shift patterns with bulk generation (up to 90 days). Supports specific day-of-week or weekdays-only mode
 - **Verification Tiers** — UNVERIFIED → SILVER (employment contract) → GOLD (venue invite code) → ID_VERIFIED (document, ×1.2 score weight)
@@ -233,7 +236,7 @@ prisma/
 - **Dark Dashboard Theme** — Both venue-owner and waiter dashboards use a deep `#120a00` background with an orange-brown grid overlay and a mouse-following radial spotlight rendered via `useRef` (no re-renders). Sidebar and mobile drawer match (`#0e0700` + grid). The `.dark-sidebar` CSS class overrides `.nav-item` colors without touching light-mode pages
 - **3-Layer Notifications** — In-app bell with desktop dropdown + mobile bottom sheet (30s polling + Web Push), WhatsApp Business API (opt-in), Infobip SMS (opt-in). Full notifications page with day-grouped feed and type filter chips (`NotificationsSection`)
 - **Admin Moderation** — Disputed review queue with publish/remove actions; GDPR hard-delete for venues
-- **Image Uploads** — Waiter avatars (400×400 face-crop) and venue photos (up to 8, 1200×800 fill); all on Cloudinary
+- **Image Uploads** — Waiter avatars (400×400 face-crop), venue photos (up to 8, 1200×800 fill), and venue logo (circle avatar shown in sidebar and top bar); all on Cloudinary
 
 ## Cron Jobs
 
