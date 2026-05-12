@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { syncPassportScore, syncVenueTrustScore } from "@/lib/sync-scores";
 import { isInsideVenueRadius, createGeolocationHash, parseGuestCoordinates } from "@/lib/geofence";
 import { rateLimit } from "@/lib/rate-limit";
+import { notify } from "@/lib/notify";
 
 export async function POST(req: NextRequest) {
   // IP-based rate limit: 3 guest reviews per hour per IP
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
 
   const venue = await db.venue.findUnique({
     where: { id: venueId },
-    select: { latitude: true, longitude: true, reviewRadiusKm: true, geofenceEnabled: true },
+    select: { latitude: true, longitude: true, reviewRadiusKm: true, geofenceEnabled: true, ownerId: true, name: true },
   });
   if (!venue) return NextResponse.json({ error: "Lokal nije pronađen" }, { status: 404 });
 
@@ -103,6 +104,11 @@ export async function POST(req: NextRequest) {
     });
 
     syncVenueTrustScore(venueId).catch(console.error);
+    if (venue.ownerId) {
+      const stars = Math.round(rating / 20);
+      notify(venue.ownerId, "REVIEW_RECEIVED", "Nova recenzija lokala",
+        `Gost je ocenio vaš lokal sa ${stars}★`, "/venue").catch(console.error);
+    }
     return NextResponse.json({ ok: true, id: review.id }, { status: 201 });
   }
 
@@ -128,5 +134,10 @@ export async function POST(req: NextRequest) {
   });
 
   syncPassportScore(subjectId).catch(console.error);
+  if (venue.ownerId) {
+    const stars = Math.round(rating / 20);
+    notify(venue.ownerId, "REVIEW_RECEIVED", "Nova gostinska recenzija",
+      `Gost je ocenio konobara sa ${stars}★`, "/venue").catch(console.error);
+  }
   return NextResponse.json({ ok: true, id: review.id }, { status: 201 });
 }

@@ -128,6 +128,7 @@ enum NotificationType {
   SWAP_RESOLVED                  // swap accepted/rejected → both waiters
   SHIFT_CLAIMED                  // waiter claimed open shift → venue owner
   SHIFT_ASSIGNED                 // owner assigned waiter → waiter
+  REVIEW_RECEIVED                // new review submitted → venue owner
   REVIEW_PUBLISHED               // review went live → subject
   CLOCKIN_APPROVAL_REQUESTED     // waiter outside geofence → venue owner
   CLOCKIN_RESOLVED               // owner approved/rejected clock-in → waiter

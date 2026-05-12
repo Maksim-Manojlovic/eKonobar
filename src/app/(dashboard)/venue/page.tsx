@@ -1018,17 +1018,34 @@ function shortDate(iso: string): string {
 function ReviewsSection({ venue }: { venue: Venue | null }) {
   const [reviews, setReviews]   = useState<VenueReview[]>([]);
   const [loadingR, setLoadingR] = useState(true);
+  const [moderating, setModerating] = useState<string | null>(null);
 
   useEffect(() => {
     if (!venue) { setLoadingR(false); return; }
     fetch(`/api/venues/${venue.id}/reviews`)
       .then(r => r.ok ? r.json() : [])
       .then((data: VenueReview[]) => {
-        setReviews(data.filter(r => r.direction === "WAITER_TO_VENUE"));
+        setReviews(data.filter(r => r.direction === "WAITER_TO_VENUE" && r.status !== "REMOVED"));
         setLoadingR(false);
       })
       .catch(() => setLoadingR(false));
   }, [venue?.id]);
+
+  async function handleModerate(reviewId: string, action: "approve" | "reject") {
+    setModerating(reviewId);
+    const res = await fetch(`/api/reviews/${reviewId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    setModerating(null);
+    if (res.ok) {
+      setReviews(prev => action === "reject"
+        ? prev.filter(r => r.id !== reviewId)
+        : prev.map(r => r.id === reviewId ? { ...r, status: "PUBLISHED" } : r)
+      );
+    }
+  }
 
   return (
     <>
@@ -1062,6 +1079,18 @@ function ReviewsSection({ venue }: { venue: Venue | null }) {
                     {r.ratingAtmosphere   && <span className="text-xs text-neutral-400">Atmosfera {starsText(r.ratingAtmosphere)}</span>}
                     {r.ratingOrganization && <span className="text-xs text-neutral-400">Organizacija {starsText(r.ratingOrganization)}</span>}
                     {r.ratingHygieneWork  && <span className="text-xs text-neutral-400">Higijena {starsText(r.ratingHygieneWork)}</span>}
+                  </div>
+                )}
+                {r.status === "PENDING" && (
+                  <div className="flex gap-2 mt-2">
+                    <button disabled={moderating === r.id} onClick={() => handleModerate(r.id, "approve")}
+                      className="text-xs font-semibold px-3 py-1 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50 transition-colors">
+                      {moderating === r.id ? "..." : "Objavi"}
+                    </button>
+                    <button disabled={moderating === r.id} onClick={() => handleModerate(r.id, "reject")}
+                      className="text-xs font-semibold px-3 py-1 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 transition-colors">
+                      Odbaci
+                    </button>
                   </div>
                 )}
               </div>
@@ -1100,17 +1129,36 @@ function QrReviewSection({ venue }: { venue: Venue | null }) {
   const [copied, setCopied] = useState(false);
   const [guestReviews, setGuestReviews] = useState<VenueReview[]>([]);
   const [loadingGR, setLoadingGR] = useState(true);
+  const [moderating, setModerating] = useState<string | null>(null);
 
   useEffect(() => {
     if (!venue) { setLoadingGR(false); return; }
     fetch(`/api/venues/${venue.id}/reviews`)
       .then(r => r.ok ? r.json() : [])
       .then((data: VenueReview[]) => {
-        setGuestReviews(data.filter(r => r.direction === "GUEST_TO_VENUE" || r.direction === "GUEST_TO_WAITER"));
+        setGuestReviews(data.filter(r =>
+          (r.direction === "GUEST_TO_VENUE" || r.direction === "GUEST_TO_WAITER") && r.status !== "REMOVED"
+        ));
         setLoadingGR(false);
       })
       .catch(() => setLoadingGR(false));
   }, [venue?.id]);
+
+  async function handleModerate(reviewId: string, action: "approve" | "reject") {
+    setModerating(reviewId);
+    const res = await fetch(`/api/reviews/${reviewId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    setModerating(null);
+    if (res.ok) {
+      setGuestReviews(prev => action === "reject"
+        ? prev.filter(r => r.id !== reviewId)
+        : prev.map(r => r.id === reviewId ? { ...r, status: "PUBLISHED" } : r)
+      );
+    }
+  }
 
   if (!venue) {
     return (
@@ -1266,6 +1314,18 @@ function QrReviewSection({ venue }: { venue: Venue | null }) {
                   {r.ratingGuestSpeed    != null && <span className="text-xs text-neutral-400">Brzina {starsText(r.ratingGuestSpeed)}</span>}
                   {r.ratingAttentiveness != null && <span className="text-xs text-neutral-400">Pažljivost {starsText(r.ratingAttentiveness)}</span>}
                 </div>
+                {r.status === "PENDING" && (
+                  <div className="flex gap-2 mt-2">
+                    <button disabled={moderating === r.id} onClick={() => handleModerate(r.id, "approve")}
+                      className="text-xs font-semibold px-3 py-1 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50 transition-colors">
+                      {moderating === r.id ? "..." : "Objavi"}
+                    </button>
+                    <button disabled={moderating === r.id} onClick={() => handleModerate(r.id, "reject")}
+                      className="text-xs font-semibold px-3 py-1 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 transition-colors">
+                      Odbaci
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

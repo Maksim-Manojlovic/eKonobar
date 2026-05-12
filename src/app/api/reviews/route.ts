@@ -9,6 +9,7 @@ import {
   parseGuestCoordinates,
 } from "@/lib/geofence";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { notify } from "@/lib/notify";
 import { ReviewDirection } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -228,6 +229,16 @@ export async function POST(req: NextRequest) {
   // Fire-and-forget score sync after review is created
   if (direction === "WAITER_TO_VENUE" && venueId) {
     syncVenueTrustScore(venueId).catch(console.error);
+    // notify venue owner
+    db.venue.findUnique({ where: { id: venueId }, select: { ownerId: true } })
+      .then(v => {
+        if (v?.ownerId) {
+          const stars = Math.round(rating / 20);
+          notify(v.ownerId, "REVIEW_RECEIVED", "Nova recenzija lokala",
+            `${session.user.name ?? "Konobar"} je ocenio vaš lokal sa ${stars}★`, "/venue")
+            .catch(console.error);
+        }
+      }).catch(console.error);
   } else if ((direction === "VENUE_TO_WAITER" || direction === "GUEST_TO_WAITER") && subjectId) {
     syncPassportScore(subjectId).catch(console.error);
   }
