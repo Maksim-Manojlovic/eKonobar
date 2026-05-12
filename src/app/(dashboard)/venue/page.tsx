@@ -1350,17 +1350,19 @@ function ProfileSection({ venue, loading, onVenueCreated, geofenceEnabled, geofe
             type="button"
             onClick={() => logoInputRef.current?.click()}
             disabled={logoUploading}
-            className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-dashed border-neutral-300 hover:border-orange-400 transition-colors group disabled:opacity-60"
+            className="group disabled:opacity-60"
           >
-            {logo ? (
-              <Image src={logo} alt="" fill className="object-cover" />
-            ) : (
-              <div className="w-full h-full bg-orange-100 flex items-center justify-center text-orange-600 font-black text-2xl">
-                {getInitials(venue.name)}
+            <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-dashed border-neutral-300 group-hover:border-orange-400 transition-colors" style={{ isolation: "isolate" }}>
+              {logo ? (
+                <Image src={logo} alt="" width={80} height={80} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-orange-100 flex items-center justify-center text-orange-600 font-black text-2xl">
+                  {getInitials(venue.name)}
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span className="text-white text-xs font-bold">{logoUploading ? "..." : "Izmeni"}</span>
               </div>
-            )}
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <span className="text-white text-xs font-bold">{logoUploading ? "..." : "Izmeni"}</span>
             </div>
           </button>
           <span className="text-[10px] text-neutral-400">Logo lokala</span>
@@ -1501,7 +1503,7 @@ function ProfileSection({ venue, loading, onVenueCreated, geofenceEnabled, geofe
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {images.map((src, i) => (
             <div key={src} className="relative group rounded-xl overflow-hidden aspect-video bg-neutral-100">
-              <Image src={src} alt="" fill className="object-cover" />
+              <Image src={src} alt="" fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-cover" />
               {i === 0 && (
                 <span className="absolute top-1.5 left-1.5 bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">
                   Naslovna
