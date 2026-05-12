@@ -101,6 +101,25 @@ type Venue = {
   } | null;
 };
 
+type VenueReview = {
+  id: string;
+  direction: string;
+  status: string;
+  overallRating: number;
+  comment: string | null;
+  guestHandle: string | null;
+  createdAt: string;
+  publishedAt: string | null;
+  author: { name: string | null; verificationTier: string } | null;
+  subject: { name: string | null; image: string | null } | null;
+  ratingAtmosphere: number | null;
+  ratingOrganization: number | null;
+  ratingHygieneWork: number | null;
+  ratingFriendliness: number | null;
+  ratingGuestSpeed: number | null;
+  ratingAttentiveness: number | null;
+};
+
 type OwnPost = {
   id: string;
   title: string;
@@ -981,20 +1000,94 @@ function WaitersSection({ applications, loading, onInvite, venue }: { applicatio
 
 /* ── Section: Reviews ────────────────────────────────────────────────────── */
 
-function ReviewsSection() {
+function ReviewStatusBadge({ status }: { status: string }) {
+  if (status === "PENDING")  return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Čeka objavu</span>;
+  if (status === "DISPUTED") return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">Sporno</span>;
+  return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Objavljeno</span>;
+}
+
+function starsText(rating: number): string {
+  const n = Math.round(rating / 20);
+  return "★".repeat(n) + "☆".repeat(5 - n);
+}
+
+function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function ReviewsSection({ venue }: { venue: Venue | null }) {
+  const [reviews, setReviews]   = useState<VenueReview[]>([]);
+  const [loadingR, setLoadingR] = useState(true);
+
+  useEffect(() => {
+    if (!venue) { setLoadingR(false); return; }
+    fetch(`/api/venues/${venue.id}/reviews`)
+      .then(r => r.ok ? r.json() : [])
+      .then((data: VenueReview[]) => {
+        setReviews(data.filter(r => r.direction === "WAITER_TO_VENUE"));
+        setLoadingR(false);
+      })
+      .catch(() => setLoadingR(false));
+  }, [venue?.id]);
+
   return (
     <>
-      <h2 className="font-black text-white">Recenzije konobara o lokalu</h2>
-      <div className="flex flex-col gap-4">
-        {REVIEWS.map(r => (
-          <div key={r.id} className="dash-card p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div><div className="font-bold text-neutral-900">{r.waiter}</div><Stars n={r.rating} /></div>
-              <span className="text-xs text-neutral-400 flex-shrink-0">{r.date}</span>
-            </div>
-            <p className="text-sm text-neutral-600 mt-3 leading-relaxed">{r.text}</p>
+      <h2 className="font-black text-white">Recenzije</h2>
+
+      {/* Real reviews from DB */}
+      <div className="dash-card p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-neutral-900 text-sm">Recenzije konobara o lokalu</h3>
+          {!loadingR && <span className="text-xs text-neutral-400">{reviews.length} primljeno</span>}
+        </div>
+        {loadingR ? (
+          <div className="flex justify-center py-4"><div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
+        ) : reviews.length === 0 ? (
+          <p className="text-sm text-neutral-400 text-center py-6">Još nema recenzija konobara.</p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {reviews.map(r => (
+              <div key={r.id} className="border-b border-neutral-100 last:border-0 pb-4 last:pb-0">
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-neutral-900 text-sm">{r.author?.name ?? "Konobar"}</span>
+                    <ReviewStatusBadge status={r.status} />
+                  </div>
+                  <span className="text-xs text-neutral-400 flex-shrink-0">{shortDate(r.createdAt)}</span>
+                </div>
+                <div className="text-orange-400 text-sm tracking-wide mb-1">{starsText(r.overallRating)}</div>
+                {r.comment && <p className="text-sm text-neutral-600 leading-relaxed">{r.comment}</p>}
+                {(r.ratingAtmosphere || r.ratingOrganization || r.ratingHygieneWork) && (
+                  <div className="flex gap-3 mt-2 flex-wrap">
+                    {r.ratingAtmosphere   && <span className="text-xs text-neutral-400">Atmosfera {starsText(r.ratingAtmosphere)}</span>}
+                    {r.ratingOrganization && <span className="text-xs text-neutral-400">Organizacija {starsText(r.ratingOrganization)}</span>}
+                    {r.ratingHygieneWork  && <span className="text-xs text-neutral-400">Higijena {starsText(r.ratingHygieneWork)}</span>}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
+        )}
+      </div>
+
+      {/* Static demo data */}
+      <div className="dash-card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <h3 className="font-bold text-neutral-900 text-sm">Demo recenzije</h3>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500">DEMO</span>
+        </div>
+        <div className="flex flex-col gap-4">
+          {REVIEWS.map(r => (
+            <div key={r.id} className="border-b border-neutral-100 last:border-0 pb-4 last:pb-0">
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <span className="font-bold text-neutral-900 text-sm">{r.waiter}</span>
+                <span className="text-xs text-neutral-400 flex-shrink-0">{r.date}</span>
+              </div>
+              <div className="text-orange-400 text-sm tracking-wide mb-1">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</div>
+              <p className="text-sm text-neutral-600 leading-relaxed">{r.text}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </>
   );
@@ -1005,6 +1098,19 @@ function ReviewsSection() {
 function QrReviewSection({ venue }: { venue: Venue | null }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
+  const [guestReviews, setGuestReviews] = useState<VenueReview[]>([]);
+  const [loadingGR, setLoadingGR] = useState(true);
+
+  useEffect(() => {
+    if (!venue) { setLoadingGR(false); return; }
+    fetch(`/api/venues/${venue.id}/reviews`)
+      .then(r => r.ok ? r.json() : [])
+      .then((data: VenueReview[]) => {
+        setGuestReviews(data.filter(r => r.direction === "GUEST_TO_VENUE" || r.direction === "GUEST_TO_WAITER"));
+        setLoadingGR(false);
+      })
+      .catch(() => setLoadingGR(false));
+  }, [venue?.id]);
 
   if (!venue) {
     return (
@@ -1117,6 +1223,53 @@ function QrReviewSection({ venue }: { venue: Venue | null }) {
             </ul>
           </div>
         </div>
+      </div>
+
+      {/* Guest reviews feed */}
+      <div className="dash-card p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-neutral-900 text-sm">Gostinske recenzije</h3>
+          {!loadingGR && <span className="text-xs text-neutral-400">{guestReviews.length} primljeno</span>}
+        </div>
+        {loadingGR ? (
+          <div className="flex justify-center py-4"><div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
+        ) : guestReviews.length === 0 ? (
+          <p className="text-sm text-neutral-400 text-center py-6">Još nema gostinskih recenzija.</p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {guestReviews.map(r => (
+              <div key={r.id} className="border-b border-neutral-100 last:border-0 pb-4 last:pb-0">
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-neutral-900 text-sm">
+                      {r.direction === "GUEST_TO_WAITER"
+                        ? (r.subject?.name ?? "Konobar")
+                        : (r.guestHandle ?? "Gost")}
+                    </span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.direction === "GUEST_TO_VENUE" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"}`}>
+                      {r.direction === "GUEST_TO_VENUE" ? "Lokal" : "Konobar"}
+                    </span>
+                    <ReviewStatusBadge status={r.status} />
+                  </div>
+                  <span className="text-xs text-neutral-400 flex-shrink-0">{shortDate(r.createdAt)}</span>
+                </div>
+                {r.direction === "GUEST_TO_WAITER" && r.guestHandle && (
+                  <div className="text-xs text-neutral-400 mb-1">od: {r.guestHandle}</div>
+                )}
+                <div className="text-orange-400 text-sm tracking-wide mb-1">{starsText(r.overallRating)}</div>
+                {r.comment && <p className="text-sm text-neutral-600 leading-relaxed">{r.comment}</p>}
+                <div className="flex gap-3 mt-2 flex-wrap">
+                  {r.ratingAtmosphere    != null && <span className="text-xs text-neutral-400">Atmosfera {starsText(r.ratingAtmosphere)}</span>}
+                  {r.ratingOrganization  != null && <span className="text-xs text-neutral-400">Organizacija {starsText(r.ratingOrganization)}</span>}
+                  {r.ratingHygieneWork   != null && <span className="text-xs text-neutral-400">Higijena {starsText(r.ratingHygieneWork)}</span>}
+                  {r.ratingFriendliness  != null && <span className="text-xs text-neutral-400">Ljubaznost {starsText(r.ratingFriendliness)}</span>}
+                  {r.ratingGuestSpeed    != null && <span className="text-xs text-neutral-400">Brzina {starsText(r.ratingGuestSpeed)}</span>}
+                  {r.ratingAttentiveness != null && <span className="text-xs text-neutral-400">Pažljivost {starsText(r.ratingAttentiveness)}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </>
   );
@@ -2890,7 +3043,7 @@ export default function VenueDashboard() {
           {section === "applications" && <ApplicationsSection applications={applications} loading={loading} onStatusChange={handleStatusChange} />}
           {section === "waiters"      && <WaitersSection applications={applications} loading={loading} onInvite={setInviteTarget} venue={venue} />}
           {section === "discover"     && <DiscoverSection posts={posts} onInvite={setInviteTarget} />}
-          {section === "reviews"      && <ReviewsSection />}
+          {section === "reviews"      && <ReviewsSection venue={venue} />}
           {section === "qr-review"   && <QrReviewSection venue={venue} />}
           {section === "profile"        && <ProfileSection venue={venue} loading={loading} onVenueCreated={fetchData} geofenceEnabled={geofenceEnabled} geofenceSaving={geofenceSaving} onGeofenceToggle={toggleGeofence} />}
           {section === "notifications"  && <NotificationsSection />}

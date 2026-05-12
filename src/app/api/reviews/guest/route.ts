@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { syncPassportScore } from "@/lib/sync-scores";
+import { syncPassportScore, syncVenueTrustScore } from "@/lib/sync-scores";
 import { isInsideVenueRadius, createGeolocationHash, parseGuestCoordinates } from "@/lib/geofence";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -18,19 +18,33 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const {
     venueId,
+    direction = "GUEST_TO_WAITER",
     subjectId,
     guestHandle,
     overallRating,
     comment,
     guestLatitude,
     guestLongitude,
+    // GUEST_TO_WAITER fields
     ratingFriendliness,
     ratingGuestSpeed,
     ratingAttentiveness,
+    // GUEST_TO_VENUE fields
+    ratingAtmosphere,
+    ratingOrganization,
+    ratingHygieneWork,
   } = body;
 
-  if (!venueId || !subjectId) {
-    return NextResponse.json({ error: "venueId and subjectId required" }, { status: 400 });
+  if (!venueId) {
+    return NextResponse.json({ error: "venueId required" }, { status: 400 });
+  }
+
+  if (direction !== "GUEST_TO_WAITER" && direction !== "GUEST_TO_VENUE") {
+    return NextResponse.json({ error: "Invalid direction" }, { status: 400 });
+  }
+
+  if (direction === "GUEST_TO_WAITER" && !subjectId) {
+    return NextResponse.json({ error: "subjectId required for GUEST_TO_WAITER" }, { status: 400 });
   }
 
   const rating = Number(overallRating);
@@ -65,10 +79,34 @@ export async function POST(req: NextRequest) {
   }
 
   const geolocationHash = coords ? createGeolocationHash(coords.lat, coords.lon) : undefined;
-
-  // Embargo: 2 hours before publishing
   const pendingUntil = new Date(Date.now() + 2 * 60 * 60 * 1000);
 
+  if (direction === "GUEST_TO_VENUE") {
+    const review = await db.review.create({
+      data: {
+        authorId:        null,
+        guestHandle:     guestHandle ? String(guestHandle).slice(0, 50) : null,
+        direction:       "GUEST_TO_VENUE",
+        subjectId:       null,
+        venueId,
+        overallRating:   rating,
+        comment:         comment ? String(comment).slice(0, 1000) : null,
+        weight:          1.0,
+        pendingUntil,
+        guestLatitude:   coords?.lat ?? null,
+        guestLongitude:  coords?.lon ?? null,
+        geolocationHash: geolocationHash ?? null,
+        ratingAtmosphere:   ratingAtmosphere   != null ? Number(ratingAtmosphere)   : null,
+        ratingOrganization: ratingOrganization != null ? Number(ratingOrganization) : null,
+        ratingHygieneWork:  ratingHygieneWork  != null ? Number(ratingHygieneWork)  : null,
+      },
+    });
+
+    syncVenueTrustScore(venueId).catch(console.error);
+    return NextResponse.json({ ok: true, id: review.id }, { status: 201 });
+  }
+
+  // GUEST_TO_WAITER (original flow)
   const review = await db.review.create({
     data: {
       authorId:     null,
@@ -90,6 +128,5 @@ export async function POST(req: NextRequest) {
   });
 
   syncPassportScore(subjectId).catch(console.error);
-
   return NextResponse.json({ ok: true, id: review.id }, { status: 201 });
 }

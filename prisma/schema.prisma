@@ -71,6 +71,7 @@ enum ReviewDirection {
   WAITER_TO_VENUE   // Konobar ocenjuje lokal
   VENUE_TO_WAITER   // Lokal ocenjuje konobara
   GUEST_TO_WAITER   // Gost ocenjuje konobara (zahteva geofencing)
+  GUEST_TO_VENUE    // Gost ocenjuje lokal (atmosfera, usluga, čistoća)
 }
 
 enum ReviewStatus {

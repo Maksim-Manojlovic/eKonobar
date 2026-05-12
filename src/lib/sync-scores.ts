@@ -38,7 +38,7 @@ export async function syncVenueTrustScore(venueId: string): Promise<void> {
   const reviews = await dbRaw.review.findMany({
     where: {
       venueId,
-      direction: "WAITER_TO_VENUE",
+      direction: { in: ["WAITER_TO_VENUE", "GUEST_TO_VENUE"] },
       status: "PUBLISHED",
     },
     select: {
