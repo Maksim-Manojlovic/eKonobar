@@ -55,10 +55,10 @@ const faqItems: FAQItem[] = [
     ),
   },
   {
-    question: "Koliko košta kreiranje i održavanje Passport-a?",
+    question: "Koliko košta Passport?",
     answer: (
       <>
-        <strong className="font-semibold text-neutral-700">Konobarima je sve besplatno — uvek.</strong> Provizija postoji samo za vlasnike lokala (5–8% po angažmanu). Tvoj profil, sertifikati, geofencing — bez ijednog dinara.
+        Osnovna verzija je <strong className="font-semibold text-neutral-700">besplatna zauvek</strong> — profil, recenzije, geofenced smene, web notifikacije. Ako hoćeš WhatsApp notifikacije i prioritet u pretragama, PRO tier je 290 RSD mesečno. PRO+ (490 RSD/mes) dodaje SMS notifikacije i prvu poziciju u rezultatima. Vlasnici lokala ne plaćaju pretplatu — samo proviziju pri angažmanu.
       </>
     ),
   },
@@ -344,92 +344,110 @@ export default function ForWaitersPage() {
         <div className="relative max-w-7xl mx-auto px-6">
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-14">
             <div>
-              <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Tieri</span>
+              <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Passport Pro</span>
               <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">
-                Što više radiš,<br />to <span className="text-orange-500">više radiš.</span>
+                Osnovno besplatno.<br /><span className="text-orange-500">Pro ako hoćeš više.</span>
               </h2>
             </div>
             <p className="text-base text-neutral-500 font-light leading-relaxed max-w-md">
-              Tier raste sa svakom verifikovanom smenom i ocenom. Što je tier viši — to brže vidiš najbolje oglase, sa boljom platom i fiksnim mestima.
+              Profil, recenzije i smene su besplatni zauvek. PRO pretplata otključava prioritet u pretragama, WhatsApp notifikacije i trenutni pristup Red Alert oglasima.
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Bronze */}
-            <div className="tier-card bg-white rounded-3xl p-6 border border-neutral-100">
-              <div className="w-14 h-14 rounded-2xl tier-bronze flex items-center justify-center mb-5 shadow-md">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M12 2L14.09 8.26L21 9.27L16.5 13.64L17.63 20.56L12 17.27L6.37 20.56L7.5 13.64L3 9.27L9.91 8.26L12 2Z" /></svg>
+          <div className="grid sm:grid-cols-3 gap-6">
+            {/* FREE */}
+            <div className="bg-white rounded-3xl p-7 border border-neutral-100 flex flex-col">
+              <div className="mb-5">
+                <div className="text-[10px] font-black tracking-[0.2em] uppercase text-neutral-400 mb-2">Besplatno</div>
+                <div className="flex items-end gap-1 mb-1">
+                  <span className="text-4xl font-extrabold text-neutral-900">0</span>
+                  <span className="text-base text-neutral-400 font-medium mb-1.5">RSD / mes</span>
+                </div>
+                <h3 className="font-extrabold text-xl text-neutral-900">FREE</h3>
               </div>
-              <div className="text-[10px] font-black tracking-[0.2em] uppercase text-amber-700 mb-1">Tier 1</div>
-              <h3 className="font-extrabold text-2xl text-neutral-900 mb-1">Bronze</h3>
-              <p className="text-xs text-neutral-400 font-medium mb-4">0 – 24 smene</p>
-              <ul className="flex flex-col gap-2 text-xs text-neutral-600 font-light">
-                {["Osnovni profil + verifikacija", "Pristup standardnim oglasima", "Plaćanje 24h nakon smene"].map(item => (
-                  <li key={item} className="flex gap-2">
-                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="#d97706" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <ul className="flex flex-col gap-2.5 text-sm text-neutral-600 flex-1">
+                {[
+                  "Passport™ profil + verifikacija",
+                  "Sve recenzije i istorija smena",
+                  "Geofenced GPS clock-in",
+                  "Web push notifikacije",
+                  "Red Alert™ (30-minutno kašnjenje)",
+                ].map(item => (
+                  <li key={item} className="flex gap-2.5 items-start">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="flex-shrink-0 mt-0.5"><circle cx="7" cy="7" r="6" fill="#f3f4f6" /><path d="M4 7L6.5 9.5L10 5" stroke="#9ca3af" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     {item}
                   </li>
                 ))}
               </ul>
+              <Link href="/register" className="mt-7 block text-center border border-neutral-200 text-neutral-700 font-bold text-sm py-3 rounded-xl hover:border-orange-300 hover:text-orange-600 transition-colors">
+                Registruj se besplatno
+              </Link>
             </div>
 
-            {/* Silver */}
-            <div className="tier-card bg-white rounded-3xl p-6 border border-neutral-100">
-              <div className="w-14 h-14 rounded-2xl tier-silver flex items-center justify-center mb-5 shadow-md">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M12 2L14.09 8.26L21 9.27L16.5 13.64L17.63 20.56L12 17.27L6.37 20.56L7.5 13.64L3 9.27L9.91 8.26L12 2Z" /></svg>
+            {/* PRO */}
+            <div className="rounded-3xl p-7 relative overflow-hidden flex flex-col"
+              style={{ background: "linear-gradient(160deg, #f97316, #ea580c)", boxShadow: "0 12px 40px rgba(249,115,22,0.35)" }}>
+              <div className="absolute top-5 right-5 bg-white/20 border border-white/30 text-white text-[9px] font-black px-2.5 py-1 rounded-full tracking-wider">NAJPOPULARNIJE</div>
+              <div className="mb-5">
+                <div className="text-[10px] font-black tracking-[0.2em] uppercase text-orange-100 mb-2">Mesečna pretplata</div>
+                <div className="flex items-end gap-1 mb-1">
+                  <span className="text-4xl font-extrabold text-white">290</span>
+                  <span className="text-base text-orange-200 font-medium mb-1.5">RSD / mes</span>
+                </div>
+                <h3 className="font-extrabold text-xl text-white">PRO</h3>
               </div>
-              <div className="text-[10px] font-black tracking-[0.2em] uppercase text-neutral-600 mb-1">Tier 2</div>
-              <h3 className="font-extrabold text-2xl text-neutral-900 mb-1">Silver</h3>
-              <p className="text-xs text-neutral-400 font-medium mb-4">25 – 74 smene</p>
-              <ul className="flex flex-col gap-2 text-xs text-neutral-600 font-light">
-                {["Sve iz Bronze tiera", "Red Alert™ – 30min ranije", "Plaćanje istog dana", "Personalna preporuka oglasa"].map(item => (
-                  <li key={item} className="flex gap-2">
-                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="#78716c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <ul className="flex flex-col gap-2.5 text-sm text-white/90 flex-1">
+                {[
+                  "Sve iz FREE paketa",
+                  "WhatsApp notifikacije (opt-in)",
+                  "Red Alert™ — odmah po objavi",
+                  "Prioritet u pretragama vlasnika",
+                  "PRO bedž na profilu",
+                ].map(item => (
+                  <li key={item} className="flex gap-2.5 items-start">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="flex-shrink-0 mt-0.5"><circle cx="7" cy="7" r="6" fill="rgba(255,255,255,0.25)" /><path d="M4 7L6.5 9.5L10 5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     {item}
                   </li>
                 ))}
               </ul>
+              <Link href="/register" className="mt-7 block text-center bg-white text-orange-600 font-bold text-sm py-3 rounded-xl hover:bg-orange-50 transition-colors">
+                Aktiviraj PRO
+              </Link>
             </div>
 
-            {/* Gold */}
-            <div className="tier-card rounded-3xl p-6 relative overflow-hidden"
-              style={{ background: "linear-gradient(160deg, #f97316, #ea580c)", boxShadow: "0 8px 32px rgba(249,115,22,0.32)" }}>
-              <div className="absolute top-5 right-5 bg-white/20 border border-white/30 text-white text-[9px] font-black px-2.5 py-1 rounded-full tracking-wider">TVOJ TIER</div>
-              <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center mb-5 shadow-md">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="#f97316"><path d="M12 2L14.09 8.26L21 9.27L16.5 13.64L17.63 20.56L12 17.27L6.37 20.56L7.5 13.64L3 9.27L9.91 8.26L12 2Z" /></svg>
+            {/* PRO_PLUS */}
+            <div className="rounded-3xl p-7 relative overflow-hidden flex flex-col"
+              style={{ background: "linear-gradient(160deg, #1c1209 0%, #2a1a08 100%)", border: "1px solid rgba(249,115,22,0.3)" }}>
+              <div className="mb-5">
+                <div className="text-[10px] font-black tracking-[0.2em] uppercase text-orange-400 mb-2">Mesečna pretplata</div>
+                <div className="flex items-end gap-1 mb-1">
+                  <span className="text-4xl font-extrabold text-white">490</span>
+                  <span className="text-base text-neutral-400 font-medium mb-1.5">RSD / mes</span>
+                </div>
+                <h3 className="font-extrabold text-xl text-white">PRO+</h3>
               </div>
-              <div className="text-[10px] font-black tracking-[0.2em] uppercase text-orange-100 mb-1">Tier 3</div>
-              <h3 className="font-extrabold text-2xl text-white mb-1">Gold</h3>
-              <p className="text-xs text-orange-100 font-medium mb-4">75 – 149 smena</p>
-              <ul className="flex flex-col gap-2 text-xs text-white/90 font-light">
-                {["Sve iz Silver tiera", "Red Alert™ – 1h ranije", "+15% prosečna napojnica", "Featured profil za vlasnike", "Bez provizije za prve 2 smene"].map(item => (
-                  <li key={item} className="flex gap-2">
-                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <ul className="flex flex-col gap-2.5 text-sm text-neutral-300 flex-1">
+                {[
+                  "Sve iz PRO paketa",
+                  "SMS notifikacije (opt-in)",
+                  "Prva pozicija u svim pretragama",
+                  "PRO+ bedž — ističeš se odmah",
+                ].map(item => (
+                  <li key={item} className="flex gap-2.5 items-start">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="flex-shrink-0 mt-0.5"><circle cx="7" cy="7" r="6" fill="rgba(249,115,22,0.2)" /><path d="M4 7L6.5 9.5L10 5" stroke="#f97316" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     {item}
                   </li>
                 ))}
               </ul>
-            </div>
-
-            {/* Platinum */}
-            <div className="tier-card rounded-3xl p-6 relative overflow-hidden"
-              style={{ background: "linear-gradient(160deg, #1c1209 0%, #2a1a08 100%)", border: "1px solid rgba(249,115,22,0.25)" }}>
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style={{ background: "rgba(249,115,22,0.18)", border: "1px solid rgba(249,115,22,0.4)" }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="#f97316"><path d="M12 2L14.09 8.26L21 9.27L16.5 13.64L17.63 20.56L12 17.27L6.37 20.56L7.5 13.64L3 9.27L9.91 8.26L12 2Z" /></svg>
-              </div>
-              <div className="text-[10px] font-black tracking-[0.2em] uppercase text-orange-400 mb-1">Tier 4</div>
-              <h3 className="font-extrabold text-2xl text-white mb-1">Platinum</h3>
-              <p className="text-xs text-neutral-500 font-medium mb-4">150+ smena</p>
-              <ul className="flex flex-col gap-2 text-xs text-neutral-300 font-light">
-                {["Sve iz Gold tiera", "Red Alert™ – odmah", "Pristup ekskluzivnim lokalima", "Personalni manager", "0% provizija – zauvek"].map(item => (
-                  <li key={item} className="flex gap-2">
-                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                    {item}
-                  </li>
-                ))}
-              </ul>
+              <Link href="/register" className="mt-7 block text-center border border-orange-500/50 text-orange-400 font-bold text-sm py-3 rounded-xl hover:bg-orange-500/10 transition-colors">
+                Aktiviraj PRO+
+              </Link>
             </div>
           </div>
+
+          <p className="text-center text-xs text-neutral-400 mt-8">
+            Plaćanje karticom (Visa / Mastercard / DinaCard). Otkazivanje u bilo kom trenutku iz dashboarda.
+          </p>
         </div>
       </section>
 
