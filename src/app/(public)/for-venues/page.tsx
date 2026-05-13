@@ -113,13 +113,13 @@ export default function ForVenuesPage() {
             </div>
 
             <h1 className="text-5xl xl:text-[60px] font-extrabold text-neutral-900 leading-[1.05] tracking-tight">
-              Smene popunjene<br />za <span className="text-orange-500">15 minuta.</span><br />
-              <span className="text-neutral-500 font-semibold">Bez agencija, bez intervjua,<br />bez papira.</span>
+              Popunite smenu za<br /><span className="text-orange-500">15 minuta</span> —<br />
+              <span className="text-neutral-500 font-semibold">provereni ugostitelji<br />na klik.</span>
             </h1>
 
             <p className="text-lg text-neutral-500 font-light leading-relaxed max-w-xl">
-              Postavi smenu — vidi listu verifikovanih konobara sa istorijom rada u Beogradu — pošalji ponudu jednim klikom.{" "}
-              <strong className="font-semibold text-neutral-700">Plaćaš samo kad se smena odradi.</strong>
+              Pronađite iskusne konobare i šankere u Beogradu. Bez agencija i beskrajnih poziva —{" "}
+              <strong className="font-semibold text-neutral-700">plaćate samo odrađenu smenu. Hitna zamena osoblja za 12 minuta.</strong>
             </p>
 
             <div className="flex flex-wrap items-center gap-x-8 gap-y-3 pt-1">
@@ -249,66 +249,48 @@ export default function ForVenuesPage() {
         </div>
       </section>
 
-      {/* ── PAIN POINTS ── */}
+      {/* ── BENEFITS ── */}
       <section className="max-w-7xl mx-auto px-6 py-24">
         <div className="max-w-3xl mb-14">
-          <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Realnost lokala u Beogradu</span>
+          <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Zašto eKonobar</span>
           <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">
-            Znamo šta te <span className="text-orange-500">stvarno</span> košta vremena.
+            Tri razloga zašto <span className="text-orange-500">500+ lokala</span> bira eKonobar.
           </h2>
-          <p className="mt-5 text-lg text-neutral-500 font-light leading-relaxed">
-            Razgovarali smo sa 200 vlasnika u Beogradu pre nego što smo napisali jednu liniju koda. Ovo su pet bolnih tačaka koje se ponavljaju.
-          </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[
-            {
-              problem: '"Konobar otkazao u 17:00. Smena u 18:00."',
-              before: "Pozivaš 14 brojeva, moliš poznanike, kraj večeri si frustriran i kratak za jednog čoveka.",
-              after: <>Klik <strong className="text-orange-500">Red Alert™</strong> — push notifikacija ode 50+ konobara u krugu od 5km. Prosek prve prijave: <strong>11 minuta</strong>.</>,
-            },
-            {
-              problem: '"Ko je ovaj? Ne mogu da proverim."',
-              before: "CV od dve linije, broj telefona prijatelja kao referenca, nikakva istorija rada — pa eto, da vidiš.",
-              after: <><strong className="text-orange-500">Waiter Passport™</strong> — istorija svih smena u Beogradu, ocene od svakog vlasnika, sertifikati. Verifikovano, ne prijavljeno.</>,
-            },
-            {
-              problem: '"Sanitarne, ugovori, evidencija — gomila papira."',
-              before: "Sat vremena za svakog novog konobara: kopiraj knjižicu, štampaj ugovor, vodi tabelu sati u Excel-u.",
-              after: <>Sanitarna se proverava automatski. Ugovor generiše sistem. Sati iz <strong className="text-orange-500">geofencing check-ina</strong> — bez Excel-a.</>,
-            },
-            {
-              problem: '"Agencije uzimaju 25% i šalju kog stignu."',
-              before: "Plaćaš premium ali bez izbora. Ako konobar zataji — opet biraš iz iste tri agencije.",
-              after: <><strong className="text-orange-500">5–8% provizija</strong>, samo na uspešno odrađenu smenu. Biraš ti — vidiš sve kandidate, ocene, istoriju.</>,
-            },
-            {
-              problem: '"Sezona je. Treba mi 6 ljudi za vikend, hitno."',
-              before: "Letnja bašta, novogodišnja noć, rezervacija od 80 ljudi — i ti gledaš telefon u panici.",
-              after: <>Postaviš <strong>„sezonski paket&rdquo;</strong> — sistem ga šalje samo Gold/Platinum konobarima sa istorijom za tu vrstu posla. Ekipa od 6 popunjena za sat vremena.</>,
-            },
-            {
-              problem: '"Dobar konobar zna gosta. Novi je svaki put nov."',
-              before: `Vrtiš stalno različite ljude — gosti to osete. Stara klijentela počne da pita „gde je Stefan?".`,
-              after: <><strong>„Tvoj tim&rdquo;</strong> — označavaš omiljene konobare, sistem ih prvo pita za svaku narednu smenu. Stalna ekipa bez stalnog ugovora.</>,
-            },
-          ].map((card, i) => (
-            <div key={i} className="pain-card p-7">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-[10px] font-black tracking-widest uppercase text-red-500 bg-red-50 px-2 py-1 rounded-full">Pre eKonobara</span>
-              </div>
-              <h3 className="font-bold text-lg text-neutral-900 leading-tight mb-3">{card.problem}</h3>
-              <p className="text-sm text-neutral-500 font-light leading-relaxed mb-5">{card.before}</p>
-              <div className="pt-5 border-t border-neutral-100">
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckOrange />
-                  <span className="text-[10px] font-black tracking-widest uppercase text-orange-500">Sa eKonobarom</span>
-                </div>
-                <p className="text-sm text-neutral-700 font-medium leading-relaxed">{card.after}</p>
-              </div>
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-3xl p-8 border border-neutral-100 flex flex-col gap-5">
+            <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
-          ))}
+            <div>
+              <span className="text-[10px] font-black tracking-widest uppercase text-orange-500">Brzina</span>
+              <h3 className="font-bold text-xl text-neutral-900 mt-1 leading-tight">Smena je puna pre nego što kafa stigne.</h3>
+            </div>
+            <p className="text-sm text-neutral-500 font-light leading-relaxed">Prosečno vreme do prve prijave konobara je <strong className="font-semibold text-neutral-700">12 minuta</strong>. Red Alert™ šalje push notifikaciju na 50+ konobara u krugu od 5 km — idealno za hitnu zamenu osoblja u Beogradu.</p>
+          </div>
+
+          <div className="bg-white rounded-3xl p-8 border border-neutral-100 flex flex-col gap-5">
+            <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7v7c0 5 4 9 9 10 5-1 9-5 9-10V7L12 2z" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M9 12l2 2 4-4" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div>
+              <span className="text-[10px] font-black tracking-widest uppercase text-orange-500">Poverenje</span>
+              <h3 className="font-bold text-xl text-neutral-900 mt-1 leading-tight">Svaki profil je verifikovan i ocenjen od strane kolega.</h3>
+            </div>
+            <p className="text-sm text-neutral-500 font-light leading-relaxed"><strong className="font-semibold text-neutral-700">Waiter Passport™</strong> prikazuje kompletnu istoriju smena, ocene svakog poslodavca i sertifikate — konobari Beograd, Novi Sad i Niš na jednom mestu. Verifikovano, ne samo prijavljeno.</p>
+          </div>
+
+          <div className="bg-white rounded-3xl p-8 border border-neutral-100 flex flex-col gap-5">
+            <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 2v6h6M9 13h6M9 17h4" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div>
+              <span className="text-[10px] font-black tracking-widest uppercase text-orange-500">Bez administracije</span>
+              <h3 className="font-bold text-xl text-neutral-900 mt-1 leading-tight">Mi brinemo o ugovorima, vi o gostima.</h3>
+            </div>
+            <p className="text-sm text-neutral-500 font-light leading-relaxed">Sistem automatski generiše <strong className="font-semibold text-neutral-700">ugovor o privremenim poslovima</strong>, proverava sanitarnu knjižicu i vodi evidenciju sati putem geofencing check-ina — bez Excel-a i gomile papira.</p>
+          </div>
         </div>
       </section>
 
@@ -321,14 +303,14 @@ export default function ForVenuesPage() {
           <div className="max-w-3xl mb-16">
             <span className="inline-block bg-orange-500/15 border border-orange-500/30 text-orange-400 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Brojevi koji znače novac</span>
             <h2 className="text-4xl xl:text-5xl font-extrabold text-white tracking-tight leading-[1.1]">
-              Prosečan lokal u Beogradu uštedi <span className="text-orange-400">182.000 RSD</span> mesečno.
+              Vodeća platforma za zapošljavanje u <span className="text-orange-400">ugostiteljstvu Srbije.</span>
             </h2>
             <p className="mt-5 text-lg text-neutral-400 font-light leading-relaxed">Podaci sa 87 lokala u Beogradu, prvih 6 meseci 2026.</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: "Vreme do popune smene", value: "11", unit: "min", sub: "vs 3.5h standardnim načinom" },
-              { label: "No-show stopa", value: "3.2", unit: "%", sub: "vs 11% ranije" },
+              { label: "Aktivnih ugostitelja", value: "10k+", unit: "", sub: "verifikovanih konobara i šankera" },
+              { label: "Prosečno vreme popune", value: "12", unit: "min", sub: "od objave do potvrđene prijave" },
               { label: "Provizija po smeni", value: "5", unit: "–8%", sub: "vs 22–28% kod agencija" },
               { label: "Mesečna ušteda", value: "182k", unit: "RSD", sub: "prosek po lokalu (12+ smena/mes)", highlight: true },
             ].map(stat => (
@@ -370,8 +352,8 @@ export default function ForVenuesPage() {
         </div>
         <div className="grid md:grid-cols-3 gap-5">
           {[
-            { n: "01", title: "Postavi oglas", desc: "Datum, vreme, broj konobara, plata, traženi sertifikati. 90 sekundi.", items: ["Templati za standardne smene", "Filter po Gold/Platinum tieru", "\"Tvoj tim\" prvi vide oglas"] },
-            { n: "02", title: "Uporedi Pasporte", desc: "Sortirano po skoru, oceni, broju smena u sličnim lokalima — najbolji prvo.", items: ["Vidiš sve recenzije, ne kuratorsle", "Pouzdanost (no-show istorija)", "Kandidati koji su već radili kod tebe"] },
+            { n: "01", title: "Objavi", desc: "Unesi detalje smene i cenu. Za 90 sekundi.", items: ["Templati za standardne smene", "Filter po Gold/Platinum tieru", "\"Tvoj tim\" prvi vide oglas"] },
+            { n: "02", title: "Izaberi", desc: "Pregledaj prijave i ocene kandidata — najbolji prvi.", items: ["Vidiš sve recenzije, ne kuratorisane", "Pouzdanost (no-show istorija)", "Kandidati koji su već radili kod tebe"] },
           ].map(step => (
             <div key={step.n} className="bg-white rounded-3xl p-7 border border-neutral-100 relative">
               <div className="text-7xl font-black text-orange-100 absolute top-4 right-6 select-none leading-none">{step.n}</div>
@@ -395,8 +377,8 @@ export default function ForVenuesPage() {
             <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center mb-5">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 12L10 17L19 7" stroke="#f97316" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </div>
-            <h3 className="font-bold text-xl text-white mb-2 relative z-10">Potvrdi i radiš</h3>
-            <p className="text-sm text-orange-100 font-light leading-relaxed mb-5">Ponuda — konobar prihvata — ugovor generisan — check-in geofencingom.</p>
+            <h3 className="font-bold text-xl text-white mb-2 relative z-10">Gotovo</h3>
+            <p className="text-sm text-orange-100 font-light leading-relaxed mb-5">Smena je potvrđena. Ugovor generisan, vidimo se u lokalu.</p>
             <div className="flex flex-col gap-2 text-xs text-white/90">
               {["Ugovor o privremenim poslovima — auto", "Plaćanje preko platforme (escrow)", "Faktura sa PDV-om u inboxu"].map(item => (
                 <div key={item} className="flex items-center gap-2">
