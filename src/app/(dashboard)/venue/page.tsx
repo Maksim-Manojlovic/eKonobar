@@ -136,6 +136,7 @@ type OwnPost = {
 type WaiterEntry = {
   id: string;
   name: string | null;
+  image?: string | null;
   verificationTier: string;
   waiterPassport: {
     score: number;
@@ -901,9 +902,10 @@ function DiscoverSection({ onInvite }: { posts: OwnPost[]; onInvite: (w: WaiterE
             {waiters.map(w => (
               <div key={w.id} className="dash-card p-5">
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-lg flex-shrink-0">
-                    {getInitials(w.name)}
-                  </div>
+                  {w.image
+                    ? <img src={w.image} alt={w.name ?? ""} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
+                    : <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-lg flex-shrink-0">{getInitials(w.name)}</div>
+                  }
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-neutral-900">{w.name ?? "Konobar"}</span>

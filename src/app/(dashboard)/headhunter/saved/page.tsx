@@ -16,7 +16,7 @@ type SavedEntry = {
   savedAt: string;
   notes?: string | null;
   waiter: {
-    id: string; name?: string | null; verificationTier: string;
+    id: string; name?: string | null; image?: string | null; verificationTier: string;
     waiterPassport?: {
       score: number; skills: string[]; languages: string[];
       sanitaryBookValid: boolean; currentlyAvailable: boolean;
@@ -115,7 +115,10 @@ export default function SavedProfilesPage() {
               return (
                 <div key={w.id} className="dash-card p-5 flex flex-col gap-3">
                   <div className="flex items-start gap-3">
-                    <Initials name={w.name} />
+                    {w.image
+                      ? <img src={w.image} alt={w.name ?? ""} className="w-12 h-12 rounded-full object-cover border-2 border-orange-200 flex-shrink-0" />
+                      : <Initials name={w.name} />
+                    }
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="font-black text-neutral-900 text-sm truncate">{w.name ?? "Konobar"}</p>

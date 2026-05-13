@@ -22,7 +22,7 @@ export async function GET() {
   const waiters = await db.user.findMany({
     where: { id: { in: waiterIds }, role: "WAITER" },
     select: {
-      id: true, name: true, verificationTier: true,
+      id: true, name: true, image: true, verificationTier: true,
       waiterPassport: {
         select: {
           score: true, skills: true, languages: true,
