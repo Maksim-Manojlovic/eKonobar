@@ -172,11 +172,6 @@ type IncomingApp = {
 
 /* ── Static placeholder data (no API yet) ────────────────────────────────── */
 
-const REVIEWS = [
-  { id: 1, waiter: "Jovana Milić",    rating: 5, date: "15 Apr 2026", text: "Izuzetna profesionalka. Smirena u najluđim noćima, gosti je obožavaju." },
-  { id: 2, waiter: "Marko Nikolić",   rating: 5, date: "2 Apr 2026",  text: "Tačan, brz, komunikativan. Bez ikakvih primedbi — preporučujem svim lokalima." },
-  { id: 3, waiter: "Stefan Đorđević", rating: 3, date: "18 Mar 2026", text: "Solidan rad, ali kasnio 15 minuta na početak smene." },
-];
 
 /* ── Utility ──────────────────────────────────────────────────────────────── */
 
@@ -1111,25 +1106,6 @@ function ReviewsSection({ venue }: { venue: Venue | null }) {
         )}
       </div>
 
-      {/* Static demo data */}
-      <div className="dash-card p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <h3 className="font-bold text-neutral-900 text-sm">Demo recenzije</h3>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500">DEMO</span>
-        </div>
-        <div className="flex flex-col gap-4">
-          {REVIEWS.map(r => (
-            <div key={r.id} className="border-b border-neutral-100 last:border-0 pb-4 last:pb-0">
-              <div className="flex items-start justify-between gap-2 mb-1">
-                <span className="font-bold text-neutral-900 text-sm">{r.waiter}</span>
-                <span className="text-xs text-neutral-400 flex-shrink-0">{r.date}</span>
-              </div>
-              <div className="text-orange-400 text-sm tracking-wide mb-1">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</div>
-              <p className="text-sm text-neutral-600 leading-relaxed">{r.text}</p>
-            </div>
-          ))}
-        </div>
-      </div>
     </>
   );
 }
