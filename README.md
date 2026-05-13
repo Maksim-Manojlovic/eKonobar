@@ -65,6 +65,12 @@ INFOBIP_API_KEY=""
 INFOBIP_BASE_URL="https://api.infobip.com"
 INFOBIP_FROM="eKonobar"
 
+# Monri payment gateway (Visa/Mastercard/DinaCard)
+# Get credentials: https://dashboard.monri.com
+MONRI_ENV="test"                            # "test" | "production"
+MONRI_MERCHANT_KEY=""
+MONRI_AUTHENTICITY_TOKEN=""
+
 # OAuth providers
 GOOGLE_CLIENT_ID=""
 GOOGLE_CLIENT_SECRET=""
@@ -153,6 +159,13 @@ src/
       passport/              # Waiter passport read/write, engagements
         share/               # POST — generate 30-day share link
         public/[shareToken]/ # GET — public passport view (no auth)
+        subscribe/           # POST — direct tier change (admin/cancel path)
+        subscription/        # GET — current tier + expiry info
+      payments/monri/
+        checkout/            # POST — create Monri payment session, returns paymentUrl
+        callback/            # POST — server-to-server callback (no auth), activates tier
+        success/             # GET — redirect after successful payment
+        cancel/              # GET — redirect after cancelled payment
       user/
         tour-complete/       # PATCH — mark User.tourCompleted = true (called on tour close)
       waiters/               # GET — waiter search (VENUE_OWNER, HEADHUNTER)
@@ -221,8 +234,9 @@ prisma/
 - **Session-Aware Nav** — `NavAuthButton` component swaps "Prijava" → role-based "Dashboard →" link when the user is already authenticated. Used on both landing pages.
 - **First-Login Guided Tour** — `driver.js` tour fires automatically on first venue-owner login (`User.tourCompleted`). Re-triggerable via "Vodič" button on the Pregled section. Mobile-aware: auto-opens sidebar drawer before starting. `tourCompleted` is carried in the JWT — no extra DB call at runtime.
 - **Waiter Passport** — Portable reputation profile with Bayesian trust score, engagement history, skill badges, and a 30-day shareable link (`/passport/[shareToken]`)
+- **Passport Pro Subscriptions** — Waiters can upgrade to PRO (290 RSD/mo) or PRO_PLUS (490 RSD/mo) via Visa/Mastercard/DinaCard. PRO unlocks WhatsApp notifications + priority search placement + Red Alert early access. PRO_PLUS adds SMS notifications + first-in-search ranking. Payment via Monri WebPay (Serbian gateway) with server-to-server callback and idempotent activation. Venues pay commission only — no subscription fees.
 - **Job Posts** — Venue owners post shifts with mandatory transparency fields (tip system, sanitary requirement, engagement type)
-- **Red Alert** — Urgent shifts pulse on the map with a highlighted marker; indexed for fast queries
+- **Red Alert** — Urgent shifts pulse on the map with a highlighted marker; indexed for fast queries. PRO/PRO_PLUS waiters see Red Alert posts immediately; FREE tier sees them after a 30-minute delay (enforced at query level)
 - **Geofenced Guest Reviews** — QR code at the table opens a 3-choice flow: review the venue (GUEST_TO_VENUE), a specific waiter (GUEST_TO_WAITER), or both. No auth required; GPS-geofenced within 150m. Venue owners receive a `REVIEW_RECEIVED` notification and can approve or reject PENDING reviews before auto-publish
 - **Shift Scheduling** — Full shift lifecycle: create → marketplace claim → GPS clock-in with 3-tier geofence (50m auto, 50–150m grace, >150m manager approval) → clock-out with early-exit detection → swap requests with owner approval
 - **Shift Templates** — Recurring shift patterns with bulk generation (up to 90 days). Supports specific day-of-week or weekdays-only mode
@@ -234,7 +248,7 @@ prisma/
 - **Zone Analytics** — Admin-managed map zones (FESTIVAL_ZONE, TRANSIT_HUB, DEVELOPMENT, …) with projected growth %. Venue zone insights cached as JSON on the Venue model
 - **Market Insights** — Aggregate stats: open positions, red alert count, average salary range, top municipalities
 - **Dark Dashboard Theme** — Both venue-owner and waiter dashboards use a deep `#120a00` background with an orange-brown grid overlay and a mouse-following radial spotlight rendered via `useRef` (no re-renders). Sidebar and mobile drawer match (`#0e0700` + grid). The `.dark-sidebar` CSS class overrides `.nav-item` colors without touching light-mode pages
-- **3-Layer Notifications** — In-app bell with desktop dropdown + mobile bottom sheet (30s polling + Web Push), WhatsApp Business API (opt-in), Infobip SMS (opt-in). Full notifications page with day-grouped feed and type filter chips (`NotificationsSection`)
+- **3-Layer Notifications** — In-app bell with desktop dropdown + mobile bottom sheet (30s polling + Web Push), WhatsApp Business API (PRO+ opt-in), Infobip SMS (PRO_PLUS opt-in). Full notifications page with day-grouped feed and type filter chips (`NotificationsSection`)
 - **Admin Moderation** — Disputed review queue with publish/remove actions; GDPR hard-delete for venues
 - **Image Uploads** — Waiter avatars (400×400 face-crop), venue photos (up to 8, 1200×800 fill), and venue logo (circle avatar shown in sidebar and top bar); all on Cloudinary
 

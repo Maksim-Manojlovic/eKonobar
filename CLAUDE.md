@@ -92,6 +92,20 @@ Guest reviews use 150m radius (venue.reviewRadiusKm). Shift clock-in uses a stri
 
 `redAlert: true` job posts have a dedicated DB index (`@@index([redAlert])`). Filter by it directly — do not scan all job posts and filter in memory.
 
+**Red Alert early access for PRO/PRO_PLUS waiters:** FREE tier waiters see Red Alert posts only after a 30-minute delay. This is enforced at the query level in `GET /api/jobs`:
+
+```typescript
+// In the WHERE clause — only applied for FREE-tier authenticated waiters:
+...(redAlertCreatedAfter && {
+  OR: [
+    { redAlert: false },
+    { redAlert: true, createdAt: { lte: redAlertCreatedAfter } },
+  ],
+}),
+```
+
+`redAlertCreatedAfter = new Date(now - 30 * 60 * 1000)` for FREE, `undefined` for PRO/PRO_PLUS and unauthenticated users.
+
 ### Coordinate jitter
 
 Venues get ~100m stable coordinate jitter derived from `venueId` hash (same logic as the RentCheck base). This is intentional for privacy — do not remove it.
@@ -146,10 +160,12 @@ notify(userId, "APPLICATION_RECEIVED", "Nova prijava", "Marko se prijavio...", "
 
 `notify()` always writes a `Notification` DB row, then dispatches:
 1. **Web push** — if the user has a `PushSubscription` row (free, via VAPID)
-2. **WhatsApp** — if `user.waOptIn && user.phone` and `WA_ACCESS_TOKEN` is set
-3. **Infobip SMS** — if `user.smsOptIn && user.phone` and `INFOBIP_API_KEY` is set
+2. **WhatsApp** — if `user.waOptIn && user.phone`, `WA_ACCESS_TOKEN` is set, **and the recipient has an active PRO or PRO_PLUS passport tier**
+3. **Infobip SMS** — if `user.smsOptIn && user.phone`, `INFOBIP_API_KEY` is set, **and the recipient has an active PRO_PLUS passport tier**
 
 Providers are no-ops when env vars are missing — safe in development.
+
+**Tier gating logic in `notify()`:** `notify` queries `waiterPassport.passportTier` and `subscriptionExpiresAt` for the recipient. If `subscriptionExpiresAt` is in the past, the tier is treated as FREE at runtime. WhatsApp requires `isPro` (PRO or PRO_PLUS active), SMS requires `isProPlus` (PRO_PLUS active). Venue owners and other non-waiter roles always receive all channels (tier gating only applies to WAITER recipients).
 
 `NotificationType` enum values: `APPLICATION_RECEIVED`, `APPLICATION_STATUS_CHANGED`, `SWAP_REQUESTED`, `SWAP_RESOLVED`, `SHIFT_CLAIMED`, `SHIFT_ASSIGNED`, `REVIEW_RECEIVED`, `REVIEW_PUBLISHED`, `CLOCKIN_APPROVAL_REQUESTED`, `CLOCKIN_RESOLVED`.
 
@@ -247,6 +263,7 @@ The Prisma client is cached on `globalThis._prisma`. After every `db:push` that 
 - `WaiterPassport` — one-to-one with `WAITER` User
 - `EngagementRecord` — verified work history entry on the passport
 - `Review` — four directions: `WAITER_TO_VENUE`, `VENUE_TO_WAITER`, `GUEST_TO_WAITER`, `GUEST_TO_VENUE`. `authorId` is nullable (null = guest).
+- `PassportTier` enum — `FREE | PRO | PRO_PLUS`. Used on `WaiterPassport.passportTier` and `PassportPayment.tier`.
 - `VenueZone` — map zone (hotspot) for analytics
 - `Invite` — venue invite code for GOLD verification
 - `RateLimit` — DB-backed rate limit counters (userId + action + hourly window)
@@ -254,6 +271,8 @@ The Prisma client is cached on `globalThis._prisma`. After every `db:push` that 
 - `ShiftAssignment` — explicit waiter-to-shift assignment (replaced implicit M2M). Has clock-in fields: `clockInAt`, `clockOutAt`, `clockInMethod` (GPS | GPS_GRACE | QR | MANUAL), `clockInLat`, `clockInLng`, `lateMinutes`, `earlyExitAt`, `pendingClockIn` (awaiting manager approval).
 - `ShiftSwapRequest` — swap request between two waiters. Status: `PENDING → ACCEPTED | REJECTED | CANCELLED`.
 - `ShiftTemplate` — recurring shift pattern. Has `dayOfWeek Int?` (null when `weekdaysOnly=true`), `weekdaysOnly Boolean`, `metadata Json?` (`{ type, label, shift }`). Used for bulk generation.
+- `WaiterPassport` — one-to-one with `WAITER` User. Has `passportTier PassportTier @default(FREE)`, `subscriptionExpiresAt DateTime?`, `monriPanToken String?` (stored pan_token from Monri for recurring charges). Indexed on `passportTier`.
+- `PassportPayment` — payment record per checkout attempt. Has `userId`, `orderNumber` (unique, `EK-` prefix), `tier PassportTier`, `amountRsd Int` (minor units), `status String` (`PENDING | SUCCESS | FAILED | CANCELLED`), `monriApprovalCode String?`, `monriPanToken String?`. Indexed on `userId`, `orderNumber`, `status`. Idempotent: callback checks status before updating.
 - `Notification` — in-app notification record. Has `type NotificationType`, `title`, `body`, `link`, `read`, `pushSent`, `waSent`, `smsSent`.
 - `PushSubscription` — browser Web Push subscription per user. Has `endpoint` (unique), `p256dh`, `auth`.
 
@@ -541,7 +560,7 @@ DELETE /api/headhunter/saved  { waiterId }
 
 ```
 GET /api/waiters
-  VENUE_OWNER or HEADHUNTER. Returns max 100 waiters ordered by passport score desc.
+  VENUE_OWNER or HEADHUNTER. Returns max 100 waiters ordered by tier rank desc, then passport score desc.
   Query params (all optional):
     available=true          → passport.currentlyAvailable = true
     minScore=N              → passport.score >= N
@@ -552,6 +571,8 @@ GET /api/waiters
     minExperience=N         → passport.yearsExperience >= N
     search=text             → user.name contains text (case-insensitive)
 ```
+
+**Tier-based ranking:** After the DB query, results are sorted in-memory: PRO_PLUS (rank 2) → PRO (rank 1) → FREE (rank 0), then by score descending within each tier. Expired subscriptions are treated as FREE. This is done in-memory (not at DB level) because expiry comparison requires runtime Date logic.
 
 ## Zone Analytics
 
@@ -607,10 +628,12 @@ DELETE /api/admin/venues/[id]
 ```
 notify(userId, type, title, body, link?)
   → 1. db.notification.create (always)
-  → 2. web push to all PushSubscription rows (VAPID, free)
+  → 2. web push to all PushSubscription rows (VAPID, free for all tiers)
       expired subs (410/404) auto-deleted
-  → 3. WhatsApp template msg if user.waOptIn && user.phone (opt-in)
-  → 4. Infobip SMS if user.smsOptIn && user.phone (premium opt-in)
+  → 3. WhatsApp template msg if isPro && user.waOptIn && user.phone
+      (isPro = active PRO or PRO_PLUS passport tier)
+  → 4. Infobip SMS if isProPlus && user.smsOptIn && user.phone
+      (isProPlus = active PRO_PLUS passport tier only)
 ```
 
 ### VAPID setup (one-time)
@@ -630,3 +653,115 @@ Template name is set via `WA_TEMPLATE_NAME` env var (default: `ekonobar_notifica
 ### SMS format
 
 Infobip messages are truncated to 160 chars: `"${title}: ${body} | ekonobar.rs"`.
+
+## Passport Pro Subscriptions
+
+Waiters can upgrade their passport tier for priority features. Venues are commission-only — no subscription fees.
+
+### Tiers
+
+| Tier | Price | Features |
+|---|---|---|
+| `FREE` | 0 RSD | Basic passport, web push notifications, Red Alert access (30-min delay) |
+| `PRO` | 290 RSD/mo | + WhatsApp notifications, priority in search results, Red Alert early access |
+| `PRO_PLUS` | 490 RSD/mo | + SMS notifications, first in search results (rank 2 vs PRO rank 1) |
+
+### Tier resolution
+
+Always check at runtime — never cache tier in JWT:
+
+```typescript
+const passport = await db.waiterPassport.findUnique({ where: { userId } });
+const isActive = passport?.subscriptionExpiresAt
+  ? passport.subscriptionExpiresAt > new Date()
+  : false;
+const effectiveTier = isActive ? passport.passportTier : "FREE";
+const isPro     = isActive && (effectiveTier === "PRO" || effectiveTier === "PRO_PLUS");
+const isProPlus = isActive && effectiveTier === "PRO_PLUS";
+```
+
+### Subscription API
+
+```
+GET /api/passport/subscription
+  WAITER only. Returns { tier, subscriptionExpiresAt, isActive, daysRemaining }.
+
+POST /api/passport/subscribe  { tier: "FREE" | "PRO" | "PRO_PLUS" }
+  WAITER only.
+  FREE → clears subscription immediately (cancels).
+  PRO/PRO_PLUS → extends 30 days from now (or from current expiry if still active).
+  Note: this is the direct/admin path. Normal user path goes through Monri checkout.
+```
+
+### Subscription renewal cron (pending)
+
+Monthly auto-renewal using `monriPanToken` (stored pan_token from initial payment) is not yet implemented. Currently subscriptions expire after 30 days and users must re-pay manually.
+
+## Monri Payment Integration
+
+Visa/Mastercard/DinaCard payment via Monri WebPay (Serbian gateway). Replaces any Stripe/PayPal — Monri is the only payment provider.
+
+### Environment variables
+
+```env
+MONRI_ENV="test"                  # "test" | "production"
+MONRI_MERCHANT_KEY=""             # from Monri dashboard → API keys
+MONRI_AUTHENTICITY_TOKEN=""       # from Monri dashboard → API keys
+```
+
+Test endpoint: `https://ipgtest.monri.com`  
+Production endpoint: `https://ipg.monri.com`
+
+### lib/monri.ts
+
+```typescript
+import { createPaymentSession, verifyCallback, callbackApproved } from "@/lib/monri";
+```
+
+- `requestDigest(params)` — `SHA512(authenticity_token + order_number + amount + currency)` — included in checkout POST
+- `callbackDigest(payload)` — `SHA512(merchant_key + approval_code + order_number + amount)` — used to verify server-to-server callbacks
+- `createPaymentSession(params)` — POSTs to `/v2/payment/new`, returns `{ paymentUrl, orderId }`
+- `verifyCallback(payload)` — compares expected vs received digest; returns boolean
+- `callbackApproved(payload)` — checks `response_code === "0000" && status === "approved"`
+- `chargeStoredCard(params)` — recurring charge using stored `monriPanToken` (not yet used)
+
+### Payment flow
+
+```
+POST /api/payments/monri/checkout  { tier: "PRO" | "PRO_PLUS" }
+  WAITER only.
+  → Creates PassportPayment record (status: PENDING, orderNumber: EK-{16 hex chars})
+  → Calls createPaymentSession()
+  → Returns { paymentUrl } — frontend redirects the user
+
+User pays on Monri-hosted page →
+
+POST /api/payments/monri/callback  (Monri server-to-server, no auth)
+  Body: application/x-www-form-urlencoded or JSON
+  → verifyCallback(): digest mismatch → 400
+  → Idempotency: already SUCCESS → 200 (skip)
+  → callbackApproved():
+      YES → dbRaw.$transaction:
+              PassportPayment status=SUCCESS, approvalCode, panToken
+              WaiterPassport tier=tier, subscriptionExpiresAt=+30days, monriPanToken
+            notify() fire-and-forget (APPLICATION_STATUS_CHANGED)
+      NO  → PassportPayment status=FAILED
+  → Returns { ok: true }
+
+GET /api/payments/monri/success?order_number=...
+  → Redirects to ${NEXT_PUBLIC_APP_URL}/waiter?payment=success&order={orderNumber}
+
+GET /api/payments/monri/cancel?order_number=...
+  → Updates PassportPayment PENDING → CANCELLED
+  → Redirects to ${NEXT_PUBLIC_APP_URL}/waiter?payment=cancelled
+```
+
+### Waiter dashboard payment UX
+
+After redirect back from Monri, `WaiterDashboard` reads `?payment=success|cancelled` from the URL on mount, shows a toast, cleans the URL with `window.history.replaceState`, and auto-navigates to the passport section on success.
+
+### Callback security
+
+**Always use `dbRaw` in the Monri callback handler**, not `db`. The callback is unauthenticated (Monri server → our server) and needs to update `PassportPayment` which has no `deletedAt` field — but using `dbRaw` is still correct here to avoid any soft-delete filter issues.
+
+Configure the callback URL in Monri dashboard: `https://your-domain.com/api/payments/monri/callback`
