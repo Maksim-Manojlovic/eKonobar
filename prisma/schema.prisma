@@ -190,6 +190,7 @@ model User {
   rateLimits        RateLimit[]
   notifications     Notification[]
   pushSubscriptions PushSubscription[]
+  passportPayments  PassportPayment[]
 
   @@index([role])
   @@index([verificationTier])
@@ -459,6 +460,7 @@ model WaiterPassport {
   // Passport Pro subscription
   passportTier          PassportTier @default(FREE)
   subscriptionExpiresAt DateTime?    // null = FREE or expired
+  monriPanToken         String?      // stored card token for recurring charges
 
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
@@ -801,4 +803,27 @@ model PushSubscription {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// ─── PassportPayment (Monri transaction log) ──────────────────────────────────
+
+model PassportPayment {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  orderNumber String       @unique  // eKonobar-generated, sent to Monri
+  tier        PassportTier
+  amountRsd   Int                   // 29000 = 290.00 RSD (minor units)
+
+  status      String       @default("PENDING")  // PENDING | SUCCESS | FAILED | CANCELLED
+  monriApprovalCode String?
+  monriPanToken     String?          // stored if tokenize_pan was requested
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([orderNumber])
+  @@index([status])
 }

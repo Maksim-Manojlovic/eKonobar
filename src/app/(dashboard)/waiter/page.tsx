@@ -1409,16 +1409,31 @@ function PassportSection({ userName }: { userName: string }) {
     }).catch(() => setLoading(false));
   }, []);
 
-  async function handleSubscribe(tier: "FREE" | "PRO" | "PRO_PLUS") {
+  async function handleSubscribe(tier: "PRO" | "PRO_PLUS") {
     setSubscribing(true);
-    const res = await fetch("/api/passport/subscribe", {
+    const res = await fetch("/api/payments/monri/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tier }),
     });
     if (res.ok) {
-      const data = await res.json();
-      setSubscription({ tier: data.tier, subscriptionExpiresAt: data.subscriptionExpiresAt, isActive: data.tier !== "FREE", daysRemaining: 30 });
+      const { paymentUrl } = await res.json();
+      window.location.href = paymentUrl;
+      // Don't setSubscribing(false) — page will redirect away
+      return;
+    }
+    setSubscribing(false);
+  }
+
+  async function handleCancel() {
+    setSubscribing(true);
+    const res = await fetch("/api/passport/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tier: "FREE" }),
+    });
+    if (res.ok) {
+      setSubscription({ tier: "FREE", subscriptionExpiresAt: null, isActive: false, daysRemaining: 0 });
     }
     setSubscribing(false);
   }
@@ -1586,7 +1601,7 @@ function PassportSection({ userName }: { userName: string }) {
               </button>
             )}
             {subscription?.tier === "PRO" && (
-              <button onClick={() => handleSubscribe("FREE")} className="w-full text-xs text-neutral-400 py-1.5 hover:text-red-500 transition-colors">
+              <button onClick={handleCancel} className="w-full text-xs text-neutral-400 py-1.5 hover:text-red-500 transition-colors">
                 Otkaži pretplatu
               </button>
             )}
@@ -1622,7 +1637,7 @@ function PassportSection({ userName }: { userName: string }) {
               </button>
             )}
             {subscription?.tier === "PRO_PLUS" && (
-              <button onClick={() => handleSubscribe("FREE")} className="w-full text-xs text-neutral-400 py-1.5 hover:text-red-500 transition-colors">
+              <button onClick={handleCancel} className="w-full text-xs text-neutral-400 py-1.5 hover:text-red-500 transition-colors">
                 Otkaži pretplatu
               </button>
             )}
@@ -1915,6 +1930,19 @@ const SECTION_TITLES: Record<Section, string> = {
 export default function WaiterDashboard() {
   const { data: session } = useSession();
   const [section, setSection]           = useState<Section>("overview");
+  const [paymentToast, setPaymentToast] = useState<"success" | "cancelled" | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get("payment");
+    if (payment === "success" || payment === "cancelled") {
+      setPaymentToast(payment);
+      // Clean URL without reload
+      window.history.replaceState({}, "", window.location.pathname);
+      if (payment === "success") setSection("passport");
+      setTimeout(() => setPaymentToast(null), 5000);
+    }
+  }, []);
   const [jobs, setJobs]                 = useState<JobPost[]>([]);
   const [applications, setApplications] = useState<MyApplication[]>([]);
   const [loading, setLoading]           = useState(true);
@@ -2048,6 +2076,17 @@ export default function WaiterDashboard() {
       }}>
       {/* Mouse spotlight overlay */}
       <div ref={spotlightRef} className="pointer-events-none fixed inset-0" style={{ zIndex: 1 }} />
+
+      {/* Payment toast */}
+      {paymentToast && (
+        <div className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold transition-all ${paymentToast === "success" ? "bg-green-600 text-white" : "bg-neutral-700 text-white"}`}>
+          {paymentToast === "success" ? (
+            <><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12L10 17L19 7" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Passport Pro aktiviran! Pretplata je uspešno pokrenuta.</>
+          ) : (
+            <><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="white" strokeWidth="2" strokeLinecap="round" /></svg>Plaćanje otkazano.</>
+          )}
+        </div>
+      )}
 
       {/* Mobile overlay */}
       {mobileOpen && (
