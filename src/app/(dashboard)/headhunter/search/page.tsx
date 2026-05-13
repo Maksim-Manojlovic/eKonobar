@@ -29,6 +29,7 @@ type Waiter = {
     yearsExperience: number; sanitaryBookValid: boolean;
     currentlyAvailable: boolean; reviewCount: number;
     totalEngagements: number; shareToken?: string | null;
+    passportTier?: string; subscriptionExpiresAt?: string | null;
   } | null;
 };
 
@@ -50,6 +51,13 @@ function ScorePill({ score }: { score: number }) {
       {Math.round(score)}
     </span>
   );
+}
+
+function PassportTierBadge({ tier, expiresAt }: { tier?: string; expiresAt?: string | null }) {
+  if (!tier || tier === "FREE") return null;
+  if (expiresAt && new Date(expiresAt) <= new Date()) return null;
+  if (tier === "PRO_PLUS") return <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-500 text-white tracking-wide">PRO+</span>;
+  return <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-300">PRO</span>;
 }
 
 export default function HeadhunterSearch() {
@@ -199,7 +207,10 @@ export default function HeadhunterSearch() {
                   <div className="flex items-start gap-3">
                     <Initials name={w.name} />
                     <div className="flex-1 min-w-0">
-                      <p className="font-black text-neutral-900 text-sm truncate">{w.name ?? "Konobar"}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="font-black text-neutral-900 text-sm truncate">{w.name ?? "Konobar"}</p>
+                        <PassportTierBadge tier={p?.passportTier} expiresAt={p?.subscriptionExpiresAt} />
+                      </div>
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${TIER_COLORS[w.verificationTier] ?? TIER_COLORS.UNVERIFIED}`}>
                         {w.verificationTier.replace("_", " ")}
                       </span>

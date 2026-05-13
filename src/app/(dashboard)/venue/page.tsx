@@ -146,6 +146,8 @@ type WaiterEntry = {
     currentlyAvailable: boolean;
     badges: string[];
     bio: string | null;
+    passportTier?: string;
+    subscriptionExpiresAt?: string | null;
   } | null;
 };
 
@@ -239,6 +241,13 @@ function TierBadge({ tier }: { tier: string }) {
   if (tier === "GOLD")   return <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full">🥇 GOLD</span>;
   if (tier === "SILVER") return <span className="bg-neutral-100 text-neutral-600 text-[10px] font-bold px-2 py-0.5 rounded-full">🥈 SILVER</span>;
   return null;
+}
+
+function PassportTierBadge({ tier, expiresAt }: { tier?: string; expiresAt?: string | null }) {
+  if (!tier || tier === "FREE") return null;
+  if (expiresAt && new Date(expiresAt) <= new Date()) return null;
+  if (tier === "PRO_PLUS") return <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-500 text-white tracking-wide">PRO+</span>;
+  return <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-300">PRO</span>;
 }
 
 function Stars({ n }: { n: number }) {
@@ -899,6 +908,7 @@ function DiscoverSection({ onInvite }: { posts: OwnPost[]; onInvite: (w: WaiterE
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-neutral-900">{w.name ?? "Konobar"}</span>
                       <TierBadge tier={w.verificationTier} />
+                      <PassportTierBadge tier={w.waiterPassport?.passportTier} expiresAt={w.waiterPassport?.subscriptionExpiresAt} />
                     </div>
                     {w.waiterPassport && (
                       <>

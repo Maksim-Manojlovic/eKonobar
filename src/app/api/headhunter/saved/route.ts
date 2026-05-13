@@ -29,7 +29,7 @@ export async function GET() {
           yearsExperience: true, sanitaryBookValid: true,
           currentlyAvailable: true, badges: true,
           reviewCount: true, totalEngagements: true,
-          shareToken: true,
+          shareToken: true, passportTier: true, subscriptionExpiresAt: true,
         },
       },
     },
