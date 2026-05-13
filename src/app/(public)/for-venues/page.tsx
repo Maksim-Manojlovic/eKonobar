@@ -352,7 +352,7 @@ export default function ForVenuesPage() {
         </div>
         <div className="grid md:grid-cols-3 gap-5">
           {[
-            { n: "01", title: "Objavi", desc: "Unesi detalje smene i cenu. Za 90 sekundi.", items: ["Templati za standardne smene", "Filter po Gold/Platinum tieru", "\"Tvoj tim\" prvi vide oglas"] },
+            { n: "01", title: "Objavi", desc: "Unesi detalje smene i cenu. Za 90 sekundi.", items: ["Templati za standardne smene", "Filter po verifikaciji, oceni i sanitarnoj", "Invite direktno poznatim konobarima"] },
             { n: "02", title: "Izaberi", desc: "Pregledaj prijave i ocene kandidata — najbolji prvi.", items: ["Vidiš sve recenzije, ne kuratorisane", "Pouzdanost (no-show istorija)", "Kandidati koji su već radili kod tebe"] },
           ].map(step => (
             <div key={step.n} className="bg-white rounded-3xl p-7 border border-neutral-100 relative">
@@ -466,7 +466,7 @@ export default function ForVenuesPage() {
             <p className="text-xs text-neutral-400 mb-6">Do 30 smena mesečno</p>
             <div className="flex items-baseline gap-1.5 mb-6"><span className="font-extrabold text-5xl text-neutral-900">8%</span><span className="text-sm text-neutral-400">/ smeni</span></div>
             <ul className="flex flex-col gap-2.5 text-sm text-neutral-600 font-light flex-1">
-              {["Neograničeno oglasa", "Pristup Bronze i Silver tieru", "Auto generisanje ugovora", "Geofencing check-in", "Email podrška (24h)"].map(item => (
+              {["Neograničeno oglasa", "Pristup verifikovanim konobarima", "Geofencing GPS check-in", "Pregled Passport™ profila", "Email podrška (24h)"].map(item => (
                 <li key={item} className="check-row"><CheckOrange />{item}</li>
               ))}
             </ul>
@@ -480,7 +480,7 @@ export default function ForVenuesPage() {
             <p className="text-xs text-orange-100 mb-6">30 – 100 smena mesečno</p>
             <div className="flex items-baseline gap-1.5 mb-6"><span className="font-extrabold text-5xl text-white">6%</span><span className="text-sm text-orange-100">/ smeni</span></div>
             <ul className="flex flex-col gap-2.5 text-sm text-white/90 font-light flex-1">
-              {["Sve iz Startera", "Pristup Gold + Platinum tieru", "Red Alert™ za hitne smene", "\"Tvoj tim\" do 25 omiljenih", "Analitika lokala (mesečno)", "Telefon podrška (radni dani)"].map(item => (
+              {["Sve iz Startera", "PRO konobari prvi — viši u pretrazi", "Red Alert™ za hitne smene", "Napredni filteri (ocena, sanitarna, jezik)", "Analitika lokala (mesečno)", "Telefon podrška (radni dani)"].map(item => (
                 <li key={item} className="check-row">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0 mt-0.5"><circle cx="8" cy="8" r="7" fill="rgba(255,255,255,0.25)" /><path d="M5 8L7 10L11 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                   {item}
