@@ -134,6 +134,12 @@ enum NotificationType {
   CLOCKIN_RESOLVED               // owner approved/rejected clock-in → waiter
 }
 
+enum PassportTier {
+  FREE
+  PRO        // 290 RSD/mo — WhatsApp notifications, priority placement, early Red Alert
+  PRO_PLUS   // 490 RSD/mo — SMS notifications, first in venue search, score report
+}
+
 // ─── User ─────────────────────────────────────────────────────────────────────
 
 model User {
@@ -450,10 +456,16 @@ model WaiterPassport {
 
   lastAvailableDate   DateTime?  // set when currentlyAvailable flips true, cleared when flips false
 
+  // Passport Pro subscription
+  passportTier          PassportTier @default(FREE)
+  subscriptionExpiresAt DateTime?    // null = FREE or expired
+
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
   trustScore          PassportTrustScore?
+
+  @@index([passportTier])
 }
 
 // ─── Trust Score modeli ───────────────────────────────────────────────────────

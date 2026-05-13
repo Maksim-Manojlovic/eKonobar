@@ -22,19 +22,44 @@ export async function GET(req: NextRequest) {
   }
 
   // Everyone else (waiters, guests): active posts with optional filters
-  const redAlert   = searchParams.get("redAlert") === "true" ? true : undefined;
-  const type       = searchParams.get("type") as EngagementType | null;
-  const search     = searchParams.get("search") ?? undefined;
+  const redAlertFilter = searchParams.get("redAlert") === "true" ? true : undefined;
+  const type           = searchParams.get("type") as EngagementType | null;
+  const search         = searchParams.get("search") ?? undefined;
+
+  // Red Alert early access: PRO/PRO_PLUS waiters see Red Alert posts immediately.
+  // FREE tier waiters only see Red Alert posts older than 30 minutes.
+  let redAlertCreatedAfter: Date | undefined;
+  if (session?.user.role === "WAITER") {
+    const passport = await db.waiterPassport.findUnique({
+      where: { userId: session.user.id },
+      select: { passportTier: true, subscriptionExpiresAt: true },
+    });
+    const now = new Date();
+    const tier = passport?.passportTier ?? "FREE";
+    const expired = passport?.subscriptionExpiresAt && passport.subscriptionExpiresAt < now;
+    const isFree = !passport || tier === "FREE" || expired;
+    if (isFree) {
+      // FREE: hide Red Alert posts created in last 30 minutes
+      redAlertCreatedAfter = new Date(now.getTime() - 30 * 60 * 1000);
+    }
+  }
 
   const posts = await db.jobPost.findMany({
     where: {
       status: "ACTIVE",
-      ...(redAlert !== undefined && { redAlert }),
+      ...(redAlertFilter !== undefined && { redAlert: redAlertFilter }),
       ...(type && Object.values(EngagementType).includes(type) && { engagementType: type }),
       ...(search && {
         OR: [
           { title: { contains: search, mode: "insensitive" } },
           { description: { contains: search, mode: "insensitive" } },
+        ],
+      }),
+      // For FREE waiters: Red Alert posts must be ≥30 min old
+      ...(redAlertCreatedAfter && {
+        OR: [
+          { redAlert: false },
+          { redAlert: true, createdAt: { lte: redAlertCreatedAfter } },
         ],
       }),
     },

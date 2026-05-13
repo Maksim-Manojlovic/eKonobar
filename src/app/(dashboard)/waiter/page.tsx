@@ -177,6 +177,13 @@ type PassportData = {
   } | null;
 };
 
+type PassportSubscription = {
+  tier: "FREE" | "PRO" | "PRO_PLUS";
+  subscriptionExpiresAt: string | null;
+  isActive: boolean;
+  daysRemaining: number;
+};
+
 type MyApplication = {
   id: string;
   status: string;
@@ -1367,10 +1374,12 @@ const SCORE_DIMS: { key: keyof NonNullable<PassportData["trustScore"]>; label: s
 /* ── Section: Passport ───────────────────────────────────────────────────── */
 
 function PassportSection({ userName }: { userName: string }) {
-  const [passport, setPassport]   = useState<PassportData | null>(null);
-  const [loading, setLoading]     = useState(true);
-  const [saving, setSaving]       = useState(false);
-  const [saved, setSaved]         = useState(false);
+  const [passport, setPassport]         = useState<PassportData | null>(null);
+  const [subscription, setSubscription] = useState<PassportSubscription | null>(null);
+  const [loading, setLoading]           = useState(true);
+  const [saving, setSaving]             = useState(false);
+  const [saved, setSaved]               = useState(false);
+  const [subscribing, setSubscribing]   = useState(false);
 
   const [bio, setBio]                             = useState("");
   const [skills, setSkills]                       = useState<string[]>([]);
@@ -1381,23 +1390,38 @@ function PassportSection({ userName }: { userName: string }) {
   const [galleryPhotos, setGalleryPhotos]         = useState<string[]>([]);
 
   useEffect(() => {
-    fetch("/api/passport")
-      .then(r => r.json())
-      .then(data => {
-        if (data?.id) {
-          setPassport(data);
-          setBio(data.bio ?? "");
-          setSkills(data.skills ?? []);
-          setLanguages(data.languages ?? []);
-          setYears(data.yearsExperience ?? 0);
-          setAvailable(data.currentlyAvailable ?? true);
-          setVenuePrefs(data.venueTypePreferences ?? []);
-          setGalleryPhotos(data.galleryPhotos ?? []);
-        }
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    Promise.all([
+      fetch("/api/passport").then(r => r.json()),
+      fetch("/api/passport/subscription").then(r => r.json()),
+    ]).then(([passportData, subData]) => {
+      if (passportData?.id) {
+        setPassport(passportData);
+        setBio(passportData.bio ?? "");
+        setSkills(passportData.skills ?? []);
+        setLanguages(passportData.languages ?? []);
+        setYears(passportData.yearsExperience ?? 0);
+        setAvailable(passportData.currentlyAvailable ?? true);
+        setVenuePrefs(passportData.venueTypePreferences ?? []);
+        setGalleryPhotos(passportData.galleryPhotos ?? []);
+      }
+      if (subData?.tier) setSubscription(subData);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
+
+  async function handleSubscribe(tier: "FREE" | "PRO" | "PRO_PLUS") {
+    setSubscribing(true);
+    const res = await fetch("/api/passport/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tier }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setSubscription({ tier: data.tier, subscriptionExpiresAt: data.subscriptionExpiresAt, isActive: data.tier !== "FREE", daysRemaining: 30 });
+    }
+    setSubscribing(false);
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -1505,6 +1529,104 @@ function PassportSection({ userName }: { userName: string }) {
               {" "}· {passport.redAlertResponseCount} Red Alert{passport.redAlertResponseCount !== 1 ? "a" : ""}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Passport Pro subscription card */}
+      <div className="dash-card p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-bold text-neutral-900 text-sm">Passport Pro</h3>
+            <p className="text-xs text-neutral-400 mt-0.5">Plaćate samo odrađenu smenu — pretplatom dobijate prioritet i direktne notifikacije.</p>
+          </div>
+          {subscription?.tier === "PRO" && (
+            <span className="text-xs font-black px-2.5 py-1 rounded-full bg-orange-100 text-orange-600 flex-shrink-0">PRO</span>
+          )}
+          {subscription?.tier === "PRO_PLUS" && (
+            <span className="text-xs font-black px-2.5 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white flex-shrink-0">PRO+</span>
+          )}
+          {(!subscription || subscription.tier === "FREE") && (
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-neutral-100 text-neutral-400 flex-shrink-0">FREE</span>
+          )}
+        </div>
+
+        {subscription?.isActive && (
+          <p className="text-xs text-green-600 font-medium mb-4">
+            Aktivan — ističe za {subscription.daysRemaining} {subscription.daysRemaining === 1 ? "dan" : "dana"}
+          </p>
+        )}
+
+        <div className="grid sm:grid-cols-2 gap-3">
+          {/* PRO card */}
+          <div className={`rounded-2xl p-4 border ${subscription?.tier === "PRO" ? "border-orange-300 bg-orange-50" : "border-neutral-200 bg-white"}`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black text-orange-600 tracking-wider uppercase">PRO</span>
+              <span className="font-extrabold text-neutral-900">290 <span className="text-xs font-medium text-neutral-400">RSD/mes</span></span>
+            </div>
+            <ul className="flex flex-col gap-1.5 text-xs text-neutral-600 mb-4">
+              {[
+                "Prioritet u pretrazi vlasnika",
+                "Red Alert 30 min pre svih",
+                "WhatsApp notifikacije",
+                "\"Aktivan\" bedž na profilu",
+              ].map(f => (
+                <li key={f} className="flex items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="#f97316" strokeWidth="2" strokeLinecap="round" /></svg>
+                  {f}
+                </li>
+              ))}
+            </ul>
+            {subscription?.tier !== "PRO" && (
+              <button
+                onClick={() => handleSubscribe("PRO")}
+                disabled={subscribing}
+                className="w-full btn-primary text-white text-xs font-bold py-2 rounded-xl disabled:opacity-50"
+              >
+                {subscribing ? "..." : "Aktiviraj PRO"}
+              </button>
+            )}
+            {subscription?.tier === "PRO" && (
+              <button onClick={() => handleSubscribe("FREE")} className="w-full text-xs text-neutral-400 py-1.5 hover:text-red-500 transition-colors">
+                Otkaži pretplatu
+              </button>
+            )}
+          </div>
+
+          {/* PRO+ card */}
+          <div className={`rounded-2xl p-4 border relative overflow-hidden ${subscription?.tier === "PRO_PLUS" ? "border-amber-300 bg-amber-50" : "border-neutral-200 bg-white"}`}>
+            <div className="absolute top-3 right-3 text-[9px] font-black tracking-wider bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded-full">NAJPOPULARNIJI</div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black text-amber-600 tracking-wider uppercase">PRO+</span>
+              <span className="font-extrabold text-neutral-900">490 <span className="text-xs font-medium text-neutral-400">RSD/mes</span></span>
+            </div>
+            <ul className="flex flex-col gap-1.5 text-xs text-neutral-600 mb-4">
+              {[
+                "Sve iz PRO plana",
+                "SMS notifikacije (Infobip)",
+                "Prvo u rezultatima pretrage",
+                "Mesečni izveštaj skora",
+              ].map(f => (
+                <li key={f} className="flex items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" /></svg>
+                  {f}
+                </li>
+              ))}
+            </ul>
+            {subscription?.tier !== "PRO_PLUS" && (
+              <button
+                onClick={() => handleSubscribe("PRO_PLUS")}
+                disabled={subscribing}
+                className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold py-2 rounded-xl disabled:opacity-50 transition-all"
+              >
+                {subscribing ? "..." : "Aktiviraj PRO+"}
+              </button>
+            )}
+            {subscription?.tier === "PRO_PLUS" && (
+              <button onClick={() => handleSubscribe("FREE")} className="w-full text-xs text-neutral-400 py-1.5 hover:text-red-500 transition-colors">
+                Otkaži pretplatu
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

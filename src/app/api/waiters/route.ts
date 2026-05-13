@@ -62,6 +62,8 @@ export async function GET(req: NextRequest) {
             reviewCount: true,
             totalEngagements: true,
             shareToken: true,
+            passportTier: true,
+            subscriptionExpiresAt: true,
           },
         },
       },
@@ -71,7 +73,26 @@ export async function GET(req: NextRequest) {
       take: 100,
     });
 
-    return NextResponse.json(waiters);
+    const now = new Date();
+
+    // Tier rank: PRO_PLUS = 2, PRO = 1, FREE = 0. Expired subs count as FREE.
+    const tierRank = (w: typeof waiters[0]) => {
+      const p = w.waiterPassport;
+      if (!p) return 0;
+      if (p.subscriptionExpiresAt && p.subscriptionExpiresAt < now) return 0;
+      if (p.passportTier === "PRO_PLUS") return 2;
+      if (p.passportTier === "PRO") return 1;
+      return 0;
+    };
+
+    // Sort: tier desc first, score desc within same tier
+    const sorted = waiters.sort((a, b) => {
+      const tierDiff = tierRank(b) - tierRank(a);
+      if (tierDiff !== 0) return tierDiff;
+      return (b.waiterPassport?.score ?? 0) - (a.waiterPassport?.score ?? 0);
+    });
+
+    return NextResponse.json(sorted);
   } catch (err) {
     console.error("[GET /api/waiters]", err);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

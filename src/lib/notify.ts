@@ -23,10 +23,19 @@ export async function notify(
       smsOptIn: true,
       waOptIn:  true,
       pushSubscriptions: { select: { id: true, endpoint: true, p256dh: true, auth: true } },
+      waiterPassport: { select: { passportTier: true, subscriptionExpiresAt: true } },
     },
   });
 
   if (!user) return;
+
+  // Resolve active passport tier (FREE if subscription lapsed)
+  const tierRaw = user.waiterPassport?.passportTier ?? "FREE";
+  const expiresAt = user.waiterPassport?.subscriptionExpiresAt;
+  const passportTier = expiresAt && expiresAt < new Date() ? "FREE" : tierRaw;
+
+  const isPro     = passportTier === "PRO" || passportTier === "PRO_PLUS";
+  const isProPlus = passportTier === "PRO_PLUS";
 
   // ── Web push (free, best-effort) ──────────────────────────────────────────
   if (user.pushSubscriptions.length > 0) {
@@ -35,7 +44,6 @@ export async function notify(
       user.pushSubscriptions.map(sub =>
         sendPush(sub, payload).catch(async (err: { statusCode?: number }) => {
           if (err.statusCode === 410 || err.statusCode === 404) {
-            // Subscription expired — clean up
             await db.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {});
           }
           throw err;
@@ -48,8 +56,8 @@ export async function notify(
     }
   }
 
-  // ── WhatsApp (opt-in) ─────────────────────────────────────────────────────
-  if (user.waOptIn && user.phone) {
+  // ── WhatsApp (Passport PRO+) ──────────────────────────────────────────────
+  if (isPro && user.waOptIn && user.phone) {
     sendWhatsApp(user.phone, title, body)
       .then(() =>
         db.notification.update({ where: { id: notification.id }, data: { waSent: true } }).catch(() => {}),
@@ -57,8 +65,8 @@ export async function notify(
       .catch(console.error);
   }
 
-  // ── Infobip SMS (premium opt-in) ──────────────────────────────────────────
-  if (user.smsOptIn && user.phone) {
+  // ── Infobip SMS (Passport PRO_PLUS only) ──────────────────────────────────
+  if (isProPlus && user.smsOptIn && user.phone) {
     const smsText = `${title}: ${body}${link ? " | ekonobar.rs" : ""}`;
     sendSms(user.phone, smsText)
       .then(() =>
