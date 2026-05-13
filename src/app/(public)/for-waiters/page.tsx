@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FAQAccordion, type FAQItem } from "@/components/ui/FAQAccordion";
 import { NavAuthButton } from "@/components/ui/NavAuthButton";
+import { PassportProCTA } from "@/components/ui/PassportProCTA";
 
 const LogoMark = () => (
   <div className="logo-mark w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -379,9 +380,7 @@ export default function ForWaitersPage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/register" className="mt-7 block text-center border border-neutral-200 text-neutral-700 font-bold text-sm py-3 rounded-xl hover:border-orange-300 hover:text-orange-600 transition-colors">
-                Registruj se besplatno
-              </Link>
+              <PassportProCTA label="Registruj se besplatno" className="mt-7 block text-center border border-neutral-200 text-neutral-700 font-bold text-sm py-3 rounded-xl hover:border-orange-300 hover:text-orange-600 transition-colors" />
             </div>
 
             {/* PRO */}
@@ -410,9 +409,7 @@ export default function ForWaitersPage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/register" className="mt-7 block text-center bg-white text-orange-600 font-bold text-sm py-3 rounded-xl hover:bg-orange-50 transition-colors">
-                Aktiviraj PRO
-              </Link>
+              <PassportProCTA label="Aktiviraj PRO" className="mt-7 block text-center bg-white text-orange-600 font-bold text-sm py-3 rounded-xl hover:bg-orange-50 transition-colors" />
             </div>
 
             {/* PRO_PLUS */}
@@ -439,9 +436,7 @@ export default function ForWaitersPage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/register" className="mt-7 block text-center border border-orange-500/50 text-orange-400 font-bold text-sm py-3 rounded-xl hover:bg-orange-500/10 transition-colors">
-                Aktiviraj PRO+
-              </Link>
+              <PassportProCTA label="Aktiviraj PRO+" className="mt-7 block text-center border border-orange-500/50 text-orange-400 font-bold text-sm py-3 rounded-xl hover:bg-orange-500/10 transition-colors" />
             </div>
           </div>
 

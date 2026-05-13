@@ -693,9 +693,15 @@ POST /api/passport/subscribe  { tier: "FREE" | "PRO" | "PRO_PLUS" }
   Note: this is the direct/admin path. Normal user path goes through Monri checkout.
 ```
 
-### Subscription renewal cron (pending)
+### Subscription renewal cron
 
-Monthly auto-renewal using `monriPanToken` (stored pan_token from initial payment) is not yet implemented. Currently subscriptions expire after 30 days and users must re-pay manually.
+`POST /api/cron/renew-subscriptions` — daily job that charges stored `monriPanToken` for passports expiring within 25h.
+
+- Queries `WaiterPassport` where `passportTier IN [PRO, PRO_PLUS]`, `monriPanToken IS NOT NULL`, `subscriptionExpiresAt` in `[now-1h, now+25h]`
+- Dedup guard: skips users with a `PassportPayment` in `status IN [PENDING, SUCCESS]` created in the last 2h
+- On success: extends `subscriptionExpiresAt` by 30 days from the **current expiry** (not `now`), to avoid date drift on late cron runs
+- On failure: marks payment FAILED, lets subscription lapse naturally — does **not** force-downgrade `passportTier`. User notified to resubscribe.
+- Returns `{ checked, renewed, failed }`
 
 ## Monri Payment Integration
 

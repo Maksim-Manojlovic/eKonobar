@@ -256,10 +256,15 @@ prisma/
 
 `POST /api/cron/publish-reviews` — publishes PENDING reviews past their embargo window and syncs affected trust scores. Requires `Authorization: Bearer <CRON_SECRET>` header.
 
-Trigger every 15 minutes with any HTTP scheduler. On Vercel, add to `vercel.json`:
+`POST /api/cron/renew-subscriptions` — charges stored Monri pan_tokens for PRO/PRO_PLUS passports expiring within the next 25 hours. On success extends `subscriptionExpiresAt` by 30 days from the current expiry. On failure marks payment FAILED and lets the subscription lapse naturally (user notified to resubscribe). Idempotent: skips users with a payment attempt in the last 2 hours.
+
+Trigger with any HTTP scheduler. On Vercel, add to `vercel.json`:
 
 ```json
 {
-  "crons": [{ "path": "/api/cron/publish-reviews", "schedule": "*/15 * * * *" }]
+  "crons": [
+    { "path": "/api/cron/publish-reviews",      "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/renew-subscriptions",  "schedule": "0 9 * * *"   }
+  ]
 }
 ```
