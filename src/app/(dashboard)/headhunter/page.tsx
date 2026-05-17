@@ -10,6 +10,60 @@ type SavedEntry = {
   waiter: { id: string; name?: string | null; verificationTier: string; waiterPassport?: { score: number; currentlyAvailable: boolean } | null };
 };
 
+function Sk({ className = "" }: { className?: string }) {
+  return <div className={`bg-neutral-200 rounded-lg animate-pulse ${className}`} />;
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="min-h-screen" style={{ background: "#fafaf8" }}>
+      <div className="max-w-5xl mx-auto px-4 py-10 flex flex-col gap-8">
+        {/* Header */}
+        <div className="dash-card p-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between animate-pulse">
+          <div className="flex flex-col gap-2">
+            <Sk className="h-3 w-24" />
+            <Sk className="h-7 w-48" />
+            <Sk className="h-4 w-64" />
+          </div>
+          <div className="flex gap-3">
+            <Sk className="h-10 w-36 rounded-xl" />
+            <Sk className="h-10 w-36 rounded-xl" />
+          </div>
+        </div>
+        {/* Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 animate-pulse">
+          {[0,1,2].map(i => (
+            <div key={i} className="dash-card p-5 flex flex-col items-center gap-2">
+              <Sk className="w-8 h-8 rounded-full" />
+              <Sk className="h-7 w-10" />
+              <Sk className="h-3 w-24" />
+            </div>
+          ))}
+        </div>
+        {/* Saved list */}
+        <div className="dash-card p-6 animate-pulse">
+          <div className="flex items-center justify-between mb-4">
+            <Sk className="h-5 w-40" />
+            <Sk className="h-4 w-16" />
+          </div>
+          <div className="flex flex-col gap-4">
+            {[0,1,2,3,4].map(i => (
+              <div key={i} className="flex items-center gap-3">
+                <Sk className="w-9 h-9 rounded-full flex-shrink-0" />
+                <div className="flex-1 flex flex-col gap-1.5">
+                  <Sk className="h-4 w-36" />
+                  <Sk className="h-3 w-24" />
+                </div>
+                <Sk className="h-6 w-10 rounded-full flex-shrink-0" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Initials({ name }: { name?: string | null }) {
   const l = name ? name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : "?";
   return (
@@ -22,7 +76,8 @@ function Initials({ name }: { name?: string | null }) {
 export default function HeadhunterDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [saved, setSaved] = useState<SavedEntry[]>([]);
+  const [saved, setSaved]     = useState<SavedEntry[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -33,10 +88,11 @@ export default function HeadhunterDashboard() {
     if (status !== "authenticated") return;
     fetch("/api/headhunter/saved")
       .then((r) => r.json())
-      .then((d) => setSaved(Array.isArray(d) ? d.slice(0, 5) : []));
+      .then((d) => setSaved(Array.isArray(d) ? d.slice(0, 5) : []))
+      .finally(() => setLoading(false));
   }, [status]);
 
-  if (status === "loading") return null;
+  if (status === "loading" || loading) return <DashboardSkeleton />;
 
   const name = session?.user.name ?? "Headhunter";
 
