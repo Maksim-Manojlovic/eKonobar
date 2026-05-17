@@ -5,7 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-type Role = "WAITER" | "VENUE_OWNER";
+type Role = "WAITER" | "VENUE_OWNER" | "HEADHUNTER";
 
 interface FormState {
   firstName: string;
@@ -142,7 +142,11 @@ export default function RegisterPage() {
       redirect: false,
     });
 
-    router.push(role === "WAITER" ? "/onboarding/waiter" : "/onboarding/venue");
+    router.push(
+      role === "WAITER"      ? "/onboarding/waiter"
+      : role === "HEADHUNTER" ? "/onboarding/headhunter"
+      : "/onboarding/venue"
+    );
   }
 
   return (

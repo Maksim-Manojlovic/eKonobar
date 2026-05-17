@@ -56,6 +56,12 @@ type ActivityEvent = {
   id: string; type: string; title: string; sub: string; ts: string; link?: string;
 };
 
+type LeaderboardData = {
+  topWaiters: { id: string; name: string | null; image: string | null; verificationTier: string; score: number; passportTier: string; isActive: boolean; reviewCount: number; totalEngagements: number }[];
+  topVenues:  { id: string; name: string; municipality: string | null; logo: string | null; score: number; reviewCount: number }[];
+  revenue:    { date: string; revenue: number }[];
+};
+
 type HealthData = {
   reviews:  { overdueGuest: number; overdueRegular: number };
   passports: { expiredPaid: number };
@@ -179,7 +185,8 @@ export default function AdminDashboard() {
   const [actions, setActions]       = useState<ActionStats | null>(null);
   const [activity, setActivity]     = useState<ActivityEvent[]>([]);
   const [actLoading, setActLoading] = useState(true);
-  const [health, setHealth]         = useState<HealthData | null>(null);
+  const [health, setHealth]           = useState<HealthData | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardData | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -210,6 +217,10 @@ export default function AdminDashboard() {
     fetch("/api/admin/health")
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d) setHealth(d); });
+
+    fetch("/api/admin/leaderboard")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setLeaderboard(d); });
   }, [status]);
 
   if (status === "loading" || !actions) return <DashboardSkeleton />;
@@ -499,6 +510,122 @@ export default function AdminDashboard() {
           </div>
 
         </div>
+
+        {/* ── Leaderboards + Revenue Chart ────────────────────────────── */}
+        {leaderboard && (
+          <div className="flex flex-col gap-4">
+
+            {/* Revenue chart */}
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <span>📈</span>
+                  <h2 className="text-xs font-black text-white/40 uppercase tracking-widest">Prihod — poslednjih 30 dana</h2>
+                </div>
+                <span className="text-sm font-black text-emerald-400">
+                  {leaderboard.revenue.reduce((a, d) => a + d.revenue, 0).toLocaleString("sr-RS")} RSD ukupno
+                </span>
+              </div>
+              {(() => {
+                const max = Math.max(...leaderboard.revenue.map(d => d.revenue), 1);
+                return (
+                  <div className="flex items-end gap-0.5 h-24">
+                    {leaderboard.revenue.map((d, i) => (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-0.5 group relative">
+                        <div
+                          className={`w-full rounded-t-sm transition-colors ${d.revenue > 0 ? "bg-orange-500/60 group-hover:bg-orange-500" : "bg-white/5"}`}
+                          style={{ height: `${Math.max((d.revenue / max) * 88, d.revenue > 0 ? 4 : 2)}px` }}
+                        />
+                        {d.revenue > 0 && (
+                          <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-neutral-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                            {d.revenue.toLocaleString("sr-RS")} RSD
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+              <div className="flex justify-between mt-1.5">
+                <span className="text-[10px] text-white/20">{leaderboard.revenue[0]?.date.slice(5)}</span>
+                <span className="text-[10px] text-white/20">{leaderboard.revenue[14]?.date.slice(5)}</span>
+                <span className="text-[10px] text-white/20">{leaderboard.revenue[29]?.date.slice(5)}</span>
+              </div>
+            </div>
+
+            {/* Leaderboards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              {/* Top waiters */}
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <span>🏆</span>
+                  <h2 className="text-xs font-black text-white/40 uppercase tracking-widest">Top konobari</h2>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {leaderboard.topWaiters.length === 0 ? (
+                    <p className="text-sm text-white/20 py-4 text-center">Nema podataka</p>
+                  ) : leaderboard.topWaiters.map((w, i) => (
+                    <div key={w.id} className="flex items-center gap-3">
+                      <span className={`text-xs font-black w-5 text-center flex-shrink-0 ${i === 0 ? "text-amber-400" : i === 1 ? "text-slate-400" : i === 2 ? "text-orange-700" : "text-white/20"}`}>
+                        {i + 1}
+                      </span>
+                      {w.image ? (
+                        <img src={w.image} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white/50 flex-shrink-0">
+                          {w.name?.[0] ?? "?"}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-white/80 truncate">{w.name ?? "—"}</p>
+                        <p className="text-[11px] text-white/30">{w.totalEngagements} smena · {w.reviewCount} rec.</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-sm font-black text-orange-400">{w.score}</p>
+                        {w.isActive && (
+                          <p className="text-[10px] font-bold text-amber-400">{w.passportTier.replace("_", "+")}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Top venues */}
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <span>🏪</span>
+                  <h2 className="text-xs font-black text-white/40 uppercase tracking-widest">Top lokali</h2>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {leaderboard.topVenues.length === 0 ? (
+                    <p className="text-sm text-white/20 py-4 text-center">Nema podataka</p>
+                  ) : leaderboard.topVenues.map((v, i) => (
+                    <div key={v.id} className="flex items-center gap-3">
+                      <span className={`text-xs font-black w-5 text-center flex-shrink-0 ${i === 0 ? "text-amber-400" : i === 1 ? "text-slate-400" : i === 2 ? "text-orange-700" : "text-white/20"}`}>
+                        {i + 1}
+                      </span>
+                      {v.logo ? (
+                        <img src={v.logo} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white/50 flex-shrink-0">
+                          {v.name[0]}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-white/80 truncate">{v.name}</p>
+                        <p className="text-[11px] text-white/30">{v.municipality ?? "—"} · {v.reviewCount} rec.</p>
+                      </div>
+                      <p className="text-sm font-black text-blue-400 flex-shrink-0">{v.score}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
 
         {/* ── System Health ────────────────────────────────────────────── */}
         {health && (
