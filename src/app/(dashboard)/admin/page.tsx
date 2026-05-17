@@ -5,6 +5,45 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+function Sk({ className = "" }: { className?: string }) {
+  return <div className={`bg-neutral-200 rounded-lg animate-pulse ${className}`} />;
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="min-h-screen" style={{ background: "#fafaf8" }}>
+      <div className="max-w-3xl mx-auto px-4 py-10 flex flex-col gap-6 animate-pulse">
+        <div className="flex flex-col gap-1">
+          <Sk className="h-7 w-36" />
+          <Sk className="h-4 w-56" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[0,1,2].map(i => (
+            <div key={i} className="dash-card p-5 flex flex-col gap-3">
+              <div className="flex items-start justify-between">
+                <Sk className="w-10 h-10 rounded-xl" />
+                <Sk className="h-6 w-16 rounded-full" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Sk className="h-4 w-32" />
+                <Sk className="h-3 w-44" />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="dash-card p-5">
+          <Sk className="h-4 w-28 mb-3" />
+          <div className="flex gap-2">
+            <Sk className="h-8 w-28 rounded-xl" />
+            <Sk className="h-8 w-28 rounded-xl" />
+            <Sk className="h-8 w-20 rounded-xl" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 type Stats = {
   pendingVerifications: number;
   disputedReviews: number;
@@ -63,11 +102,7 @@ export default function AdminDashboard() {
     }).catch(() => setStats({ pendingVerifications: 0, disputedReviews: 0, zones: 0 }));
   }, [status]);
 
-  if (status === "loading") return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: "#fafaf8" }}>
-      <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
-    </div>
-  );
+  if (status === "loading" || !stats) return <DashboardSkeleton />;
 
   return (
     <div className="min-h-screen" style={{ background: "#fafaf8" }}>
