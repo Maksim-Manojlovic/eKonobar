@@ -56,6 +56,14 @@ type ActivityEvent = {
   id: string; type: string; title: string; sub: string; ts: string; link?: string;
 };
 
+type HealthData = {
+  reviews:  { overdueGuest: number; overdueRegular: number };
+  passports: { expiredPaid: number };
+  cron: { lastPublishedReviewAt: string | null; lastRenewalPaymentAt: string | null };
+  users: { softDeleted: number };
+  system: { rateLimitEntries: number; pendingClockIns: number };
+};
+
 const EVENT_ICONS: Record<string, string> = {
   registration: "👤",
   payment:      "💳",
@@ -167,10 +175,11 @@ export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const spotlightRef = useRef<HTMLDivElement>(null);
-  const [platform, setPlatform]   = useState<PlatformStats | null>(null);
-  const [actions, setActions]     = useState<ActionStats | null>(null);
-  const [activity, setActivity]   = useState<ActivityEvent[]>([]);
+  const [platform, setPlatform]     = useState<PlatformStats | null>(null);
+  const [actions, setActions]       = useState<ActionStats | null>(null);
+  const [activity, setActivity]     = useState<ActivityEvent[]>([]);
   const [actLoading, setActLoading] = useState(true);
+  const [health, setHealth]         = useState<HealthData | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -197,6 +206,10 @@ export default function AdminDashboard() {
       .then(r => r.ok ? r.json() : [])
       .then(d => setActivity(Array.isArray(d) ? d : []))
       .finally(() => setActLoading(false));
+
+    fetch("/api/admin/health")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setHealth(d); });
   }, [status]);
 
   if (status === "loading" || !actions) return <DashboardSkeleton />;
@@ -486,6 +499,95 @@ export default function AdminDashboard() {
           </div>
 
         </div>
+
+        {/* ── System Health ────────────────────────────────────────────── */}
+        {health && (
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 flex flex-col gap-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span>🩺</span>
+                <h2 className="text-xs font-black text-white/40 uppercase tracking-widest">System Health</h2>
+              </div>
+              <span className={`text-[11px] font-black px-2.5 py-1 rounded-full ${
+                (health.reviews.overdueGuest + health.reviews.overdueRegular + health.passports.expiredPaid) === 0
+                  ? "bg-emerald-500/15 text-emerald-400"
+                  : "bg-orange-500/15 text-orange-400"
+              }`}>
+                {(health.reviews.overdueGuest + health.reviews.overdueRegular + health.passports.expiredPaid) === 0
+                  ? "✓ Sve OK"
+                  : "Pažnja"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+              {/* Cron jobs */}
+              <div className="bg-white/5 rounded-xl p-4 flex flex-col gap-3">
+                <p className="text-[11px] font-black text-white/30 uppercase tracking-wider">Cron jobovi</p>
+                <div>
+                  <p className="text-xs text-white/50 mb-0.5">Poslednja objava recenzije</p>
+                  <p className={`text-sm font-bold ${health.cron.lastPublishedReviewAt ? "text-white/80" : "text-red-400"}`}>
+                    {health.cron.lastPublishedReviewAt ? timeAgo(health.cron.lastPublishedReviewAt) : "Nikad"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-white/50 mb-0.5">Poslednje obnavljanje pretplate</p>
+                  <p className={`text-sm font-bold ${health.cron.lastRenewalPaymentAt ? "text-white/80" : "text-white/30"}`}>
+                    {health.cron.lastRenewalPaymentAt ? timeAgo(health.cron.lastRenewalPaymentAt) : "Nema plaćanja"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Review pipeline */}
+              <div className="bg-white/5 rounded-xl p-4 flex flex-col gap-3">
+                <p className="text-[11px] font-black text-white/30 uppercase tracking-wider">Recenzije</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-white/50">Zakasnele gost recenzije (&gt;2h)</p>
+                  <span className={`text-sm font-black ${health.reviews.overdueGuest > 0 ? "text-orange-400" : "text-emerald-400"}`}>
+                    {health.reviews.overdueGuest}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-white/50">Zakasnele ostale (&gt;48h)</p>
+                  <span className={`text-sm font-black ${health.reviews.overdueRegular > 0 ? "text-orange-400" : "text-emerald-400"}`}>
+                    {health.reviews.overdueRegular}
+                  </span>
+                </div>
+                {(health.reviews.overdueGuest + health.reviews.overdueRegular) > 0 && (
+                  <Link href="/admin/moderation" className="text-[11px] text-orange-400 hover:text-orange-300 font-bold transition-colors">
+                    Pokreni publish-reviews cron →
+                  </Link>
+                )}
+              </div>
+
+              {/* System */}
+              <div className="bg-white/5 rounded-xl p-4 flex flex-col gap-3">
+                <p className="text-[11px] font-black text-white/30 uppercase tracking-wider">Sistem</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-white/50">Istekle plaćene pretplate (DB stale)</p>
+                  <span className={`text-sm font-black ${health.passports.expiredPaid > 0 ? "text-amber-400" : "text-emerald-400"}`}>
+                    {health.passports.expiredPaid}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-white/50">Obrisani korisnici</p>
+                  <span className="text-sm font-bold text-white/40">{health.users.softDeleted}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-white/50">Clock-in čeka odobrenje</p>
+                  <span className={`text-sm font-black ${health.system.pendingClockIns > 0 ? "text-orange-400" : "text-emerald-400"}`}>
+                    {health.system.pendingClockIns}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-white/50">Rate limit zapisi</p>
+                  <span className="text-sm font-bold text-white/40">{health.system.rateLimitEntries}</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
