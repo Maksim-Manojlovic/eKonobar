@@ -135,9 +135,17 @@ src/
                        # Also: venue listings, job listings, public passport (/passport/[shareToken])
     (auth)/            # Login, register, onboarding (waiter | venue | headhunter)
     (dashboard)/       # Waiter, venue owner, headhunter, admin dashboards
+      venue/           # Venue owner dashboard (dark theme, skeleton loaders, guided tour)
+      waiter/          # Waiter dashboard (dark theme, skeleton loaders, passport + subscriptions)
+      headhunter/      # Headhunter dashboard (saved profiles, search entry)
+      admin/           # Admin dashboard (dark theme, analytics, activity feed)
+        users/         # User management — search, filter, soft-delete, restore
+    (public)/
+      review/[venueId]/ # Guest QR review page — 3-choice flow (venue / waiter / both), no auth
     api/
       cron/
         publish-reviews/     # POST — publishes due reviews + syncs trust scores
+        renew-subscriptions/ # POST — charges stored Monri pan_tokens for expiring PRO/PRO_PLUS
       jobs/                  # Job posts (CRUD), applications, GeoJSON
         applications/        # Application lifecycle (PATCH status transitions)
       reviews/               # Review submission (WAITER_TO_VENUE, VENUE_TO_WAITER)
@@ -168,10 +176,16 @@ src/
         cancel/              # GET — redirect after cancelled payment
       user/
         tour-complete/       # PATCH — mark User.tourCompleted = true (called on tour close)
+        notification-prefs/  # GET + PATCH — phone, smsOptIn, waOptIn preferences
       waiters/               # GET — waiter search (VENUE_OWNER, HEADHUNTER)
       headhunter/saved/      # Saved waiter profiles (GET | POST | DELETE)
       insights/market/       # GET — market stats (open positions, avg salary, top municipalities)
       admin/
+        stats/               # GET — platform analytics (users, passports, venues, jobs, reviews, revenue)
+        activity/            # GET — recent 25 events across registrations/payments/reviews/applications
+        users/               # GET — paginated user list with name/email search + role filter
+          [id]/              # PATCH — soft-delete, restore, role change (blocks self-modify)
+        health/              # GET — system health (overdue reviews, stale subscriptions, cron proxies)
         reviews/             # GET DISPUTED reviews; PATCH publish/remove
         venues/[id]/         # DELETE — GDPR hard-delete
         zones/               # Zone CRUD (public read, admin write)
@@ -249,6 +263,7 @@ prisma/
 - **Market Insights** — Aggregate stats: open positions, red alert count, average salary range, top municipalities
 - **Dark Dashboard Theme** — Both venue-owner and waiter dashboards use a deep `#120a00` background with an orange-brown grid overlay and a mouse-following radial spotlight rendered via `useRef` (no re-renders). Sidebar and mobile drawer match (`#0e0700` + grid). The `.dark-sidebar` CSS class overrides `.nav-item` colors without touching light-mode pages
 - **3-Layer Notifications** — In-app bell with desktop dropdown + mobile bottom sheet (30s polling + Web Push), WhatsApp Business API (PRO+ opt-in), Infobip SMS (PRO_PLUS opt-in). Full notifications page with day-grouped feed and type filter chips (`NotificationsSection`)
+- **Admin Dashboard** — Dark-themed admin panel with real-time platform analytics (users by role, passport tier breakdown, venue/job/review counts, monthly revenue), live activity feed (last 25 events across registrations/payments/reviews/applications), system health panel (overdue reviews, stale subscriptions, cron proxy timestamps, pending clock-ins), and full user management (`/admin/users`) with search, role filter, pagination, soft-delete, and restore
 - **Admin Moderation** — Disputed review queue with publish/remove actions; GDPR hard-delete for venues
 - **Image Uploads** — Waiter avatars (400×400 face-crop), venue photos (up to 8, 1200×800 fill), and venue logo (circle avatar shown in sidebar and top bar); all on Cloudinary
 

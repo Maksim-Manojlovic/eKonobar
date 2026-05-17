@@ -226,13 +226,13 @@ When `template.weekdaysOnly === true`, generation loops Mon–Fri (days 1–5) a
 
 `Review.authorId` is nullable — null means guest. Display as "Gost" in UI. `guestHandle` is an optional display name (max 50 chars). The route is rate-limited by IP (3/hour) and geofenced server-side (150m). After creation, `REVIEW_RECEIVED` is sent to the venue owner.
 
-The `/review/[venueId]` public page presents a 3-choice flow: "Oceni restoran" (GUEST_TO_VENUE), "Oceni konobara" (GUEST_TO_WAITER), "Oceni oba" (both — two sequential POSTs sharing the same geolocation coords).
+The `/review/[venueId]` public page (`src/app/(public)/review/[venueId]/page.tsx`) presents a 3-choice flow: "Oceni restoran" (GUEST_TO_VENUE), "Oceni konobara" (GUEST_TO_WAITER), "Oceni oba" (both — two sequential POSTs sharing the same geolocation coords). Step type: `"loading" | "error404" | "choose" | "venue" | "waiter" | "both-venue" | "both-waiter" | "success"`.
 
 The public venue info endpoint `GET /api/venues/[id]/public` returns venue + accepted waiters list — no auth required.
 
 ### Dark dashboard theme
 
-Both venue-owner (`src/app/(dashboard)/venue/page.tsx`) and waiter (`src/app/(dashboard)/waiter/page.tsx`) dashboards share a dark visual theme:
+The venue-owner, waiter, headhunter, and admin dashboards all share the same dark visual theme (`src/app/(dashboard)/venue/page.tsx`, `waiter/page.tsx`, `headhunter/page.tsx`, `admin/page.tsx`, `admin/users/page.tsx`):
 
 - **Background:** `#120a00` with an orange-brown grid via `background-image: linear-gradient(...)` inline style on the outer div
 - **Mouse spotlight:** `useRef<HTMLDivElement>(null)` pointing at a `position: fixed; inset: 0; z-index: 1; pointer-events: none` div. `onMouseMove` on the outer div updates its `style.background` directly (no state, no re-renders):
@@ -249,6 +249,19 @@ Both venue-owner (`src/app/(dashboard)/venue/page.tsx`) and waiter (`src/app/(da
   ```
 - **z-index layering:** spotlight at `z-1` (fixed), sidebar + main content at `z-2` (relative) so spotlight renders behind interactive elements.
 - **Headings on dark background:** use `text-white`. Headings inside white `dash-card`s stay `text-neutral-900`.
+
+### Skeleton loaders
+
+All dashboards use content-shaped skeleton loaders instead of spinners. Pattern:
+
+```typescript
+function Sk({ className = "" }: { className?: string }) {
+  return <div className={`bg-neutral-200 rounded-lg animate-pulse ${className}`} />;
+}
+// On dark backgrounds use bg-white/10 instead of bg-neutral-200
+```
+
+Each section has a dedicated `*Skeleton` function that mirrors the real layout — same grid columns, same card heights, no generic spinner. Wire via `if (loading) return <SectionNameSkeleton />;` at the top of each section component.
 
 ### Prisma client caching (dev)
 
@@ -619,6 +632,47 @@ PATCH /api/admin/reviews/[id]  { action: "publish" | "remove" }
 DELETE /api/admin/venues/[id]
   GDPR hard-delete via dbRaw. Cascades to all related records (jobPosts, reviews,
   engagementRecords, shifts, venueTrustScore). Works on soft-deleted venues too.
+
+GET /api/admin/stats
+  13 parallel queries. Returns: users by role, passports by tier, active venues,
+  open/red-alert jobs, applications, reviews by status, sanitary pending count,
+  total successful payments, revenue this month (amountRsd / 100 = dinars).
+
+GET /api/admin/activity
+  Last 25 events merged and sorted across User (registrations), PassportPayment
+  (SUCCESS), Review, and JobApplication. Each event: { id, type, title, sub, ts, link? }.
+  Types: "registration" | "payment" | "review" | "application".
+
+GET /api/admin/users?search=&role=&page=
+  Paginated (25/page). search = name or email (case-insensitive). role = enum filter.
+  Returns { users, total, page, pages }. Each user includes waiterPassport tier + score.
+
+PATCH /api/admin/users/[id]  { role? | action: "delete" | "restore" }
+  Soft-delete sets deletedAt. restore clears it. role change validates against enum.
+  Blocks self-modification (403 if id === session.user.id).
+
+GET /api/admin/health
+  Returns system health metrics:
+  - reviews.overdueGuest   — PENDING guest reviews older than 2h (should be 0 if cron runs)
+  - reviews.overdueRegular — PENDING non-guest reviews older than 48h
+  - passports.expiredPaid  — WaiterPassport with non-FREE tier but subscriptionExpiresAt < now
+                             (DB stale — runtime already treats these as FREE)
+  - cron.lastPublishedReviewAt  — proxy for publish-reviews cron last-ran timestamp
+  - cron.lastRenewalPaymentAt   — proxy for renew-subscriptions cron last-ran timestamp
+  - users.softDeleted           — count of users with deletedAt set
+  - system.pendingClockIns      — ShiftAssignment rows with pendingClockIn = true
+  - system.rateLimitEntries     — RateLimit row count (spike = heavy use or abuse)
+```
+
+### Notification Preferences API
+
+```
+GET /api/user/notification-prefs
+  Returns { phone, smsOptIn, waOptIn } for the authenticated user.
+
+PATCH /api/user/notification-prefs  { phone?, smsOptIn?, waOptIn? }
+  Updates User.phone (trimmed, max 20 chars, null if empty string),
+  smsOptIn, and/or waOptIn. Partial updates — only present keys are applied.
 ```
 
 ## Notification System
