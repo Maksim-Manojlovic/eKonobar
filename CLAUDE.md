@@ -382,6 +382,34 @@ Score sync flow (run via `lib/sync-scores.ts`):
 
 The cron endpoint `POST /api/cron/publish-reviews` runs this flow on a schedule. Requires `Authorization: Bearer <CRON_SECRET>`.
 
+## Password Reset Flow
+
+```
+POST /api/auth/forgot-password  { email }
+  No auth. Rate-limited: 3/15min per IP (silent — always returns { ok: true } to prevent email enumeration).
+  Looks up user by email. If user has no hashedPassword (OAuth-only account), silently returns ok.
+  Creates PasswordResetToken (token: 32 random bytes hex, expiresAt: +1h).
+  Sends email via lib/email.ts (nodemailer SMTP — configured via SMTP_* env vars).
+
+POST /api/auth/reset-password  { token, password }
+  No auth. Validates: token exists, not usedAt, not expired, password ≥ 8 chars.
+  Transaction: update User.hashedPassword (bcrypt cost 12) + set PasswordResetToken.usedAt.
+  Returns { ok: true } on success; 400 with { error } on failure.
+```
+
+**Page:** `/reset-password` (lives in `(auth)` layout)
+- Without `?token=` in URL → "Resetuj lozinku" email form → on submit shows "Proveri inbox" confirmation
+- With `?token=XYZ` → "Nova lozinka" form with strength indicator → on success auto-redirects to `/login` after 2.5s
+
+Login page links to `/reset-password` ("Zaboravili ste lozinku?").
+
+**SMTP env vars** (in `.env.example`):
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`
+- Works with Gmail (app password), Outlook, SendGrid SMTP relay, etc.
+- No-op during development if vars missing — `sendPasswordResetEmail` catch swallows send errors
+
+**PasswordResetToken model** — separate table (not fields on User). Cascades on user delete. Token column is unique + indexed.
+
 ## API Conventions
 
 - All routes use Next.js Route Handlers (`route.ts`)

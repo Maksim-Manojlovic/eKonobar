@@ -50,6 +50,14 @@ Optional:
 CRON_SECRET="your-cron-secret"        # required to call /api/cron/* routes
 DEFAULT_REVIEW_RADIUS_KM=0.15
 
+# SMTP (password reset emails) — works with Gmail, Outlook, SendGrid, etc.
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_SECURE="false"
+SMTP_USER="your@gmail.com"
+SMTP_PASS="your-app-password"
+SMTP_FROM="eKonobar <noreply@ekonobar.rs>"
+
 # Web Push (VAPID) — run: npx web-push generate-vapid-keys
 VAPID_PUBLIC_KEY=""
 VAPID_PRIVATE_KEY=""
