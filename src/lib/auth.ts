@@ -1,7 +1,10 @@
 import { type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider    from "next-auth/providers/google";
+import FacebookProvider  from "next-auth/providers/facebook";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { compare } from "bcryptjs";
-import { db } from "./db";
+import { db, dbRaw } from "./db";
 import { rateLimit } from "./rate-limit";
 import type { Role, VerificationTier } from "@prisma/client";
 
@@ -9,15 +12,24 @@ const TTL_DEFAULT  = 24 * 60 * 60;      // 24 h — standard session
 const TTL_REMEMBER =  7 * 24 * 60 * 60; // 7 d  — "zapamti me"
 
 export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(dbRaw),
   session: { strategy: "jwt", maxAge: TTL_REMEMBER },
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore — trustHost is valid at runtime in Next.js 15 but not typed in next-auth v4
   trustHost: true,
   pages: {
-    signIn: "/login",
-    newUser: "/onboarding/waiter",
+    signIn:  "/login",
+    newUser: "/onboarding/select-role",
   },
   providers: [
+    GoogleProvider({
+      clientId:     process.env.GOOGLE_CLIENT_ID     ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+    }),
+    FacebookProvider({
+      clientId:     process.env.FACEBOOK_CLIENT_ID     ?? "",
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET ?? "",
+    }),
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -34,9 +46,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Previše neuspelih pokušaja prijave. Sačekaj 15 minuta.");
         }
 
-        const user = await db.user.findUnique({
-          where: { email },
-        });
+        const user = await db.user.findUnique({ where: { email } });
 
         if (!user?.hashedPassword) return null;
 
@@ -44,39 +54,66 @@ export const authOptions: NextAuthOptions = {
         if (!valid) return null;
 
         return {
-          id: user.id,
-          email: user.email,
-          name: user.name ?? undefined,
-          role: user.role,
+          id:               user.id,
+          email:            user.email,
+          name:             user.name ?? undefined,
+          role:             user.role,
           verificationTier: user.verificationTier,
-          rememberMe: credentials.rememberMe === "true",
-          tourCompleted: user.tourCompleted,
+          rememberMe:       credentials.rememberMe === "true",
+          tourCompleted:    user.tourCompleted,
         };
       },
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    async signIn({ user }) {
+      // Block sign-ins for soft-deleted accounts
+      const dbUser = await dbRaw.user.findUnique({
+        where:  { id: user.id },
+        select: { deletedAt: true },
+      });
+      return !dbUser?.deletedAt;
+    },
+
+    async jwt({ token, user, account, trigger, session }) {
+      // Client-side session.update({ role, ... }) — update token fields
+      if (trigger === "update" && session) {
+        if (session.role)             token.role             = session.role;
+        if (session.tourCompleted !== undefined) token.tourCompleted = session.tourCompleted;
+        return token;
+      }
+
       if (user) {
-        token.id = user.id;
-        token.role = user.role as Role;
-        token.verificationTier = user.verificationTier as VerificationTier;
-        token.tourCompleted = user.tourCompleted;
-        const ttl = user.rememberMe ? TTL_REMEMBER : TTL_DEFAULT;
-        token.sessionExpiry = Math.floor(Date.now() / 1000) + ttl;
+        if (account?.provider === "credentials") {
+          // Credentials: authorize() already returned all needed fields
+          token.id               = user.id;
+          token.role             = user.role as Role;
+          token.verificationTier = user.verificationTier as VerificationTier;
+          token.tourCompleted    = user.tourCompleted;
+          const ttl = user.rememberMe ? TTL_REMEMBER : TTL_DEFAULT;
+          token.sessionExpiry = Math.floor(Date.now() / 1000) + ttl;
+        } else {
+          // OAuth: adapter provides basic user; fetch role/tier from DB
+          const dbUser = await dbRaw.user.findUnique({
+            where:  { id: user.id },
+            select: { role: true, verificationTier: true, tourCompleted: true },
+          });
+          token.id               = user.id;
+          token.role             = (dbUser?.role ?? "WAITER") as Role;
+          token.verificationTier = (dbUser?.verificationTier ?? "UNVERIFIED") as VerificationTier;
+          token.tourCompleted    = dbUser?.tourCompleted ?? false;
+          token.sessionExpiry    = Math.floor(Date.now() / 1000) + TTL_DEFAULT;
+        }
       }
       return token;
     },
+
     session({ session, token }) {
-      session.user.id = token.id as string;
-      session.user.role = token.role as Role;
+      session.user.id               = token.id as string;
+      session.user.role             = token.role as Role;
       session.user.verificationTier = token.verificationTier as VerificationTier;
-      session.user.tourCompleted = token.tourCompleted;
-      // Izlažemo sessionExpiry klijentu za SessionExpiryToast.
-      // Namerno NE overridujemo session.expires — to bi izazvalo
-      // beskonačne re-fetch petlje u SessionProvider-u dok je JWT
-      // envelope još uvek validan (7 dana).
-      session.sessionExpiry = token.sessionExpiry as number;
+      session.user.tourCompleted    = token.tourCompleted;
+      session.sessionExpiry         = token.sessionExpiry as number;
       return session;
     },
   },

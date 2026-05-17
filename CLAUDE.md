@@ -382,6 +382,30 @@ Score sync flow (run via `lib/sync-scores.ts`):
 
 The cron endpoint `POST /api/cron/publish-reviews` runs this flow on a schedule. Requires `Authorization: Bearer <CRON_SECRET>`.
 
+## OAuth (Google / Facebook)
+
+NextAuth is configured with `PrismaAdapter(dbRaw)` + JWT strategy. Adapter persists User + Account rows for OAuth sign-ins; JWT strategy keeps sessions stateless.
+
+**Providers:** GoogleProvider, FacebookProvider — credentials in `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET`.
+
+**New user flow:**
+- `pages.newUser = "/onboarding/select-role"` — fires for first-time OAuth users
+- Role picker at `/onboarding/select-role` calls `PATCH /api/auth/set-role` then `update({ role })` (NextAuth v4 session update) so the JWT reflects the new role immediately
+- User is then routed to the role-specific onboarding page
+
+**`PATCH /api/auth/set-role` { role }**
+- Auth required. Accepts `WAITER | VENUE_OWNER | HEADHUNTER` only (no ADMIN escalation).
+- Updates `User.role` in DB.
+
+**JWT callback (lib/auth.ts):**
+- `trigger === "update"` with `session.role` → patches token in place (no re-auth needed)
+- OAuth first sign-in: `account.provider !== "credentials"` → fetches role/verificationTier/tourCompleted from DB (adapter only returns basic fields)
+- Credentials first sign-in: `authorize()` already returns all fields
+
+**signIn callback:** rejects sign-ins for soft-deleted users (`deletedAt IS NOT NULL`).
+
+**Account linking:** not implemented — same-email collision between credentials and OAuth returns a NextAuth error. Users must use the provider they originally signed up with.
+
 ## Password Reset Flow
 
 ```

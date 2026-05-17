@@ -78,11 +78,17 @@ export default function LoginPage() {
 
           {/* Social buttons */}
           <div className="flex gap-3 mb-6 fade-up-2">
-            <button className="social-btn flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold text-neutral-600">
+            <button
+              onClick={() => signIn("google")}
+              className="social-btn flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold text-neutral-600"
+            >
               <GoogleIcon />
               Google
             </button>
-            <button className="social-btn flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold text-neutral-600">
+            <button
+              onClick={() => signIn("facebook")}
+              className="social-btn flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold text-neutral-600"
+            >
               <FacebookIcon />
               Facebook
             </button>
