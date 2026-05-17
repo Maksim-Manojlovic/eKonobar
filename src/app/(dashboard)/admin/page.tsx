@@ -52,6 +52,24 @@ type ActionStats = {
   zones: number;
 };
 
+type ActivityEvent = {
+  id: string; type: string; title: string; sub: string; ts: string; link?: string;
+};
+
+const EVENT_ICONS: Record<string, string> = {
+  registration: "👤",
+  payment:      "💳",
+  review:       "⭐",
+  application:  "📝",
+};
+
+const EVENT_COLORS: Record<string, string> = {
+  registration: "text-blue-400",
+  payment:      "text-emerald-400",
+  review:       "text-amber-400",
+  application:  "text-orange-400",
+};
+
 /* ── Stat card components ────────────────────────────────────────────────── */
 
 function BigStat({
@@ -101,6 +119,18 @@ function SectionCard({ title, icon, children }: { title: string; icon: string; c
   );
 }
 
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins  = Math.floor(diff / 60_000);
+  const hours = Math.floor(diff / 3_600_000);
+  const days  = Math.floor(diff / 86_400_000);
+  if (mins < 2)   return "upravo";
+  if (mins < 60)  return `pre ${mins}min`;
+  if (hours < 24) return `pre ${hours}h`;
+  if (days < 30)  return `pre ${days}d`;
+  return `pre ${Math.floor(days / 30)}m`;
+}
+
 /* ── Main ────────────────────────────────────────────────────────────────── */
 
 const NAV = [
@@ -137,8 +167,10 @@ export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const spotlightRef = useRef<HTMLDivElement>(null);
-  const [platform, setPlatform] = useState<PlatformStats | null>(null);
-  const [actions, setActions]   = useState<ActionStats | null>(null);
+  const [platform, setPlatform]   = useState<PlatformStats | null>(null);
+  const [actions, setActions]     = useState<ActionStats | null>(null);
+  const [activity, setActivity]   = useState<ActivityEvent[]>([]);
+  const [actLoading, setActLoading] = useState(true);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -160,6 +192,11 @@ export default function AdminDashboard() {
         zones: Array.isArray(zones) ? zones.length : 0,
       });
     }).catch(() => setActions({ pendingVerifications: 0, disputedReviews: 0, zones: 0 }));
+
+    fetch("/api/admin/activity")
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setActivity(Array.isArray(d) ? d : []))
+      .finally(() => setActLoading(false));
   }, [status]);
 
   if (status === "loading" || !actions) return <DashboardSkeleton />;
@@ -344,6 +381,110 @@ export default function AdminDashboard() {
               );
             })}
           </div>
+        </div>
+
+        {/* ── Bottom row: activity + user management ───────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+          {/* Activity feed */}
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+              <span>🕐</span>
+              <h2 className="text-xs font-black text-white/40 uppercase tracking-widest">Nedavna aktivnost</h2>
+            </div>
+            {actLoading ? (
+              <div className="flex flex-col gap-3 animate-pulse">
+                {[0,1,2,3,4,5].map(i => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Sk className="w-8 h-8 rounded-xl flex-shrink-0" />
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <Sk className="h-3.5 w-40" />
+                      <Sk className="h-3 w-24" />
+                    </div>
+                    <Sk className="h-3 w-10 flex-shrink-0" />
+                  </div>
+                ))}
+              </div>
+            ) : activity.length === 0 ? (
+              <p className="text-sm text-white/30 py-6 text-center">Nema aktivnosti</p>
+            ) : (
+              <div className="flex flex-col gap-0 -mx-1">
+                {activity.map(ev => {
+                  const inner = (
+                    <div className="flex items-center gap-3 px-1 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0 bg-white/8">
+                        {EVENT_ICONS[ev.type] ?? "•"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white/80 font-medium truncate">{ev.title}</p>
+                        <p className="text-xs text-white/30 truncate">{ev.sub}</p>
+                      </div>
+                      <span className={`text-[11px] font-bold flex-shrink-0 ${EVENT_COLORS[ev.type] ?? "text-white/40"}`}>
+                        {timeAgo(ev.ts)}
+                      </span>
+                    </div>
+                  );
+                  return ev.link
+                    ? <Link key={ev.id} href={ev.link}>{inner}</Link>
+                    : <div key={ev.id}>{inner}</div>;
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* User management + tier breakdown */}
+          <div className="flex flex-col gap-4">
+            <Link
+              href="/admin/users"
+              className="group rounded-2xl border border-white/10 bg-white/5 hover:bg-white/8 hover:border-orange-500/30 transition-all p-5 flex flex-col gap-4"
+            >
+              <div className="flex items-start justify-between">
+                <span className="text-2xl w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">👥</span>
+                {platform && (
+                  <span className="bg-white/10 text-white/50 text-xs font-bold px-2.5 py-1 rounded-full">
+                    {platform.users.total} korisnika
+                  </span>
+                )}
+              </div>
+              <div>
+                <p className="font-black text-white text-sm group-hover:text-orange-300 transition-colors">Upravljanje korisnicima</p>
+                <p className="text-xs text-white/40 mt-0.5">Pretraži, filtriraj i briši korisnike po ulozi ili imenu.</p>
+              </div>
+              <p className="text-xs text-white/30 group-hover:text-orange-400 transition-colors font-bold">Otvori →</p>
+            </Link>
+
+            {platform && (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5 flex flex-col gap-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span>💳</span>
+                  <h3 className="text-xs font-black text-white/40 uppercase tracking-widest">Distribucija pretplata</h3>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: "FREE", value: platform.passports.free,    color: "text-white/50" },
+                    { label: "PRO",  value: platform.passports.pro,     color: "text-orange-400" },
+                    { label: "PRO+", value: platform.passports.proPlus, color: "text-amber-300" },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} className="bg-white/5 rounded-xl p-3 text-center">
+                      <p className={`text-lg font-black ${color}`}>{value}</p>
+                      <p className="text-[11px] text-white/30 font-bold mt-0.5">{label}</p>
+                    </div>
+                  ))}
+                </div>
+                {platform.passports.total > 0 && (
+                  <div className="mt-1">
+                    <div className="flex gap-0.5 h-2 rounded-full overflow-hidden">
+                      <div className="bg-white/15" style={{ width: `${(platform.passports.free / platform.passports.total) * 100}%` }} />
+                      <div className="bg-orange-500/60" style={{ width: `${(platform.passports.pro / platform.passports.total) * 100}%` }} />
+                      <div className="bg-amber-400/70" style={{ width: `${(platform.passports.proPlus / platform.passports.total) * 100}%` }} />
+                    </div>
+                    <p className="text-[10px] text-white/20 mt-1.5">FREE / PRO / PRO+</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
         </div>
 
       </div>
