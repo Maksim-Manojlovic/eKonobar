@@ -257,6 +257,195 @@ function Spinner() {
   );
 }
 
+function Sk({ className = "" }: { className?: string }) {
+  return <div className={`bg-neutral-200 rounded-lg animate-pulse ${className}`} />;
+}
+
+function OverviewSkeleton() {
+  return (
+    <>
+      <div className="dash-card p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
+        <Sk className="w-24 h-24 rounded-full flex-shrink-0" />
+        <div className="flex-1 flex flex-col gap-3 items-center sm:items-start">
+          <div className="flex gap-2">
+            <Sk className="h-5 w-16 rounded-full" />
+            <Sk className="h-5 w-20 rounded-full" />
+          </div>
+          <Sk className="h-7 w-44" />
+          <Sk className="h-4 w-20" />
+          <div className="flex gap-6 mt-1">
+            {[1,2,3].map(i => (
+              <div key={i} className="flex flex-col items-center gap-1">
+                <Sk className="h-6 w-8" />
+                <Sk className="h-3 w-16" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <Sk className="h-9 w-32 rounded-xl flex-shrink-0" />
+      </div>
+      <div className="dash-card p-4 flex gap-6">
+        {[1,2,3].map(i => (
+          <div key={i} className="flex flex-col items-center gap-1">
+            <Sk className="h-6 w-10" />
+            <Sk className="h-3 w-20" />
+          </div>
+        ))}
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {[1,2].map(i => (
+          <div key={i} className="dash-card p-5 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <Sk className="h-4 w-28" />
+              <Sk className="h-4 w-8" />
+            </div>
+            {[1,2,3].map(j => (
+              <div key={j} className="flex items-center justify-between py-2 border-b border-neutral-100 last:border-0">
+                <div className="flex flex-col gap-1.5">
+                  <Sk className="h-4 w-36" />
+                  <Sk className="h-3 w-24" />
+                </div>
+                <Sk className="h-5 w-16 rounded-full" />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function AlertsSkeleton() {
+  return (
+    <>
+      <Sk className="h-6 w-56" />
+      <Sk className="h-3 w-48" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[1,2,3].map(i => (
+          <div key={i} className="dash-card p-5 flex flex-col gap-3">
+            <Sk className="h-3 w-12" />
+            <Sk className="h-5 w-36" />
+            <Sk className="h-4 w-28" />
+            <Sk className="h-4 w-20" />
+            <Sk className="h-6 w-24 mt-1" />
+            <Sk className="h-8 w-full rounded-xl mt-1" />
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function JobsSkeleton() {
+  return (
+    <>
+      <Sk className="h-7 w-44" />
+      <div className="flex flex-col gap-3">
+        {[1,2,3,4].map(i => (
+          <div key={i} className="dash-card p-5 flex items-center gap-4">
+            <Sk className="w-12 h-12 rounded-xl flex-shrink-0" />
+            <div className="flex-1 flex flex-col gap-2">
+              <Sk className="h-4 w-32" />
+              <Sk className="h-3 w-48" />
+              <div className="flex gap-3">
+                <Sk className="h-3 w-16" />
+                <Sk className="h-3 w-20" />
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-2 flex-shrink-0">
+              <Sk className="h-5 w-20" />
+              <Sk className="h-8 w-20 rounded-xl" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function WaiterApplicationsSkeleton() {
+  return (
+    <>
+      <Sk className="h-7 w-36" />
+      <div className="bg-neutral-100 rounded-xl p-1 flex gap-1 w-fit">
+        {[1,2,3,4].map(i => <Sk key={i} className="h-7 w-20 rounded-lg" />)}
+      </div>
+      <div className="flex flex-col gap-3">
+        {[1,2,3,4].map(i => (
+          <div key={i} className="dash-card p-5 flex items-start gap-4">
+            <Sk className="w-10 h-10 rounded-full flex-shrink-0" />
+            <div className="flex-1 flex flex-col gap-2">
+              <Sk className="h-4 w-32" />
+              <Sk className="h-3 w-48" />
+              <Sk className="h-3 w-24" />
+            </div>
+            <Sk className="h-5 w-20 rounded-full flex-shrink-0" />
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function WaiterShiftsSkeleton() {
+  return (
+    <>
+      <div className="flex gap-2 mb-1">
+        {[1,2,3].map(i => <Sk key={i} className="h-8 w-24 rounded-xl" />)}
+      </div>
+      <div className="dash-card p-5 flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <Sk className="h-5 w-32" />
+          <div className="flex gap-2">
+            <Sk className="h-7 w-7 rounded-lg" />
+            <Sk className="h-7 w-7 rounded-lg" />
+          </div>
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {Array.from({ length: 35 }).map((_, i) => (
+            <Sk key={i} className="h-10 rounded-lg" />
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-col gap-3">
+        {[1,2,3].map(i => (
+          <div key={i} className="dash-card p-4 flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Sk className="h-4 w-32" />
+              <Sk className="h-3 w-48" />
+            </div>
+            <Sk className="h-5 w-16 rounded-full flex-shrink-0" />
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function InvitesSkeleton() {
+  return (
+    <>
+      <Sk className="h-7 w-28" />
+      <div className="flex flex-col gap-3">
+        {[1,2].map(i => (
+          <div key={i} className="dash-card p-5 flex items-start gap-4">
+            <Sk className="w-10 h-10 rounded-full flex-shrink-0" />
+            <div className="flex-1 flex flex-col gap-2">
+              <Sk className="h-5 w-40" />
+              <Sk className="h-3 w-full" />
+              <Sk className="h-3 w-3/4" />
+              <div className="flex gap-2 mt-1">
+                <Sk className="h-8 w-24 rounded-xl" />
+                <Sk className="h-8 w-20 rounded-xl" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 function ApplyButton({ jobId, applied, applying, onApply }: {
   jobId: string; applied: boolean; applying: string | null; onApply: (id: string) => Promise<void>;
 }) {
@@ -345,11 +534,13 @@ function MarketInsights() {
 
 /* ── Section: Overview ───────────────────────────────────────────────────── */
 
-function OverviewSection({ jobs, applications, shifts, userName, verificationTier, passport, onNavigate, onApply, applying }: {
+function OverviewSection({ jobs, applications, shifts, userName, verificationTier, passport, onNavigate, onApply, applying, loading }: {
   jobs: JobPost[]; applications: MyApplication[]; shifts: WaiterShift[];
   userName: string; verificationTier: string; passport: PassportData | null;
   onNavigate: (s: Section) => void; onApply: (id: string) => Promise<void>; applying: string | null;
+  loading: boolean;
 }) {
+  if (loading) return <OverviewSkeleton />;
   const score         = Math.round(passport?.score ?? 0);
   const circumference = 2 * Math.PI * 40;
   const offset        = circumference - (score / 100) * circumference;
@@ -504,7 +695,7 @@ function AlertsSection({ jobs, loading, onApply, applying, appliedJobIds }: {
   jobs: JobPost[]; loading: boolean; onApply: (id: string) => Promise<void>;
   applying: string | null; appliedJobIds: Set<string>;
 }) {
-  if (loading) return <Spinner />;
+  if (loading) return <AlertsSkeleton />;
   const alerts = jobs.filter(j => j.redAlert);
   return (
     <>
@@ -544,7 +735,7 @@ function JobsSection({ jobs, loading, onApply, applying, appliedJobIds }: {
   jobs: JobPost[]; loading: boolean; onApply: (id: string) => Promise<void>;
   applying: string | null; appliedJobIds: Set<string>;
 }) {
-  if (loading) return <Spinner />;
+  if (loading) return <JobsSkeleton />;
   return (
     <>
       <h2 className="font-black text-white">Dostupni poslovi</h2>
@@ -584,7 +775,7 @@ function JobsSection({ jobs, loading, onApply, applying, appliedJobIds }: {
 
 function ApplicationsSection({ applications, loading }: { applications: MyApplication[]; loading: boolean }) {
   const [filter, setFilter] = useState<AppFilter>("all");
-  if (loading) return <Spinner />;
+  if (loading) return <WaiterApplicationsSkeleton />;
   const filtered = filter === "all" ? applications : applications.filter(a => appStatusKey(a.status) === filter);
   const tabs: { key: AppFilter; label: string }[] = [
     { key: "all", label: "Sve" }, { key: "accepted", label: "Prihvaćene" },
@@ -738,11 +929,7 @@ function ShiftsSection({ shifts, loading, onRefresh }: { shifts: WaiterShift[]; 
     // Owner must approve — waiter side is informational only
   }
 
-  if (loading) return (
-    <div className="flex items-center justify-center py-16">
-      <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
-    </div>
-  );
+  if (loading) return <WaiterShiftsSkeleton />;
 
   const year  = current.getFullYear();
   const month = current.getMonth();
@@ -1117,7 +1304,7 @@ function HeadWaiterSmeneSection({ venue, shifts, loading, onRefresh }: {
     onRefresh();
   }
 
-  if (loading) return <div className="flex items-center justify-center py-20 text-neutral-400 text-sm">Učitavanje…</div>;
+  if (loading) return <WaiterShiftsSkeleton />;
 
   return (
     <div className="flex flex-col gap-5">
@@ -1261,7 +1448,12 @@ function ReviewsSection() {
       .finally(() => setLoading(false));
   }, [session?.user?.id]);
 
-  if (loading) return <Spinner />;
+  if (loading) return (
+    <div className="flex flex-col gap-4 animate-pulse">
+      <Sk className="h-7 w-44" />
+      {[0,1,2].map(i => <Sk key={i} className="h-24 w-full" />)}
+    </div>
+  );
 
   return (
     <>
@@ -2078,7 +2270,7 @@ function InvitesSection({ invites, loading, onRespond }: {
     setResponding(null);
   };
 
-  if (loading) return <Spinner />;
+  if (loading) return <InvitesSkeleton />;
 
   const pending = invites.filter(i => i.status === "PENDING");
   const past    = invites.filter(i => i.status !== "PENDING");
@@ -2405,7 +2597,7 @@ export default function WaiterDashboard() {
         </div>
 
         <div className="p-6 flex flex-col gap-6 max-w-5xl mx-auto">
-          {section === "overview"     && <OverviewSection jobs={jobs} applications={applications} shifts={shifts} userName={userName} verificationTier={session?.user?.verificationTier ?? "BRONZE"} passport={passport} onNavigate={setSection} onApply={handleApply} applying={applying} />}
+          {section === "overview"     && <OverviewSection jobs={jobs} applications={applications} shifts={shifts} userName={userName} verificationTier={session?.user?.verificationTier ?? "BRONZE"} passport={passport} onNavigate={setSection} onApply={handleApply} applying={applying} loading={loading} />}
           {section === "alerts"       && <AlertsSection jobs={jobs} loading={loading} onApply={handleApply} applying={applying} appliedJobIds={appliedJobIds} />}
           {section === "jobs"         && <JobsSection jobs={jobs} loading={loading} onApply={handleApply} applying={applying} appliedJobIds={appliedJobIds} />}
           {section === "applications" && <ApplicationsSection applications={applications} loading={loading} />}
