@@ -821,6 +821,10 @@ model PassportPayment {
   monriApprovalCode String?
   monriPanToken     String?          // stored if tokenize_pan was requested
 
+  // Set atomically on first callback receipt — prevents concurrent/retried callbacks
+  // from double-activating a subscription. NULL = not yet received.
+  callbackReceivedAt DateTime?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

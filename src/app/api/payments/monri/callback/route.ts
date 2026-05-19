@@ -31,8 +31,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
-  // Idempotent — already processed
+  // Fast path — already fully processed (common for Monri retries after success)
   if (payment.status === "SUCCESS") {
+    return NextResponse.json({ ok: true });
+  }
+
+  // Atomic claim — SET callbackReceivedAt = now WHERE callbackReceivedAt IS NULL.
+  // PostgreSQL serializes concurrent updates on the same row, so exactly one
+  // concurrent or retried callback gets count=1. The others get count=0 and
+  // return 200 without processing, preventing double-activation.
+  const claim = await dbRaw.passportPayment.updateMany({
+    where: { orderNumber: payload.order_number, callbackReceivedAt: null },
+    data:  { callbackReceivedAt: new Date() },
+  });
+  if (claim.count === 0) {
     return NextResponse.json({ ok: true });
   }
 
