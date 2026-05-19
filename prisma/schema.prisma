@@ -359,6 +359,7 @@ model JobApplication {
   @@unique([jobPostId, waiterId])
   @@index([waiterId])
   @@index([status])
+  @@index([jobPostId, status])
 }
 
 // ─── Review (Recenzija) ───────────────────────────────────────────────────────
@@ -416,8 +417,10 @@ model Review {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  @@index([subjectId, direction])
-  @@index([venueId, direction])
+  // 3-column composites cover sync-scores queries (subjectId/venueId + direction + status)
+  // and also serve as prefix indexes for any 2-column queries on the first two columns.
+  @@index([subjectId, direction, status])
+  @@index([venueId, direction, status])
   @@index([status])
   @@index([pendingUntil])
 }
@@ -710,6 +713,7 @@ model ShiftAssignment {
   @@unique([shiftId, waiterId])
   @@index([waiterId])
   @@index([shiftId])
+  @@index([pendingClockIn])
 }
 
 model ShiftSwapRequest {
