@@ -37,12 +37,22 @@ export const authOptions: NextAuthOptions = {
         password:   { label: "Lozinka",     type: "password" },
         rememberMe: { label: "Zapamti me",  type: "text" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials.password) return null;
 
         const email = credentials.email.toLowerCase();
-        const allowed = await rateLimit(`login:${email}`, 5, 15 * 60 * 1000);
-        if (!allowed) {
+
+        // IP guard — broad limit, stops distributed credential stuffing
+        const rawIp = req?.headers?.["x-forwarded-for"];
+        const ip = (Array.isArray(rawIp) ? rawIp[0] : rawIp?.split(",")[0])?.trim() ?? "unknown";
+        const ipAllowed = await rateLimit(`login:ip:${ip}`, 20, 15 * 60 * 1000);
+        if (!ipAllowed) {
+          throw new Error("Previše pokušaja prijave. Sačekaj 15 minuta.");
+        }
+
+        // Per-email guard — tight limit, stops targeted brute-force
+        const emailAllowed = await rateLimit(`login:email:${email}`, 5, 15 * 60 * 1000);
+        if (!emailAllowed) {
           throw new Error("Previše neuspelih pokušaja prijave. Sačekaj 15 minuta.");
         }
 

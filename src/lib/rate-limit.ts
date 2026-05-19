@@ -1,34 +1,36 @@
 import { dbRaw } from "@/lib/db";
 
-// ── In-memory limiter (pre-auth, e.g. login) ──────────────────────────────────
-
-interface Entry {
-  count: number;
-  resetAt: number;
-}
-
-const store = new Map<string, Entry>();
+// ── Anonymous / pre-auth limiter ──────────────────────────────────────────────
+//
+// Backed by AnonRateLimit table — no User FK, works across all instances.
+// Key format: "<action>:<value>"  e.g. "login:ip:1.2.3.4", "forgot:1.2.3.4"
+// Uses the same hour-bucket strategy as checkRateLimit below.
 
 export async function rateLimit(
   key: string,
   max: number,
   windowMs: number,
 ): Promise<boolean> {
-  const now = Date.now();
-  const entry = store.get(key);
+  const windowStart = new Date(Math.floor(Date.now() / windowMs) * windowMs);
 
-  if (!entry || now >= entry.resetAt) {
-    store.set(key, { count: 1, resetAt: now + windowMs });
-    return true;
-  }
+  const existing = await dbRaw.anonRateLimit.findUnique({
+    where: { key_windowStart: { key, windowStart } },
+    select: { count: true },
+  });
 
-  if (entry.count >= max) return false;
-  entry.count += 1;
+  if (existing && existing.count >= max) return false;
+
+  await dbRaw.anonRateLimit.upsert({
+    where: { key_windowStart: { key, windowStart } },
+    create: { key, windowStart, count: 1 },
+    update: { count: { increment: 1 } },
+  });
+
   return true;
 }
 
-export function resetRateLimit(key: string): void {
-  store.delete(key);
+export async function resetRateLimit(key: string): Promise<void> {
+  await dbRaw.anonRateLimit.deleteMany({ where: { key } });
 }
 
 // ── DB-backed limiter (post-auth write actions) ───────────────────────────────

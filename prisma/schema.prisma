@@ -829,6 +829,21 @@ model PassportPayment {
   @@index([status])
 }
 
+// ─── AnonRateLimit (IP / pre-auth rate limiting — no FK) ─────────────────────
+//
+// Used for: login:ip:*, forgot:*, guest_review:*
+// Key format: "<action>:<value>"  e.g. "login:ip:1.2.3.4"
+// No userId FK so it works before a User row exists.
+
+model AnonRateLimit {
+  key         String
+  windowStart DateTime
+  count       Int      @default(1)
+
+  @@id([key, windowStart])
+  @@index([key])
+}
+
 // ─── Password Reset ───────────────────────────────────────────────────────────
 
 model PasswordResetToken {
