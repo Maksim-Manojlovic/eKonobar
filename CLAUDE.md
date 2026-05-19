@@ -444,8 +444,58 @@ Login page links to `/reset-password` ("Zaboravili ste lozinku?").
 ## API Conventions
 
 - All routes use Next.js Route Handlers (`route.ts`)
-- Auth check: `getServerSession(authOptions)` from `lib/auth.ts`
+- Auth check: use `withRole` / `withAuth` from `lib/with-role.ts` (see below). Avoid calling `getServerSession` directly in new routes.
+- Body validation: use `parseBody` / `parseQuery` from `lib/parse-body.ts` (see below).
 - Rate limiting: `checkRateLimit(userId, action, max)` from `lib/rate-limit.ts`
+
+### withRole / withAuth
+
+`lib/with-role.ts` — wraps a route handler with session auth + role check. The handler receives the typed `Session` — no need to call `getServerSession` again.
+
+```typescript
+import { withRole, withAuth } from "@/lib/with-role";
+
+// Single role
+export const GET = withRole("ADMIN", async (req, ctx, session) => {
+  // session.user.role, session.user.id, etc. are all typed
+  return NextResponse.json({ ok: true });
+});
+
+// Multiple roles
+export const POST = withRole(["VENUE_OWNER", "ADMIN"], async (req, ctx, session) => {
+  return NextResponse.json({ ok: true });
+});
+
+// Any authenticated user (no role restriction)
+export const GET = withAuth(async (req, ctx, session) => {
+  return NextResponse.json({ userId: session.user.id });
+});
+```
+
+Returns 401 when no session, 403 when wrong role.
+
+### parseBody / parseQuery
+
+`lib/parse-body.ts` — validates request body or query params against a Zod schema. Returns a discriminated union — check `result.ok` before accessing `result.data`.
+
+```typescript
+import { parseBody, parseQuery } from "@/lib/parse-body";
+import { z } from "zod";
+
+const Schema = z.object({ title: z.string().min(1), count: z.number().int().positive() });
+
+export const POST = withRole("VENUE_OWNER", async (req, ctx, session) => {
+  const parsed = await parseBody(Schema, req);
+  if (!parsed.ok) return parsed.response; // auto 400 with Zod error details
+
+  const { title, count } = parsed.data; // fully typed
+  // ...
+});
+
+// For GET endpoints with query params:
+const QuerySchema = z.object({ page: z.coerce.number().default(1) });
+const parsed = parseQuery(QuerySchema, req); // synchronous
+```
 - GeoJSON endpoints (`/api/venues/geojson`, `/api/jobs/geojson`) accept bounding box params: `swLat`, `swLng`, `neLat`, `neLng`
 - `GUEST_TO_WAITER` and `GUEST_TO_VENUE` reviews require `guestLatitude` and `guestLongitude` in the request body (when `geofenceEnabled`)
 - Guest review submissions go to `POST /api/reviews/guest` (no auth) — not the main `/api/reviews` route
