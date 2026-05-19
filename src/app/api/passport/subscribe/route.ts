@@ -10,6 +10,12 @@ const TIER_PRICES: Record<PassportTier, number> = {
   PRO_PLUS: 490,
 };
 
+const TIER_RANK: Record<PassportTier, number> = {
+  FREE: 0,
+  PRO: 1,
+  PRO_PLUS: 2,
+};
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "WAITER") {
@@ -33,11 +39,9 @@ export async function POST(req: NextRequest) {
   }
 
   if (tier === "FREE") {
-    // Downgrade: cancel at end of current period (keep until expiry, then lapse)
     await db.waiterPassport.update({
       where: { userId: session.user.id },
-      // Don't clear subscriptionExpiresAt — let it lapse naturally
-      data: { passportTier: "FREE", subscriptionExpiresAt: null },
+      data: { passportTier: "FREE", subscriptionExpiresAt: null, tierRank: 0 },
     });
     return NextResponse.json({ tier: "FREE", message: "Pretplata otkazana" });
   }
@@ -53,7 +57,7 @@ export async function POST(req: NextRequest) {
   // For now this is a mock — records the tier change without actual payment.
   const updated = await db.waiterPassport.update({
     where: { userId: session.user.id },
-    data: { passportTier: tier, subscriptionExpiresAt },
+    data: { passportTier: tier, subscriptionExpiresAt, tierRank: TIER_RANK[tier] },
     select: { passportTier: true, subscriptionExpiresAt: true },
   });
 

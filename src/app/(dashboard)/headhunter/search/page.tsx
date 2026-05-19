@@ -109,7 +109,7 @@ export default function HeadhunterSearch() {
     setLoading(true);
     fetch(`/api/waiters?${params}`)
       .then((r) => r.json())
-      .then((d) => setWaiters(Array.isArray(d) ? d : []))
+      .then((d) => setWaiters(d.waiters ?? []))
       .finally(() => setLoading(false));
   }, [search, minScore, tier, available, sanitaryOk, minExp, skills]);
 

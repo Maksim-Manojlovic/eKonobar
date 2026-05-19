@@ -1119,7 +1119,7 @@ function DiscoverSection({ onInvite }: { posts: OwnPost[]; onInvite: (w: WaiterE
     setLoading(true);
     fetch(`/api/waiters?${params}`)
       .then(r => r.json())
-      .then(data => { setWaiters(Array.isArray(data) ? data : []); setLoading(false); })
+      .then(data => { setWaiters(data.waiters ?? []); setLoading(false); })
       .catch(() => setLoading(false));
   }, [filterAvailable, filterMinScore]);
 

@@ -465,6 +465,7 @@ model WaiterPassport {
   passportTier          PassportTier @default(FREE)
   subscriptionExpiresAt DateTime?    // null = FREE or expired
   monriPanToken         String?      // stored card token for recurring charges
+  tierRank              Int          @default(0) // 0=FREE, 1=PRO, 2=PRO_PLUS — kept in sync with passportTier
 
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
@@ -472,6 +473,7 @@ model WaiterPassport {
   trustScore          PassportTrustScore?
 
   @@index([passportTier])
+  @@index([tierRank, score])
 }
 
 // ─── Trust Score modeli ───────────────────────────────────────────────────────

@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
       data: {
         passportTier:         payment.tier,
         subscriptionExpiresAt,
+        tierRank:             payment.tier === "PRO_PLUS" ? 2 : payment.tier === "PRO" ? 1 : 0,
         ...(payload.pan_token && { monriPanToken: payload.pan_token }),
       },
     }),

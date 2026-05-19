@@ -80,7 +80,7 @@ export default function VenueInvitesPage() {
     if (searchQ) params.set("search", searchQ);
     fetch(`/api/waiters?${params}`)
       .then(r => r.json())
-      .then(d => setWaiters(Array.isArray(d) ? d : []));
+      .then(d => setWaiters(d.waiters ?? []));
   }, [showSearch, searchQ]);
 
   async function sendInvite(waiterId: string) {

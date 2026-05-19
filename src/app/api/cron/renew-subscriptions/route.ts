@@ -94,13 +94,18 @@ async function run() {
 
       renewed++;
     } else {
-      await dbRaw.passportPayment.update({
-        where: { orderNumber },
-        data:  { status: "FAILED" },
-      });
+      await dbRaw.$transaction([
+        dbRaw.passportPayment.update({
+          where: { orderNumber },
+          data:  { status: "FAILED" },
+        }),
+        dbRaw.waiterPassport.update({
+          where: { userId: passport.userId },
+          data:  { tierRank: 0 },
+        }),
+      ]);
 
-      // Don't force-downgrade here — let subscriptionExpiresAt lapse naturally.
-      // User sees FREE features once expiry passes; can resubscribe manually.
+      // subscriptionExpiresAt lapses naturally — user sees FREE features once past expiry.
       notify(
         passport.userId,
         "APPLICATION_STATUS_CHANGED",
