@@ -193,6 +193,7 @@ model User {
   passportPayments     PassportPayment[]
   passwordResetTokens  PasswordResetToken[]
   tokenRevocation      TokenRevocation?
+  auditLogs            AuditLog[]
 
   @@index([role])
   @@index([verificationTier])
@@ -885,4 +886,22 @@ model TokenRevocation {
   userId    String   @id
   revokedAt DateTime
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String   // USER_ROLE_CHANGED | USER_DELETED | USER_RESTORED | REVIEW_PUBLISHED | REVIEW_REMOVED | SANITARY_APPROVED | SANITARY_REJECTED
+  targetId   String
+  targetType String   // User | Review | SanitaryBook
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([actorId])
+  @@index([targetId])
+  @@index([createdAt])
 }

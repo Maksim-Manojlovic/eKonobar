@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { dbRaw } from "@/lib/db";
 import { syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
+import { logAudit } from "@/lib/audit";
 
 export async function PATCH(
   req: NextRequest,
@@ -41,6 +42,8 @@ export async function PATCH(
       syncPassportScore(review.subjectId).catch(console.error);
     }
   }
+
+  logAudit(session.user.id, action === "publish" ? "REVIEW_PUBLISHED" : "REVIEW_REMOVED", id, "Review");
 
   return NextResponse.json(updated);
 }

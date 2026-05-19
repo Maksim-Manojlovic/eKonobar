@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { dbRaw } from "@/lib/db";
+import { logAudit } from "@/lib/audit";
 
 // PATCH — admin approves or rejects a submission
 export async function PATCH(
@@ -59,6 +60,14 @@ export async function PATCH(
 
     return b;
   });
+
+  logAudit(
+    session.user.id,
+    action === "approve" ? "SANITARY_APPROVED" : "SANITARY_REJECTED",
+    id,
+    "SanitaryBook",
+    rejectReason ? { rejectReason } : undefined,
+  );
 
   return NextResponse.json(updated);
 }

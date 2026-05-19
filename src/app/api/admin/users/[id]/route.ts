@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { dbRaw } from "@/lib/db";
+import { logAudit } from "@/lib/audit";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -51,6 +52,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         })]
       : []),
   ]);
+
+  const auditAction = data.role !== undefined
+    ? "USER_ROLE_CHANGED"
+    : data.deletedAt !== undefined
+    ? "USER_DELETED"
+    : "USER_RESTORED";
+  logAudit(session.user.id, auditAction, id, "User",
+    data.role !== undefined ? { role: data.role } : undefined);
 
   return NextResponse.json(user);
 }
