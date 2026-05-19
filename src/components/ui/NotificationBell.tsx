@@ -82,9 +82,19 @@ export function NotificationBell({
   }, [onUnreadChange]);
 
   useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30_000);
-    return () => clearInterval(interval);
+    fetchNotifications(); // initial full load
+
+    // SSE stream for live unread-count badge updates.
+    // EventSource auto-reconnects on drop (server restart, network blip).
+    // Full list is only re-fetched when the dropdown opens.
+    const es = new EventSource("/api/notifications/stream");
+    es.onmessage = (e) => {
+      const data = JSON.parse(e.data) as { unread: number };
+      setUnread(data.unread);
+      onUnreadChange?.(data.unread);
+    };
+
+    return () => es.close();
   }, [fetchNotifications]);
 
   useEffect(() => {
