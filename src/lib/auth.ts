@@ -115,7 +115,8 @@ export const authOptions: NextAuthOptions = {
       // hasn't been issued yet and there's nothing to revoke.
       if (!user && token.id && typeof token.iat === "number") {
         const revoked = await isTokenRevoked(token.id as string, token.iat);
-        if (revoked) return null;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (revoked) return null as any; // NextAuth clears the cookie on null at runtime
       }
 
       if (user) {
