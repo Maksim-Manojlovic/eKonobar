@@ -192,6 +192,7 @@ model User {
   pushSubscriptions PushSubscription[]
   passportPayments     PassportPayment[]
   passwordResetTokens  PasswordResetToken[]
+  tokenRevocation      TokenRevocation?
 
   @@index([role])
   @@index([verificationTier])
@@ -872,4 +873,16 @@ model PasswordResetToken {
 
   @@index([userId])
   @@index([token])
+}
+
+// ─── Token Revocation ─────────────────────────────────────────────────────────
+// Tracks the latest revocation timestamp per user. Any JWT issued before
+// revokedAt is treated as invalid on the next getServerSession() call.
+// Written on admin role-change and soft-delete; checked in the jwt callback
+// via a 60s in-process cache to limit DB load.
+
+model TokenRevocation {
+  userId    String   @id
+  revokedAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -11,6 +11,24 @@ import type { Role, VerificationTier } from "@prisma/client";
 const TTL_DEFAULT  = 24 * 60 * 60;      // 24 h — standard session
 const TTL_REMEMBER =  7 * 24 * 60 * 60; // 7 d  — "zapamti me"
 
+// In-process revocation cache — avoids a DB hit on every getServerSession() call.
+// TTL of 60s means role changes propagate within one minute.
+const _revCache = new Map<string, { revokedAt: number | null; cachedAt: number }>();
+const REV_CACHE_TTL_MS = 60_000;
+
+async function isTokenRevoked(userId: string, tokenIat: number): Promise<boolean> {
+  const cached = _revCache.get(userId);
+  if (cached && Date.now() - cached.cachedAt < REV_CACHE_TTL_MS) {
+    return cached.revokedAt !== null && tokenIat < cached.revokedAt;
+  }
+  const row = await dbRaw.tokenRevocation.findUnique({ where: { userId }, select: { revokedAt: true } });
+  _revCache.set(userId, {
+    revokedAt: row ? row.revokedAt.getTime() / 1000 : null,
+    cachedAt:  Date.now(),
+  });
+  return row !== null && tokenIat < row.revokedAt.getTime() / 1000;
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(dbRaw),
   session: { strategy: "jwt", maxAge: TTL_REMEMBER },
@@ -91,6 +109,13 @@ export const authOptions: NextAuthOptions = {
         if (session.role)             token.role             = session.role;
         if (session.tourCompleted !== undefined) token.tourCompleted = session.tourCompleted;
         return token;
+      }
+
+      // Revocation check — skip on initial sign-in (user is set) since the token
+      // hasn't been issued yet and there's nothing to revoke.
+      if (!user && token.id && typeof token.iat === "number") {
+        const revoked = await isTokenRevoked(token.id as string, token.iat);
+        if (revoked) return null;
       }
 
       if (user) {

@@ -35,11 +35,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
   }
 
-  const user = await dbRaw.user.update({
-    where: { id },
-    data,
-    select: { id: true, name: true, email: true, role: true, deletedAt: true },
-  });
+  const needsRevocation = data.role !== undefined || data.deletedAt !== undefined;
+
+  const [user] = await dbRaw.$transaction([
+    dbRaw.user.update({
+      where: { id },
+      data,
+      select: { id: true, name: true, email: true, role: true, deletedAt: true },
+    }),
+    ...(needsRevocation
+      ? [dbRaw.tokenRevocation.upsert({
+          where:  { userId: id },
+          create: { userId: id, revokedAt: new Date() },
+          update: { revokedAt: new Date() },
+        })]
+      : []),
+  ]);
 
   return NextResponse.json(user);
 }
