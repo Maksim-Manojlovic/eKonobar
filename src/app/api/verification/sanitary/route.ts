@@ -12,9 +12,14 @@ export async function GET() {
   if (session.user.role === "ADMIN") {
     const pending = await dbRaw.sanitaryBook.findMany({
       where: { status: "PENDING" },
-      include: { user: { select: { id: true, name: true, email: true } } },
+      select: {
+        id: true, status: true, expiryDate: true, uploadedAt: true,
+        rejectReason: true, reviewedBy: true, reviewedAt: true,
+        user: { select: { id: true, name: true, email: true } },
+      },
       orderBy: { uploadedAt: "asc" },
     });
+    // fileUrl is omitted — admins access documents via the auth-gated /file endpoint
     return NextResponse.json(pending);
   }
 

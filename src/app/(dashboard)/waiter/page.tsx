@@ -2054,9 +2054,9 @@ function PassportSection({ userName }: { userName: string }) {
           <>
             <ImageUpload
               current={sanFileUrl ?? undefined}
-              uploadType="venue-photo"
+              uploadType="sanitary-doc"
               shape="rect"
-              label="Fotografija sanitarne knjižice"
+              label="Fotografija ili PDF sanitarne knjižice"
               onUpload={async (url) => { setSanFileUrl(url); }}
             />
             <div>

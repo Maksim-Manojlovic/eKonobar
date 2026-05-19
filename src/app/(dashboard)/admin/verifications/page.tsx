@@ -7,7 +7,6 @@ import Link from "next/link";
 
 type SanitaryBook = {
   id: string;
-  fileUrl: string;
   status: string;
   expiryDate: string | null;
   uploadedAt: string;
@@ -125,7 +124,7 @@ export default function AdminVerificationsPage() {
                       )}
                       <div>
                         <p className="text-neutral-400 font-medium">Fajl</p>
-                        <a href={book.fileUrl} target="_blank" rel="noopener noreferrer"
+                        <a href={`/api/verification/sanitary/${book.id}/file`} target="_blank" rel="noopener noreferrer"
                           className="text-orange-500 font-semibold hover:underline truncate block max-w-[160px]">
                           Otvori dokument ↗
                         </a>

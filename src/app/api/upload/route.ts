@@ -16,6 +16,10 @@ const UPLOAD_CONFIGS = {
     width: 1200, height: 800, crop: "fill" as const,
     quality: "auto" as const, format: "webp" as const,
   },
+  "sanitary-doc": {
+    folder:        "ekonobar/sanitary",
+    resource_type: "auto" as const, // handles PDF + image
+  },
 };
 
 export async function POST(req: NextRequest) {
@@ -31,8 +35,15 @@ export async function POST(req: NextRequest) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "Fajl nije pronađen" }, { status: 400 });
   }
-  if (!file.type.startsWith("image/")) {
-    return NextResponse.json({ error: "Dozvoljen je samo format slike" }, { status: 400 });
+  const isSanitaryDoc = type === "sanitary-doc";
+  const allowedMime   = isSanitaryDoc
+    ? file.type.startsWith("image/") || file.type === "application/pdf"
+    : file.type.startsWith("image/");
+  if (!allowedMime) {
+    return NextResponse.json(
+      { error: isSanitaryDoc ? "Dozvoljeni su slike i PDF fajlovi" : "Dozvoljen je samo format slike" },
+      { status: 400 },
+    );
   }
   if (file.size > MAX_BYTES) {
     return NextResponse.json({ error: "Maksimalna veličina fajla je 5MB" }, { status: 400 });

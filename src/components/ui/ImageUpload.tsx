@@ -5,7 +5,7 @@ import Image from "next/image";
 
 interface ImageUploadProps {
   current?: string | null;
-  uploadType: "avatar" | "venue-photo";
+  uploadType: "avatar" | "venue-photo" | "sanitary-doc";
   onUpload: (url: string) => Promise<void>;
   shape?: "circle" | "rect";
   label?: string;
