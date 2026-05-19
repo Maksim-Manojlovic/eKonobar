@@ -224,7 +224,7 @@ src/
     trust-score.ts     # Bayesian scoring
     geofence.ts        # Haversine + isInsideVenueRadius()
     sync-scores.ts     # publishDueReviews, syncVenueTrustScore, syncPassportScore
-    rate-limit.ts      # In-memory (pre-auth) + DB-backed (post-auth) rate limiter
+    rate-limit.ts      # DB-backed rate limiter: rateLimit() via AnonRateLimit (no FK, pre-auth) + checkRateLimit() via RateLimit (userId, post-auth)
     analytics.ts       # Zone insight cache: getVenueZoneInsights, refreshVenueZoneCache
     notify.ts          # Unified notification dispatch (DB + push + WhatsApp + SMS)
     webpush.ts         # Web Push (VAPID) sender

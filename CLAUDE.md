@@ -126,9 +126,15 @@ Current limits:
 - `apply_job` — 10 per hour
 - `post_invite` — 20 per hour
 
-Pre-auth (login) uses the in-memory `rateLimit()` function — no userId available yet.
+Pre-auth routes use `rateLimit(key, max, windowMs)` from `lib/rate-limit.ts`, which is backed by the `AnonRateLimit` table (no FK — works before a User row exists, survives server restarts, safe across multiple instances). Key format: `"<action>:<value>"`.
+
+Login applies **two independent limits** in `authorize()`:
+- `login:ip:{ip}` — 20 attempts / 15 min (broad guard, stops distributed stuffing)
+- `login:email:{email}` — 5 attempts / 15 min (tight guard, stops targeted brute-force)
 
 Guest review route uses `rateLimit(`guest_review:${ip}`, 3, 3_600_000)` — 3 per hour per IP.
+
+Forgot-password route uses `rateLimit(`forgot:${ip}`, 3, 15 * 60 * 1000)` — 3 per 15 min per IP (silent 200).
 
 ### Image uploads
 
@@ -280,6 +286,7 @@ The Prisma client is cached on `globalThis._prisma`. After every `db:push` that 
 - `VenueZone` — map zone (hotspot) for analytics
 - `Invite` — venue invite code for GOLD verification
 - `RateLimit` — DB-backed rate limit counters (userId + action + hourly window)
+- `AnonRateLimit` — pre-auth rate limit counters (no FK; composite PK on `[key, windowStart]`). Used for `login:ip:*`, `login:email:*`, `forgot:*`, `guest_review:*`
 - `Shift` — a scheduled shift. Has `scheduledStart DateTime?`, `status ShiftStatus`, `requiredCount`, `templateId?`, `swapLocked`, `briefingNote`, `tipEstimate`.
 - `ShiftAssignment` — explicit waiter-to-shift assignment (replaced implicit M2M). Has clock-in fields: `clockInAt`, `clockOutAt`, `clockInMethod` (GPS | GPS_GRACE | QR | MANUAL), `clockInLat`, `clockInLng`, `lateMinutes`, `earlyExitAt`, `pendingClockIn` (awaiting manager approval).
 - `ShiftSwapRequest` — swap request between two waiters. Status: `PENDING → ACCEPTED | REJECTED | CANCELLED`.
