@@ -389,6 +389,18 @@ Score sync flow (run via `lib/sync-scores.ts`):
 
 The cron endpoint `POST /api/cron/publish-reviews` runs this flow on a schedule. Requires `Authorization: Bearer <CRON_SECRET>`.
 
+### Notification retry cron
+
+`POST /api/cron/retry-notifications` — hourly job that retries failed WhatsApp and SMS sends.
+
+- Queries `Notification` where `waSent=false AND waRetries<3` (or same for SMS), `createdAt` within last 24h, user not deleted
+- Re-checks tier eligibility at retry time (subscription may have changed)
+- On success: sets `waSent`/`smsSent = true`
+- On failure: increments `waRetries`/`smsRetries`; stops retrying once count reaches 3
+- Returns `{ checked, waSent, waFailed, smsSent, smsFailed }`
+
+`notify()` in `lib/notify.ts` increments `waRetries`/`smsRetries` on initial send failure instead of silently swallowing the error.
+
 ## OAuth (Google / Facebook)
 
 NextAuth is configured with `PrismaAdapter(dbRaw)` + JWT strategy. Adapter persists User + Account rows for OAuth sign-ins; JWT strategy keeps sessions stateless.

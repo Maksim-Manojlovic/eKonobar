@@ -784,6 +784,10 @@ model Notification {
   waSent   Boolean @default(false)
   smsSent  Boolean @default(false)
 
+  // Retry counters — incremented on send failure; cron skips when >= 3
+  waRetries  Int @default(0)
+  smsRetries Int @default(0)
+
   createdAt DateTime @default(now())
 
   @@index([userId, read])

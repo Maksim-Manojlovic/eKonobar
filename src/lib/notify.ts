@@ -62,7 +62,13 @@ export async function notify(
       .then(() =>
         db.notification.update({ where: { id: notification.id }, data: { waSent: true } }).catch(() => {}),
       )
-      .catch(console.error);
+      .catch(() => {
+        // Increment retry counter — cron will retry up to 3× within 24h
+        db.notification.update({
+          where: { id: notification.id },
+          data:  { waRetries: { increment: 1 } },
+        }).catch(() => {});
+      });
   }
 
   // ── Infobip SMS (Passport PRO_PLUS only) ──────────────────────────────────
@@ -72,6 +78,12 @@ export async function notify(
       .then(() =>
         db.notification.update({ where: { id: notification.id }, data: { smsSent: true } }).catch(() => {}),
       )
-      .catch(console.error);
+      .catch(() => {
+        // Increment retry counter — cron will retry up to 3× within 24h
+        db.notification.update({
+          where: { id: notification.id },
+          data:  { smsRetries: { increment: 1 } },
+        }).catch(() => {});
+      });
   }
 }

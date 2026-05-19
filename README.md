@@ -287,7 +287,8 @@ Trigger with any HTTP scheduler. On Vercel, add to `vercel.json`:
 {
   "crons": [
     { "path": "/api/cron/publish-reviews",      "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/renew-subscriptions",  "schedule": "0 9 * * *"   }
+    { "path": "/api/cron/renew-subscriptions",  "schedule": "0 9 * * *"   },
+    { "path": "/api/cron/retry-notifications",  "schedule": "0 * * * *"   }
   ]
 }
 ```
