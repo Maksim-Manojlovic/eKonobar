@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { FAQAccordion, type FAQItem } from "@/components/ui/FAQAccordion";
 import { NavAuthButton } from "@/components/ui/NavAuthButton";
@@ -65,25 +68,73 @@ const faqItems: FAQItem[] = [
   },
 ];
 
+const NAV_LINKS = [
+  { href: "#kako-radi", label: "Passport™" },
+  { href: "#tierovi",   label: "Tierovi"   },
+  { href: "#faq",       label: "FAQ"        },
+];
+
 export default function ForWaitersPage() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
     <div className="hero-bg min-h-screen">
 
       {/* ── NAV ── */}
-      <nav className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+      <nav className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between relative">
         <Link href="/" className="flex items-center gap-3">
           <LogoMark />
           <span className="font-bold text-xl tracking-tight text-gray-900">eKonobar</span>
         </Link>
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-neutral-400">
-          <a href="#kako-radi" className="hover:text-neutral-800 transition-colors">Passport™</a>
-          <a href="#tierovi" className="hover:text-neutral-800 transition-colors">Tierovi</a>
-          <a href="#faq" className="hover:text-neutral-800 transition-colors">FAQ</a>
+          {NAV_LINKS.map(l => (
+            <a key={l.href} href={l.href} className="hover:text-neutral-800 transition-colors">{l.label}</a>
+          ))}
         </div>
         <div className="flex items-center gap-3">
           <NavAuthButton />
-          <Link href="/register" className="btn-primary text-white text-sm font-semibold px-5 py-2.5 rounded-2xl">Registracija</Link>
+          <Link href="/register" className="hidden sm:block btn-primary text-white text-sm font-semibold px-5 py-2.5 rounded-2xl">Registracija</Link>
+          <button
+            onClick={() => setMobileOpen(v => !v)}
+            className="md:hidden flex flex-col gap-1.5 p-2 rounded-xl hover:bg-neutral-100 transition-colors"
+            aria-label="Meni"
+          >
+            {mobileOpen ? (
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 4L16 16M16 4L4 16" stroke="#374151" strokeWidth="2" strokeLinecap="round" /></svg>
+            ) : (
+              <>
+                <span className="w-5 h-0.5 bg-neutral-700 rounded-full" />
+                <span className="w-5 h-0.5 bg-neutral-700 rounded-full" />
+                <span className="w-4 h-0.5 bg-neutral-700 rounded-full self-end" />
+              </>
+            )}
+          </button>
         </div>
+
+        {/* Mobile dropdown */}
+        {mobileOpen && (
+          <div className="absolute top-full left-0 right-0 mt-1 mx-4 bg-white rounded-2xl shadow-lg border border-neutral-100 overflow-hidden z-50">
+            {NAV_LINKS.map(l => (
+              <a
+                key={l.href}
+                href={l.href}
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center px-5 py-3.5 text-sm font-medium text-neutral-700 hover:bg-orange-50 hover:text-orange-600 transition-colors border-b border-neutral-50 last:border-0"
+              >
+                {l.label}
+              </a>
+            ))}
+            <div className="p-3">
+              <Link
+                href="/register"
+                onClick={() => setMobileOpen(false)}
+                className="btn-primary w-full text-white text-sm font-semibold py-3 rounded-xl text-center block"
+              >
+                Registracija
+              </Link>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* ── HERO ── */}
@@ -552,6 +603,38 @@ export default function ForWaitersPage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── TESTIMONIALS ── */}
+      <section className="max-w-7xl mx-auto px-6 py-24">
+        <div className="text-center max-w-2xl mx-auto mb-14">
+          <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Konobare pričaju</span>
+          <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">Šta kažu kolege koji već koriste Passport™</h2>
+        </div>
+        <div className="grid lg:grid-cols-3 gap-5">
+          {[
+            { q: "Za dva meseca sam podigao skor sa 48 na 76. Sad me lokali nalaze — ne moram više da šaljem CV svuda. Jednostavno radi.", name: "Aleksandar D.", city: "Konobar · Beograd, Savamala", init: "AD", tier: "SILVER" },
+            { q: "PRO tier mi se isplati za prvu Red Alert smenu. Dobio sam notifikaciju pre svih i bio sam potvrđen za 3 minuta. Bez tog sistema nikad ne bih saznao.", name: "Jelena M.", city: "Šanker · Novi Sad", init: "JM", tier: "PRO" },
+            { q: "Imam 5 godina iskustva ali nikad nisam imao ništa da pokažem. Passport je to rešio — vlasnik vidi 67 smena i 4.8★ odmah pri prvom kontaktu.", name: "Nikola S.", city: "Konobar · Beograd, Stari Grad", init: "NS", tier: "GOLD" },
+          ].map(t => (
+            <div key={t.init} className="bg-white rounded-3xl p-7 border border-neutral-100 flex flex-col">
+              <div className="flex items-center gap-0.5 mb-4">
+                {[...Array(5)].map((_, i) => (
+                  <svg key={i} width="14" height="14" viewBox="0 0 10 10" fill="#f97316"><path d="M5 1L6.18 3.42L9 3.82L7 5.77L7.49 8.58L5 7.24L2.51 8.58L3 5.77L1 3.82L3.82 3.42L5 1Z" /></svg>
+                ))}
+              </div>
+              <p className="text-base text-neutral-700 font-light leading-relaxed flex-1">&ldquo;{t.q}&rdquo;</p>
+              <div className="mt-6 pt-5 border-t border-neutral-100 flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center text-white font-black">{t.init}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm text-neutral-900">{t.name}</div>
+                  <div className="text-xs text-neutral-400">{t.city}</div>
+                </div>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200 flex-shrink-0">{t.tier}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

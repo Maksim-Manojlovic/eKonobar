@@ -76,28 +76,75 @@ const faqItems: FAQItem[] = [
 
 const venues = ["Salon 1905", "Freestyler", "Manufaktura", "Bar Central", "Kafana Skadarlija", "Bar Mixer", "Kafeterija Dok", "Klub 20/44"];
 
+const NAV_LINKS_VENUE = [
+  { href: "#kako-radi", label: "Kako funkcioniše" },
+  { href: "#cenovnik",  label: "Cenovnik"         },
+  { href: "#faq",       label: "FAQ"               },
+];
+
 export default function ForVenuesPage() {
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted,   setSubmitted]   = useState(false);
+  const [mobileOpen,  setMobileOpen]  = useState(false);
 
   return (
     <div className="page-bg min-h-screen">
 
       {/* ── NAV ── */}
-      <nav className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+      <nav className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between relative">
         <Link href="/" className="flex items-center gap-3">
           <LogoMark />
           <span className="font-bold text-xl tracking-tight text-gray-900">eKonobar</span>
           <span className="hidden lg:inline-block whitespace-nowrap text-[10px] font-bold tracking-[0.18em] uppercase text-orange-500 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full ml-1">za vlasnike</span>
         </Link>
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-neutral-400">
-          <a href="#kako-radi" className="hover:text-neutral-800 transition-colors">Kako funkcioniše</a>
-          <a href="#cenovnik" className="hover:text-neutral-800 transition-colors">Cenovnik</a>
-          <a href="#faq" className="hover:text-neutral-800 transition-colors">FAQ</a>
+          {NAV_LINKS_VENUE.map(l => (
+            <a key={l.href} href={l.href} className="hover:text-neutral-800 transition-colors">{l.label}</a>
+          ))}
         </div>
         <div className="flex items-center gap-3">
           <NavAuthButton />
-          <Link href="#demo" className="btn-primary text-white text-sm font-semibold px-5 py-2.5 rounded-2xl">Zakaži demo</Link>
+          <Link href="#demo" className="hidden sm:block btn-primary text-white text-sm font-semibold px-5 py-2.5 rounded-2xl">Zakaži demo</Link>
+          <button
+            onClick={() => setMobileOpen(v => !v)}
+            className="md:hidden flex flex-col gap-1.5 p-2 rounded-xl hover:bg-neutral-100 transition-colors"
+            aria-label="Meni"
+          >
+            {mobileOpen ? (
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 4L16 16M16 4L4 16" stroke="#374151" strokeWidth="2" strokeLinecap="round" /></svg>
+            ) : (
+              <>
+                <span className="w-5 h-0.5 bg-neutral-700 rounded-full" />
+                <span className="w-5 h-0.5 bg-neutral-700 rounded-full" />
+                <span className="w-4 h-0.5 bg-neutral-700 rounded-full self-end" />
+              </>
+            )}
+          </button>
         </div>
+
+        {/* Mobile dropdown */}
+        {mobileOpen && (
+          <div className="absolute top-full left-0 right-0 mt-1 mx-4 bg-white rounded-2xl shadow-lg border border-neutral-100 overflow-hidden z-50">
+            {NAV_LINKS_VENUE.map(l => (
+              <a
+                key={l.href}
+                href={l.href}
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center px-5 py-3.5 text-sm font-medium text-neutral-700 hover:bg-orange-50 hover:text-orange-600 transition-colors border-b border-neutral-50 last:border-0"
+              >
+                {l.label}
+              </a>
+            ))}
+            <div className="p-3">
+              <a
+                href="#demo"
+                onClick={() => setMobileOpen(false)}
+                className="btn-primary w-full text-white text-sm font-semibold py-3 rounded-xl text-center block"
+              >
+                Zakaži demo
+              </a>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* ── HERO ── */}
