@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { dbRaw } from "@/lib/db";
 import { ZoneType } from "@prisma/client";
+import { refreshAllVenueZoneCaches } from "@/lib/analytics";
 
 // GET — list all zones (public for map, admin sees inactive too)
 export async function GET(req: NextRequest) {
@@ -59,6 +60,8 @@ export async function POST(req: NextRequest) {
       operatorTip: operatorTip ?? null,
     },
   });
+
+  refreshAllVenueZoneCaches().catch(console.error);
 
   return NextResponse.json(zone, { status: 201 });
 }

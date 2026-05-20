@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { dbRaw } from "@/lib/db";
 import { ZoneType } from "@prisma/client";
+import { refreshAllVenueZoneCaches } from "@/lib/analytics";
 
 // PATCH — update zone fields
 export async function PATCH(
@@ -40,6 +41,8 @@ export async function PATCH(
     },
   });
 
+  refreshAllVenueZoneCaches().catch(console.error);
+
   return NextResponse.json(updated);
 }
 
@@ -63,6 +66,8 @@ export async function DELETE(
     dbRaw.venueZoneRelation.deleteMany({ where: { zoneId: id } }),
     dbRaw.venueZone.delete({ where: { id } }),
   ]);
+
+  refreshAllVenueZoneCaches().catch(console.error);
 
   return NextResponse.json({ deleted: true, id });
 }
