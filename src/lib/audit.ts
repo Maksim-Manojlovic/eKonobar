@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { dbRaw } from "@/lib/db";
 
 export function logAudit(
@@ -5,9 +6,9 @@ export function logAudit(
   action:     string,
   targetId:   string,
   targetType: string,
-  meta?:      Record<string, unknown>,
+  meta?:      Prisma.InputJsonValue,
 ): void {
   dbRaw.auditLog.create({
-    data: { actorId, action, targetId, targetType, meta: meta ?? undefined },
+    data: { actorId, action, targetId, targetType, meta: meta ?? Prisma.DbNull },
   }).catch(console.error);
 }

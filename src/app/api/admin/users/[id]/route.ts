@@ -59,7 +59,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     ? "USER_DELETED"
     : "USER_RESTORED";
   logAudit(session.user.id, auditAction, id, "User",
-    data.role !== undefined ? { role: data.role } : undefined);
+    data.role !== undefined ? { role: String(data.role) } : undefined);
 
   return NextResponse.json(user);
 }
