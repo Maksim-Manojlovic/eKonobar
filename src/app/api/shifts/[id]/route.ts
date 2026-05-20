@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { computeScheduledStart } from "@/lib/shift-utils";
 import { getManagedShift } from "@/lib/shift-auth";
+import logger from "@/lib/logger";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -76,7 +77,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     });
     return NextResponse.json(shift);
   } catch (err) {
-    console.error("[PATCH /api/shifts]", err);
+    logger.error({ err }, "PATCH /api/shifts/[id]");
     return NextResponse.json({ error: "Internal error", detail: String(err) }, { status: 500 });
   }
 }
@@ -95,7 +96,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     await db.shift.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("[DELETE /api/shifts]", err);
+    logger.error({ err }, "DELETE /api/shifts/[id]");
     return NextResponse.json({ error: "Internal error", detail: String(err) }, { status: 500 });
   }
 }

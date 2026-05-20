@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { VerificationTier } from "@prisma/client";
+import logger from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -91,7 +92,7 @@ export async function GET(req: NextRequest) {
       pages: Math.ceil(total / limit),
     });
   } catch (err) {
-    console.error("[GET /api/waiters]", err);
+    logger.error({ err }, "GET /api/waiters");
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import cloudinary from "@/lib/cloudinary";
+import logger from "@/lib/logger";
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: result.secure_url });
   } catch (err) {
-    console.error("[POST /api/upload]", err);
+    logger.error({ err, type, fileName: file.name }, "POST /api/upload");
     return NextResponse.json({ error: "Upload nije uspeo" }, { status: 500 });
   }
 }

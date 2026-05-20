@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { dbRaw } from "@/lib/db";
+import logger from "@/lib/logger";
 
 export function logAudit(
   actorId:    string,
@@ -10,5 +11,5 @@ export function logAudit(
 ): void {
   dbRaw.auditLog.create({
     data: { actorId, action, targetId, targetType, meta: meta ?? Prisma.DbNull },
-  }).catch(console.error);
+  }).catch((err) => logger.error({ err, actorId, action, targetId }, "audit write failed"));
 }

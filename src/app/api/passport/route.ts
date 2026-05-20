@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import logger from "@/lib/logger";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -100,7 +101,7 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json(passport);
   } catch (err) {
-    console.error("[PUT /api/passport]", err);
+    logger.error({ err }, "PUT /api/passport");
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }
