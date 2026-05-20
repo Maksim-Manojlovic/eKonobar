@@ -12,6 +12,40 @@ interface ImageUploadProps {
   className?: string;
 }
 
+// Per-type compression config. null = skip (preserve original).
+const COMPRESS_CFG: Record<string, { maxPx: number; quality: number } | null> = {
+  "avatar":       { maxPx: 800,  quality: 0.85 },
+  "venue-photo":  { maxPx: 1400, quality: 0.85 },
+  "sanitary-doc": null,
+};
+
+async function compressImage(
+  file: File,
+  maxPx: number,
+  quality: number,
+): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    const src = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(src);
+      const scale  = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width  = Math.round(img.width  * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => resolve(blob ? new File([blob], file.name, { type: "image/jpeg" }) : file),
+        "image/jpeg",
+        quality,
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(src); resolve(file); };
+    img.src = src;
+  });
+}
+
 export default function ImageUpload({
   current,
   uploadType,
@@ -28,8 +62,12 @@ export default function ImageUpload({
   const displayed = preview ?? current;
 
   async function handleFile(file: File) {
-    if (!file.type.startsWith("image/")) {
-      setError("Dozvoljen je samo format slike.");
+    const isSanitaryDoc = uploadType === "sanitary-doc";
+    const validMime = isSanitaryDoc
+      ? file.type.startsWith("image/") || file.type === "application/pdf"
+      : file.type.startsWith("image/");
+    if (!validMime) {
+      setError(isSanitaryDoc ? "Dozvoljena je slika ili PDF." : "Dozvoljen je samo format slike.");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -38,12 +76,15 @@ export default function ImageUpload({
     }
 
     setError(null);
-    setPreview(URL.createObjectURL(file));
+    setPreview(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
     setUploading(true);
 
     try {
+      const cfg = COMPRESS_CFG[uploadType];
+      const toUpload = cfg ? await compressImage(file, cfg.maxPx, cfg.quality) : file;
+
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append("file", toUpload);
       fd.append("type", uploadType);
 
       const res = await fetch("/api/upload", { method: "POST", body: fd });
@@ -93,7 +134,7 @@ export default function ImageUpload({
         </button>
         {label && <span className="text-xs text-neutral-400">{label}</span>}
         {error && <p className="text-xs text-red-500">{error}</p>}
-        <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onInputChange} />
+        <input ref={inputRef} type="file" accept={uploadType === "sanitary-doc" ? "image/*,application/pdf" : "image/*"} className="hidden" onChange={onInputChange} />
       </div>
     );
   }
@@ -117,7 +158,7 @@ export default function ImageUpload({
             <p className="text-sm font-medium text-neutral-500">
               {uploading ? "Uploadujem..." : "Klikni ili prevuci sliku"}
             </p>
-            <p className="text-xs text-neutral-400">PNG, JPG, WEBP · max 5MB</p>
+            <p className="text-xs text-neutral-400">{uploadType === "sanitary-doc" ? "PNG, JPG, PDF · max 5MB" : "PNG, JPG, WEBP · max 5MB"}</p>
           </div>
         )}
 
@@ -136,7 +177,7 @@ export default function ImageUpload({
 
       {label && <p className="text-xs text-neutral-500">{label}</p>}
       {error && <p className="text-xs text-red-500">{error}</p>}
-      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onInputChange} />
+      <input ref={inputRef} type="file" accept={uploadType === "sanitary-doc" ? "image/*,application/pdf" : "image/*"} className="hidden" onChange={onInputChange} />
     </div>
   );
 }
