@@ -9,7 +9,30 @@ export async function GET(
 
   const passport = await db.waiterPassport.findUnique({
     where: { shareToken },
-    include: {
+    select: {
+      id: true,
+      userId: true,
+      score: true,
+      badges: true,
+      reviewCount: true,
+      totalEngagements: true,
+      avgEngagementMonths: true,
+      skills: true,
+      languages: true,
+      yearsExperience: true,
+      sanitaryBookValid: true,
+      sanitaryExpiry: true,
+      currentlyAvailable: true,
+      bio: true,
+      profilePhoto: true,
+      galleryPhotos: true,
+      venueTypePreferences: true,
+      avgRedAlertResponseMinutes: true,
+      redAlertResponseCount: true,
+      lastAvailableDate: true,
+      passportTier: true,
+      createdAt: true,
+      shareTokenExpiry: true,
       trustScore: true,
       user: {
         select: {
@@ -76,9 +99,8 @@ export async function GET(
     take: 30,
   });
 
-  // Strip private fields before returning
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { shareToken: _tok, shareTokenExpiry: _exp, ...publicPassport } = passport;
+  const { shareTokenExpiry: _exp, ...publicPassport } = passport;
 
   return NextResponse.json({
     passport: publicPassport,
