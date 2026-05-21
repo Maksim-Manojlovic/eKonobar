@@ -1,3 +1,4 @@
+import "./env"; // validate required env vars at startup
 import { type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider    from "next-auth/providers/google";
