@@ -81,7 +81,7 @@ export async function notify(
 
   // ── Infobip SMS (Passport PRO_PLUS only) ──────────────────────────────────
   if (isProPlus && user.smsOptIn && user.phone) {
-    const smsText = `${title}: ${body}${link ? " | ekonobar.rs" : ""}`;
+    const smsText = `${title}: ${body}${link ? " | ekonobar.rs" : ""}`.slice(0, 160);
     try {
       await sendSms(user.phone, smsText);
       db.notification.update({ where: { id: notification.id }, data: { smsSent: true } }).catch(() => {});
