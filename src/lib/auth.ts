@@ -17,15 +17,20 @@ const _revCache = new Map<string, { revokedAt: number | null; cachedAt: number }
 const REV_CACHE_TTL_MS = 60_000;
 
 async function isTokenRevoked(userId: string, tokenIat: number): Promise<boolean> {
+  const now = Date.now();
   const cached = _revCache.get(userId);
-  if (cached && Date.now() - cached.cachedAt < REV_CACHE_TTL_MS) {
+  if (cached && now - cached.cachedAt < REV_CACHE_TTL_MS) {
     return cached.revokedAt !== null && tokenIat < cached.revokedAt;
   }
   const row = await dbRaw.tokenRevocation.findUnique({ where: { userId }, select: { revokedAt: true } });
   _revCache.set(userId, {
     revokedAt: row ? row.revokedAt.getTime() / 1000 : null,
-    cachedAt:  Date.now(),
+    cachedAt:  now,
   });
+  // Evict stale entries to keep the map bounded to active users only
+  for (const [key, entry] of _revCache) {
+    if (now - entry.cachedAt >= REV_CACHE_TTL_MS) _revCache.delete(key);
+  }
   return row !== null && tokenIat < row.revokedAt.getTime() / 1000;
 }
 
