@@ -12,6 +12,12 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { notify } from "@/lib/notify";
 import { ReviewDirection } from "@prisma/client";
 
+function clampRating(v: unknown): number | null {
+  if (v == null) return null;
+  const n = Number(v);
+  return isNaN(n) ? null : Math.min(100, Math.max(0, n));
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const venueId   = searchParams.get("venueId")   ?? undefined;
@@ -201,27 +207,27 @@ export async function POST(req: NextRequest) {
         guestLongitude: guestLon,
         geolocationHash,
       }),
-      // Category ratings
+      // Category ratings — clamped to 0-100 to protect score sync
       ...(direction === "WAITER_TO_VENUE" && {
-        ratingAtmosphere:   ratingAtmosphere   ?? null,
-        ratingOrganization: ratingOrganization ?? null,
-        ratingPay:          ratingPay          ?? null,
-        ratingTips:         ratingTips         ?? null,
-        ratingHygieneWork:  ratingHygieneWork  ?? null,
-        ratingManagement:   ratingManagement   ?? null,
+        ratingAtmosphere:   clampRating(ratingAtmosphere),
+        ratingOrganization: clampRating(ratingOrganization),
+        ratingPay:          clampRating(ratingPay),
+        ratingTips:         clampRating(ratingTips),
+        ratingHygieneWork:  clampRating(ratingHygieneWork),
+        ratingManagement:   clampRating(ratingManagement),
       }),
       ...(direction === "VENUE_TO_WAITER" && {
-        ratingPunctuality:        ratingPunctuality        ?? null,
-        ratingSkill:              ratingSkill              ?? null,
-        ratingGuestCommunication: ratingGuestCommunication ?? null,
-        ratingPersonalHygiene:    ratingPersonalHygiene    ?? null,
-        ratingTeamwork:           ratingTeamwork           ?? null,
-        ratingSpeed:              ratingSpeed              ?? null,
+        ratingPunctuality:        clampRating(ratingPunctuality),
+        ratingSkill:              clampRating(ratingSkill),
+        ratingGuestCommunication: clampRating(ratingGuestCommunication),
+        ratingPersonalHygiene:    clampRating(ratingPersonalHygiene),
+        ratingTeamwork:           clampRating(ratingTeamwork),
+        ratingSpeed:              clampRating(ratingSpeed),
       }),
       ...(direction === "GUEST_TO_WAITER" && {
-        ratingFriendliness:  ratingFriendliness  ?? null,
-        ratingGuestSpeed:    ratingGuestSpeed    ?? null,
-        ratingAttentiveness: ratingAttentiveness ?? null,
+        ratingFriendliness:  clampRating(ratingFriendliness),
+        ratingGuestSpeed:    clampRating(ratingGuestSpeed),
+        ratingAttentiveness: clampRating(ratingAttentiveness),
       }),
     },
   });

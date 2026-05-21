@@ -5,6 +5,12 @@ import { isInsideVenueRadius, createGeolocationHash, parseGuestCoordinates } fro
 import { rateLimit } from "@/lib/rate-limit";
 import { notify } from "@/lib/notify";
 
+function clampRating(v: unknown): number | null {
+  if (v == null) return null;
+  const n = Number(v);
+  return isNaN(n) ? null : Math.min(100, Math.max(0, n));
+}
+
 export async function POST(req: NextRequest) {
   // IP-based rate limit: 3 guest reviews per hour per IP
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
@@ -97,9 +103,9 @@ export async function POST(req: NextRequest) {
         guestLatitude:   coords?.lat ?? null,
         guestLongitude:  coords?.lon ?? null,
         geolocationHash: geolocationHash ?? null,
-        ratingAtmosphere:   ratingAtmosphere   != null ? Number(ratingAtmosphere)   : null,
-        ratingOrganization: ratingOrganization != null ? Number(ratingOrganization) : null,
-        ratingHygieneWork:  ratingHygieneWork  != null ? Number(ratingHygieneWork)  : null,
+        ratingAtmosphere:   clampRating(ratingAtmosphere),
+        ratingOrganization: clampRating(ratingOrganization),
+        ratingHygieneWork:  clampRating(ratingHygieneWork),
       },
     });
 
@@ -127,9 +133,9 @@ export async function POST(req: NextRequest) {
       guestLatitude:  coords?.lat ?? null,
       guestLongitude: coords?.lon ?? null,
       geolocationHash: geolocationHash ?? null,
-      ratingFriendliness:  ratingFriendliness  != null ? Number(ratingFriendliness)  : null,
-      ratingGuestSpeed:    ratingGuestSpeed    != null ? Number(ratingGuestSpeed)    : null,
-      ratingAttentiveness: ratingAttentiveness != null ? Number(ratingAttentiveness) : null,
+      ratingFriendliness:  clampRating(ratingFriendliness),
+      ratingGuestSpeed:    clampRating(ratingGuestSpeed),
+      ratingAttentiveness: clampRating(ratingAttentiveness),
     },
   });
 
