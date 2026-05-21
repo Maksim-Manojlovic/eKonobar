@@ -11,11 +11,6 @@ export async function notify(
   body: string,
   link?: string,
 ): Promise<void> {
-  // Always create the DB record — this is the source of truth for in-app feed
-  const notification = await db.notification.create({
-    data: { userId, type, title, body, link: link ?? null },
-  });
-
   const user = await db.user.findUnique({
     where: { id: userId },
     select: {
@@ -27,7 +22,13 @@ export async function notify(
     },
   });
 
+  // Skip soft-deleted users — db already filters deletedAt, so null = deleted or missing
   if (!user) return;
+
+  // Create the DB record — source of truth for in-app notification feed
+  const notification = await db.notification.create({
+    data: { userId, type, title, body, link: link ?? null },
+  });
 
   // Resolve active passport tier (FREE if subscription lapsed)
   const tierRaw = user.waiterPassport?.passportTier ?? "FREE";
