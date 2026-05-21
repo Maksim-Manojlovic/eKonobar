@@ -18,6 +18,7 @@ function warnIfMissing(...names: string[]): void {
 // ── Required — app is broken without these ────────────────────────────────
 required("DATABASE_URL");
 required("NEXTAUTH_SECRET");
+required("NEXT_PUBLIC_APP_URL");
 
 // ── Optional features — warn in production when missing ───────────────────
 warnIfMissing(
