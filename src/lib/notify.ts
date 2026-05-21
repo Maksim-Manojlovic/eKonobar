@@ -59,32 +59,30 @@ export async function notify(
 
   // ── WhatsApp (Passport PRO+) ──────────────────────────────────────────────
   if (isPro && user.waOptIn && user.phone) {
-    sendWhatsApp(user.phone, title, body)
-      .then(() =>
-        db.notification.update({ where: { id: notification.id }, data: { waSent: true } }).catch(() => {}),
-      )
-      .catch(() => {
-        // Increment retry counter — cron will retry up to 3× within 24h
-        db.notification.update({
-          where: { id: notification.id },
-          data:  { waRetries: { increment: 1 } },
-        }).catch(() => {});
-      });
+    try {
+      await sendWhatsApp(user.phone, title, body);
+      db.notification.update({ where: { id: notification.id }, data: { waSent: true } }).catch(() => {});
+    } catch {
+      // Increment retry counter — cron will retry up to 3× within 24h
+      db.notification.update({
+        where: { id: notification.id },
+        data:  { waRetries: { increment: 1 } },
+      }).catch(() => {});
+    }
   }
 
   // ── Infobip SMS (Passport PRO_PLUS only) ──────────────────────────────────
   if (isProPlus && user.smsOptIn && user.phone) {
     const smsText = `${title}: ${body}${link ? " | ekonobar.rs" : ""}`;
-    sendSms(user.phone, smsText)
-      .then(() =>
-        db.notification.update({ where: { id: notification.id }, data: { smsSent: true } }).catch(() => {}),
-      )
-      .catch(() => {
-        // Increment retry counter — cron will retry up to 3× within 24h
-        db.notification.update({
-          where: { id: notification.id },
-          data:  { smsRetries: { increment: 1 } },
-        }).catch(() => {});
-      });
+    try {
+      await sendSms(user.phone, smsText);
+      db.notification.update({ where: { id: notification.id }, data: { smsSent: true } }).catch(() => {});
+    } catch {
+      // Increment retry counter — cron will retry up to 3× within 24h
+      db.notification.update({
+        where: { id: notification.id },
+        data:  { smsRetries: { increment: 1 } },
+      }).catch(() => {});
+    }
   }
 }
