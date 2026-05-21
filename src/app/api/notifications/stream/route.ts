@@ -2,10 +2,15 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 
-export const dynamic = "force-dynamic";
+export const dynamic    = "force-dynamic";
+export const runtime    = "nodejs";
+// Cap at 5 min — client EventSource auto-reconnects after the function exits.
+// Vercel Hobby hard-limits at 60s regardless; Pro/Enterprise can reach 300s.
+export const maxDuration = 300;
 
 // Server-Sent Events stream for unread notification count.
 // Sends { unread: N } immediately on connect, then every 30s.
+// Sends a SSE comment heartbeat every 25s to keep proxy connections alive.
 // EventSource auto-reconnects on drop — no client-side polling needed.
 //
 // X-Accel-Buffering: no — disables nginx/Vercel edge buffering so
@@ -30,6 +35,13 @@ export async function GET(req: Request) {
         }
       };
 
+      const ping = () => {
+        try {
+          // SSE comment — keeps proxy/CDN connections alive without triggering client onmessage
+          controller.enqueue(encoder.encode(": ping\n\n"));
+        } catch { /* closed */ }
+      };
+
       const poll = async () => {
         try {
           const count = await db.notification.count({ where: { userId, read: false } });
@@ -41,10 +53,12 @@ export async function GET(req: Request) {
 
       await poll(); // send count immediately on connect
 
-      const interval = setInterval(poll, 30_000);
+      const pollInterval = setInterval(poll, 30_000);
+      const pingInterval = setInterval(ping, 25_000);
 
       req.signal.addEventListener("abort", () => {
-        clearInterval(interval);
+        clearInterval(pollInterval);
+        clearInterval(pingInterval);
         try { controller.close(); } catch { /* already closed */ }
       });
     },
