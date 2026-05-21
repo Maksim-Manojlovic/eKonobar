@@ -16,6 +16,16 @@ const TTL_REMEMBER =  7 * 24 * 60 * 60; // 7 d  — "zapamti me"
 // TTL of 60s means role changes propagate within one minute.
 const _revCache = new Map<string, { revokedAt: number | null; cachedAt: number }>();
 const REV_CACHE_TTL_MS = 60_000;
+const REV_CACHE_MAX    = 5_000;
+
+function evictRevCache(now: number): void {
+  for (const [key, entry] of _revCache) {
+    if (now - entry.cachedAt >= REV_CACHE_TTL_MS) _revCache.delete(key);
+  }
+  // Hard cap — if stale eviction wasn't enough, clear everything so the next
+  // request cycle starts fresh rather than serving a perpetually-bloated map.
+  if (_revCache.size > REV_CACHE_MAX) _revCache.clear();
+}
 
 async function isTokenRevoked(userId: string, tokenIat: number): Promise<boolean> {
   const now = Date.now();
@@ -28,10 +38,7 @@ async function isTokenRevoked(userId: string, tokenIat: number): Promise<boolean
     revokedAt: row ? row.revokedAt.getTime() / 1000 : null,
     cachedAt:  now,
   });
-  // Evict stale entries to keep the map bounded to active users only
-  for (const [key, entry] of _revCache) {
-    if (now - entry.cachedAt >= REV_CACHE_TTL_MS) _revCache.delete(key);
-  }
+  evictRevCache(now);
   return row !== null && tokenIat < row.revokedAt.getTime() / 1000;
 }
 
