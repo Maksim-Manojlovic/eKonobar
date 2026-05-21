@@ -48,14 +48,17 @@ describe("POST /api/shifts — status derivation", () => {
     vi.clearAllMocks();
     vi.mocked(db.venue.findFirst).mockResolvedValue(FAKE_VENUE as never);
     vi.mocked(db.user.findMany).mockResolvedValue([] as never);
-    vi.mocked(db.shift.create).mockImplementation(({ data }: { data: { status: string } }) =>
-      Promise.resolve({ id: "s-1", ...data }) as never,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(db.shift.create).mockImplementation((args: any) =>
+      Promise.resolve({ id: "s-1", ...args.data }) as never,
     );
   });
 
+  const CTX = { params: Promise.resolve({}) } as never;
+
   it("sets status OPEN when no waiters assigned", async () => {
     mockSession();
-    await POST(makeReq({ ...BASE_BODY, requiredCount: 2, waiterIds: [] }));
+    await POST(makeReq({ ...BASE_BODY, requiredCount: 2, waiterIds: [] }), CTX);
     const data = vi.mocked(db.shift.create).mock.calls[0]?.[0].data;
     expect(data?.status).toBe("OPEN");
   });
@@ -63,7 +66,7 @@ describe("POST /api/shifts — status derivation", () => {
   it("sets status OPEN when assigned count < requiredCount", async () => {
     mockSession();
     vi.mocked(db.user.findMany).mockResolvedValue([{ id: "w1" }] as never);
-    await POST(makeReq({ ...BASE_BODY, requiredCount: 3, waiterIds: ["w1"] }));
+    await POST(makeReq({ ...BASE_BODY, requiredCount: 3, waiterIds: ["w1"] }), CTX);
     const data = vi.mocked(db.shift.create).mock.calls[0]?.[0].data;
     expect(data?.status).toBe("OPEN");
   });
@@ -71,7 +74,7 @@ describe("POST /api/shifts — status derivation", () => {
   it("sets status ASSIGNED when assigned count equals requiredCount", async () => {
     mockSession();
     vi.mocked(db.user.findMany).mockResolvedValue([{ id: "w1" }, { id: "w2" }] as never);
-    await POST(makeReq({ ...BASE_BODY, requiredCount: 2, waiterIds: ["w1", "w2"] }));
+    await POST(makeReq({ ...BASE_BODY, requiredCount: 2, waiterIds: ["w1", "w2"] }), CTX);
     const data = vi.mocked(db.shift.create).mock.calls[0]?.[0].data;
     expect(data?.status).toBe("ASSIGNED");
   });
@@ -79,20 +82,20 @@ describe("POST /api/shifts — status derivation", () => {
   it("sets status ASSIGNED when assigned count exceeds requiredCount", async () => {
     mockSession();
     vi.mocked(db.user.findMany).mockResolvedValue([{ id: "w1" }, { id: "w2" }, { id: "w3" }] as never);
-    await POST(makeReq({ ...BASE_BODY, requiredCount: 2, waiterIds: ["w1", "w2", "w3"] }));
+    await POST(makeReq({ ...BASE_BODY, requiredCount: 2, waiterIds: ["w1", "w2", "w3"] }), CTX);
     const data = vi.mocked(db.shift.create).mock.calls[0]?.[0].data;
     expect(data?.status).toBe("ASSIGNED");
   });
 
   it("returns 400 when required fields missing", async () => {
     mockSession();
-    const res = await POST(makeReq({ venueId: "venue-1" }));
+    const res = await POST(makeReq({ venueId: "venue-1" }), CTX);
     expect(res.status).toBe(400);
   });
 
-  it("returns 403 when unauthenticated", async () => {
+  it("returns 401 when unauthenticated", async () => {
     vi.mocked(getServerSession).mockResolvedValue(null);
-    const res = await POST(makeReq(BASE_BODY));
-    expect(res.status).toBe(403);
+    const res = await POST(makeReq(BASE_BODY), CTX);
+    expect(res.status).toBe(401);
   });
 });

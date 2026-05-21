@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { notify } from "@/lib/notify";
 import { isInsideVenueRadius, parseGuestCoordinates } from "@/lib/geofence";
@@ -10,12 +9,7 @@ const WINDOW_AFTER_MS   = 60 * 60 * 1000;  // 60 min late
 const STRICT_RADIUS_KM  = 0.05;            // 50m  — GPS approved
 const GRACE_RADIUS_KM   = 0.15;            // 150m — GPS_GRACE, silent auto-approve
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "WAITER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const POST = withRole<{ params: Promise<{ id: string }> }>("WAITER", async (req, { params }, session) => {
   const { id } = await params;
   const body = await req.json();
   const { latitude, longitude, method } = body;
@@ -107,7 +101,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   return NextResponse.json({ error: "Nepoznata metoda" }, { status: 400 });
-}
+});
 
 async function clockIn(
   assignmentId: string,

@@ -26,6 +26,11 @@ export const db = prismaRaw.$extends({
         args.where = { deletedAt: null, ...args.where };
         return query(args);
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      async findUnique({ args, query }: any) {
+        args.where = { deletedAt: null, ...args.where };
+        return query(args);
+      },
     },
     venue: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,6 +43,11 @@ export const db = prismaRaw.$extends({
         args.where = { deletedAt: null, ...args.where };
         return query(args);
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      async findUnique({ args, query }: any) {
+        args.where = { deletedAt: null, ...args.where };
+        return query(args);
+      },
     },
     jobPost: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,6 +57,11 @@ export const db = prismaRaw.$extends({
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       async findFirst({ args, query }: any) {
+        args.where = { deletedAt: null, ...args.where };
+        return query(args);
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      async findUnique({ args, query }: any) {
         args.where = { deletedAt: null, ...args.where };
         return query(args);
       },

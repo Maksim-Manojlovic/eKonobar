@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { withRole } from "@/lib/with-role";
 import { computeScheduledStart } from "@/lib/shift-utils";
 import logger from "@/lib/logger";
 
@@ -26,8 +27,18 @@ export async function GET(req: NextRequest) {
     const view = searchParams.get("view"); // "open" | "swaps" | null (mine)
 
     if (session.user.role === "VENUE_OWNER") {
+      const fromParam = searchParams.get("from");
+      const toParam   = searchParams.get("to");
+      const defaultFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
       const shifts = await db.shift.findMany({
-        where: { venue: { ownerId: session.user.id } },
+        where: {
+          venue: { ownerId: session.user.id },
+          date: {
+            gte: fromParam ? new Date(fromParam) : defaultFrom,
+            ...(toParam && { lte: new Date(toParam) }),
+          },
+        },
         include: {
           assignments: { include: { waiter: { select: { id: true, name: true } } } },
           swapRequests: {
@@ -119,12 +130,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user.role !== "VENUE_OWNER" && session.user.role !== "WAITER")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const POST = withRole(["VENUE_OWNER", "WAITER"], async (req, _ctx, session) => {
   const body = await req.json();
   const {
     venueId, title, date, startTime, endTime,
@@ -183,6 +189,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(shift, { status: 201 });
   } catch (err) {
     logger.error({ err }, "POST /api/shifts");
-    return NextResponse.json({ error: "Internal error", detail: String(err) }, { status: 500 });
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
-}
+});

@@ -18,6 +18,13 @@ function isAuthorized(req: NextRequest): boolean {
 async function run() {
   const now = new Date();
 
+  // Purge rate limit entries older than 24h — both tables accumulate indefinitely otherwise
+  const rateLimitCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  await Promise.all([
+    dbRaw.anonRateLimit.deleteMany({ where: { windowStart: { lt: rateLimitCutoff } } }),
+    dbRaw.rateLimit.deleteMany({ where: { windowStart: { lt: rateLimitCutoff } } }),
+  ]);
+
   // Snapshot which reviews are about to be published so we know what to sync
   const dueReviews = await dbRaw.review.findMany({
     where: { status: "PENDING", pendingUntil: { lte: now } },

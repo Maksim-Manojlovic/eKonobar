@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
         venueId,
         overallRating:   rating,
         comment:         comment ? String(comment).slice(0, 1000) : null,
-        weight:          1.0,
+        weight:          0.7, // 3 of 6 venue dimensions — lower weight prevents unequal Bayesian pull vs full waiter reviews
         pendingUntil,
         guestLatitude:   coords?.lat ?? null,
         guestLongitude:  coords?.lon ?? null,

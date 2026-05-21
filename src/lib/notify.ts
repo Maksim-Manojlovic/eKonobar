@@ -14,6 +14,7 @@ export async function notify(
   const user = await db.user.findUnique({
     where: { id: userId },
     select: {
+      role:     true,
       phone:    true,
       smsOptIn: true,
       waOptIn:  true,
@@ -30,13 +31,20 @@ export async function notify(
     data: { userId, type, title, body, link: link ?? null },
   });
 
-  // Resolve active passport tier (FREE if subscription lapsed)
-  const tierRaw = user.waiterPassport?.passportTier ?? "FREE";
-  const expiresAt = user.waiterPassport?.subscriptionExpiresAt;
-  const passportTier = expiresAt && expiresAt < new Date() ? "FREE" : tierRaw;
-
-  const isPro     = passportTier === "PRO" || passportTier === "PRO_PLUS";
-  const isProPlus = passportTier === "PRO_PLUS";
+  // Tier gating applies only to WAITER recipients.
+  // Venue owners and other roles always receive all opted-in channels.
+  let isPro: boolean;
+  let isProPlus: boolean;
+  if (user.role !== "WAITER") {
+    isPro = true;
+    isProPlus = true;
+  } else {
+    const tierRaw = user.waiterPassport?.passportTier ?? "FREE";
+    const expiresAt = user.waiterPassport?.subscriptionExpiresAt;
+    const passportTier = expiresAt && expiresAt < new Date() ? "FREE" : tierRaw;
+    isPro     = passportTier === "PRO" || passportTier === "PRO_PLUS";
+    isProPlus = passportTier === "PRO_PLUS";
+  }
 
   // ── Web push (free, best-effort) ──────────────────────────────────────────
   if (user.pushSubscriptions.length > 0) {

@@ -185,6 +185,7 @@ model User {
   swapRequestsReceived ShiftSwapRequest[] @relation("SwapTarget")
   sanitaryBook      SanitaryBook?
   savedProfiles     SavedProfile[]      @relation("HeadhunterSaved")
+  savedAsProfile    SavedProfile[]      @relation("HeadhunterSavedWaiter")
   invitesSent       Invite[]            @relation("InviteSender")
   invitesUsed       Invite[]            @relation("InviteRecipient")
   rateLimits        RateLimit[]
@@ -648,6 +649,7 @@ model SavedProfile {
   headhunter    User    @relation("HeadhunterSaved", fields: [headhunterId], references: [id])
 
   savedWaiterId String
+  savedWaiter   User    @relation("HeadhunterSavedWaiter", fields: [savedWaiterId], references: [id], onDelete: Cascade)
   notes         String?
 
   savedAt       DateTime @default(now())
@@ -691,6 +693,7 @@ model Shift {
   @@index([date])
   @@index([scheduledStart])
   @@index([status])
+  @@index([templateId, date])
 }
 
 model ShiftAssignment {

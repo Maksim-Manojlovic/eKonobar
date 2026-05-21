@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { EngagementType, TipSystem } from "@prisma/client";
 
@@ -76,12 +77,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(posts);
 }
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "VENUE_OWNER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const POST = withRole("VENUE_OWNER", async (req, _ctx, session) => {
   const body = await req.json();
   const {
     venueId, title, description, engagementType, tipSystem,
@@ -127,4 +123,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(post, { status: 201 });
-}
+});

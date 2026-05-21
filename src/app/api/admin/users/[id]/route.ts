@@ -55,7 +55,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const auditAction = data.role !== undefined
     ? "USER_ROLE_CHANGED"
-    : data.deletedAt !== undefined
+    : body.action === "delete"
     ? "USER_DELETED"
     : "USER_RESTORED";
   logAudit(session.user.id, auditAction, id, "User",

@@ -13,20 +13,18 @@ export async function rateLimit(
 ): Promise<boolean> {
   const windowStart = new Date(Math.floor(Date.now() / windowMs) * windowMs);
 
-  const existing = await dbRaw.anonRateLimit.findUnique({
-    where: { key_windowStart: { key, windowStart } },
-    select: { count: true },
-  });
+  // Atomic upsert: increment first, then check — no TOCTOU race between concurrent requests.
+  // Counter keeps incrementing past max (rejected requests still count), which is intentional:
+  // it makes the limit slightly more aggressive under burst, never more permissive.
+  const rows = await dbRaw.$queryRaw<[{ count: bigint }]>`
+    INSERT INTO "AnonRateLimit" (key, "windowStart", count)
+    VALUES (${key}, ${windowStart}, 1)
+    ON CONFLICT (key, "windowStart")
+    DO UPDATE SET count = "AnonRateLimit".count + 1
+    RETURNING count
+  `;
 
-  if (existing && existing.count >= max) return false;
-
-  await dbRaw.anonRateLimit.upsert({
-    where: { key_windowStart: { key, windowStart } },
-    create: { key, windowStart, count: 1 },
-    update: { count: { increment: 1 } },
-  });
-
-  return true;
+  return Number(rows[0].count) <= max;
 }
 
 export async function resetRateLimit(key: string): Promise<void> {
@@ -52,18 +50,13 @@ export async function checkRateLimit(
 ): Promise<boolean> {
   const windowStart = new Date(Math.floor(Date.now() / windowMs) * windowMs);
 
-  const existing = await dbRaw.rateLimit.findFirst({
-    where: { userId, action, windowStart },
-    select: { count: true },
-  });
+  const rows = await dbRaw.$queryRaw<[{ count: bigint }]>`
+    INSERT INTO "RateLimit" ("userId", action, "windowStart", count)
+    VALUES (${userId}, ${action}, ${windowStart}, 1)
+    ON CONFLICT ("userId", action, "windowStart")
+    DO UPDATE SET count = "RateLimit".count + 1
+    RETURNING count
+  `;
 
-  if (existing && existing.count >= max) return false;
-
-  await dbRaw.rateLimit.upsert({
-    where: { userId_action_windowStart: { userId, action, windowStart } },
-    create: { userId, action, windowStart, count: 1 },
-    update: { count: { increment: 1 } },
-  });
-
-  return true;
+  return Number(rows[0].count) <= max;
 }

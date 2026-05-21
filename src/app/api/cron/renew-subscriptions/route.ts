@@ -32,7 +32,7 @@ async function run() {
       passportTier:          true,
       subscriptionExpiresAt: true,
       monriPanToken:         true,
-      user: { select: { email: true } },
+      user: { select: { email: true, name: true } },
     },
   });
 
@@ -66,6 +66,7 @@ async function run() {
       amountMinorUnits: amount,
       currency:         "RSD",
       chEmail:          passport.user.email,
+      chFullName:       passport.user.name ?? "eKonobar Subscriber",
     }).catch(() => ({ approved: false, approvalCode: undefined }));
 
     if (approved) {

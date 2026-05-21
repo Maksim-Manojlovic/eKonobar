@@ -142,12 +142,13 @@ export interface ChargeStoredCardParams {
   amountMinorUnits:  number;
   currency:          MonriCurrency;
   chEmail:           string;
+  chFullName:        string;
 }
 
 export async function chargeStoredCard(
   params: ChargeStoredCardParams,
 ): Promise<{ approved: boolean; approvalCode?: string }> {
-  const { panToken, orderNumber, amountMinorUnits, currency, chEmail } = params;
+  const { panToken, orderNumber, amountMinorUnits, currency, chEmail, chFullName } = params;
 
   const digest = requestDigest(orderNumber, amountMinorUnits, currency);
 
@@ -159,7 +160,7 @@ export async function chargeStoredCard(
       currency,
       transaction_type:   "purchase",
       ch_email:           chEmail,
-      ch_full_name:       "eKonobar Subscriber",
+      ch_full_name:       chFullName,
       ch_address:         "N/A",
       ch_city:            "Beograd",
       ch_zip:             "11000",

@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { PassportTier } from "@prisma/client";
 
@@ -16,12 +15,7 @@ const TIER_RANK: Record<PassportTier, number> = {
   PRO_PLUS: 2,
 };
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "WAITER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const POST = withRole("WAITER", async (req, _ctx, session) => {
   const body = await req.json();
   const { tier } = body as { tier: PassportTier };
 
@@ -53,8 +47,6 @@ export async function POST(req: NextRequest) {
     : now;
   const subscriptionExpiresAt = new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-  // TODO: integrate payment provider (Stripe / NestPay) before charging.
-  // For now this is a mock — records the tier change without actual payment.
   const updated = await db.waiterPassport.update({
     where: { userId: session.user.id },
     data: { passportTier: tier, subscriptionExpiresAt, tierRank: TIER_RANK[tier] },
@@ -67,4 +59,4 @@ export async function POST(req: NextRequest) {
     priceRsd: TIER_PRICES[tier],
     message: `Passport ${tier} aktivan do ${subscriptionExpiresAt.toLocaleDateString("sr-RS")}`,
   });
-}
+});
