@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/publish-reviews",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/retry-notifications",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/renew-subscriptions",
+      "schedule": "0 2 * * *"
+    }
+  ]
+}
