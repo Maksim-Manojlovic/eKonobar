@@ -48,7 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
   }
 
-  const inputMethod = method === "QR" ? "QR" : "GPS"; // only GPS or QR from frontend
+  const inputMethod = String(method ?? "").toUpperCase() === "QR" ? "QR" : "GPS";
   const waiterName = session.user.name ?? "Konobar";
 
   if (inputMethod === "GPS") {
