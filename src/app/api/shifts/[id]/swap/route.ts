@@ -21,7 +21,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     where: { id },
     include: {
       assignments: { select: { id: true, waiterId: true } },
-      swapRequests: { where: { status: "PENDING" }, select: { fromAssignmentId: true } },
       venue: { select: { ownerId: true, name: true } },
     },
   });
@@ -38,24 +37,33 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Niste na ovoj smeni" }, { status: 403 });
   }
 
-  const alreadyPending = shift.swapRequests.some(s => s.fromAssignmentId === myAssignment.id);
-  if (alreadyPending) {
-    return NextResponse.json({ error: "Zahtev za zamenu već postoji" }, { status: 409 });
-  }
-
   const toWaiter = await db.user.findUnique({ where: { id: toWaiterId, role: "WAITER" } });
   if (!toWaiter) return NextResponse.json({ error: "Konobar nije pronađen" }, { status: 404 });
 
-  const [swapReq] = await db.$transaction([
-    db.shiftSwapRequest.create({
-      data: {
-        shiftId: id,
-        fromAssignmentId: myAssignment.id,
-        toWaiterId,
-      },
-    }),
-    db.shift.update({ where: { id }, data: { status: "PENDING_SWAP" } }),
-  ]);
+  let swapReq;
+  try {
+    swapReq = await db.$transaction(async (tx) => {
+      // Lock the assignment row so concurrent swap requests for the same
+      // assignment are serialised — prevents duplicate PENDING swap creation
+      await tx.$queryRaw`SELECT id FROM "ShiftAssignment" WHERE id = ${myAssignment.id} FOR UPDATE`;
+
+      const existingPending = await tx.shiftSwapRequest.findFirst({
+        where: { fromAssignmentId: myAssignment.id, status: "PENDING" },
+      });
+      if (existingPending) throw Object.assign(new Error("conflict"), { code: "CONFLICT" });
+
+      const req = await tx.shiftSwapRequest.create({
+        data: { shiftId: id, fromAssignmentId: myAssignment.id, toWaiterId },
+      });
+      await tx.shift.update({ where: { id }, data: { status: "PENDING_SWAP" } });
+      return req;
+    });
+  } catch (err: unknown) {
+    if (err instanceof Error && (err as NodeJS.ErrnoException).code === "CONFLICT") {
+      return NextResponse.json({ error: "Zahtev za zamenu već postoji" }, { status: 409 });
+    }
+    throw err;
+  }
 
   const fromName = session.user.name ?? "Konobar";
   // Notify target waiter
