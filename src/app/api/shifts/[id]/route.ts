@@ -44,8 +44,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     let newStatus = status;
     if (waiterIds !== undefined && !status) {
       const rc = requiredCount ?? existing.requiredCount;
-      newStatus = ids.length > 0 ? "ASSIGNED" : "OPEN";
-      void rc;
+      newStatus = ids.length >= rc ? "ASSIGNED" : "OPEN";
     }
 
     const shift = await db.shift.update({

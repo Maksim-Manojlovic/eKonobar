@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { computeScheduledStart } from "@/lib/shift-utils";
+import logger from "@/lib/logger";
 
 const ASSIGNMENT_SELECT = {
   id: true,
@@ -113,7 +114,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json([]);
   } catch (err) {
-    console.error("[GET /api/shifts]", err);
+    logger.error({ err }, "GET /api/shifts");
     return NextResponse.json({ error: "Internal error", detail: String(err) }, { status: 500 });
   }
 }
@@ -152,7 +153,7 @@ export async function POST(req: NextRequest) {
 
   const rc = requiredCount ? Math.max(1, Number(requiredCount)) : 1;
   const scheduledStart = computeScheduledStart(date, startTime);
-  const status = ids.length >= rc ? "ASSIGNED" : ids.length > 0 ? "ASSIGNED" : "OPEN";
+  const status = ids.length >= rc ? "ASSIGNED" : "OPEN";
 
   try {
     const shift = await db.shift.create({
@@ -181,7 +182,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(shift, { status: 201 });
   } catch (err) {
-    console.error("[POST /api/shifts]", err);
+    logger.error({ err }, "POST /api/shifts");
     return NextResponse.json({ error: "Internal error", detail: String(err) }, { status: 500 });
   }
 }
