@@ -99,6 +99,20 @@ export async function PATCH(
     }
   }
 
+  if (website) {
+    try {
+      const u = new URL(website);
+      if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error();
+    } catch {
+      return NextResponse.json({ error: "website mora biti http/https URL" }, { status: 400 });
+    }
+  }
+
+  // instagram can be a bare handle or URL — only reject dangerous schemes
+  if (instagram && /^(javascript|data|vbscript):/i.test(instagram.trim())) {
+    return NextResponse.json({ error: "Nevažeći instagram unos" }, { status: 400 });
+  }
+
   const venue = await db.venue.findUnique({ where: { id }, select: { ownerId: true } });
   if (!venue) return NextResponse.json({ error: "Lokal nije pronađen" }, { status: 404 });
   if (venue.ownerId !== session.user.id) {
