@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const CSP = [
   "default-src 'self'",
@@ -6,7 +7,7 @@ const CSP = [
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: *.mapbox.com *.cloudinary.com",
-  "connect-src 'self' https://api.mapbox.com https://events.mapbox.com https://*.tiles.mapbox.com wss://*.mapbox.com",
+  "connect-src 'self' https://api.mapbox.com https://events.mapbox.com https://*.tiles.mapbox.com wss://*.mapbox.com https://*.ingest.sentry.io",
   // Mapbox GL spawns Web Workers via blob URLs
   "worker-src blob:",
   "font-src 'self' data:",
@@ -47,4 +48,13 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org:     process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  // Upload source maps only in CI to avoid slowing local builds
+  silent:          !process.env.CI,
+  widenClientFileUpload: true,
+  hideSourceMaps:  true,
+  disableLogger:   true,
+  automaticVercelMonitors: true,
+});

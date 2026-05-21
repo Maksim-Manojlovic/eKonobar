@@ -22,6 +22,8 @@ required("NEXT_PUBLIC_APP_URL");
 
 // ── Optional features — warn in production when missing ───────────────────
 warnIfMissing(
+  "SENTRY_DSN",
+  "NEXT_PUBLIC_SENTRY_DSN",
   "CLOUDINARY_CLOUD_NAME",
   "CLOUDINARY_API_KEY",
   "CLOUDINARY_API_SECRET",
