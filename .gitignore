@@ -40,3 +40,5 @@ yarn-error.log*
 
 # Uploads (if local)
 public/uploads/
+graphify-out/
+.claude/
