@@ -20,6 +20,16 @@ export const metadata: Metadata = {
   description:
     "Prva platforma sa Waiter Passport™ sistemom i geofencing recenzijama. Povežite se sa najboljim lokalima u Beogradu.",
   keywords: ["konobar", "posao", "ugostiteljstvo", "Srbija", "lokal", "restoran", "Beograd"],
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon:  [{ url: "/icon", type: "image/png" }],
+    apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
+  },
+  appleWebApp: {
+    capable:        true,
+    statusBarStyle: "black-translucent",
+    title:          "eKonobar",
+  },
 };
 
 export default function RootLayout({

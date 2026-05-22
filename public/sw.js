@@ -3,8 +3,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title ?? "eKonobar", {
       body: data.body ?? "",
-      icon: "/icon-192.png",
-      badge: "/icon-72.png",
+      icon: "/icons/192",
+      badge: "/icons/72",
       data: { link: data.link ?? "/" },
       vibrate: [200, 100, 200],
     }),
