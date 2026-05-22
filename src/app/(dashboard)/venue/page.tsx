@@ -10,6 +10,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { NotificationsSection } from "@/components/ui/NotificationsSection";
 import { useDashboardTour } from "@/hooks/useDashboardTour";
+import DeactivateVenueButton from "@/components/venue/DeactivateVenueButton";
 
 type Section = "overview" | "posts" | "new-post" | "smene" | "applications" | "waiters" | "discover" | "reviews" | "qr-review" | "profile" | "notifications";
 type AppFilter = "SVE" | "PENDING" | "SHORTLISTED" | "ACCEPTED" | "REJECTED";
@@ -89,6 +90,7 @@ type Venue = {
   priceRangeMin: number | null;
   priceRangeMax: number | null;
   geofenceEnabled: boolean;
+  isActive: boolean;
   images: string[];
   logo?: string | null;
   headWaiterId: string | null;
@@ -1710,9 +1712,10 @@ function VenueCreateForm({ onCreated }: { onCreated: () => void }) {
   );
 }
 
-function ProfileSection({ venue, loading, onVenueCreated, geofenceEnabled, geofenceSaving, onGeofenceToggle }: {
+function ProfileSection({ venue, loading, onVenueCreated, geofenceEnabled, geofenceSaving, onGeofenceToggle, onIsActiveToggle }: {
   venue: Venue | null; loading: boolean; onVenueCreated: () => void;
   geofenceEnabled: boolean; geofenceSaving: boolean; onGeofenceToggle: (val: boolean) => void;
+  onIsActiveToggle: (newIsActive: boolean) => void;
 }) {
   const [images, setImages] = useState<string[]>([]);
   const [imgSaving, setImgSaving] = useState(false);
@@ -1938,7 +1941,7 @@ function ProfileSection({ venue, loading, onVenueCreated, geofenceEnabled, geofe
       </div>
 
       {/* Settings */}
-      <div className="dash-card p-5 flex flex-col gap-3">
+      <div className="dash-card p-5 flex flex-col gap-4">
         <h3 className="font-bold text-neutral-900 text-sm">Podešavanja lokala</h3>
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -1953,6 +1956,15 @@ function ProfileSection({ venue, loading, onVenueCreated, geofenceEnabled, geofe
           >
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${geofenceEnabled ? "translate-x-6" : "translate-x-1"}`} />
           </button>
+        </div>
+        <div className="border-t border-neutral-100 pt-3">
+          <p className="text-xs font-bold text-neutral-500 uppercase tracking-wide mb-2">Zona opasnosti</p>
+          <DeactivateVenueButton
+            venueId={venue.id}
+            venueName={venue.name}
+            isActive={venue.isActive}
+            onToggle={onIsActiveToggle}
+          />
         </div>
       </div>
 
@@ -3409,7 +3421,7 @@ export default function VenueDashboard() {
           {section === "discover"     && <DiscoverSection posts={posts} onInvite={setInviteTarget} />}
           {section === "reviews"      && <ReviewsSection venue={venue} />}
           {section === "qr-review"   && <QrReviewSection venue={venue} />}
-          {section === "profile"        && <ProfileSection venue={venue} loading={loading} onVenueCreated={fetchData} geofenceEnabled={geofenceEnabled} geofenceSaving={geofenceSaving} onGeofenceToggle={toggleGeofence} />}
+          {section === "profile"        && <ProfileSection venue={venue} loading={loading} onVenueCreated={fetchData} geofenceEnabled={geofenceEnabled} geofenceSaving={geofenceSaving} onGeofenceToggle={toggleGeofence} onIsActiveToggle={(newIsActive) => setVenue(v => v ? { ...v, isActive: newIsActive } : v)} />}
           {section === "notifications"  && <NotificationsSection />}
         </div>
       </main>

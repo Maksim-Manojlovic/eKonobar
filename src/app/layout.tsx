@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Lexend } from "next/font/google";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { LanguageProvider } from "@/components/providers/LanguageProvider";
+import SessionExpiryToast from "@/components/layout/SessionExpiryToast";
 import "./globals.css";
 
 const lexend = Lexend({
@@ -31,6 +32,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-cream-50 text-neutral-900 antialiased" suppressHydrationWarning>
         <SessionProvider>
           <LanguageProvider>{children}</LanguageProvider>
+          <SessionExpiryToast />
         </SessionProvider>
       </body>
     </html>
