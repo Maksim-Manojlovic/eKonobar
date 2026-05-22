@@ -11,6 +11,8 @@ import { NotificationBell } from "@/components/ui/NotificationBell";
 import { NotificationsSection } from "@/components/ui/NotificationsSection";
 import { useDashboardTour } from "@/hooks/useDashboardTour";
 import DeactivateVenueButton from "@/components/venue/DeactivateVenueButton";
+import VenueInsightsBadge from "@/components/venue/VenueInsightsBadge";
+import type { VenueZoneInsights } from "@/lib/analytics";
 
 type Section = "overview" | "posts" | "new-post" | "smene" | "applications" | "waiters" | "discover" | "reviews" | "qr-review" | "profile" | "notifications";
 type AppFilter = "SVE" | "PENDING" | "SHORTLISTED" | "ACCEPTED" | "REJECTED";
@@ -91,6 +93,7 @@ type Venue = {
   priceRangeMax: number | null;
   geofenceEnabled: boolean;
   isActive: boolean;
+  venueInsights?: VenueZoneInsights | null;
   images: string[];
   logo?: string | null;
   headWaiterId: string | null;
@@ -2025,6 +2028,10 @@ function ProfileSection({ venue, loading, onVenueCreated, geofenceEnabled, geofe
         </div>
         {!venue.venueTrustScore && <p className="text-xs text-neutral-400 mt-3 text-center">Trust Score se računa nakon prvih recenzija</p>}
       </div>
+
+      {venue.venueInsights && (
+        <VenueInsightsBadge insights={venue.venueInsights} />
+      )}
     </>
   );
 }

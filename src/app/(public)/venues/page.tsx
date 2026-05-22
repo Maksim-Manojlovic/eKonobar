@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import VenueCard, { type VenueCardProps } from "@/components/venue/VenueCard";
 import Navbar from "@/components/layout/Navbar";
+
+const MapSearch = dynamic(() => import("@/components/map/MapSearch"), { ssr: false });
 
 const VENUE_TYPES = [
   { value: "",           label: "Svi tipovi" },
@@ -25,10 +28,11 @@ function Spinner() {
 }
 
 export default function VenuesPage() {
-  const [venues, setVenues]       = useState<Venue[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [search, setSearch]       = useState("");
+  const [venues, setVenues]         = useState<Venue[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [search, setSearch]         = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const [view, setView]             = useState<"list" | "map">("list");
 
   useEffect(() => {
     fetch("/api/venues")
@@ -84,8 +88,35 @@ export default function VenuesPage() {
           </div>
         </div>
 
-        {/* Results */}
-        {loading ? (
+        {/* View toggle */}
+        <div className="flex items-center gap-2 mb-2">
+          <button
+            onClick={() => setView("list")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+              view === "list"
+                ? "bg-orange-500 text-white border-orange-500"
+                : "bg-white text-neutral-600 border-neutral-200 hover:border-orange-300"
+            }`}
+          >
+            Lista
+          </button>
+          <button
+            onClick={() => setView("map")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+              view === "map"
+                ? "bg-orange-500 text-white border-orange-500"
+                : "bg-white text-neutral-600 border-neutral-200 hover:border-orange-300"
+            }`}
+          >
+            Mapa
+          </button>
+        </div>
+
+        {/* Map view */}
+        {view === "map" && <MapSearch mode="venues" />}
+
+        {/* List view */}
+        {view === "list" && (loading ? (
           <Spinner />
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
@@ -100,7 +131,7 @@ export default function VenuesPage() {
               <VenueCard key={v.id} {...v} />
             ))}
           </div>
-        )}
+        ))}
       </div>
     </div>
   );
