@@ -95,6 +95,7 @@ export function NotificationBell({
     };
 
     return () => es.close();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchNotifications]);
 
   useEffect(() => {

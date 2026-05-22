@@ -116,6 +116,7 @@ export default function SavedProfilesPage() {
                 <div key={w.id} className="dash-card p-5 flex flex-col gap-3">
                   <div className="flex items-start gap-3">
                     {w.image
+                      // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={w.image} alt={w.name ?? ""} className="w-12 h-12 rounded-full object-cover border-2 border-orange-200 flex-shrink-0" />
                       : <Initials name={w.name} />
                     }

@@ -571,6 +571,7 @@ export default function AdminDashboard() {
                         {i + 1}
                       </span>
                       {w.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={w.image} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
                       ) : (
                         <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white/50 flex-shrink-0">
@@ -607,6 +608,7 @@ export default function AdminDashboard() {
                         {i + 1}
                       </span>
                       {v.logo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={v.logo} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
                       ) : (
                         <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white/50 flex-shrink-0">

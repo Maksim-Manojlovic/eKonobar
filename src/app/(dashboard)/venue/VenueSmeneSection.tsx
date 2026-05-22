@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Venue, VenueShift, VenueSwapRequest, ShiftTemplate, TemplateMeta } from "./venue-types";
+import type { Venue, VenueShift, ShiftTemplate, TemplateMeta } from "./venue-types";
 import { DAYS_SR, MONTHS_SR, getInitials } from "./venue-types";
 import { Sk, ShiftsSkeleton, EmptyVenue } from "./venue-helpers";
 

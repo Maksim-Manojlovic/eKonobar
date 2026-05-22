@@ -39,9 +39,11 @@ function WaiterAvatar({ waiter }: { waiter: Waiter }) {
   const initials = waiter.name
     ? waiter.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
     : "?";
-  return waiter.image ? (
-    <img src={waiter.image} alt={waiter.name ?? ""} className="w-9 h-9 rounded-full object-cover border-2 border-orange-200 flex-shrink-0" />
-  ) : (
+  if (waiter.image) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={waiter.image} alt={waiter.name ?? ""} className="w-9 h-9 rounded-full object-cover border-2 border-orange-200 flex-shrink-0" />;
+  }
+  return (
     <div className="w-9 h-9 rounded-full bg-orange-100 text-orange-600 font-black text-sm flex items-center justify-center border-2 border-orange-200 flex-shrink-0">
       {initials}
     </div>

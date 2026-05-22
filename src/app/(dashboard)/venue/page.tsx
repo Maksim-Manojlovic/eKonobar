@@ -637,6 +637,7 @@ function DiscoverSection({ onInvite }: { posts: OwnPost[]; onInvite: (w: WaiterE
               <div key={w.id} className="dash-card p-5">
                 <div className="flex items-start gap-3">
                   {w.image
+                    // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={w.image} alt={w.name ?? ""} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
                     : <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-lg flex-shrink-0">{getInitials(w.name)}</div>
                   }
@@ -775,6 +776,7 @@ function ReviewsSection({ venue }: { venue: Venue | null }) {
         setLoadingR(false);
       })
       .catch(() => setLoadingR(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [venue?.id]);
 
   async function handleModerate(reviewId: string, action: "approve" | "reject") {
@@ -869,6 +871,7 @@ function QrReviewSection({ venue }: { venue: Venue | null }) {
         setLoadingGR(false);
       })
       .catch(() => setLoadingGR(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [venue?.id]);
 
   async function handleModerate(reviewId: string, action: "approve" | "reject") {

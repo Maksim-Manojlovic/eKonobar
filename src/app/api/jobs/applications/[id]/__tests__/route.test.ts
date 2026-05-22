@@ -65,6 +65,7 @@ describe("PATCH /api/jobs/applications/[id]", () => {
     vi.clearAllMocks();
     mockSession("VENUE_OWNER", OWNER_ID);
     vi.mocked(db.jobApplication.findUnique).mockResolvedValue(BASE_APPLICATION as never);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(db.jobApplication.update).mockImplementation((args: any) =>
       Promise.resolve({ ...BASE_APPLICATION, status: args.data.status }) as never,
     );

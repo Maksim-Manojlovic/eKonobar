@@ -81,7 +81,8 @@ describe("POST /api/reviews/guest", () => {
   });
 
   it("returns 400 when GUEST_TO_WAITER missing subjectId", async () => {
-    const { subjectId: _, ...body } = WAITER_BODY;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { subjectId: _subjectId, ...body } = WAITER_BODY;
     const res = await POST(makeReq(body));
     expect(res.status).toBe(400);
     const d = await res.json();
