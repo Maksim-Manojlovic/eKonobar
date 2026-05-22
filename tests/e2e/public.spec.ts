@@ -5,8 +5,8 @@ test.describe("public pages", () => {
     await page.goto("/");
     await expect(page).not.toHaveTitle(/error/i);
     // Two role cards must be present
-    await expect(page.getByRole("link", { name: /lokali|venue/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: /konobar|waiter/i })).toBeVisible();
+    await expect(page.locator('a[href="/for-venues"]')).toBeVisible();
+    await expect(page.locator('a[href="/for-waiters"]')).toBeVisible();
   });
 
   test("for-venues landing loads", async ({ page }) => {
@@ -26,6 +26,6 @@ test.describe("public pages", () => {
     await page.goto("/login");
     await expect(page.locator("input[type='email']")).toBeVisible();
     await expect(page.locator("input[type='password']")).toBeVisible();
-    await expect(page.getByRole("button", { name: /prijava|login/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /prijavi se|login/i })).toBeVisible();
   });
 });

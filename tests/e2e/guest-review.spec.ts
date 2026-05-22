@@ -8,19 +8,19 @@ test.describe("Guest review flow", () => {
   test("review page loads and shows choice step", async ({ page }) => {
     await page.goto(`/review/${SEEDED_VENUE_ID}`);
     // Must show the three-way choice, not a 404
-    await expect(page.getByRole("heading", { name: /oceni/i })).toBeVisible();
-    await expect(page.getByText(/restoran/i)).toBeVisible();
-    await expect(page.getByText(/konobara/i)).toBeVisible();
+    await expect(page.getByText(/šta biste ocenili/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /oceni restoran/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /oceni konobara/i })).toBeVisible();
   });
 
   test("unknown venue ID shows 404 state", async ({ page }) => {
     await page.goto("/review/definitely-not-a-real-id");
-    await expect(page.getByText(/ne postoji|not found|404/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/nije pronađen|ne postoji|not found|404/i)).toBeVisible({ timeout: 5000 });
   });
 
   test("selecting venue review shows GUEST_TO_VENUE form", async ({ page }) => {
     await page.goto(`/review/${SEEDED_VENUE_ID}`);
-    await page.getByText(/restoran/i).click();
+    await page.getByRole("button", { name: /oceni restoran/i }).click();
     // Venue-specific rating fields must appear
     await expect(page.getByText(/atmosfera/i)).toBeVisible();
     await expect(page.getByText(/organizacija/i)).toBeVisible();
@@ -28,7 +28,7 @@ test.describe("Guest review flow", () => {
 
   test("selecting waiter review shows GUEST_TO_WAITER form", async ({ page }) => {
     await page.goto(`/review/${SEEDED_VENUE_ID}`);
-    await page.getByText(/konobara/i).click();
+    await page.getByRole("button", { name: /oceni konobara/i }).click();
     // Waiter-specific rating fields must appear
     await expect(page.getByText(/ljubaznost|friendli/i)).toBeVisible();
   });

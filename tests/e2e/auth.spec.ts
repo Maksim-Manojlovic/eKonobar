@@ -5,10 +5,10 @@ test.describe("authentication", () => {
     await page.goto("/login");
     await page.fill("input[type='email']", "notreal@example.com");
     await page.fill("input[type='password']", "wrongpassword");
-    await page.getByRole("button", { name: /prijava|login/i }).click();
+    await page.getByRole("button", { name: /prijavi se|login/i }).click();
     // Should stay on login page and show an error
     await expect(page).toHaveURL(/login/);
-    await expect(page.locator("text=/greška|error|neispravni|invalid/i")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/pogrešan|greška|error|neispravni|invalid/i)).toBeVisible({ timeout: 5000 });
   });
 
   test("unauthenticated /venue redirects to login", async ({ page }) => {
