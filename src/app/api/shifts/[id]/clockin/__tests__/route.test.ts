@@ -145,7 +145,7 @@ describe("POST /api/shifts/[id]/clockin", () => {
 
   it("approves GPS within 50m strict zone", async () => {
     vi.mocked(parseGuestCoordinates).mockReturnValue({ lat: 44.8176, lon: 20.4633 });
-    vi.mocked(isInsideVenueRadius).mockReturnValueOnce({ allowed: true, distanceKm: 0.02 });
+    vi.mocked(isInsideVenueRadius).mockReturnValueOnce({ allowed: true, distanceKm: 0.02, radiusKm: 0.05 });
 
     const res = await POST(makeReq({ method: "GPS", latitude: 44.8176, longitude: 20.4633 }), makeCtx());
     expect(res.status).toBe(200);
@@ -156,8 +156,8 @@ describe("POST /api/shifts/[id]/clockin", () => {
   it("approves GPS_GRACE for 50–150m distance", async () => {
     vi.mocked(parseGuestCoordinates).mockReturnValue({ lat: 44.818, lon: 20.464 });
     vi.mocked(isInsideVenueRadius)
-      .mockReturnValueOnce({ allowed: false, distanceKm: 0.08 })  // strict fail
-      .mockReturnValueOnce({ allowed: true,  distanceKm: 0.08 }); // grace pass
+      .mockReturnValueOnce({ allowed: false, distanceKm: 0.08, radiusKm: 0.05 })  // strict fail
+      .mockReturnValueOnce({ allowed: true,  distanceKm: 0.08, radiusKm: 0.15 }); // grace pass
 
     const res = await POST(makeReq({ method: "GPS", latitude: 44.818, longitude: 20.464 }), makeCtx());
     expect(res.status).toBe(200);
@@ -168,8 +168,8 @@ describe("POST /api/shifts/[id]/clockin", () => {
   it("returns 202 pending when GPS > 150m", async () => {
     vi.mocked(parseGuestCoordinates).mockReturnValue({ lat: 44.85, lon: 20.50 });
     vi.mocked(isInsideVenueRadius)
-      .mockReturnValueOnce({ allowed: false, distanceKm: 0.5 })  // strict
-      .mockReturnValueOnce({ allowed: false, distanceKm: 0.5 }); // grace
+      .mockReturnValueOnce({ allowed: false, distanceKm: 0.5, radiusKm: 0.05 })  // strict
+      .mockReturnValueOnce({ allowed: false, distanceKm: 0.5, radiusKm: 0.15 }); // grace
 
     const res = await POST(makeReq({ method: "GPS", latitude: 44.85, longitude: 20.50 }), makeCtx());
     expect(res.status).toBe(202);

@@ -49,7 +49,8 @@ function mockSession(role = "WAITER", id = FROM_WAITER) {
 }
 
 function mockTransaction(result: unknown, shouldConflict = false) {
-  vi.mocked(db.$transaction).mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  vi.mocked(db.$transaction).mockImplementation(async (fn: (tx: any) => Promise<unknown>) => {
     if (shouldConflict) {
       const err = Object.assign(new Error("conflict"), { code: "CONFLICT" });
       throw err;
