@@ -46,18 +46,18 @@ describe("POST /api/passport/subscribe", () => {
 
   it("returns 401 when unauthenticated", async () => {
     vi.mocked(getServerSession).mockResolvedValue(null);
-    const res = await POST(makeReq({ tier: "PRO" }));
+    const res = await POST(makeReq({ tier: "PRO" }), {} as never);
     expect(res.status).toBe(401);
   });
 
   it("returns 403 when role is not WAITER", async () => {
     mockSession("VENUE_OWNER");
-    const res = await POST(makeReq({ tier: "PRO" }));
+    const res = await POST(makeReq({ tier: "PRO" }), {} as never);
     expect(res.status).toBe(403);
   });
 
   it("returns 400 for invalid tier", async () => {
-    const res = await POST(makeReq({ tier: "DIAMOND" }));
+    const res = await POST(makeReq({ tier: "DIAMOND" }), {} as never);
     expect(res.status).toBe(400);
     const d = await res.json();
     expect(d.error).toMatch(/invalid tier/i);
@@ -65,7 +65,7 @@ describe("POST /api/passport/subscribe", () => {
 
   it("returns 404 when passport not found", async () => {
     vi.mocked(db.waiterPassport.findUnique).mockResolvedValue(null);
-    const res = await POST(makeReq({ tier: "PRO" }));
+    const res = await POST(makeReq({ tier: "PRO" }), {} as never);
     expect(res.status).toBe(404);
   });
 
@@ -74,7 +74,7 @@ describe("POST /api/passport/subscribe", () => {
       passportTier: "FREE",
       subscriptionExpiresAt: null,
     } as never);
-    const res = await POST(makeReq({ tier: "FREE" }));
+    const res = await POST(makeReq({ tier: "FREE" }), {} as never);
     expect(res.status).toBe(200);
     const d = await res.json();
     expect(d.tier).toBe("FREE");
@@ -87,10 +87,10 @@ describe("POST /api/passport/subscribe", () => {
 
   it("extends PRO subscription +30 days from now when no active sub", async () => {
     const before = Date.now();
-    await POST(makeReq({ tier: "PRO" }));
+    await POST(makeReq({ tier: "PRO" }), {} as never);
     const after = Date.now();
     const updateCall = vi.mocked(db.waiterPassport.update).mock.calls[0][0];
-    const expiry: Date = updateCall.data.subscriptionExpiresAt;
+    const expiry = updateCall.data.subscriptionExpiresAt as Date;
     const thirtyDays = 30 * 24 * 60 * 60 * 1000;
     expect(expiry.getTime()).toBeGreaterThanOrEqual(before + thirtyDays - 1000);
     expect(expiry.getTime()).toBeLessThanOrEqual(after  + thirtyDays + 1000);
@@ -101,9 +101,9 @@ describe("POST /api/passport/subscribe", () => {
       passportTier: "PRO",
       subscriptionExpiresAt: FUTURE_EXPIRY,
     } as never);
-    await POST(makeReq({ tier: "PRO" }));
+    await POST(makeReq({ tier: "PRO" }), {} as never);
     const updateCall = vi.mocked(db.waiterPassport.update).mock.calls[0][0];
-    const expiry: Date = updateCall.data.subscriptionExpiresAt;
+    const expiry = updateCall.data.subscriptionExpiresAt as Date;
     const thirtyDays = 30 * 24 * 60 * 60 * 1000;
     expect(Math.abs(expiry.getTime() - (FUTURE_EXPIRY.getTime() + thirtyDays))).toBeLessThan(1000);
   });
@@ -114,17 +114,17 @@ describe("POST /api/passport/subscribe", () => {
       subscriptionExpiresAt: PAST_EXPIRY,
     } as never);
     const before = Date.now();
-    await POST(makeReq({ tier: "PRO" }));
+    await POST(makeReq({ tier: "PRO" }), {} as never);
     const after = Date.now();
     const updateCall = vi.mocked(db.waiterPassport.update).mock.calls[0][0];
-    const expiry: Date = updateCall.data.subscriptionExpiresAt;
+    const expiry = updateCall.data.subscriptionExpiresAt as Date;
     const thirtyDays = 30 * 24 * 60 * 60 * 1000;
     expect(expiry.getTime()).toBeGreaterThanOrEqual(before + thirtyDays - 1000);
     expect(expiry.getTime()).toBeLessThanOrEqual(after  + thirtyDays + 1000);
   });
 
   it("sets tierRank 1 for PRO", async () => {
-    await POST(makeReq({ tier: "PRO" }));
+    await POST(makeReq({ tier: "PRO" }), {} as never);
     const updateCall = vi.mocked(db.waiterPassport.update).mock.calls[0][0];
     expect(updateCall.data.tierRank).toBe(1);
   });
@@ -134,7 +134,7 @@ describe("POST /api/passport/subscribe", () => {
       passportTier: "PRO_PLUS",
       subscriptionExpiresAt: new Date(),
     } as never);
-    await POST(makeReq({ tier: "PRO_PLUS" }));
+    await POST(makeReq({ tier: "PRO_PLUS" }), {} as never);
     const updateCall = vi.mocked(db.waiterPassport.update).mock.calls[0][0];
     expect(updateCall.data.tierRank).toBe(2);
   });
@@ -145,7 +145,7 @@ describe("POST /api/passport/subscribe", () => {
       passportTier: "PRO",
       subscriptionExpiresAt: expiry,
     } as never);
-    const res = await POST(makeReq({ tier: "PRO" }));
+    const res = await POST(makeReq({ tier: "PRO" }), {} as never);
     expect(res.status).toBe(200);
     const d = await res.json();
     expect(d.tier).toBe("PRO");
@@ -158,7 +158,7 @@ describe("POST /api/passport/subscribe", () => {
       passportTier: "PRO_PLUS",
       subscriptionExpiresAt: new Date(),
     } as never);
-    const res = await POST(makeReq({ tier: "PRO_PLUS" }));
+    const res = await POST(makeReq({ tier: "PRO_PLUS" }), {} as never);
     const d = await res.json();
     expect(d.priceRsd).toBe(490);
   });

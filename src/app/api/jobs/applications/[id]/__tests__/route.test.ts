@@ -65,7 +65,7 @@ describe("PATCH /api/jobs/applications/[id]", () => {
     vi.clearAllMocks();
     mockSession("VENUE_OWNER", OWNER_ID);
     vi.mocked(db.jobApplication.findUnique).mockResolvedValue(BASE_APPLICATION as never);
-    vi.mocked(db.jobApplication.update).mockImplementation((args: { data: { status: string } }) =>
+    vi.mocked(db.jobApplication.update).mockImplementation((args: any) =>
       Promise.resolve({ ...BASE_APPLICATION, status: args.data.status }) as never,
     );
     vi.mocked(dbRaw.$transaction).mockResolvedValue([{}, {}]);
