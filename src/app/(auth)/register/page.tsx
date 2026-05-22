@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useLang } from "@/components/providers/LanguageProvider";
 
 type Role = "WAITER" | "VENUE_OWNER" | "HEADHUNTER";
 
@@ -57,10 +58,10 @@ function passwordScore(val: string): number {
 }
 
 const STRENGTH_COLORS = ["", "#f97316", "#f97316", "#fb923c", "#22c55e"];
-const STRENGTH_LABELS = ["", "Slaba", "Srednja", "Dobra", "Jaka"];
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useLang();
   const [step, setStep] = useState(1);
   const [role, setRole] = useState<Role>("WAITER");
   const [showPassword, setShowPassword] = useState(false);
@@ -80,14 +81,22 @@ export default function RegisterPage() {
     acceptAlerts: false,
   });
 
+  const strengthLabels = [
+    "",
+    t("register", "strengthWeak"),
+    t("register", "strengthMedium"),
+    t("register", "strengthGood"),
+    t("register", "strengthStrong"),
+  ];
+
   function f(key: keyof FormState) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.type === "checkbox" ? (e.target as HTMLInputElement).checked : e.target.value }));
   }
 
-  const score = passwordScore(form.password);
+  const score    = passwordScore(form.password);
   const progress = step === 1 ? 33 : step === 2 ? 66 : 100;
-  const stepTitles = ["Kreiraj nalog", "Tvoji podaci", "Gotovo!"];
+  const stepTitles = [t("register", "step1Title"), t("register", "step2Title"), t("register", "step3Title")];
 
   function goStep(next: number) {
     setError("");
@@ -96,24 +105,24 @@ export default function RegisterPage() {
 
   function validateStep1() {
     if (!form.firstName || !form.lastName || !form.email) {
-      setError("Popuni sva obavezna polja.");
+      setError(t("register", "errRequired"));
       return false;
     }
     return true;
   }
 
   function validateStep2() {
-    if (!form.password) { setError("Unesite lozinku."); return false; }
-    if (form.password.length < 8) { setError("Lozinka mora imati najmanje 8 karaktera."); return false; }
-    if (form.password !== form.confirmPassword) { setError("Lozinke se ne podudaraju."); return false; }
-    if (!form.city) { setError("Izaberi grad/opštinu."); return false; }
+    if (!form.password)                            { setError(t("register", "errPassword"));       return false; }
+    if (form.password.length < 8)                  { setError(t("register", "errPasswordLength")); return false; }
+    if (form.password !== form.confirmPassword)    { setError(t("register", "errPasswordMatch"));  return false; }
+    if (!form.city)                                { setError(t("register", "errCity"));            return false; }
     return true;
   }
 
   async function handleSubmit() {
-    if (!form.acceptTerms) { setError("Morate prihvatiti uslove korišćenja."); return; }
-    if (role === "WAITER" && !form.experience) { setError("Izaberi nivo iskustva."); return; }
-    if (role === "VENUE_OWNER" && !form.venueName) { setError("Unesite naziv lokala."); return; }
+    if (!form.acceptTerms)                         { setError(t("register", "errTerms"));      return; }
+    if (role === "WAITER" && !form.experience)     { setError(t("register", "errExperience")); return; }
+    if (role === "VENUE_OWNER" && !form.venueName) { setError(t("register", "errVenueName")); return; }
 
     setError("");
     setLoading(true);
@@ -131,7 +140,7 @@ export default function RegisterPage() {
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error ?? "Greška pri registraciji.");
+      setError(data.error ?? t("register", "errGeneric"));
       setLoading(false);
       return;
     }
@@ -161,7 +170,7 @@ export default function RegisterPage() {
             <div>
               <h1 className="text-2xl font-extrabold text-neutral-900 tracking-tight">{stepTitles[step - 1]}</h1>
               <p className="text-neutral-400 text-sm font-light mt-0.5">
-                Korak <span className="font-semibold text-neutral-600">{step}</span> od 3
+                {t("register", "stepOf").replace("{step}", String(step))}
               </p>
             </div>
             <div className="flex items-center gap-1.5">
@@ -191,7 +200,7 @@ export default function RegisterPage() {
           {/* ── STEP 1 ─────────────────────────────────────────────────────── */}
           {step === 1 && (
             <div className="slide-in">
-              <p className="text-sm font-semibold text-neutral-700 mb-4">Ko si ti?</p>
+              <p className="text-sm font-semibold text-neutral-700 mb-4">{t("register", "whoAreYou")}</p>
               <div className="flex gap-3 mb-6">
                 <div
                   className={`role-card ${role === "WAITER" ? "selected" : ""}`}
@@ -203,8 +212,8 @@ export default function RegisterPage() {
                       <path d="M4 20C4 17.24 7.58 15 12 15C16.42 15 20 17.24 20 20" stroke="#f97316" strokeWidth="2" strokeLinecap="round" fill="none" />
                     </svg>
                   </div>
-                  <div className="font-bold text-sm text-neutral-800">Konobar</div>
-                  <div className="text-xs text-neutral-400 font-light mt-0.5">Tražim angažmane</div>
+                  <div className="font-bold text-sm text-neutral-800">{t("register", "roleWaiter")}</div>
+                  <div className="text-xs text-neutral-400 font-light mt-0.5">{t("register", "roleWaiterSub")}</div>
                 </div>
                 <div
                   className={`role-card ${role === "VENUE_OWNER" ? "selected" : ""}`}
@@ -216,8 +225,8 @@ export default function RegisterPage() {
                       <path d="M3 10H21M9 6V4C9 3.45 9.45 3 10 3H14C14.55 3 15 3.45 15 4V6" stroke="#f97316" strokeWidth="2" strokeLinecap="round" />
                     </svg>
                   </div>
-                  <div className="font-bold text-sm text-neutral-800">Vlasnik lokala</div>
-                  <div className="text-xs text-neutral-400 font-light mt-0.5">Postavljam oglase</div>
+                  <div className="font-bold text-sm text-neutral-800">{t("register", "roleOwner")}</div>
+                  <div className="text-xs text-neutral-400 font-light mt-0.5">{t("register", "roleOwnerSub")}</div>
                 </div>
               </div>
 
@@ -241,24 +250,24 @@ export default function RegisterPage() {
 
               <div className="flex items-center gap-3 mb-5">
                 <div className="divider-line" />
-                <span className="text-xs text-neutral-400 font-medium flex-shrink-0">ili sa email adresom</span>
+                <span className="text-xs text-neutral-400 font-medium flex-shrink-0">{t("register", "orWithEmail")}</span>
                 <div className="divider-line" />
               </div>
 
               <div className="flex flex-col gap-3">
                 <div className="flex gap-3">
                   <div className="flex-1">
-                    <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Ime</label>
-                    <input type="text" className="auth-input" placeholder="Marko" value={form.firstName} onChange={f("firstName")} />
+                    <label className="block text-xs font-semibold text-neutral-600 mb-1.5">{t("register", "firstNameLabel")}</label>
+                    <input type="text" className="auth-input" placeholder={t("register", "firstNamePlaceholder")} value={form.firstName} onChange={f("firstName")} />
                   </div>
                   <div className="flex-1">
-                    <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Prezime</label>
-                    <input type="text" className="auth-input" placeholder="Milošević" value={form.lastName} onChange={f("lastName")} />
+                    <label className="block text-xs font-semibold text-neutral-600 mb-1.5">{t("register", "lastNameLabel")}</label>
+                    <input type="text" className="auth-input" placeholder={t("register", "lastNamePlaceholder")} value={form.lastName} onChange={f("lastName")} />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Email adresa</label>
-                  <input type="email" className="auth-input" placeholder="ime@primer.rs" value={form.email} onChange={f("email")} />
+                  <label className="block text-xs font-semibold text-neutral-600 mb-1.5">{t("register", "emailLabel")}</label>
+                  <input type="email" className="auth-input" placeholder={t("register", "emailPlaceholder")} value={form.email} onChange={f("email")} />
                 </div>
               </div>
 
@@ -266,7 +275,7 @@ export default function RegisterPage() {
                 onClick={() => { if (validateStep1()) goStep(2); }}
                 className="btn-primary w-full text-white font-bold py-3.5 rounded-2xl text-sm mt-5"
               >
-                Nastavi →
+                {t("register", "continueBtn")}
               </button>
             </div>
           )}
@@ -275,12 +284,12 @@ export default function RegisterPage() {
           {step === 2 && (
             <div className="slide-in flex flex-col gap-4">
               <div>
-                <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Lozinka</label>
+                <label className="block text-xs font-semibold text-neutral-600 mb-1.5">{t("register", "passwordLabel")}</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
                     className="auth-input pr-12"
-                    placeholder="Min. 8 karaktera"
+                    placeholder={t("register", "passwordPlaceholder")}
                     value={form.password}
                     onChange={f("password")}
                     autoComplete="new-password"
@@ -306,16 +315,16 @@ export default function RegisterPage() {
                   ))}
                 </div>
                 <div className="text-[10px] text-neutral-400 mt-1">
-                  {score > 0 ? `Jačina: ${STRENGTH_LABELS[score]}` : "Unesite lozinku"}
+                  {score > 0 ? `${t("register", "strengthLabel")}${strengthLabels[score]}` : t("register", "strengthEmpty")}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Potvrdi lozinku</label>
+                <label className="block text-xs font-semibold text-neutral-600 mb-1.5">{t("register", "confirmLabel")}</label>
                 <input
                   type="password"
                   className="auth-input"
-                  placeholder="Ponovi lozinku"
+                  placeholder={t("register", "confirmPlaceholder")}
                   value={form.confirmPassword}
                   onChange={f("confirmPassword")}
                   autoComplete="new-password"
@@ -323,7 +332,7 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Grad / Opština</label>
+                <label className="block text-xs font-semibold text-neutral-600 mb-1.5">{t("register", "cityLabel")}</label>
                 <select
                   className="auth-input"
                   value={form.city}
@@ -335,14 +344,14 @@ export default function RegisterPage() {
                     backgroundPosition: "right 14px center",
                   }}
                 >
-                  <option value="" disabled>Izaberi opštinu</option>
+                  <option value="" disabled>{t("register", "cityPlaceholder")}</option>
                   {CITIES.map((c) => <option key={c}>{c}</option>)}
                 </select>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-neutral-600 mb-1.5">
-                  Broj telefona <span className="text-neutral-400 font-light">(opciono)</span>
+                  {t("register", "phoneLabel")} <span className="text-neutral-400 font-light">{t("register", "phoneOptional")}</span>
                 </label>
                 <input type="tel" className="auth-input" placeholder="+381 60 000 0000" value={form.phone} onChange={f("phone")} />
               </div>
@@ -352,13 +361,13 @@ export default function RegisterPage() {
                   onClick={() => goStep(1)}
                   className="flex-1 border-2 border-neutral-200 text-neutral-600 font-semibold py-3.5 rounded-2xl text-sm hover:border-orange-300 hover:text-orange-500 transition-colors"
                 >
-                  ← Nazad
+                  {t("register", "backBtn")}
                 </button>
                 <button
                   onClick={() => { if (validateStep2()) goStep(3); }}
                   className="btn-primary flex-1 text-white font-bold py-3.5 rounded-2xl text-sm"
                 >
-                  Nastavi →
+                  {t("register", "continueBtn")}
                 </button>
               </div>
             </div>
@@ -369,7 +378,7 @@ export default function RegisterPage() {
             <div className="slide-in flex flex-col gap-4">
               {role === "WAITER" ? (
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Godine iskustva</label>
+                  <label className="block text-xs font-semibold text-neutral-600 mb-1.5">{t("register", "experienceLabel")}</label>
                   <select
                     className="auth-input"
                     value={form.experience}
@@ -381,17 +390,17 @@ export default function RegisterPage() {
                       backgroundPosition: "right 14px center",
                     }}
                   >
-                    <option value="" disabled>Izaberi iskustvo</option>
+                    <option value="" disabled>{t("register", "experiencePlaceholder")}</option>
                     {EXPERIENCE.map((e) => <option key={e}>{e}</option>)}
                   </select>
                 </div>
               ) : (
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Naziv lokala</label>
+                  <label className="block text-xs font-semibold text-neutral-600 mb-1.5">{t("register", "venueLabel")}</label>
                   <input
                     type="text"
                     className="auth-input"
-                    placeholder="npr. Kafana Kod Mene"
+                    placeholder={t("register", "venuePlaceholder")}
                     value={form.venueName}
                     onChange={f("venueName")}
                   />
@@ -408,11 +417,11 @@ export default function RegisterPage() {
                     className="mt-0.5 accent-orange-500 flex-shrink-0"
                   />
                   <span className="text-xs text-neutral-500 font-light leading-relaxed">
-                    Slažem se sa{" "}
-                    <Link href="/terms" className="text-orange-500 font-medium">Uslovima korišćenja</Link>
-                    {" "}i{" "}
-                    <Link href="/privacy" className="text-orange-500 font-medium">Politikom privatnosti</Link>
-                    {" "}platforme eKonobar.
+                    {t("register", "termsAgree")}{" "}
+                    <Link href="/terms" className="text-orange-500 font-medium">{t("register", "termsLink")}</Link>
+                    {" "}{t("register", "termsAnd")}{" "}
+                    <Link href="/privacy" className="text-orange-500 font-medium">{t("register", "privacyLink")}</Link>
+                    {" "}{t("register", "termsPlatform")}
                   </span>
                 </label>
                 <label className="flex items-start gap-2.5 cursor-pointer">
@@ -423,19 +432,19 @@ export default function RegisterPage() {
                     className="mt-0.5 accent-orange-500 flex-shrink-0"
                   />
                   <span className="text-xs text-neutral-500 font-light leading-relaxed">
-                    Prihvatam obaveštenja o Red Alert™ oglasima i novim prilikama.
+                    {t("register", "alertsText")}
                   </span>
                 </label>
               </div>
 
               {/* Summary */}
               <div className="rounded-2xl p-4" style={{ background: "#fff7ed", border: "1px solid rgba(249,115,22,0.2)" }}>
-                <div className="text-xs font-bold text-orange-600 mb-2.5">Šta dobijaš odmah:</div>
+                <div className="text-xs font-bold text-orange-600 mb-2.5">{t("register", "benefitsTitle")}</div>
                 <div className="flex flex-col gap-1.5">
                   {[
-                    "Waiter Passport™ profil — besplatno",
-                    "Pristup svim Red Alert™ oglasima",
-                    "Geofencing verifikacija smena",
+                    t("register", "benefit1"),
+                    t("register", "benefit2"),
+                    t("register", "benefit3"),
                   ].map((item) => (
                     <div key={item} className="flex items-center gap-2 text-xs text-neutral-600">
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -459,16 +468,16 @@ export default function RegisterPage() {
                   disabled={loading}
                   className="btn-primary flex-1 text-white font-bold py-3.5 rounded-2xl text-sm disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Kreiranje naloga..." : "Kreiraj nalog →"}
+                  {loading ? t("register", "createAccountLoading") : t("register", "createAccount")}
                 </button>
               </div>
             </div>
           )}
 
           <p className="text-center text-sm text-neutral-400 font-light mt-6">
-            Već imaš nalog?{" "}
+            {t("register", "haveAccount")}{" "}
             <Link href="/login" className="text-orange-500 font-semibold hover:text-orange-600 transition-colors">
-              Prijavi se →
+              {t("register", "loginLink")}
             </Link>
           </p>
         </div>
@@ -481,17 +490,17 @@ export default function RegisterPage() {
             <rect x="1" y="4.5" width="10" height="7" rx="2" stroke="#d1d5db" strokeWidth="1.3" fill="none" />
             <path d="M3.5 4.5V3.5C3.5 2.12 4.62 1 6 1C7.38 1 8.5 2.12 8.5 3.5V4.5" stroke="#d1d5db" strokeWidth="1.3" strokeLinecap="round" />
           </svg>
-          SSL zaštita
+          {t("register", "ssl")}
         </div>
         <div className="w-1 h-1 rounded-full bg-neutral-300" />
         <div className="flex items-center gap-1.5 text-xs text-neutral-400">
           <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
             <path d="M6 1L7.297 3.91H11.412L8.057 6.305L9.354 10.215L6 7.82L2.646 10.215L3.943 6.305L0.588 3.91H4.703L6 1Z" fill="#d1d5db" />
           </svg>
-          GDPR usklađeno
+          {t("register", "gdpr")}
         </div>
         <div className="w-1 h-1 rounded-full bg-neutral-300" />
-        <span className="text-xs text-neutral-400">Uvek besplatno za konobara</span>
+        <span className="text-xs text-neutral-400">{t("register", "freeForWaiter")}</span>
       </div>
 
     </div>

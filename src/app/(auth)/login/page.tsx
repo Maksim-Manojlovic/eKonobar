@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useLang } from "@/components/providers/LanguageProvider";
 
 const GoogleIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24">
@@ -22,6 +23,7 @@ const FacebookIcon = () => (
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useLang();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -47,7 +49,7 @@ export default function LoginPage() {
       setError(
         result.error.includes("Previše")
           ? result.error
-          : "Pogrešan email ili lozinka.",
+          : t("login", "errorDefault"),
       );
       return;
     }
@@ -72,8 +74,8 @@ export default function LoginPage() {
 
         <div className="p-8">
           <div className="mb-8 fade-up-2">
-            <h1 className="text-2xl font-extrabold text-neutral-900 tracking-tight">Dobrodošao nazad</h1>
-            <p className="text-neutral-400 text-sm font-light mt-1.5">Prijavi se na svoj eKonobar nalog.</p>
+            <h1 className="text-2xl font-extrabold text-neutral-900 tracking-tight">{t("login", "title")}</h1>
+            <p className="text-neutral-400 text-sm font-light mt-1.5">{t("login", "subtitle")}</p>
           </div>
 
           {/* Social buttons */}
@@ -97,18 +99,18 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="flex items-center gap-3 mb-6 fade-up-2">
             <div className="divider-line" />
-            <span className="text-xs text-neutral-400 font-medium flex-shrink-0">ili sa email adresom</span>
+            <span className="text-xs text-neutral-400 font-medium flex-shrink-0">{t("login", "orWithEmail")}</span>
             <div className="divider-line" />
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 fade-up-3">
             <div>
-              <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Email adresa</label>
+              <label className="block text-xs font-semibold text-neutral-600 mb-1.5">{t("login", "emailLabel")}</label>
               <input
                 type="email"
                 className="auth-input"
-                placeholder="ime@primer.rs"
+                placeholder={t("login", "emailPlaceholder")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -118,12 +120,12 @@ export default function LoginPage() {
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold text-neutral-600">Lozinka</label>
+                <label className="block text-xs font-semibold text-neutral-600">{t("login", "passwordLabel")}</label>
                 <Link
                   href="/reset-password"
                   className="text-xs text-orange-500 font-medium hover:text-orange-600 transition-colors"
                 >
-                  Zaboravili ste lozinku?
+                  {t("login", "forgotPassword")}
                 </Link>
               </div>
               <div className="relative">
@@ -164,7 +166,7 @@ export default function LoginPage() {
                 className="w-4 h-4 rounded accent-orange-500"
               />
               <label htmlFor="remember" className="text-sm text-neutral-500 font-light cursor-pointer">
-                Zapamti me na ovom uređaju
+                {t("login", "rememberMe")}
               </label>
             </div>
 
@@ -173,14 +175,14 @@ export default function LoginPage() {
               disabled={loading}
               className="btn-primary w-full text-white font-bold py-3.5 rounded-2xl text-sm mt-1 disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {loading ? "Prijavljivanje..." : "Prijavi se"}
+              {loading ? t("login", "submitLoading") : t("login", "submit")}
             </button>
           </form>
 
           <p className="text-center text-sm text-neutral-400 font-light mt-6">
-            Nemaš nalog?{" "}
+            {t("login", "noAccount")}{" "}
             <Link href="/register" className="text-orange-500 font-semibold hover:text-orange-600 transition-colors">
-              Registruj se besplatno →
+              {t("login", "registerLink")}
             </Link>
           </p>
         </div>
@@ -193,17 +195,17 @@ export default function LoginPage() {
             <rect x="1" y="4.5" width="10" height="7" rx="2" stroke="#d1d5db" strokeWidth="1.3" fill="none" />
             <path d="M3.5 4.5V3.5C3.5 2.12 4.62 1 6 1C7.38 1 8.5 2.12 8.5 3.5V4.5" stroke="#d1d5db" strokeWidth="1.3" strokeLinecap="round" />
           </svg>
-          SSL zaštita
+          {t("login", "ssl")}
         </div>
         <div className="w-1 h-1 rounded-full bg-neutral-300" />
         <div className="flex items-center gap-1.5 text-xs text-neutral-400">
           <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
             <path d="M6 1L7.297 3.91H11.412L8.057 6.305L9.354 10.215L6 7.82L2.646 10.215L3.943 6.305L0.588 3.91H4.703L6 1Z" fill="#d1d5db" />
           </svg>
-          GDPR usklađeno
+          {t("login", "gdpr")}
         </div>
         <div className="w-1 h-1 rounded-full bg-neutral-300" />
-        <span className="text-xs text-neutral-400">500+ verified venues</span>
+        <span className="text-xs text-neutral-400">{t("login", "venues")}</span>
       </div>
 
     </div>

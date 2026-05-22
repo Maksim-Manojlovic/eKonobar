@@ -3,10 +3,12 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useLang } from "@/components/providers/LanguageProvider";
 
 function ResetPasswordContent() {
   const params   = useSearchParams();
   const router   = useRouter();
+  const { t }    = useLang();
   const token    = params.get("token") ?? "";
 
   const [email,    setEmail]    = useState("");
@@ -17,11 +19,10 @@ function ResetPasswordContent() {
   const [success,  setSuccess]  = useState(false);
   const [error,    setError]    = useState("");
 
-  // Redirect to login after password reset
   useEffect(() => {
     if (success && token) {
-      const t = setTimeout(() => router.push("/login"), 2500);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => router.push("/login"), 2500);
+      return () => clearTimeout(timer);
     }
   }, [success, token, router]);
 
@@ -38,7 +39,7 @@ function ResetPasswordContent() {
     if (res.ok) {
       setSuccess(true);
     } else {
-      setError("Greška. Pokušaj ponovo.");
+      setError(t("resetPassword", "errGeneric"));
     }
   }
 
@@ -46,11 +47,11 @@ function ResetPasswordContent() {
     e.preventDefault();
     setError("");
     if (password !== confirm) {
-      setError("Lozinke se ne poklapaju.");
+      setError(t("resetPassword", "errMatch"));
       return;
     }
     if (password.length < 8) {
-      setError("Lozinka mora imati najmanje 8 karaktera.");
+      setError(t("resetPassword", "errLength"));
       return;
     }
     setLoading(true);
@@ -64,7 +65,7 @@ function ResetPasswordContent() {
       setSuccess(true);
     } else {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Greška. Pokušaj ponovo.");
+      setError(data.error ?? t("resetPassword", "errGeneric"));
     }
   }
 
@@ -85,24 +86,24 @@ function ResetPasswordContent() {
                     <path d="M20 6L9 17L4 12" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
-                <h2 className="text-xl font-extrabold text-neutral-900 mb-2">Lozinka promenjena</h2>
-                <p className="text-sm text-neutral-400">Bićeš preusmerjen na prijavu za trenutak...</p>
+                <h2 className="text-xl font-extrabold text-neutral-900 mb-2">{t("resetPassword", "changedTitle")}</h2>
+                <p className="text-sm text-neutral-400">{t("resetPassword", "changedSubtitle")}</p>
               </div>
             ) : (
               <>
                 <div className="mb-8">
-                  <h1 className="text-2xl font-extrabold text-neutral-900 tracking-tight">Nova lozinka</h1>
-                  <p className="text-neutral-400 text-sm font-light mt-1.5">Unesi novu lozinku za svoj nalog.</p>
+                  <h1 className="text-2xl font-extrabold text-neutral-900 tracking-tight">{t("resetPassword", "newPwTitle")}</h1>
+                  <p className="text-neutral-400 text-sm font-light mt-1.5">{t("resetPassword", "newPwSubtitle")}</p>
                 </div>
 
                 <form onSubmit={handleSetPassword} className="flex flex-col gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Nova lozinka</label>
+                    <label className="block text-xs font-semibold text-neutral-600 mb-1.5">{t("resetPassword", "newPwLabel")}</label>
                     <div className="relative">
                       <input
                         type={showPw ? "text" : "password"}
                         className="auth-input pr-12"
-                        placeholder="min. 8 karaktera"
+                        placeholder={t("resetPassword", "newPwPlaceholder")}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
@@ -123,7 +124,7 @@ function ResetPasswordContent() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Potvrdi lozinku</label>
+                    <label className="block text-xs font-semibold text-neutral-600 mb-1.5">{t("resetPassword", "confirmLabel")}</label>
                     <input
                       type={showPw ? "text" : "password"}
                       className="auth-input"
@@ -168,7 +169,7 @@ function ResetPasswordContent() {
                     disabled={loading}
                     className="btn-primary w-full text-white font-bold py-3.5 rounded-2xl text-sm mt-1 disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    {loading ? "Čuvanje..." : "Sačuvaj novu lozinku"}
+                    {loading ? t("resetPassword", "saveBtnLoading") : t("resetPassword", "saveBtn")}
                   </button>
                 </form>
               </>
@@ -195,29 +196,26 @@ function ResetPasswordContent() {
                   <path d="M3 8L10.89 13.26C11.2187 13.4793 11.6049 13.5963 12 13.5963C12.3951 13.5963 12.7813 13.4793 13.11 13.26L21 8M5 19H19C19.5304 19 20.0391 18.7893 20.4142 18.4142C20.7893 18.0391 21 17.5304 21 17V7C21 6.46957 20.7893 5.96086 20.4142 5.58579C20.0391 5.21071 19.5304 5 19 5H5C4.46957 5 3.96086 5.21071 3.58579 5.58579C3.21071 5.96086 3 6.46957 3 7V17C3 17.5304 3.21071 18.0391 3.58579 18.4142C3.96086 18.7893 4.46957 19 5 19Z" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
-              <h2 className="text-xl font-extrabold text-neutral-900 mb-2">Proveri inbox</h2>
+              <h2 className="text-xl font-extrabold text-neutral-900 mb-2">{t("resetPassword", "checkInboxTitle")}</h2>
               <p className="text-sm text-neutral-400 leading-relaxed">
-                Ako postoji nalog vezan za <strong className="text-neutral-600">{email}</strong>,
-                poslaćemo uputstvo za reset lozinke.
+                {t("resetPassword", "checkInboxBody").replace("{email}", email)}
               </p>
-              <p className="text-xs text-neutral-300 mt-3">Proveri i spam folder ako email ne stigne za par minuta.</p>
+              <p className="text-xs text-neutral-300 mt-3">{t("resetPassword", "checkInboxSpam")}</p>
             </div>
           ) : (
             <>
               <div className="mb-8">
-                <h1 className="text-2xl font-extrabold text-neutral-900 tracking-tight">Resetuj lozinku</h1>
-                <p className="text-neutral-400 text-sm font-light mt-1.5">
-                  Unesi email adresu i poslaćemo ti link za reset.
-                </p>
+                <h1 className="text-2xl font-extrabold text-neutral-900 tracking-tight">{t("resetPassword", "requestTitle")}</h1>
+                <p className="text-neutral-400 text-sm font-light mt-1.5">{t("resetPassword", "requestSubtitle")}</p>
               </div>
 
               <form onSubmit={handleRequestReset} className="flex flex-col gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Email adresa</label>
+                  <label className="block text-xs font-semibold text-neutral-600 mb-1.5">{t("resetPassword", "emailLabel")}</label>
                   <input
                     type="email"
                     className="auth-input"
-                    placeholder="ime@primer.rs"
+                    placeholder={t("resetPassword", "emailPlaceholder")}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -236,7 +234,7 @@ function ResetPasswordContent() {
                   disabled={loading}
                   className="btn-primary w-full text-white font-bold py-3.5 rounded-2xl text-sm mt-1 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Slanje..." : "Pošalji link za reset"}
+                  {loading ? t("resetPassword", "submitLoading") : t("resetPassword", "submit")}
                 </button>
               </form>
             </>
@@ -244,7 +242,7 @@ function ResetPasswordContent() {
 
           <p className="text-center text-sm text-neutral-400 font-light mt-6">
             <Link href="/login" className="text-orange-500 font-semibold hover:text-orange-600 transition-colors">
-              ← Nazad na prijavu
+              {t("resetPassword", "backToLogin")}
             </Link>
           </p>
         </div>
