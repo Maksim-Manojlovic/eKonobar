@@ -58,7 +58,7 @@ export default function DeactivateVenueButton({ venueId, venueName, isActive, on
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex flex-col gap-3">
         <p className="text-sm font-bold text-red-700">
-          Deaktivirati <span className="font-black">"{venueName}"</span>?
+          Deaktivirati <span className="font-black">&ldquo;{venueName}&rdquo;</span>?
         </p>
         <p className="text-xs text-red-600 leading-relaxed">
           Lokal neće biti vidljiv u pretrazi ni na mapi. Aktivni oglasi ostaju sačuvani. Možete ga reaktivirati u svakom trenutku.

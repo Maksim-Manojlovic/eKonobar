@@ -925,10 +925,6 @@ function ShiftsSection({ shifts, loading, onRefresh }: { shifts: WaiterShift[]; 
     }
   }
 
-  function handleSwapRespond(_swapId: string) {
-    // Owner must approve — waiter side is informational only
-  }
-
   if (loading) return <WaiterShiftsSkeleton />;
 
   const year  = current.getFullYear();

@@ -34,7 +34,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Nema zahteva za odobrenje" }, { status: 409 });
   }
 
-  const waiterName = assignment.waiter.name ?? "Konobar";
   const shiftTitle = assignment.shift.title;
 
   if (action === "approve") {

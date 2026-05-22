@@ -24,13 +24,6 @@ const TIER_COLORS: Record<string, string> = {
   PRO_PLUS: "text-amber-300 bg-amber-500/15",
 };
 
-const VTIER_COLORS: Record<string, string> = {
-  UNVERIFIED: "text-white/30",
-  SILVER: "text-slate-400",
-  GOLD: "text-amber-400",
-  ID_VERIFIED: "text-emerald-400",
-};
-
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const days = Math.floor(diff / 86_400_000);

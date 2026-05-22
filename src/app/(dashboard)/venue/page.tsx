@@ -251,21 +251,9 @@ function PassportTierBadge({ tier, expiresAt }: { tier?: string; expiresAt?: str
   return <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-300">PRO</span>;
 }
 
-function Stars({ n }: { n: number }) {
-  return <span className="text-amber-400 text-sm">{"★".repeat(n)}{"☆".repeat(5 - n)}</span>;
-}
-
 function ScorePill({ score }: { score: number }) {
   const color = score >= 85 ? "#f97316" : score >= 70 ? "#eab308" : "#6b7280";
   return <span className="text-xs font-black px-2 py-0.5 rounded-full" style={{ background: `${color}18`, color }}>{Math.round(score)}</span>;
-}
-
-function Spinner() {
-  return (
-    <div className="flex items-center justify-center py-16">
-      <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
-    </div>
-  );
 }
 
 function Sk({ className = "" }: { className?: string }) {
@@ -1784,8 +1772,6 @@ function ProfileSection({ venue, loading, onVenueCreated, geofenceEnabled, geofe
   if (!venue) return <VenueCreateForm onCreated={onVenueCreated} />;
 
   const score = Math.round(venue.trustScore) || 0;
-  const circumference = 2 * Math.PI * 46;
-  const offset = circumference - (score / 100) * circumference;
   const dims = trustDimensions(venue.venueTrustScore);
 
   const infoFields = [
