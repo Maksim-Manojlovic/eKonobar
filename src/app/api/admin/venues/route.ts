@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { VenueType } from "@prisma/client";
 
 const PAGE_SIZE = 25;
 
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
         { owner: { email: { contains: search, mode: "insensitive" as const } } },
       ],
     }),
-    ...(type   && { venueType: type }),
+    ...(type   && { venueType: type as VenueType }),
     ...(active === "true"  && { isActive: true }),
     ...(active === "false" && { isActive: false }),
   };

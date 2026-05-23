@@ -218,7 +218,7 @@ export default function AdminDashboard() {
         zones: Array.isArray(zones) ? zones.length : 0,
         venues: stats?.venues ?? 0,
       });
-    }).catch(() => setActions({ pendingVerifications: 0, disputedReviews: 0, zones: 0 }));
+    }).catch(() => setActions({ pendingVerifications: 0, disputedReviews: 0, zones: 0, venues: 0 }));
 
     fetch("/api/admin/activity")
       .then(r => r.ok ? r.json() : [])
