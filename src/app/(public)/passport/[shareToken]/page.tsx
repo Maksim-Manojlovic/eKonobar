@@ -7,6 +7,8 @@ import PassportCard from "@/components/passport/PassportCard";
 import TrustRadar from "@/components/trust-score/TrustRadar";
 import EngagementTimeline, { type EngagementRecord } from "@/components/passport/EngagementTimeline";
 import GuestReviewForm from "@/components/review/GuestReviewForm";
+import Spinner from "@/components/ui/Spinner";
+import { StarRating } from "@/components/ui/StarRating";
 
 type PublicPassport = {
   passport: {
@@ -27,19 +29,6 @@ type PublicPassport = {
     venue?: { id: string; name: string } | null;
   }>;
 };
-
-function Spinner() {
-  return (
-    <div className="flex justify-center py-20">
-      <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
-    </div>
-  );
-}
-
-function Stars({ value }: { value: number }) {
-  const stars = Math.round(value / 20);
-  return <span className="text-amber-400">{"★".repeat(stars)}{"☆".repeat(5 - stars)}</span>;
-}
 
 function PublicPassportContent({ shareToken }: { shareToken: string }) {
   const { data: session } = useSession();
@@ -134,7 +123,7 @@ function PublicPassportContent({ shareToken }: { shareToken: string }) {
                     <div>
                       <p className="text-sm font-bold text-neutral-900">{r.author.name ?? "Anonimno"}</p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <Stars value={r.overallRating} />
+                        <StarRating rating={r.overallRating / 20} size="xs" />
                         {r.venue && (
                           <span className="text-xs text-neutral-400">· {r.venue.name}</span>
                         )}

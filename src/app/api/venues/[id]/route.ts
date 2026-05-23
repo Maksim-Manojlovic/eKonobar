@@ -42,27 +42,45 @@ export async function GET(
     return NextResponse.json({ error: "Lokal nije pronađen" }, { status: 404 });
   }
 
-  // Fetch recent published reviews separately (exclude private fields)
-  const reviews = await db.review.findMany({
-    where: { venueId: id, direction: "WAITER_TO_VENUE", status: "PUBLISHED" },
-    select: {
-      id: true,
-      overallRating: true,
-      comment: true,
-      publishedAt: true,
-      ratingAtmosphere: true,
-      ratingOrganization: true,
-      ratingPay: true,
-      ratingTips: true,
-      ratingHygieneWork: true,
-      ratingManagement: true,
-      author: { select: { name: true, verificationTier: true } },
-    },
-    orderBy: { publishedAt: "desc" },
-    take: 20,
-  });
+  const reviewSelect = {
+    id: true,
+    overallRating: true,
+    comment: true,
+    publishedAt: true,
+    author: { select: { name: true, verificationTier: true } },
+  } as const;
 
-  return NextResponse.json({ ...venue, recentReviews: reviews });
+  // Fetch both waiter and guest published reviews
+  const [waiterReviews, guestReviews] = await Promise.all([
+    db.review.findMany({
+      where: { venueId: id, direction: "WAITER_TO_VENUE", status: "PUBLISHED" },
+      select: {
+        ...reviewSelect,
+        ratingAtmosphere: true,
+        ratingOrganization: true,
+        ratingPay: true,
+        ratingTips: true,
+        ratingHygieneWork: true,
+        ratingManagement: true,
+      },
+      orderBy: { publishedAt: "desc" },
+      take: 20,
+    }),
+    db.review.findMany({
+      where: { venueId: id, direction: "GUEST_TO_VENUE", status: "PUBLISHED" },
+      select: {
+        ...reviewSelect,
+        guestHandle: true,
+        ratingAtmosphere: true,
+        ratingOrganization: true,
+        ratingHygieneWork: true,
+      },
+      orderBy: { publishedAt: "desc" },
+      take: 20,
+    }),
+  ]);
+
+  return NextResponse.json({ ...venue, waiterReviews, guestReviews });
 }
 
 export async function PATCH(

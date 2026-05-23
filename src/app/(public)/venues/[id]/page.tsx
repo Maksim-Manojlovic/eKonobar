@@ -8,10 +8,19 @@ import TrustRadar from "@/components/trust-score/TrustRadar";
 import JobCard from "@/components/job/JobCard";
 import ReviewWizard from "@/components/review/ReviewWizard";
 import Navbar from "@/components/layout/Navbar";
+import Spinner from "@/components/ui/Spinner";
+import { StarRating } from "@/components/ui/StarRating";
 
 const VENUE_TYPE_LABELS: Record<string, string> = {
   RESTAURANT: "Restoran", CAFE: "Kafić", BAR: "Bar",
   CATERING: "Ketering", HOTEL: "Hotel", EVENT: "Event",
+};
+
+type ReviewRow = {
+  id: string; overallRating: number; comment?: string | null;
+  publishedAt?: string | null;
+  author: { name?: string | null; verificationTier: string };
+  guestHandle?: string | null;
 };
 
 type VenueDetail = {
@@ -29,24 +38,30 @@ type VenueDetail = {
     sanitaryRequired: boolean; redAlert: boolean; redAlertNote?: string | null;
     startDate?: string | null; _count: { applications: number };
   }>;
-  recentReviews: Array<{
-    id: string; overallRating: number; comment?: string | null;
-    publishedAt?: string | null;
-    author: { name?: string | null; verificationTier: string };
-  }>;
+  waiterReviews: ReviewRow[];
+  guestReviews: ReviewRow[];
 };
 
-function Spinner() {
+function ReviewCard({ review: r, isGuest = false }: { review: ReviewRow; isGuest?: boolean }) {
+  const displayName = isGuest
+    ? (r.guestHandle ?? "Gost")
+    : (r.author.name ?? "Anonimno");
   return (
-    <div className="flex justify-center py-20">
-      <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
+    <div className="dash-card p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-bold text-neutral-900">{displayName}</p>
+          <StarRating rating={r.overallRating / 20} size="xs" />
+        </div>
+        <span className="text-xs text-neutral-400 flex-shrink-0">
+          {r.publishedAt ? new Date(r.publishedAt).toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "short", year: "numeric" }) : ""}
+        </span>
+      </div>
+      {r.comment && (
+        <p className="text-sm text-neutral-600 mt-2 leading-relaxed">{r.comment}</p>
+      )}
     </div>
   );
-}
-
-function Stars({ value }: { value: number }) {
-  const stars = Math.round(value / 20);
-  return <span className="text-amber-400">{"★".repeat(stars)}{"☆".repeat(5 - stars)}</span>;
 }
 
 export default function VenueDetailPage() {
@@ -177,26 +192,29 @@ export default function VenueDetailPage() {
           )}
         </div>
 
-        {/* Reviews */}
-        {venue.recentReviews.length > 0 && (
+        {/* Waiter reviews */}
+        {venue.waiterReviews.length > 0 && (
           <div>
-            <h2 className="font-black text-neutral-900 mb-4">Recenzije konobara ({venue._count.reviews})</h2>
+            <h2 className="font-black text-neutral-900 mb-4">
+              Recenzije zaposlenih ({venue.waiterReviews.length})
+            </h2>
             <div className="flex flex-col gap-3">
-              {venue.recentReviews.map((r) => (
-                <div key={r.id} className="dash-card p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-bold text-neutral-900">{r.author.name ?? "Anonimno"}</p>
-                      <Stars value={r.overallRating} />
-                    </div>
-                    <span className="text-xs text-neutral-400">
-                      {r.publishedAt ? new Date(r.publishedAt).toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "short", year: "numeric" }) : ""}
-                    </span>
-                  </div>
-                  {r.comment && (
-                    <p className="text-sm text-neutral-600 mt-2 leading-relaxed">{r.comment}</p>
-                  )}
-                </div>
+              {venue.waiterReviews.map((r) => (
+                <ReviewCard key={r.id} review={r} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Guest reviews */}
+        {venue.guestReviews.length > 0 && (
+          <div>
+            <h2 className="font-black text-neutral-900 mb-4">
+              Recenzije gostiju ({venue.guestReviews.length})
+            </h2>
+            <div className="flex flex-col gap-3">
+              {venue.guestReviews.map((r) => (
+                <ReviewCard key={r.id} review={r} isGuest />
               ))}
             </div>
           </div>

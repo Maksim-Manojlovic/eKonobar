@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import TrustRadar from "@/components/trust-score/TrustRadar";
 import Navbar from "@/components/layout/Navbar";
+import Spinner from "@/components/ui/Spinner";
 
 const ENGAGEMENT_LABELS: Record<string, string> = {
   FULL_TIME: "Stalno", SEASONAL: "Sezonski", WEEKEND: "Vikend", CELEBRATION: "Slavlje",
@@ -30,14 +31,6 @@ type JobDetail = {
     venueTrustScore?: Record<string, number> | null;
   };
 };
-
-function Spinner() {
-  return (
-    <div className="flex justify-center py-20">
-      <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
-    </div>
-  );
-}
 
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();

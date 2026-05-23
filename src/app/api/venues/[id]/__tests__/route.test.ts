@@ -50,20 +50,23 @@ function mockNoSession() {
 describe("GET /api/venues/[id]", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("returns venue + recentReviews", async () => {
+  it("returns venue + waiterReviews + guestReviews", async () => {
     vi.mocked(db.venue.findUnique).mockResolvedValue(BASE_VENUE as never);
-    vi.mocked(db.review.findMany).mockResolvedValue([{ id: "r1", overallRating: 80 }] as never);
+    // findMany called twice: waiterReviews then guestReviews
+    vi.mocked(db.review.findMany)
+      .mockResolvedValueOnce([{ id: "r1", overallRating: 80 }] as never)
+      .mockResolvedValueOnce([{ id: "r2", overallRating: 60 }] as never);
 
     const res = await GET(new NextRequest("http://localhost"), makeCtx());
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.id).toBe(VENUE_ID);
-    expect(json.recentReviews).toHaveLength(1);
+    expect(json.waiterReviews).toHaveLength(1);
+    expect(json.guestReviews).toHaveLength(1);
   });
 
   it("venue not found → 404", async () => {
     vi.mocked(db.venue.findUnique).mockResolvedValue(null);
-    vi.mocked(db.review.findMany).mockResolvedValue([] as never);
 
     const res = await GET(new NextRequest("http://localhost"), makeCtx("bad-id"));
     expect(res.status).toBe(404);

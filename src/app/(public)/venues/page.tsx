@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import VenueCard, { type VenueCardProps } from "@/components/venue/VenueCard";
 import Navbar from "@/components/layout/Navbar";
+import Spinner from "@/components/ui/Spinner";
 
 const MapSearch = dynamic(() => import("@/components/map/MapSearch"), { ssr: false });
 
@@ -18,14 +19,6 @@ const VENUE_TYPES = [
 ];
 
 type Venue = VenueCardProps & { id: string };
-
-function Spinner() {
-  return (
-    <div className="flex justify-center py-20">
-      <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
-    </div>
-  );
-}
 
 export default function VenuesPage() {
   const [venues, setVenues]         = useState<Venue[]>([]);

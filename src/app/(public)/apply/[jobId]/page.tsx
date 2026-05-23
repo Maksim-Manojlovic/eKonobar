@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import Spinner from "@/components/ui/Spinner";
 
 const ENGAGEMENT_LABELS: Record<string, string> = {
   FULL_TIME: "Stalno", SEASONAL: "Sezonski", WEEKEND: "Vikend", CELEBRATION: "Slavlje",
@@ -16,14 +17,6 @@ type JobSummary = {
   status: string; hasApplied: boolean;
   venue: { id: string; name: string; municipality: string };
 };
-
-function Spinner() {
-  return (
-    <div className="flex justify-center py-20">
-      <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
-    </div>
-  );
-}
 
 export default function ApplyPage() {
   const { jobId } = useParams<{ jobId: string }>();

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import JobCard, { type JobCardProps } from "@/components/job/JobCard";
 import Navbar from "@/components/layout/Navbar";
+import Spinner from "@/components/ui/Spinner";
 
 const MapSearch = dynamic(() => import("@/components/map/MapSearch"), { ssr: false });
 
@@ -16,14 +17,6 @@ const ENGAGEMENT_FILTERS = [
 ];
 
 type Job = JobCardProps & { id: string; _count?: { applications: number } };
-
-function Spinner() {
-  return (
-    <div className="flex justify-center py-20">
-      <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
-    </div>
-  );
-}
 
 export default function JobsPage() {
   const [jobs, setJobs]               = useState<Job[]>([]);
