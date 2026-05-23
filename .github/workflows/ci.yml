@@ -66,8 +66,6 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     needs: ci
-    # Skip until tests/e2e/ contains real tests
-    if: false
     permissions:
       contents: read
 
@@ -91,6 +89,7 @@ jobs:
       NEXTAUTH_SECRET: ci-secret-not-used-in-tests
       NEXTAUTH_URL: http://localhost:3000
       NEXT_PUBLIC_APP_URL: http://localhost:3000
+      E2E_VENUE_ID: seed-venue-1
 
     steps:
       - uses: actions/checkout@v4
@@ -118,7 +117,7 @@ jobs:
         run: npm run db:seed
 
       - name: Run E2E tests
-        run: npx playwright test --pass-with-no-tests
+        run: npx playwright test
 
       - name: Upload Playwright report
         if: failure()
