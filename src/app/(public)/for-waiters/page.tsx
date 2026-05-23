@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FAQAccordion, type FAQItem } from "@/components/ui/FAQAccordion";
 import { NavAuthButton } from "@/components/ui/NavAuthButton";
 import { PassportProCTA } from "@/components/ui/PassportProCTA";
+import { FlagSwitcher } from "@/components/ui/FlagSwitcher";
 
 const LogoMark = () => (
   <div className="logo-mark w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -92,6 +93,7 @@ export default function ForWaitersPage() {
           ))}
         </div>
         <div className="flex items-center gap-3">
+          <FlagSwitcher />
           <NavAuthButton />
           <Link href="/register" className="hidden sm:block btn-primary text-white text-sm font-semibold px-5 py-2.5 rounded-2xl">Registracija</Link>
           <button
