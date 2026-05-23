@@ -98,7 +98,8 @@ describe("GET /api/jobs/geojson", () => {
     await GET(makeReq(BBOX));
     const calls = vi.mocked(db.jobPost.findMany).mock.calls;
     expect(calls.length).toBeGreaterThan(0);
-    const where = calls[0]![0].where as Record<string, unknown>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where = (calls[0] as any)[0].where as Record<string, unknown>;
     expect(where.redAlert).toBeUndefined();
   });
 
