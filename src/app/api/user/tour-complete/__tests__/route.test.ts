@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ authOptions: {} }));
@@ -11,6 +12,8 @@ vi.mock("@/lib/db", () => ({
 import { getServerSession } from "next-auth";
 import { db } from "@/lib/db";
 import { PATCH } from "../route";
+
+function makeReq() { return new NextRequest("http://localhost/api/test"); }
 
 const USER_ID = "user-1";
 
@@ -30,7 +33,7 @@ describe("PATCH /api/user/tour-complete", () => {
   });
 
   it("authenticated user marks tour complete → 200", async () => {
-    const res = await PATCH();
+    const res = await PATCH(makeReq());
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.ok).toBe(true);
@@ -38,12 +41,12 @@ describe("PATCH /api/user/tour-complete", () => {
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await PATCH();
+    const res = await PATCH(makeReq());
     expect(res.status).toBe(401);
   });
 
   it("sets tourCompleted: true for correct user", async () => {
-    await PATCH();
+    await PATCH(makeReq());
     expect(vi.mocked(db.user.update)).toHaveBeenCalledWith({
       where: { id: USER_ID },
       data: { tourCompleted: true },
@@ -52,7 +55,7 @@ describe("PATCH /api/user/tour-complete", () => {
 
   it("works for any role (WAITER)", async () => {
     mockSession(USER_ID, "WAITER");
-    const res = await PATCH();
+    const res = await PATCH(makeReq());
     expect(res.status).toBe(200);
   });
 });

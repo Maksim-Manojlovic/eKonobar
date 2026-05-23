@@ -21,6 +21,8 @@ import { GET, POST } from "../route";
 const OWNER_ID  = "owner-1";
 const WAITER_ID = "waiter-1";
 
+function makeReq() { return new NextRequest("http://localhost/api/test"); }
+
 function makePostReq(body: object) {
   return new NextRequest("http://localhost/api/invites", {
     method: "POST",
@@ -41,13 +43,13 @@ describe("GET /api/invites", () => {
 
   it("returns 401 when unauthenticated", async () => {
     vi.mocked(getServerSession).mockResolvedValue(null);
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(401);
   });
 
   it("queries sent invites for VENUE_OWNER", async () => {
     mockSession("VENUE_OWNER");
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
     const call = vi.mocked(db.invite.findMany).mock.calls[0]?.[0];
     expect(call?.where).toMatchObject({ senderId: OWNER_ID, type: "JOB_INVITE" });
@@ -55,7 +57,7 @@ describe("GET /api/invites", () => {
 
   it("queries received invites for WAITER", async () => {
     mockSession("WAITER", WAITER_ID);
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
     const call = vi.mocked(db.invite.findMany).mock.calls[0]?.[0];
     expect(call?.where).toMatchObject({ recipientId: WAITER_ID, type: "JOB_INVITE" });
@@ -63,7 +65,7 @@ describe("GET /api/invites", () => {
 
   it("returns empty array for other roles", async () => {
     mockSession("HEADHUNTER", "hh-1");
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
     const d = await res.json();
     expect(d).toEqual([]);

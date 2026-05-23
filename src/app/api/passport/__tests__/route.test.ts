@@ -29,6 +29,8 @@ const BASE_PASSPORT = {
   trustScore: null,
 };
 
+function makeReq() { return new NextRequest("http://localhost/api/test"); }
+
 function makePutReq(body: object) {
   return new NextRequest("http://localhost/api/passport", {
     method: "PUT",
@@ -55,7 +57,7 @@ describe("GET /api/passport", () => {
   it("WAITER gets passport + recentReviews", async () => {
     mockSession();
 
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.id).toBe("pp-1");
@@ -66,7 +68,7 @@ describe("GET /api/passport", () => {
     mockSession();
     vi.mocked(db.waiterPassport.findUnique).mockResolvedValue(null);
 
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toBeNull();
@@ -74,13 +76,13 @@ describe("GET /api/passport", () => {
 
   it("VENUE_OWNER → 403", async () => {
     mockSession("VENUE_OWNER", "owner-1");
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(401);
   });
 });

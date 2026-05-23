@@ -29,6 +29,8 @@ const TEMPLATE = {
   requiredCount: 3,
 };
 
+function makeReq() { return new NextRequest("http://localhost/api/test"); }
+
 function makePostReq(body: object) {
   return new NextRequest("http://localhost/api/shifts/templates", {
     method: "POST",
@@ -59,7 +61,7 @@ describe("GET /api/shifts/templates", () => {
   });
 
   it("VENUE_OWNER gets templates → 200", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toHaveLength(1);
@@ -67,12 +69,12 @@ describe("GET /api/shifts/templates", () => {
 
   it("WAITER (headWaiter) gets templates → 200", async () => {
     mockSession("WAITER", WAITER_ID);
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
   });
 
   it("VENUE_OWNER query filters by ownerId", async () => {
-    await GET();
+    await GET(makeReq());
     expect(vi.mocked(db.shiftTemplate.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: { venue: { ownerId: OWNER_ID } } }),
     );
@@ -80,7 +82,7 @@ describe("GET /api/shifts/templates", () => {
 
   it("WAITER query filters by headWaiterId", async () => {
     mockSession("WAITER", WAITER_ID);
-    await GET();
+    await GET(makeReq());
     expect(vi.mocked(db.shiftTemplate.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: { venue: { headWaiterId: WAITER_ID } } }),
     );
@@ -88,13 +90,13 @@ describe("GET /api/shifts/templates", () => {
 
   it("HEADHUNTER → 403", async () => {
     mockSession("HEADHUNTER", "h-1");
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(401);
   });
 });

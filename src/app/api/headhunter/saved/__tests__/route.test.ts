@@ -66,24 +66,24 @@ describe("GET /api/headhunter/saved", () => {
 
   it("returns 401 when unauthenticated", async () => {
     vi.mocked(getServerSession).mockResolvedValue(null);
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(401);
   });
 
   it("returns 403 for non-HEADHUNTER role", async () => {
     mockSession("VENUE_OWNER");
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(403);
   });
 
   it("returns 403 for WAITER role", async () => {
     mockSession("WAITER");
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(403);
   });
 
   it("returns enriched saved profiles", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
     const d = await res.json();
     expect(d).toHaveLength(1);
@@ -94,13 +94,13 @@ describe("GET /api/headhunter/saved", () => {
 
   it("filters out saved rows whose waiter is missing from user lookup", async () => {
     vi.mocked(db.user.findMany).mockResolvedValue([]);
-    const res = await GET();
+    const res = await GET(makeReq());
     const d = await res.json();
     expect(d).toHaveLength(0);
   });
 
   it("queries savedProfile by headhunterId ordered by savedAt desc", async () => {
-    await GET();
+    await GET(makeReq());
     expect(vi.mocked(db.savedProfile.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({
         where:   { headhunterId: HH_ID },
@@ -110,7 +110,7 @@ describe("GET /api/headhunter/saved", () => {
   });
 
   it("queries users for the correct waiter ids", async () => {
-    await GET();
+    await GET(makeReq());
     expect(vi.mocked(db.user.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: { in: [WAITER_ID] }, role: "WAITER" },

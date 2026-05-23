@@ -35,6 +35,8 @@ const PUBLIC_VENUE = {
   trustScore: 75,
 };
 
+function makeReq() { return new NextRequest("http://localhost/api/test"); }
+
 function makePostReq(body: object) {
   return new NextRequest("http://localhost/api/venues", {
     method: "POST",
@@ -67,7 +69,7 @@ describe("GET /api/venues", () => {
     mockSession("VENUE_OWNER");
     vi.mocked(db.venue.findMany).mockResolvedValue([OWNER_VENUE] as never);
 
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toEqual([OWNER_VENUE]);
@@ -80,7 +82,7 @@ describe("GET /api/venues", () => {
     mockSession("WAITER", "waiter-1");
     vi.mocked(db.venue.findMany).mockResolvedValue([PUBLIC_VENUE] as never);
 
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
     expect(vi.mocked(db.venue.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: { isActive: true } }),
@@ -91,7 +93,7 @@ describe("GET /api/venues", () => {
     mockNoSession();
     vi.mocked(db.venue.findMany).mockResolvedValue([PUBLIC_VENUE] as never);
 
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
     expect(vi.mocked(db.venue.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: { isActive: true } }),

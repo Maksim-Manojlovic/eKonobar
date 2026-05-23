@@ -9,10 +9,14 @@ export default defineConfig({
   reporter:   process.env.CI ? "github" : "list",
 
   use: {
-    baseURL:       process.env.E2E_BASE_URL ?? "http://localhost:3000",
-    trace:         "on-first-retry",
-    screenshot:    "only-on-failure",
+    baseURL:           process.env.E2E_BASE_URL ?? "http://localhost:3000",
+    trace:             "on-first-retry",
+    screenshot:        "only-on-failure",
+    navigationTimeout: 30_000,
+    actionTimeout:     15_000,
   },
+
+  expect: { timeout: 10_000 },
 
   projects: [
     {

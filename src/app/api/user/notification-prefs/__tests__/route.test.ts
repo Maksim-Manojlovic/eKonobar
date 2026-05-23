@@ -17,6 +17,8 @@ const USER_ID = "user-1";
 
 const PREFS = { phone: "+381601234567", smsOptIn: true, waOptIn: false };
 
+function makeReq() { return new NextRequest("http://localhost/api/test"); }
+
 function makePatchReq(body: object) {
   return new NextRequest("http://localhost/api/user/notification-prefs", {
     method: "PATCH",
@@ -41,7 +43,7 @@ describe("GET /api/user/notification-prefs", () => {
   });
 
   it("authenticated → returns prefs", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toEqual(PREFS);
@@ -49,14 +51,14 @@ describe("GET /api/user/notification-prefs", () => {
 
   it("user not found → returns default nulls", async () => {
     vi.mocked(db.user.findUnique).mockResolvedValue(null);
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     expect(json).toEqual({ phone: null, smsOptIn: false, waOptIn: false });
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(401);
   });
 });

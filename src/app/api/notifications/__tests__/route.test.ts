@@ -25,6 +25,8 @@ const NOTIF = {
   createdAt: new Date(),
 };
 
+function makeReq() { return new NextRequest("http://localhost/api/test"); }
+
 function makePatchReq(body: object) {
   return new NextRequest("http://localhost/api/notifications", {
     method: "PATCH",
@@ -50,7 +52,7 @@ describe("GET /api/notifications", () => {
   });
 
   it("returns notifications + unreadCount", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.notifications).toHaveLength(1);
@@ -58,7 +60,7 @@ describe("GET /api/notifications", () => {
   });
 
   it("scoped to current user", async () => {
-    await GET();
+    await GET(makeReq());
     expect(vi.mocked(db.notification.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: { userId: USER_ID } }),
     );
@@ -66,7 +68,7 @@ describe("GET /api/notifications", () => {
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(401);
   });
 });

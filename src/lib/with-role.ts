@@ -31,7 +31,7 @@ export function withRole<C extends RouteCtx = RouteCtx>(
   roles: Role | Role[],
   handler: AuthedHandler<C>,
 ) {
-  return async (req: NextRequest = new NextRequest("http://localhost"), ctx: C = {} as C): Promise<Response> => {
+  return async (req: NextRequest, ctx: C = {} as C): Promise<Response> => {
     const session = await getServerSession(authOptions);
 
     if (!session) {
@@ -52,7 +52,7 @@ export function withRole<C extends RouteCtx = RouteCtx>(
  * Use for endpoints that require login but are not role-specific.
  */
 export function withAuth<C extends RouteCtx = RouteCtx>(handler: AuthedHandler<C>) {
-  return async (req: NextRequest = new NextRequest("http://localhost"), ctx: C = {} as C): Promise<Response> => {
+  return async (req: NextRequest, ctx: C = {} as C): Promise<Response> => {
     const session = await getServerSession(authOptions);
 
     if (!session) {
@@ -69,7 +69,7 @@ export function withAuth<C extends RouteCtx = RouteCtx>(handler: AuthedHandler<C
  * (e.g. GET /api/jobs adds application status for WAITERs).
  */
 export function withOptionalAuth<C extends RouteCtx = RouteCtx>(handler: OptionalAuthHandler<C>) {
-  return async (req: NextRequest = new NextRequest("http://localhost"), ctx: C = {} as C): Promise<Response> => {
+  return async (req: NextRequest, ctx: C = {} as C): Promise<Response> => {
     const session = await getServerSession(authOptions);
     return handler(req, ctx, session ?? null);
   };

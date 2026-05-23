@@ -41,6 +41,8 @@ const APPLICATION = {
   jobPost: { id: JOB_ID, title: "Konobar" },
 };
 
+function makeReq() { return new NextRequest("http://localhost/api/test"); }
+
 function makePostReq(body: object) {
   return new NextRequest("http://localhost/api/jobs/applications", {
     method: "POST",
@@ -69,14 +71,14 @@ describe("GET /api/jobs/applications", () => {
   });
 
   it("WAITER gets own applications → 200", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toHaveLength(1);
   });
 
   it("WAITER query scoped to waiterId", async () => {
-    await GET();
+    await GET(makeReq());
     expect(vi.mocked(db.jobApplication.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: { waiterId: WAITER_ID } }),
     );
@@ -85,13 +87,13 @@ describe("GET /api/jobs/applications", () => {
   it("VENUE_OWNER gets venue applications → 200", async () => {
     mockOwnerSession();
     vi.mocked(db.jobApplication.findMany).mockResolvedValue([APPLICATION] as never);
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
   });
 
   it("VENUE_OWNER query scoped to ownerId", async () => {
     mockOwnerSession();
-    await GET();
+    await GET(makeReq());
     expect(vi.mocked(db.jobApplication.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: { jobPost: { ownerId: OWNER_ID } } }),
     );
@@ -99,13 +101,13 @@ describe("GET /api/jobs/applications", () => {
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(401);
   });
 
   it("HEADHUNTER → 403", async () => {
     mockSession("HEADHUNTER", "h-1");
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(403);
   });
 });

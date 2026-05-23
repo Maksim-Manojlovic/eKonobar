@@ -28,6 +28,8 @@ const PENDING_BOOK = {
   user: { id: WAITER_ID, name: "Marko", email: "m@test.com" },
 };
 
+function makeReq() { return new NextRequest("http://localhost/api/test"); }
+
 function makePostReq(body: object) {
   return new NextRequest("http://localhost/api/verification/sanitary", {
     method: "POST",
@@ -51,7 +53,7 @@ describe("GET /api/verification/sanitary", () => {
     mockSession("ADMIN", ADMIN_ID);
     vi.mocked(dbRaw.sanitaryBook.findMany).mockResolvedValue([PENDING_BOOK] as never);
 
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toHaveLength(1);
@@ -64,7 +66,7 @@ describe("GET /api/verification/sanitary", () => {
     mockSession("WAITER", WAITER_ID);
     vi.mocked(db.sanitaryBook.findUnique).mockResolvedValue(PENDING_BOOK as never);
 
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.userId).toBe(WAITER_ID);
@@ -74,20 +76,20 @@ describe("GET /api/verification/sanitary", () => {
     mockSession("WAITER", WAITER_ID);
     vi.mocked(db.sanitaryBook.findUnique).mockResolvedValue(null);
 
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
     expect(await res.json()).toBeNull();
   });
 
   it("VENUE_OWNER → 403", async () => {
     mockSession("VENUE_OWNER", "o-1");
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(401);
   });
 });
