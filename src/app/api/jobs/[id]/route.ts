@@ -64,7 +64,7 @@ export async function PATCH(
   const { status } = body as { status?: string };
 
   const ALLOWED: Record<string, string> = { ACTIVE: "PAUSED", PAUSED: "ACTIVE" };
-  if (!status || !ALLOWED[status === "ACTIVE" ? "ACTIVE" : "PAUSED"]) {
+  if (!status || !ALLOWED[status]) {
     return NextResponse.json({ error: "status must be ACTIVE or PAUSED" }, { status: 400 });
   }
 

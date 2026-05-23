@@ -1,0 +1,179 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextRequest } from "next/server";
+
+vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
+vi.mock("@/lib/auth", () => ({ authOptions: {} }));
+vi.mock("@/lib/db", () => ({
+  db: {
+    jobPost:       { findMany: vi.fn(), create: vi.fn() },
+    waiterPassport: { findUnique: vi.fn() },
+    venue:         { findFirst: vi.fn() },
+  },
+}));
+
+import { getServerSession } from "next-auth";
+import { db } from "@/lib/db";
+import { GET, POST } from "../route";
+
+const OWNER_ID  = "owner-1";
+const WAITER_ID = "waiter-1";
+const VENUE_ID  = "venue-1";
+
+const JOB_POST = { id: "job-1", title: "Test Job", status: "ACTIVE", redAlert: false };
+const VENUE    = { id: VENUE_ID, name: "Test Venue", ownerId: OWNER_ID };
+
+const VALID_POST_BODY = {
+  venueId:        VENUE_ID,
+  title:          "Konobar",
+  description:    "Tražimo iskusnog konobara",
+  engagementType: "FULL_TIME",
+  tipSystem:      "INDIVIDUAL",
+};
+
+function makeGetReq(params = "") {
+  return new NextRequest(`http://localhost/api/jobs${params ? "?" + params : ""}`);
+}
+
+function makePostReq(body: object) {
+  return new NextRequest("http://localhost/api/jobs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+function mockSession(role: string, id: string) {
+  vi.mocked(getServerSession).mockResolvedValue({ user: { id, role } } as never);
+}
+
+function mockNoSession() {
+  vi.mocked(getServerSession).mockResolvedValue(null);
+}
+
+describe("GET /api/jobs", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(db.jobPost.findMany).mockResolvedValue([JOB_POST] as never);
+  });
+
+  it("VENUE_OWNER gets own posts (all statuses)", async () => {
+    mockSession("VENUE_OWNER", OWNER_ID);
+
+    const res = await GET(makeGetReq());
+    expect(res.status).toBe(200);
+    expect(vi.mocked(db.jobPost.findMany)).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { ownerId: OWNER_ID } }),
+    );
+  });
+
+  it("unauthenticated gets active public posts", async () => {
+    mockNoSession();
+
+    const res = await GET(makeGetReq());
+    expect(res.status).toBe(200);
+    expect(vi.mocked(db.jobPost.findMany)).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ status: "ACTIVE" }) }),
+    );
+  });
+
+  it("FREE waiter gets Red Alert delay applied", async () => {
+    mockSession("WAITER", WAITER_ID);
+    vi.mocked(db.waiterPassport.findUnique).mockResolvedValue({
+      passportTier: "FREE",
+      subscriptionExpiresAt: null,
+    } as never);
+
+    await GET(makeGetReq());
+
+    const call = vi.mocked(db.jobPost.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
+    // FREE waiter where clause should include the OR Red Alert delay filter
+    expect(JSON.stringify(call.where)).toContain("redAlert");
+  });
+
+  it("PRO waiter gets no Red Alert delay", async () => {
+    mockSession("WAITER", WAITER_ID);
+    vi.mocked(db.waiterPassport.findUnique).mockResolvedValue({
+      passportTier: "PRO",
+      subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    } as never);
+
+    await GET(makeGetReq());
+
+    const call = vi.mocked(db.jobPost.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
+    // PRO waiter should not have the extra OR filter for Red Alert delay
+    expect(call.where).not.toHaveProperty("OR");
+  });
+
+  it("expired PRO passport treated as FREE (delay applied)", async () => {
+    mockSession("WAITER", WAITER_ID);
+    vi.mocked(db.waiterPassport.findUnique).mockResolvedValue({
+      passportTier: "PRO",
+      subscriptionExpiresAt: new Date(Date.now() - 1000), // expired
+    } as never);
+
+    await GET(makeGetReq());
+
+    const call = vi.mocked(db.jobPost.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
+    expect(JSON.stringify(call.where)).toContain("redAlert");
+  });
+
+  it("redAlert=true filter passed through", async () => {
+    mockNoSession();
+
+    await GET(makeGetReq("redAlert=true"));
+
+    const call = vi.mocked(db.jobPost.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
+    expect(call.where).toMatchObject({ redAlert: true });
+  });
+});
+
+describe("POST /api/jobs", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockSession("VENUE_OWNER", OWNER_ID);
+    vi.mocked(db.venue.findFirst).mockResolvedValue(VENUE as never);
+    vi.mocked(db.jobPost.create).mockResolvedValue({ id: "job-new", ...VALID_POST_BODY } as never);
+  });
+
+  it("VENUE_OWNER creates post → 201", async () => {
+    const res = await POST(makePostReq(VALID_POST_BODY), {});
+    expect(res.status).toBe(201);
+    const json = await res.json();
+    expect(json.id).toBe("job-new");
+  });
+
+  it("WAITER → 403", async () => {
+    mockSession("WAITER", WAITER_ID);
+    const res = await POST(makePostReq(VALID_POST_BODY), {});
+    expect(res.status).toBe(403);
+  });
+
+  it("unauthenticated → 401", async () => {
+    mockNoSession();
+    const res = await POST(makePostReq(VALID_POST_BODY), {});
+    expect(res.status).toBe(401);
+  });
+
+  it("missing required fields → 400", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { title: _title, ...noTitle } = VALID_POST_BODY;
+    const res = await POST(makePostReq(noTitle), {});
+    expect(res.status).toBe(400);
+  });
+
+  it("invalid engagementType → 400", async () => {
+    const res = await POST(makePostReq({ ...VALID_POST_BODY, engagementType: "INVALID" }), {});
+    expect(res.status).toBe(400);
+  });
+
+  it("invalid tipSystem → 400", async () => {
+    const res = await POST(makePostReq({ ...VALID_POST_BODY, tipSystem: "INVALID" }), {});
+    expect(res.status).toBe(400);
+  });
+
+  it("venue not owned by caller → 404", async () => {
+    vi.mocked(db.venue.findFirst).mockResolvedValue(null);
+    const res = await POST(makePostReq(VALID_POST_BODY), {});
+    expect(res.status).toBe(404);
+  });
+});
