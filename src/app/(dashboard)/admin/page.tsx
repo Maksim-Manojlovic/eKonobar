@@ -50,6 +50,7 @@ type ActionStats = {
   pendingVerifications: number;
   disputedReviews: number;
   zones: number;
+  venues: number;
 };
 
 type ActivityEvent = {
@@ -175,6 +176,15 @@ const NAV = [
     countLabel: "zona",
     alert: false,
   },
+  {
+    href: "/admin/venues",
+    icon: "🏪",
+    title: "Upravljanje lokalima",
+    desc: "Pretraži, filtriraj i trajno obriši lokale.",
+    countKey: "venues" as keyof ActionStats,
+    countLabel: "lokala",
+    alert: false,
+  },
 ];
 
 export default function AdminDashboard() {
@@ -206,6 +216,7 @@ export default function AdminDashboard() {
         pendingVerifications: Array.isArray(verif) ? verif.length : 0,
         disputedReviews: Array.isArray(reviews) ? reviews.length : 0,
         zones: Array.isArray(zones) ? zones.length : 0,
+        venues: stats?.venues ?? 0,
       });
     }).catch(() => setActions({ pendingVerifications: 0, disputedReviews: 0, zones: 0 }));
 
