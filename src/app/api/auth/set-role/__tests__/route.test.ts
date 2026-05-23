@@ -9,13 +9,14 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import { getServerSession } from "next-auth";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { PATCH } from "../route";
 
 const USER_ID = "user-1";
 
 function makeReq(body: object) {
-  return new Request("http://localhost/api/auth/set-role", {
+  return new NextRequest("http://localhost/api/auth/set-role", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

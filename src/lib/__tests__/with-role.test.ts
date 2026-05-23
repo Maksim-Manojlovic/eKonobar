@@ -4,6 +4,7 @@ vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ authOptions: {} }));
 
 import { getServerSession } from "next-auth";
+import { NextRequest } from "next/server";
 import { withRole, withAuth } from "../with-role";
 
 const CTX = { params: Promise.resolve({}) };
@@ -17,7 +18,7 @@ function mockNoSession() {
 }
 
 function makeReq() {
-  return new Request("http://localhost/api/test");
+  return new NextRequest("http://localhost/api/test");
 }
 
 describe("withRole", () => {
