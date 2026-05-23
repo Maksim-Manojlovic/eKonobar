@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { sendPush } from "@/lib/webpush";
 import { sendWhatsApp } from "@/lib/whatsapp";
 import { sendSms } from "@/lib/sms";
+import { isPro as isPassportPro, isProPlus as isPassportProPlus } from "@/lib/passport-tier";
 
 export async function notify(
   userId: string,
@@ -33,18 +34,8 @@ export async function notify(
 
   // Tier gating applies only to WAITER recipients.
   // Venue owners and other roles always receive all opted-in channels.
-  let isPro: boolean;
-  let isProPlus: boolean;
-  if (user.role !== "WAITER") {
-    isPro = true;
-    isProPlus = true;
-  } else {
-    const tierRaw = user.waiterPassport?.passportTier ?? "FREE";
-    const expiresAt = user.waiterPassport?.subscriptionExpiresAt;
-    const passportTier = expiresAt && expiresAt < new Date() ? "FREE" : tierRaw;
-    isPro     = passportTier === "PRO" || passportTier === "PRO_PLUS";
-    isProPlus = passportTier === "PRO_PLUS";
-  }
+  const isPro    = user.role !== "WAITER" || isPassportPro(user.waiterPassport);
+  const isProPlus = user.role !== "WAITER" || isPassportProPlus(user.waiterPassport);
 
   // ── Web push (free, best-effort) ──────────────────────────────────────────
   if (user.pushSubscriptions.length > 0) {

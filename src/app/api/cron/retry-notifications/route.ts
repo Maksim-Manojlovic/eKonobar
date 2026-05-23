@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbRaw } from "@/lib/db";
 import { sendWhatsApp } from "@/lib/whatsapp";
 import { sendSms } from "@/lib/sms";
+import { isPro, isProPlus } from "@/lib/passport-tier";
 
 // Retries failed WhatsApp and SMS notification sends.
 // Max 3 attempts per channel, within 24h of creation.
@@ -18,21 +19,6 @@ function isAuthorized(req: NextRequest): boolean {
   return req.headers.get("authorization") === `Bearer ${secret}`;
 }
 
-function isActivePro(passport: { passportTier: string; subscriptionExpiresAt: Date | null } | null) {
-  if (!passport) return false;
-  const active = passport.subscriptionExpiresAt
-    ? passport.subscriptionExpiresAt > new Date()
-    : false;
-  return active && (passport.passportTier === "PRO" || passport.passportTier === "PRO_PLUS");
-}
-
-function isActiveProPlus(passport: { passportTier: string; subscriptionExpiresAt: Date | null } | null) {
-  if (!passport) return false;
-  const active = passport.subscriptionExpiresAt
-    ? passport.subscriptionExpiresAt > new Date()
-    : false;
-  return active && passport.passportTier === "PRO_PLUS";
-}
 
 async function run() {
   const since = new Date(Date.now() - WINDOW_MS);
@@ -76,7 +62,7 @@ async function run() {
       const { user } = n;
 
       // WhatsApp retry
-      if (!n.waSent && n.waRetries < MAX_RETRIES && user.waOptIn && user.phone && isActivePro(user.waiterPassport)) {
+      if (!n.waSent && n.waRetries < MAX_RETRIES && user.waOptIn && user.phone && isPro(user.waiterPassport)) {
         try {
           await sendWhatsApp(user.phone, n.title, n.body);
           await dbRaw.notification.update({ where: { id: n.id }, data: { waSent: true } });
@@ -91,7 +77,7 @@ async function run() {
       }
 
       // SMS retry
-      if (!n.smsSent && n.smsRetries < MAX_RETRIES && user.smsOptIn && user.phone && isActiveProPlus(user.waiterPassport)) {
+      if (!n.smsSent && n.smsRetries < MAX_RETRIES && user.smsOptIn && user.phone && isProPlus(user.waiterPassport)) {
         const smsText = `${n.title}: ${n.body}${n.link ? " | ekonobar.rs" : ""}`.slice(0, 160);
         try {
           await sendSms(user.phone, smsText);

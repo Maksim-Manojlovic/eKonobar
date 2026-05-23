@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { EngagementType, TipSystem } from "@prisma/client";
+import { getEffectiveTier } from "@/lib/passport-tier";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -36,9 +37,7 @@ export async function GET(req: NextRequest) {
       select: { passportTier: true, subscriptionExpiresAt: true },
     });
     const now = new Date();
-    const tier = passport?.passportTier ?? "FREE";
-    const expired = passport?.subscriptionExpiresAt && passport.subscriptionExpiresAt < now;
-    const isFree = !passport || tier === "FREE" || expired;
+    const isFree = getEffectiveTier(passport) === "FREE";
     if (isFree) {
       // FREE: hide Red Alert posts created in last 30 minutes
       redAlertCreatedAfter = new Date(now.getTime() - 30 * 60 * 1000);
