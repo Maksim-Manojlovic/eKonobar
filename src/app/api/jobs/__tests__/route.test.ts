@@ -136,7 +136,7 @@ describe("POST /api/jobs", () => {
   });
 
   it("VENUE_OWNER creates post → 201", async () => {
-    const res = await POST(makePostReq(VALID_POST_BODY), {});
+    const res = await POST(makePostReq(VALID_POST_BODY), { params: Promise.resolve({}) });
     expect(res.status).toBe(201);
     const json = await res.json();
     expect(json.id).toBe("job-new");
@@ -144,36 +144,36 @@ describe("POST /api/jobs", () => {
 
   it("WAITER → 403", async () => {
     mockSession("WAITER", WAITER_ID);
-    const res = await POST(makePostReq(VALID_POST_BODY), {});
+    const res = await POST(makePostReq(VALID_POST_BODY), { params: Promise.resolve({}) });
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await POST(makePostReq(VALID_POST_BODY), {});
+    const res = await POST(makePostReq(VALID_POST_BODY), { params: Promise.resolve({}) });
     expect(res.status).toBe(401);
   });
 
   it("missing required fields → 400", async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { title: _title, ...noTitle } = VALID_POST_BODY;
-    const res = await POST(makePostReq(noTitle), {});
+    const res = await POST(makePostReq(noTitle), { params: Promise.resolve({}) });
     expect(res.status).toBe(400);
   });
 
   it("invalid engagementType → 400", async () => {
-    const res = await POST(makePostReq({ ...VALID_POST_BODY, engagementType: "INVALID" }), {});
+    const res = await POST(makePostReq({ ...VALID_POST_BODY, engagementType: "INVALID" }), { params: Promise.resolve({}) });
     expect(res.status).toBe(400);
   });
 
   it("invalid tipSystem → 400", async () => {
-    const res = await POST(makePostReq({ ...VALID_POST_BODY, tipSystem: "INVALID" }), {});
+    const res = await POST(makePostReq({ ...VALID_POST_BODY, tipSystem: "INVALID" }), { params: Promise.resolve({}) });
     expect(res.status).toBe(400);
   });
 
   it("venue not owned by caller → 404", async () => {
     vi.mocked(db.venue.findFirst).mockResolvedValue(null);
-    const res = await POST(makePostReq(VALID_POST_BODY), {});
+    const res = await POST(makePostReq(VALID_POST_BODY), { params: Promise.resolve({}) });
     expect(res.status).toBe(404);
   });
 });

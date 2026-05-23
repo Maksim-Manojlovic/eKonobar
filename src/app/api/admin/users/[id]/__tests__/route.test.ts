@@ -104,7 +104,8 @@ describe("PATCH /api/admin/users/[id]", () => {
   it("role change triggers tokenRevocation upsert", async () => {
     await PATCH(makeReq({ role: "HEADHUNTER" }), makeCtx());
 
-    const txCall = vi.mocked(dbRaw.$transaction).mock.calls[0][0] as unknown[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const txCall = vi.mocked(dbRaw.$transaction).mock.calls[0][0] as any;
     // transaction array should have 2 items: user.update + tokenRevocation.upsert
     expect(txCall).toHaveLength(2);
   });
@@ -112,14 +113,16 @@ describe("PATCH /api/admin/users/[id]", () => {
   it("delete action triggers tokenRevocation upsert", async () => {
     await PATCH(makeReq({ action: "delete" }), makeCtx());
 
-    const txCall = vi.mocked(dbRaw.$transaction).mock.calls[0][0] as unknown[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const txCall = vi.mocked(dbRaw.$transaction).mock.calls[0][0] as any;
     expect(txCall).toHaveLength(2);
   });
 
   it("restore action triggers tokenRevocation upsert", async () => {
     await PATCH(makeReq({ action: "restore" }), makeCtx());
 
-    const txCall = vi.mocked(dbRaw.$transaction).mock.calls[0][0] as unknown[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const txCall = vi.mocked(dbRaw.$transaction).mock.calls[0][0] as any;
     expect(txCall).toHaveLength(2);
   });
 });
