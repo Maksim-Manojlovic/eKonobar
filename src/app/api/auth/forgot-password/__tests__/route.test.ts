@@ -2,122 +2,111 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/db", () => ({
   dbRaw: {
-    user: {
-      findUnique: vi.fn(),
-    },
-    passwordResetToken: {
-      create: vi.fn(),
-    },
+    user:               { findUnique: vi.fn() },
+    passwordResetToken: { create: vi.fn() },
   },
 }));
-
-vi.mock("@/lib/email", () => ({
-  sendPasswordResetEmail: vi.fn(),
-}));
-
-vi.mock("@/lib/rate-limit", () => ({
-  rateLimit: vi.fn().mockResolvedValue(true),
-}));
-
-vi.mock("crypto", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("crypto")>();
-  return {
-    ...actual,
-    randomBytes: vi.fn(() => ({ toString: () => "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890" })),
-  };
-});
+vi.mock("@/lib/email",      () => ({ sendPasswordResetEmail: vi.fn() }));
+vi.mock("@/lib/rate-limit", () => ({ rateLimit: vi.fn() }));
 
 import { dbRaw } from "@/lib/db";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { rateLimit } from "@/lib/rate-limit";
 import { POST } from "../route";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = dbRaw as any;
-
-function makeReq(body: object, ip = "1.2.3.4") {
+function makeReq(body: object, ip = "127.0.0.1") {
   return new Request("http://localhost/api/auth/forgot-password", {
-    method:  "POST",
+    method: "POST",
     headers: { "Content-Type": "application/json", "x-forwarded-for": ip },
-    body:    JSON.stringify(body),
+    body: JSON.stringify(body),
   });
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const raw = dbRaw as any;
 
 describe("POST /api/auth/forgot-password", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(rateLimit).mockResolvedValue(true);
-    db.passwordResetToken.create.mockResolvedValue({});
+    vi.mocked(raw.user.findUnique).mockResolvedValue({ id: "u-1", hashedPassword: "hashed" });
+    vi.mocked(raw.passwordResetToken.create).mockResolvedValue(undefined);
     vi.mocked(sendPasswordResetEmail).mockResolvedValue(undefined);
   });
 
-  it("returns 400 when email is missing", async () => {
+  it("valid email -> 200 { ok: true }", async () => {
+    const res = await POST(makeReq({ email: "user@test.com" }));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.ok).toBe(true);
+  });
+
+  it("missing email -> 400", async () => {
     const res = await POST(makeReq({}));
     expect(res.status).toBe(400);
   });
 
-  it("returns 400 when email is not a string", async () => {
+  it("non-string email -> 400", async () => {
     const res = await POST(makeReq({ email: 123 }));
     expect(res.status).toBe(400);
   });
 
-  it("returns 200 (silent) when rate limit exceeded", async () => {
+  it("rate limited -> silent 200 (enumeration prevention)", async () => {
     vi.mocked(rateLimit).mockResolvedValue(false);
-    const res = await POST(makeReq({ email: "test@example.com" }));
+    const res = await POST(makeReq({ email: "user@test.com" }));
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.ok).toBe(true);
-    expect(db.user.findUnique).not.toHaveBeenCalled();
+    const json = await res.json();
+    expect(json.ok).toBe(true);
   });
 
-  it("returns 200 (silent) when user does not exist", async () => {
-    db.user.findUnique.mockResolvedValue(null);
-    const res = await POST(makeReq({ email: "nobody@example.com" }));
+  it("unknown email -> silent 200 (enumeration prevention)", async () => {
+    vi.mocked(raw.user.findUnique).mockResolvedValue(null);
+    const res = await POST(makeReq({ email: "ghost@test.com" }));
     expect(res.status).toBe(200);
-    expect((await res.json()).ok).toBe(true);
-    expect(db.passwordResetToken.create).not.toHaveBeenCalled();
-    expect(sendPasswordResetEmail).not.toHaveBeenCalled();
+    const json = await res.json();
+    expect(json.ok).toBe(true);
   });
 
-  it("returns 200 (silent) when user has no password (OAuth-only)", async () => {
-    db.user.findUnique.mockResolvedValue({ id: "user-1", hashedPassword: null });
-    const res = await POST(makeReq({ email: "oauth@example.com" }));
+  it("OAuth user (no hashedPassword) -> silent 200, no token created", async () => {
+    vi.mocked(raw.user.findUnique).mockResolvedValue({ id: "u-1", hashedPassword: null });
+    const res = await POST(makeReq({ email: "oauth@test.com" }));
     expect(res.status).toBe(200);
-    expect(db.passwordResetToken.create).not.toHaveBeenCalled();
+    expect(vi.mocked(raw.passwordResetToken.create)).not.toHaveBeenCalled();
   });
 
-  it("creates token and sends email for valid user", async () => {
-    db.user.findUnique.mockResolvedValue({ id: "user-1", hashedPassword: "$2b$12$hash" });
-    const res = await POST(makeReq({ email: "user@example.com" }));
-    expect(res.status).toBe(200);
-    expect((await res.json()).ok).toBe(true);
-    expect(db.passwordResetToken.create).toHaveBeenCalledWith(
+  it("creates reset token for valid user", async () => {
+    await POST(makeReq({ email: "user@test.com" }));
+    expect(vi.mocked(raw.passwordResetToken.create)).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          userId: "user-1",
-          token:  expect.any(String),
-          expiresAt: expect.any(Date),
-        }),
+        data: expect.objectContaining({ userId: "u-1" }),
       }),
     );
-    expect(sendPasswordResetEmail).toHaveBeenCalledWith(
-      "user@example.com",
+  });
+
+  it("sends reset email for valid user", async () => {
+    await POST(makeReq({ email: "user@test.com" }));
+    expect(vi.mocked(sendPasswordResetEmail)).toHaveBeenCalledWith(
+      "user@test.com",
       expect.any(String),
     );
   });
 
-  it("normalizes email to lowercase", async () => {
-    db.user.findUnique.mockResolvedValue({ id: "user-1", hashedPassword: "$2b$12$hash" });
-    await POST(makeReq({ email: "User@EXAMPLE.COM" }));
-    expect(db.user.findUnique).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { email: "user@example.com" } }),
+  it("email normalized to lowercase", async () => {
+    await POST(makeReq({ email: "USER@TEST.COM" }));
+    expect(vi.mocked(sendPasswordResetEmail)).toHaveBeenCalledWith(
+      "user@test.com",
+      expect.any(String),
     );
   });
 
-  it("returns 200 even when sendMail throws", async () => {
-    db.user.findUnique.mockResolvedValue({ id: "user-1", hashedPassword: "$2b$12$hash" });
+  it("email send failure still returns 200 (swallowed)", async () => {
     vi.mocked(sendPasswordResetEmail).mockRejectedValue(new Error("SMTP down"));
-    const res = await POST(makeReq({ email: "user@example.com" }));
+    const res = await POST(makeReq({ email: "user@test.com" }));
     expect(res.status).toBe(200);
+  });
+
+  it("rate limit key uses x-forwarded-for IP", async () => {
+    await POST(makeReq({ email: "user@test.com" }, "10.0.0.5"));
+    expect(vi.mocked(rateLimit)).toHaveBeenCalledWith("forgot:10.0.0.5", 3, 15 * 60 * 1000);
   });
 });

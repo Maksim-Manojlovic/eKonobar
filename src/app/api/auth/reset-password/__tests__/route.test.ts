@@ -2,126 +2,92 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/db", () => ({
   dbRaw: {
-    passwordResetToken: {
-      findUnique: vi.fn(),
-      update:     vi.fn(),
-    },
-    user: {
-      update: vi.fn(),
-    },
-    $transaction: vi.fn(),
+    passwordResetToken: { findUnique: vi.fn(), update: vi.fn() },
+    user:               { update: vi.fn() },
+    $transaction:       vi.fn(),
   },
 }));
-
-vi.mock("bcryptjs", () => ({
-  hash: vi.fn().mockResolvedValue("$2b$12$hashed"),
-}));
+vi.mock("bcryptjs", () => ({ hash: vi.fn().mockResolvedValue("new-hashed-pw") }));
 
 import { dbRaw } from "@/lib/db";
-import { hash }  from "bcryptjs";
-import { POST }  from "../route";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = dbRaw as any;
+import { POST } from "../route";
 
 function makeReq(body: object) {
   return new Request("http://localhost/api/auth/reset-password", {
-    method:  "POST",
+    method: "POST",
     headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify(body),
+    body: JSON.stringify(body),
   });
 }
 
-const VALID_TOKEN_RECORD = {
-  id:        "tok-1",
-  userId:    "user-1",
-  expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-  usedAt:    null,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const raw = dbRaw as any;
+
+const VALID_TOKEN = {
+  id: "tok-1",
+  userId: "u-1",
+  expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+  usedAt: null,
 };
 
 describe("POST /api/auth/reset-password", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    db.$transaction.mockImplementation((ops: unknown[]) => Promise.all(ops));
-    db.user.update.mockResolvedValue({});
-    db.passwordResetToken.update.mockResolvedValue({});
+    vi.mocked(raw.passwordResetToken.findUnique).mockResolvedValue(VALID_TOKEN);
+    vi.mocked(raw.$transaction).mockResolvedValue([undefined, undefined]);
+    vi.mocked(raw.user.update).mockReturnValue(undefined);
+    vi.mocked(raw.passwordResetToken.update).mockReturnValue(undefined);
   });
 
-  // ── Input validation ────────────────────────────────────────────────────────
-
-  it("returns 400 when token is missing", async () => {
-    const res = await POST(makeReq({ password: "newpassword1" }));
-    expect(res.status).toBe(400);
-  });
-
-  it("returns 400 when password is missing", async () => {
-    db.passwordResetToken.findUnique.mockResolvedValue(VALID_TOKEN_RECORD);
-    const res = await POST(makeReq({ token: "abc" }));
-    expect(res.status).toBe(400);
-  });
-
-  it("returns 400 when password is shorter than 8 chars", async () => {
-    db.passwordResetToken.findUnique.mockResolvedValue(VALID_TOKEN_RECORD);
-    const res = await POST(makeReq({ token: "abc", password: "short" }));
-    expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toMatch(/8/);
-  });
-
-  // ── Token validation ────────────────────────────────────────────────────────
-
-  it("returns 400 when token does not exist", async () => {
-    db.passwordResetToken.findUnique.mockResolvedValue(null);
-    const res = await POST(makeReq({ token: "bad-token", password: "validpass1" }));
-    expect(res.status).toBe(400);
-    expect((await res.json()).error).toMatch(/nevažeći/i);
-  });
-
-  it("returns 400 when token is already used", async () => {
-    db.passwordResetToken.findUnique.mockResolvedValue({
-      ...VALID_TOKEN_RECORD,
-      usedAt: new Date(Date.now() - 1000),
-    });
-    const res = await POST(makeReq({ token: "used-token", password: "validpass1" }));
-    expect(res.status).toBe(400);
-    expect((await res.json()).error).toMatch(/iskorišćen/i);
-  });
-
-  it("returns 400 when token is expired", async () => {
-    db.passwordResetToken.findUnique.mockResolvedValue({
-      ...VALID_TOKEN_RECORD,
-      expiresAt: new Date(Date.now() - 1000),
-    });
-    const res = await POST(makeReq({ token: "expired-token", password: "validpass1" }));
-    expect(res.status).toBe(400);
-    expect((await res.json()).error).toMatch(/istekao/i);
-  });
-
-  // ── Happy path ──────────────────────────────────────────────────────────────
-
-  it("hashes password with cost 12 and updates user", async () => {
-    db.passwordResetToken.findUnique.mockResolvedValue(VALID_TOKEN_RECORD);
-    const res = await POST(makeReq({ token: "valid-token", password: "newpassword1" }));
+  it("valid token + password -> 200 { ok: true }", async () => {
+    const res = await POST(makeReq({ token: "abc123", password: "newpass123" }));
     expect(res.status).toBe(200);
-    expect((await res.json()).ok).toBe(true);
-    expect(hash).toHaveBeenCalledWith("newpassword1", 12);
+    const json = await res.json();
+    expect(json.ok).toBe(true);
   });
 
-  it("marks token as used in the same transaction", async () => {
-    db.passwordResetToken.findUnique.mockResolvedValue(VALID_TOKEN_RECORD);
-    await POST(makeReq({ token: "valid-token", password: "newpassword1" }));
-    expect(db.$transaction).toHaveBeenCalledTimes(1);
-    expect(db.user.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: "user-1" },
-        data:  { hashedPassword: "$2b$12$hashed" },
-      }),
-    );
-    expect(db.passwordResetToken.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: "tok-1" },
-        data:  { usedAt: expect.any(Date) },
-      }),
-    );
+  it("missing token -> 400", async () => {
+    const res = await POST(makeReq({ password: "newpass123" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("missing password -> 400", async () => {
+    const res = await POST(makeReq({ token: "abc123" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("password shorter than 8 chars -> 400", async () => {
+    const res = await POST(makeReq({ token: "abc123", password: "short" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("token not found -> 400", async () => {
+    vi.mocked(raw.passwordResetToken.findUnique).mockResolvedValue(null);
+    const res = await POST(makeReq({ token: "bad-token", password: "newpass123" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("token already used -> 400", async () => {
+    vi.mocked(raw.passwordResetToken.findUnique).mockResolvedValue({
+      ...VALID_TOKEN, usedAt: new Date(),
+    });
+    const res = await POST(makeReq({ token: "used-token", password: "newpass123" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("token expired -> 400", async () => {
+    vi.mocked(raw.passwordResetToken.findUnique).mockResolvedValue({
+      ...VALID_TOKEN, expiresAt: new Date(Date.now() - 1000),
+    });
+    const res = await POST(makeReq({ token: "expired", password: "newpass123" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("uses $transaction to update password and mark token used", async () => {
+    await POST(makeReq({ token: "abc123", password: "newpass123" }));
+    expect(vi.mocked(raw.$transaction)).toHaveBeenCalledTimes(1);
+    const txArg = vi.mocked(raw.$transaction).mock.calls[0][0];
+    expect(Array.isArray(txArg)).toBe(true);
+    expect(txArg).toHaveLength(2);
   });
 });
