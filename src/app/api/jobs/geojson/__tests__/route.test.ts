@@ -96,8 +96,10 @@ describe("GET /api/jobs/geojson", () => {
 
   it("redAlert=false → redAlert filter not applied (undefined)", async () => {
     await GET(makeReq(BBOX));
-    const call = vi.mocked(db.jobPost.findMany).mock.calls[0][0];
-    expect((call.where as Record<string, unknown>).redAlert).toBeUndefined();
+    const calls = vi.mocked(db.jobPost.findMany).mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    const where = calls[0]![0].where as Record<string, unknown>;
+    expect(where.redAlert).toBeUndefined();
   });
 
   it("valid engagementType filter passed to query", async () => {
