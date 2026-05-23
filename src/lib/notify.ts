@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { sendPush } from "@/lib/webpush";
 import { sendWhatsApp } from "@/lib/whatsapp";
 import { sendSms } from "@/lib/sms";
+import { sendNotificationEmail } from "@/lib/email";
 import { isPro as isPassportPro, isProPlus as isPassportProPlus } from "@/lib/passport-tier";
 
 export async function notify(
@@ -16,6 +17,7 @@ export async function notify(
     where: { id: userId },
     select: {
       role:     true,
+      email:    true,
       phone:    true,
       smsOptIn: true,
       waOptIn:  true,
@@ -71,10 +73,12 @@ export async function notify(
   }
 
   // ── Infobip SMS (Passport PRO_PLUS only) ──────────────────────────────────
+  let smsSentNow = false;
   if (isProPlus && user.smsOptIn && user.phone) {
     const smsText = `${title}: ${body}${link ? " | ekonobar.rs" : ""}`.slice(0, 160);
     try {
       await sendSms(user.phone, smsText);
+      smsSentNow = true;
       db.notification.update({ where: { id: notification.id }, data: { smsSent: true } }).catch(() => {});
     } catch {
       // Increment retry counter — cron will retry up to 3× within 24h
@@ -83,5 +87,15 @@ export async function notify(
         data:  { smsRetries: { increment: 1 } },
       }).catch(() => {});
     }
+  }
+
+  // ── Email fallback ────────────────────────────────────────────────────────
+  // Fires only when no other channel delivered to this user.
+  // Covers: FREE-tier waiters with no push subscription, no WA, no SMS.
+  const pushDelivered = user.pushSubscriptions.length > 0; // best-effort; assume delivered if subs exist
+  const waDelivered   = isPro && user.waOptIn && !!user.phone;
+  const anyDelivered  = pushDelivered || waDelivered || smsSentNow;
+  if (!anyDelivered && user.email) {
+    sendNotificationEmail({ toEmail: user.email, title, body, link }).catch(() => {});
   }
 }

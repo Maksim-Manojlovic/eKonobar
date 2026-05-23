@@ -13,6 +13,43 @@ const transporter = nodemailer.createTransport({
 const FROM = process.env.SMTP_FROM ?? "eKonobar <noreply@ekonobar.rs>";
 const APP  = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
+/**
+ * Generic notification email — sent as fallback when user has no push
+ * subscription and no opted-in WA/SMS channel available.
+ * No-op when SMTP_HOST env var is missing (safe in dev).
+ */
+export async function sendNotificationEmail(opts: {
+  toEmail: string;
+  title: string;
+  body: string;
+  link?: string | null;
+}) {
+  if (!process.env.SMTP_HOST) return; // no-op in dev without SMTP config
+
+  const { toEmail, title, body, link } = opts;
+  const actionHtml = link
+    ? `<a href="${link}" style="display:inline-block;background:#f97316;color:#fff;font-weight:700;font-size:14px;text-decoration:none;padding:10px 24px;border-radius:10px;margin-top:16px;">Pogledaj →</a>`
+    : "";
+  const actionText = link ? `\n\nLink: ${link}` : "";
+
+  await transporter.sendMail({
+    from:    FROM,
+    to:      toEmail,
+    subject: `${title} — eKonobar`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#fff;">
+        <div style="height:3px;background:linear-gradient(90deg,#f97316,#ea580c);border-radius:2px;margin-bottom:32px;"></div>
+        <h2 style="color:#111;font-size:18px;font-weight:800;margin:0 0 8px;">${title}</h2>
+        <p style="color:#555;font-size:14px;line-height:1.6;margin:0;">${body}</p>
+        ${actionHtml}
+        <div style="height:1px;background:#eee;margin:28px 0 16px;"></div>
+        <p style="color:#ccc;font-size:11px;margin:0;">eKonobar · platforma za ugostiteljski sektor u Srbiji</p>
+      </div>
+    `,
+    text: `${title}\n\n${body}${actionText}\n\n— eKonobar`,
+  });
+}
+
 export async function sendPasswordResetEmail(
   toEmail: string,
   token: string,
