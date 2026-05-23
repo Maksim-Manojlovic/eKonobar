@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
-import Link from "next/link";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { NotificationsSection } from "@/components/ui/NotificationsSection";
+import DashboardShell from "@/components/layout/DashboardShell";
 import type { Section, AppFilter, JobPost, MyApplication, WaiterShift, InviteItem, PassportData, WaiterReview, ManagedShift } from "./waiter-types";
 import { TIER_BADGE, NEXT_TIER, ENGAGEMENT_LABELS, DIRECTION_LABELS, getInitials, formatSalary, appStatusKey, formatDate, SECTION_TITLES } from "./waiter-types";
 import { Sk, Stars, StatusBadge, ApplyButton, MarketInsights, OverviewSkeleton, AlertsSkeleton, JobsSkeleton, WaiterApplicationsSkeleton, InvitesSkeleton, NAV_ITEMS } from "./waiter-helpers";
@@ -459,7 +459,6 @@ export default function WaiterDashboard() {
   const [shifts, setShifts]             = useState<WaiterShift[]>([]);
   const [invites, setInvites]           = useState<InviteItem[]>([]);
   const [passport, setPassport]         = useState<PassportData | null>(null);
-  const [mobileOpen, setMobileOpen]     = useState(false);
   const [notifUnread, setNotifUnread]   = useState(0);
   const [managedVenue, setManagedVenue] = useState<{ id: string; name: string } | null>(null);
   const [managedShifts, setManagedShifts] = useState<ManagedShift[]>([]);
@@ -507,14 +506,6 @@ export default function WaiterDashboard() {
     });
     await fetchData();
   };
-
-  const spotlightRef = useRef<HTMLDivElement>(null);
-  function handleMouseMove(e: { clientX: number; clientY: number }) {
-    if (spotlightRef.current) {
-      spotlightRef.current.style.background =
-        `radial-gradient(circle 520px at ${e.clientX}px ${e.clientY}px, rgba(249,115,22,0.13) 0%, transparent 70%)`;
-    }
-  }
 
   const userName      = session?.user?.name ?? "Konobar";
   const initials      = getInitials(session?.user?.name);
@@ -574,21 +565,10 @@ export default function WaiterDashboard() {
   );
 
   return (
-    <div className="flex min-h-screen" onMouseMove={handleMouseMove}
-      style={{
-        background: "#120a00",
-        backgroundImage: [
-          "linear-gradient(rgba(180,90,20,0.11) 1px, transparent 1px)",
-          "linear-gradient(90deg, rgba(180,90,20,0.11) 1px, transparent 1px)",
-        ].join(", "),
-        backgroundSize: "40px 40px",
-      }}>
-      {/* Mouse spotlight overlay */}
-      <div ref={spotlightRef} className="pointer-events-none fixed inset-0" style={{ zIndex: 1 }} />
-
-      {/* Payment toast */}
+    <>
+      {/* Payment toast — rendered outside shell to stay above everything */}
       {paymentToast && (
-        <div className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold transition-all ${paymentToast === "success" ? "bg-green-600 text-white" : "bg-neutral-700 text-white"}`}>
+        <div className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold transition-all ${paymentToast === "success" ? "bg-green-600 text-white" : "bg-neutral-700 text-white"}`}>
           {paymentToast === "success" ? (
             <><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12L10 17L19 7" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Passport Pro aktiviran! Pretplata je uspešno pokrenuta.</>
           ) : (
@@ -597,92 +577,34 @@ export default function WaiterDashboard() {
         </div>
       )}
 
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setMobileOpen(false)} />
-      )}
-
-      {/* Mobile drawer */}
-      <div
-        className={`dark-sidebar fixed inset-y-0 left-0 z-50 w-64 flex flex-col md:hidden transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
-        style={{
-          background: "#0e0700",
-          backgroundImage: ["linear-gradient(rgba(180,90,20,0.10) 1px, transparent 1px)", "linear-gradient(90deg, rgba(180,90,20,0.10) 1px, transparent 1px)"].join(", "),
-          backgroundSize: "40px 40px",
-          borderRight: "1px solid rgba(180,90,20,0.18)",
-        }}>
-        <div className="px-5 py-5 border-b border-white/10 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center text-white font-black text-sm">eK</div>
-            <span className="font-black text-white text-base">eKonobar</span>
-          </Link>
-          <button onClick={() => setMobileOpen(false)}
-            className="w-8 h-8 flex items-center justify-center text-white/40 hover:text-white/80">
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-        {navContent(() => setMobileOpen(false))}
-      </div>
-
-      {/* Desktop sidebar */}
-      <aside className="dark-sidebar hidden md:flex flex-col w-60 min-h-screen sticky top-0 h-screen overflow-y-auto"
-        style={{
-          background: "#0e0700",
-          backgroundImage: ["linear-gradient(rgba(180,90,20,0.10) 1px, transparent 1px)", "linear-gradient(90deg, rgba(180,90,20,0.10) 1px, transparent 1px)"].join(", "),
-          backgroundSize: "40px 40px",
-          borderRight: "1px solid rgba(180,90,20,0.18)",
-          position: "relative",
-          zIndex: 2,
-        }}>
-        <div className="px-5 py-5 border-b border-white/10">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center text-white font-black text-sm">eK</div>
-            <span className="font-black text-white text-base">eKonobar</span>
-          </Link>
-        </div>
-        {navContent()}
-      </aside>
-
-      <main className="flex-1 overflow-y-auto" style={{ position: "relative", zIndex: 2 }}>
-        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4"
-          style={{ background: "rgba(18,10,0,0.88)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(180,90,20,0.2)" }}>
-          <div className="flex items-center gap-3">
-            <button className="md:hidden w-9 h-9 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center hover:border-orange-400/50 transition-colors text-white"
-              onClick={() => setMobileOpen(true)}>
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
-            </button>
-            <div>
-              <h1 className="font-black text-white text-lg">{SECTION_TITLES[section]}</h1>
-              <p className="text-xs text-orange-300/60 capitalize">{today}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
+      <DashboardShell
+        sectionTitle={SECTION_TITLES[section]}
+        today={today}
+        navContent={navContent}
+        topRight={
+          <>
             <NotificationBell
               dashboardPath="/dashboard/waiter"
-              onViewAll={() => { setSection("notifications"); }}
+              onViewAll={() => setSection("notifications")}
               onUnreadChange={setNotifUnread}
             />
-            <div className="w-9 h-9 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-300 font-bold text-sm border border-orange-500/30">{initials}</div>
-          </div>
-        </div>
-
-        <div className="p-6 flex flex-col gap-6 max-w-5xl mx-auto">
-          {section === "overview"     && <OverviewSection jobs={jobs} applications={applications} shifts={shifts} userName={userName} verificationTier={session?.user?.verificationTier ?? "BRONZE"} passport={passport} onNavigate={setSection} onApply={handleApply} applying={applying} loading={loading} />}
-          {section === "alerts"       && <AlertsSection jobs={jobs} loading={loading} onApply={handleApply} applying={applying} appliedJobIds={appliedJobIds} />}
-          {section === "jobs"         && <JobsSection jobs={jobs} loading={loading} onApply={handleApply} applying={applying} appliedJobIds={appliedJobIds} />}
-          {section === "applications" && <ApplicationsSection applications={applications} loading={loading} />}
-          {section === "shifts"       && <ShiftsSection shifts={shifts} loading={loading} onRefresh={fetchData} />}
-          {section === "invites"      && <InvitesSection invites={invites} loading={loading} onRespond={handleInviteRespond} />}
-          {section === "reviews"      && <ReviewsSection />}
-          {section === "passport"     && <PassportSection userName={userName} />}
-          {section === "manage"         && managedVenue && <HeadWaiterSmeneSection venue={managedVenue} shifts={managedShifts} loading={loading} onRefresh={fetchData} />}
-          {section === "notifications"  && <NotificationsSection />}
-        </div>
-      </main>
-    </div>
+            <div className="w-9 h-9 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-300 font-bold text-sm border border-orange-500/30">
+              {initials}
+            </div>
+          </>
+        }
+      >
+        {section === "overview"      && <OverviewSection jobs={jobs} applications={applications} shifts={shifts} userName={userName} verificationTier={session?.user?.verificationTier ?? "BRONZE"} passport={passport} onNavigate={setSection} onApply={handleApply} applying={applying} loading={loading} />}
+        {section === "alerts"        && <AlertsSection jobs={jobs} loading={loading} onApply={handleApply} applying={applying} appliedJobIds={appliedJobIds} />}
+        {section === "jobs"          && <JobsSection jobs={jobs} loading={loading} onApply={handleApply} applying={applying} appliedJobIds={appliedJobIds} />}
+        {section === "applications"  && <ApplicationsSection applications={applications} loading={loading} />}
+        {section === "shifts"        && <ShiftsSection shifts={shifts} loading={loading} onRefresh={fetchData} />}
+        {section === "invites"       && <InvitesSection invites={invites} loading={loading} onRespond={handleInviteRespond} />}
+        {section === "reviews"       && <ReviewsSection />}
+        {section === "passport"      && <PassportSection userName={userName} />}
+        {section === "manage"        && managedVenue && <HeadWaiterSmeneSection venue={managedVenue} shifts={managedShifts} loading={loading} onRefresh={fetchData} />}
+        {section === "notifications" && <NotificationsSection />}
+      </DashboardShell>
+    </>
   );
 }

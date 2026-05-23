@@ -3,12 +3,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
-import Link from "next/link";
 import Image from "next/image";
 import { QRCodeCanvas } from "qrcode.react";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { NotificationsSection } from "@/components/ui/NotificationsSection";
 import { useDashboardTour } from "@/hooks/useDashboardTour";
+import DashboardShell, { type DashboardShellHandle } from "@/components/layout/DashboardShell";
 import type { Section, Venue, OwnPost, IncomingApp, WaiterEntry, VenueReview, VenueShift } from "./venue-types";
 import { getInitials, trustDimensions, ENGAGEMENT_LABELS, VENUE_TYPE_LABELS } from "./venue-types";
 import { PostStatusBadge, AppStatusBadge, OverviewSkeleton, ReviewsSkeleton, EmptyVenue } from "./venue-helpers";
@@ -553,11 +553,11 @@ export default function VenueDashboard() {
   const [applications, setApplications] = useState<IncomingApp[]>([]);
   const [shifts, setShifts]             = useState<VenueShift[]>([]);
   const [loading, setLoading]           = useState(true);
-  const [mobileOpen, setMobileOpen]     = useState(false);
   const [inviteTarget, setInviteTarget] = useState<WaiterEntry | null>(null);
   const [notifUnread, setNotifUnread]   = useState(0);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const shellRef = useRef<DashboardShellHandle>(null);
   const [geofenceEnabled, setGeofenceEnabled] = useState(false);
   const [geofenceSaving, setGeofenceSaving]   = useState(false);
 
@@ -594,7 +594,7 @@ export default function VenueDashboard() {
 
   const handleStartTour = useCallback(() => {
     if (window.innerWidth < 768) {
-      setMobileOpen(true);
+      shellRef.current?.openMobile();
       setTimeout(startTour, 320);
     } else {
       startTour();
@@ -630,14 +630,6 @@ export default function VenueDashboard() {
     });
     await fetchData();
   };
-
-  const spotlightRef = useRef<HTMLDivElement>(null);
-  function handleMouseMove(e: React.MouseEvent) {
-    if (spotlightRef.current) {
-      spotlightRef.current.style.background =
-        `radial-gradient(circle 520px at ${e.clientX}px ${e.clientY}px, rgba(249,115,22,0.13) 0%, transparent 70%)`;
-    }
-  }
 
   const userName        = session?.user?.name ?? venue?.name ?? "Lokal";
   const initials        = getInitials(userName);
@@ -691,87 +683,19 @@ export default function VenueDashboard() {
 
   return (
     <>
-    <div className="flex min-h-screen" onMouseMove={handleMouseMove}
-      style={{
-        background: "#120a00",
-        backgroundImage: [
-          "linear-gradient(rgba(180,90,20,0.11) 1px, transparent 1px)",
-          "linear-gradient(90deg, rgba(180,90,20,0.11) 1px, transparent 1px)",
-        ].join(", "),
-        backgroundSize: "40px 40px",
-      }}>
-      {/* Mouse spotlight overlay */}
-      <div ref={spotlightRef} className="pointer-events-none fixed inset-0" style={{ zIndex: 1 }} />
-
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setMobileOpen(false)} />
-      )}
-
-      {/* Mobile drawer */}
-      <div
-        id="tour-sidebar"
-        className={`dark-sidebar fixed inset-y-0 left-0 z-50 w-64 flex flex-col md:hidden transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
-        style={{
-          background: "#0e0700",
-          backgroundImage: ["linear-gradient(rgba(180,90,20,0.10) 1px, transparent 1px)", "linear-gradient(90deg, rgba(180,90,20,0.10) 1px, transparent 1px)"].join(", "),
-          backgroundSize: "40px 40px",
-          borderRight: "1px solid rgba(180,90,20,0.18)",
-        }}>
-        <div className="px-5 py-5 border-b border-white/10 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center text-white font-black text-sm">eK</div>
-            <span className="font-black text-white text-base">eKonobar</span>
-          </Link>
-          <button onClick={() => setMobileOpen(false)}
-            className="w-8 h-8 flex items-center justify-center text-white/40 hover:text-white/80">
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-        {navContent(() => setMobileOpen(false), "mob-tour")}
-      </div>
-
-      {/* Desktop sidebar */}
-      <aside id="tour-sidebar-desktop" className="dark-sidebar hidden md:flex flex-col w-60 min-h-screen sticky top-0 h-screen overflow-y-auto"
-        style={{
-          background: "#0e0700",
-          backgroundImage: ["linear-gradient(rgba(180,90,20,0.10) 1px, transparent 1px)", "linear-gradient(90deg, rgba(180,90,20,0.10) 1px, transparent 1px)"].join(", "),
-          backgroundSize: "40px 40px",
-          borderRight: "1px solid rgba(180,90,20,0.18)",
-          position: "relative",
-          zIndex: 2,
-        }}>
-        <div className="px-5 py-5 border-b border-white/10">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center text-white font-black text-sm">eK</div>
-            <span className="font-black text-white text-base">eKonobar</span>
-          </Link>
-        </div>
-        {navContent()}
-      </aside>
-
-      <main className="flex-1 overflow-y-auto" style={{ position: "relative", zIndex: 2 }}>
-        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4"
-          style={{ background: "rgba(18,10,0,0.88)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(180,90,20,0.2)" }}>
-          <div className="flex items-center gap-3">
-            <button className="md:hidden w-9 h-9 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center hover:border-orange-400/50 transition-colors text-white"
-              onClick={() => setMobileOpen(true)}>
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
-            </button>
-            <div>
-              <h1 className="font-black text-white text-lg">{SECTION_TITLES[section]}</h1>
-              <p className="text-xs text-orange-300/60 capitalize">{today}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
+      <DashboardShell
+        ref={shellRef}
+        sectionTitle={SECTION_TITLES[section]}
+        today={today}
+        navContent={navContent}
+        sidebarId="tour-sidebar-desktop"
+        mobileSidebarId="tour-sidebar"
+        topRight={
+          <>
             <div id="tour-notifications">
               <NotificationBell
                 dashboardPath="/dashboard/venue"
-                onViewAll={() => { setSection("notifications"); }}
+                onViewAll={() => setSection("notifications")}
                 onUnreadChange={setNotifUnread}
               />
             </div>
@@ -817,33 +741,30 @@ export default function VenueDashboard() {
                 </div>
               )}
             </div>
-          </div>
-        </div>
+          </>
+        }
+      >
+        {section === "overview"      && <OverviewSection venue={venue} posts={posts} applications={applications} loading={loading} onNavigate={setSection} geofenceEnabled={geofenceEnabled} geofenceSaving={geofenceSaving} onGeofenceToggle={toggleGeofence} onStartTour={handleStartTour} />}
+        {section === "posts"         && <PostsSection posts={posts} loading={loading} onNavigate={setSection} onStatusChange={handlePostStatusChange} />}
+        {section === "new-post"      && <NewPostSection venue={venue} onSuccess={() => { fetchData(); setSection("posts"); }} onBack={() => setSection("posts")} />}
+        {section === "smene"         && <VenueSmeneSection venue={venue} shifts={shifts} loading={loading} acceptedWaiters={acceptedWaiters} onRefresh={fetchData} />}
+        {section === "applications"  && <ApplicationsSection applications={applications} loading={loading} onStatusChange={handleStatusChange} />}
+        {section === "waiters"       && <WaitersSection applications={applications} loading={loading} onInvite={setInviteTarget} venue={venue} />}
+        {section === "discover"      && <DiscoverSection posts={posts} onInvite={setInviteTarget} />}
+        {section === "reviews"       && <ReviewsSection venue={venue} />}
+        {section === "qr-review"     && <QrReviewSection venue={venue} />}
+        {section === "profile"       && <ProfileSection venue={venue} loading={loading} onVenueCreated={fetchData} geofenceEnabled={geofenceEnabled} geofenceSaving={geofenceSaving} onGeofenceToggle={toggleGeofence} onIsActiveToggle={(newIsActive) => setVenue(v => v ? { ...v, isActive: newIsActive } : v)} />}
+        {section === "notifications" && <NotificationsSection />}
+      </DashboardShell>
 
-        <div className="p-6 flex flex-col gap-6 max-w-5xl mx-auto">
-          {section === "overview"     && <OverviewSection venue={venue} posts={posts} applications={applications} loading={loading} onNavigate={setSection} geofenceEnabled={geofenceEnabled} geofenceSaving={geofenceSaving} onGeofenceToggle={toggleGeofence} onStartTour={handleStartTour} />}
-          {section === "posts"        && <PostsSection posts={posts} loading={loading} onNavigate={setSection} onStatusChange={handlePostStatusChange} />}
-          {section === "new-post"     && <NewPostSection venue={venue} onSuccess={() => { fetchData(); setSection("posts"); }} onBack={() => setSection("posts")} />}
-          {section === "smene"        && <VenueSmeneSection venue={venue} shifts={shifts} loading={loading} acceptedWaiters={acceptedWaiters} onRefresh={fetchData} />}
-          {section === "applications" && <ApplicationsSection applications={applications} loading={loading} onStatusChange={handleStatusChange} />}
-          {section === "waiters"      && <WaitersSection applications={applications} loading={loading} onInvite={setInviteTarget} venue={venue} />}
-          {section === "discover"     && <DiscoverSection posts={posts} onInvite={setInviteTarget} />}
-          {section === "reviews"      && <ReviewsSection venue={venue} />}
-          {section === "qr-review"   && <QrReviewSection venue={venue} />}
-          {section === "profile"        && <ProfileSection venue={venue} loading={loading} onVenueCreated={fetchData} geofenceEnabled={geofenceEnabled} geofenceSaving={geofenceSaving} onGeofenceToggle={toggleGeofence} onIsActiveToggle={(newIsActive) => setVenue(v => v ? { ...v, isActive: newIsActive } : v)} />}
-          {section === "notifications"  && <NotificationsSection />}
-        </div>
-      </main>
-    </div>
-
-    {inviteTarget && (
-      <InviteModal
-        waiter={inviteTarget}
-        posts={posts}
-        onClose={() => setInviteTarget(null)}
-        onSent={() => setInviteTarget(null)}
-      />
-    )}
+      {inviteTarget && (
+        <InviteModal
+          waiter={inviteTarget}
+          posts={posts}
+          onClose={() => setInviteTarget(null)}
+          onSent={() => setInviteTarget(null)}
+        />
+      )}
     </>
   );
 }
