@@ -99,8 +99,14 @@ export function ShiftsSection({ shifts, loading, onRefresh }: { shifts: WaiterSh
 
   useEffect(() => {
     if (tab === "open") {
+      // Initial load with spinner
       setTabLoading(true);
       fetch("/api/shifts?view=open").then(r => r.ok ? r.json() : []).then(setOpenShifts).finally(() => setTabLoading(false));
+      // Silent 30s auto-refresh — no spinner on subsequent polls
+      const id = setInterval(() => {
+        fetch("/api/shifts?view=open").then(r => r.ok ? r.json() : []).then(setOpenShifts).catch(() => {});
+      }, 30_000);
+      return () => clearInterval(id);
     }
     if (tab === "swaps") {
       setTabLoading(true);

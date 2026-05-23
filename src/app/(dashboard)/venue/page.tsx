@@ -579,6 +579,14 @@ export default function VenueDashboard() {
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { if (venue) setGeofenceEnabled(venue.geofenceEnabled); }, [venue]);
 
+  // Auto-refresh shifts every 30s when the smene section is active
+  // Keeps pending clock-ins and marketplace claims visible without manual refresh
+  useEffect(() => {
+    if (section !== "smene") return;
+    const id = setInterval(fetchData, 30_000);
+    return () => clearInterval(id);
+  }, [section, fetchData]);
+
   useEffect(() => {
     if (!profileMenuOpen) return;
     const handler = (e: MouseEvent) => {
