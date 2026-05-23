@@ -1,13 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withOptionalAuth, withRole } from "@/lib/with-role";
 import { dbRaw } from "@/lib/db";
 import { ZoneType } from "@prisma/client";
 import { refreshAllVenueZoneCaches } from "@/lib/analytics";
 
 // GET — list all zones (public for map, admin sees inactive too)
-export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+export const GET = withOptionalAuth(async (req, _ctx, session) => {
   const { searchParams } = new URL(req.url);
   const isAdmin = session?.user.role === "ADMIN";
 
@@ -23,15 +21,10 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(zones);
-}
+});
 
 // POST — admin creates new zone
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const POST = withRole("ADMIN", async (req) => {
   const body = await req.json();
   const {
     name, zoneType, description, geoJson,
@@ -64,4 +57,4 @@ export async function POST(req: NextRequest) {
   refreshAllVenueZoneCaches().catch(console.error);
 
   return NextResponse.json(zone, { status: 201 });
-}
+});

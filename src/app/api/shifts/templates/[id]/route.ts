@@ -1,16 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { getManagedTemplate } from "@/lib/shift-auth";
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user.role !== "VENUE_OWNER" && session.user.role !== "WAITER")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+type Ctx = { params: Promise<{ id: string }> };
 
-  const { id } = await params;
+export const PATCH = withRole<Ctx>(["VENUE_OWNER", "WAITER"], async (req, ctx, session) => {
+  const { id } = await ctx.params;
   const existing = await getManagedTemplate(id, session.user.id, session.user.role);
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -33,18 +29,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   });
 
   return NextResponse.json(template);
-}
+});
 
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user.role !== "VENUE_OWNER" && session.user.role !== "WAITER")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
+export const DELETE = withRole<Ctx>(["VENUE_OWNER", "WAITER"], async (_req, ctx, session) => {
+  const { id } = await ctx.params;
   const existing = await getManagedTemplate(id, session.user.id, session.user.role);
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await db.shiftTemplate.delete({ where: { id } });
   return NextResponse.json({ ok: true });
-}
+});

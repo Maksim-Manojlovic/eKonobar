@@ -1,12 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withOptionalAuth, withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { VenueType } from "@prisma/client";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-
+export const GET = withOptionalAuth(async (_req, _ctx, session) => {
   if (session?.user.role === "VENUE_OWNER") {
     const venues = await db.venue.findMany({
       where: { ownerId: session.user.id },
@@ -30,14 +27,9 @@ export async function GET() {
     orderBy: { trustScore: "desc" },
   });
   return NextResponse.json(venues);
-}
+});
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "VENUE_OWNER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const POST = withRole("VENUE_OWNER", async (req, _ctx, session) => {
   const body = await req.json();
   const { name, address, municipality, venueType, latitude, longitude, capacity, description, phone, website, instagram } = body;
 
@@ -67,4 +59,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(venue, { status: 201 });
-}
+});

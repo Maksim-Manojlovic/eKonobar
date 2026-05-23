@@ -1,14 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth, withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { dbRaw } from "@/lib/db";
 
 // GET — waiter: own status; admin: all pending submissions
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+export const GET = withAuth(async (_req, _ctx, session) => {
   if (session.user.role === "ADMIN") {
     const pending = await dbRaw.sanitaryBook.findMany({
       where: { status: "PENDING" },
@@ -31,15 +27,10 @@ export async function GET() {
     where: { userId: session.user.id },
   });
   return NextResponse.json(book ?? null);
-}
+});
 
 // POST — waiter submits (or re-submits) their sanitary book URL
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "WAITER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const POST = withRole("WAITER", async (req, _ctx, session) => {
   const { fileUrl, expiryDate } = await req.json();
 
   if (!fileUrl || typeof fileUrl !== "string") {
@@ -65,4 +56,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(book, { status: 201 });
-}
+});

@@ -1,17 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { VenueType } from "@prisma/client";
 
 const PAGE_SIZE = 25;
 
-export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const GET = withRole("ADMIN", async (req) => {
   const { searchParams } = new URL(req.url);
   const page     = Math.max(1, Number(searchParams.get("page") ?? "1"));
   const search   = searchParams.get("search")?.trim() ?? "";
@@ -62,4 +56,4 @@ export async function GET(req: NextRequest) {
     page,
     pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
   });
-}
+});

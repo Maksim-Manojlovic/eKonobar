@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/with-role";
 import cloudinary from "@/lib/cloudinary";
 import logger from "@/lib/logger";
 
@@ -23,12 +22,7 @@ const UPLOAD_CONFIGS = {
   },
 };
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const POST = withAuth(async (req) => {
   const formData = await req.formData();
   const file = formData.get("file");
   const type = (formData.get("type") as string) ?? "avatar";
@@ -67,4 +61,4 @@ export async function POST(req: NextRequest) {
     logger.error({ err, type, fileName: file.name }, "POST /api/upload");
     return NextResponse.json({ error: "Upload nije uspeo" }, { status: 500 });
   }
-}
+});

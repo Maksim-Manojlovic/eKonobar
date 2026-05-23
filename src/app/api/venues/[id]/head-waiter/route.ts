@@ -1,16 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 
-// PUT — venue owner appoints a head waiter
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "VENUE_OWNER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+type Ctx = { params: Promise<{ id: string }> };
 
-  const { id: venueId } = await params;
+// PUT — venue owner appoints a head waiter
+export const PUT = withRole<Ctx>("VENUE_OWNER", async (req, ctx, session) => {
+  const { id: venueId } = await ctx.params;
   const { waiterId } = await req.json();
   if (!waiterId) return NextResponse.json({ error: "waiterId required" }, { status: 400 });
 
@@ -31,16 +27,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   });
 
   return NextResponse.json(updated);
-}
+});
 
 // DELETE — venue owner removes the current head waiter
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "VENUE_OWNER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id: venueId } = await params;
+export const DELETE = withRole<Ctx>("VENUE_OWNER", async (_req, ctx, session) => {
+  const { id: venueId } = await ctx.params;
 
   const venue = await db.venue.findFirst({ where: { id: venueId, ownerId: session.user.id } });
   if (!venue) return NextResponse.json({ error: "Lokal nije pronađen" }, { status: 404 });
@@ -52,4 +43,4 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   });
 
   return NextResponse.json(updated);
-}
+});

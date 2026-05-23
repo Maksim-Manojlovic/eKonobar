@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { createPaymentSession } from "@/lib/monri";
 import { PassportTier } from "@prisma/client";
@@ -11,12 +10,7 @@ const TIER_AMOUNT_RSD: Record<Exclude<PassportTier, "FREE">, number> = {
   PRO_PLUS: 49000,  // 490.00 RSD in minor units
 };
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "WAITER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const POST = withRole("WAITER", async (req, _ctx, session) => {
   const body = await req.json();
   const { tier } = body as { tier: PassportTier };
 
@@ -54,4 +48,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({ paymentUrl: paymentSession.paymentUrl });
-}
+});

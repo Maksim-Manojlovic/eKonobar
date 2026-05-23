@@ -54,10 +54,10 @@ describe("PATCH /api/shifts/assignments/[id]/approve-clockin", () => {
     vi.mocked(db.shiftAssignment.update).mockResolvedValue({ id: ASSIGN_ID } as never);
   });
 
-  it("returns 403 when unauthenticated", async () => {
+  it("returns 401 when unauthenticated", async () => {
     vi.mocked(getServerSession).mockResolvedValue(null);
     const res = await PATCH(makeReq({ action: "approve" }), makeCtx());
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("returns 403 when role is not VENUE_OWNER", async () => {

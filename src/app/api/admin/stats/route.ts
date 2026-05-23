@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { unstable_cache } from "next/cache";
-import { authOptions } from "@/lib/auth";
+import { withRole } from "@/lib/with-role";
 import { dbRaw } from "@/lib/db";
 
 async function fetchStats() {
@@ -96,12 +95,7 @@ async function fetchStats() {
 // and 13 parallel DB queries on every page load is expensive at scale.
 const getCachedStats = unstable_cache(fetchStats, ["admin-stats"], { revalidate: 60 });
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const GET = withRole("ADMIN", async () => {
   const stats = await getCachedStats();
   return NextResponse.json(stats);
-}
+});

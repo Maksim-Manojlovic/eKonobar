@@ -68,10 +68,10 @@ describe("PATCH /api/shifts/[id]", () => {
     expect(vi.mocked(db.shift.update)).toHaveBeenCalledOnce();
   });
 
-  it("unauthenticated → 403", async () => {
+  it("unauthenticated → 401", async () => {
     mockNoSession();
     const res = await PATCH(makeReq({ title: "x" }), makeCtx());
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("HEADHUNTER role → 403", async () => {
@@ -176,13 +176,13 @@ describe("DELETE /api/shifts/[id]", () => {
     expect(json.ok).toBe(true);
   });
 
-  it("unauthenticated → 403", async () => {
+  it("unauthenticated → 401", async () => {
     mockNoSession();
     const res = await DELETE(
       new NextRequest(`http://localhost/api/shifts/${SHIFT_ID}`, { method: "DELETE" }),
       makeCtx(),
     );
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("shift not found → 404", async () => {

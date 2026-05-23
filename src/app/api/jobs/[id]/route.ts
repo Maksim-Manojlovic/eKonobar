@@ -1,14 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withOptionalAuth, withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { id } = await params;
-  const session = await getServerSession(authOptions);
+type Ctx = { params: Promise<{ id: string }> };
+
+export const GET = withOptionalAuth<Ctx>(async (_req, ctx, session) => {
+  const { id } = await ctx.params;
 
   const job = await db.jobPost.findUnique({
     where: { id },
@@ -48,18 +45,10 @@ export async function GET(
   }
 
   return NextResponse.json({ ...job, hasApplied });
-}
+});
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "VENUE_OWNER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
+export const PATCH = withRole<Ctx>("VENUE_OWNER", async (req, ctx, session) => {
+  const { id } = await ctx.params;
   const body = await req.json();
   const { status } = body as { status?: string };
 
@@ -93,4 +82,4 @@ export async function PATCH(
   });
 
   return NextResponse.json(updated);
-}
+});

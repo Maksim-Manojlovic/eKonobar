@@ -1,12 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/with-role";
 import { db } from "@/lib/db";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+export const GET = withAuth(async (_req, _ctx, session) => {
   const [notifications, unreadCount] = await Promise.all([
     db.notification.findMany({
       where: { userId: session.user.id },
@@ -19,12 +15,9 @@ export async function GET() {
   ]);
 
   return NextResponse.json({ notifications, unreadCount });
-}
+});
 
-export async function PATCH(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+export const PATCH = withAuth(async (req, _ctx, session) => {
   const body = await req.json().catch(() => ({}));
   const ids: string[] | undefined = (body as { ids?: string[] }).ids;
 
@@ -42,4 +35,4 @@ export async function PATCH(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true });
-}
+});

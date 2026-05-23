@@ -1,18 +1,11 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { withRole } from "@/lib/with-role";
 import { dbRaw } from "@/lib/db";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const GET = withRole("ADMIN", async () => {
   const now = new Date();
 
   const [topWaiters, topVenues, revenueByDay] = await Promise.all([
-    // Top 5 waiters by passport score
     dbRaw.waiterPassport.findMany({
       where: { score: { gt: 0 } },
       orderBy: { score: "desc" },
@@ -26,8 +19,6 @@ export async function GET() {
         user: { select: { id: true, name: true, image: true, verificationTier: true } },
       },
     }),
-
-    // Top 5 venues by trust score
     dbRaw.venueTrustScore.findMany({
       where: { composite: { gt: 0 } },
       orderBy: { composite: "desc" },
@@ -38,8 +29,6 @@ export async function GET() {
         venue: { select: { id: true, name: true, municipality: true, logo: true } },
       },
     }),
-
-    // Daily revenue for last 30 days (SUCCESS payments)
     dbRaw.passportPayment.findMany({
       where: {
         status: "SUCCESS",
@@ -50,13 +39,11 @@ export async function GET() {
     }),
   ]);
 
-  // Aggregate daily revenue
   const dayMap: Record<string, number> = {};
   for (const p of revenueByDay) {
     const day = p.createdAt.toISOString().slice(0, 10);
     dayMap[day] = (dayMap[day] ?? 0) + Math.round(p.amountRsd / 100);
   }
-  // Fill all 30 days (0 for days with no payments)
   const days: { date: string; revenue: number }[] = [];
   for (let i = 29; i >= 0; i--) {
     const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
@@ -86,4 +73,4 @@ export async function GET() {
     })),
     revenue: days,
   });
-}
+});

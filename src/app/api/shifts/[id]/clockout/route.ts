@@ -1,16 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { computeScheduledEnd } from "@/lib/shift-utils";
 
-export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "WAITER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
+export const POST = withRole<{ params: Promise<{ id: string }> }>("WAITER", async (_req, ctx, session) => {
+  const { id } = await ctx.params;
 
   const shift = await db.shift.findUnique({
     where: { id },
@@ -40,4 +34,4 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   });
 
   return NextResponse.json(updated);
-}
+});

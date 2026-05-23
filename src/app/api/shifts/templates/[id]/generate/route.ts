@@ -1,16 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { computeScheduledStart } from "@/lib/shift-utils";
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user.role !== "VENUE_OWNER" && session.user.role !== "WAITER")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
+export const POST = withRole<{ params: Promise<{ id: string }> }>(["VENUE_OWNER", "WAITER"], async (req, ctx, session) => {
+  const { id } = await ctx.params;
   const body = await req.json();
   const { fromDate, toDate } = body; // "YYYY-MM-DD"
 
@@ -72,19 +66,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   await db.shift.createMany({
     data: toCreate.map(dateStr => ({
-      venueId:       template.venueId,
-      templateId:    template.id,
-      title:         template.name,
-      date:          new Date(dateStr),
-      startTime:     template.startTime,
-      endTime:       template.endTime,
+      venueId:        template.venueId,
+      templateId:     template.id,
+      title:          template.name,
+      date:           new Date(dateStr),
+      startTime:      template.startTime,
+      endTime:        template.endTime,
       scheduledStart: computeScheduledStart(dateStr, template.startTime),
-      role:          template.role ?? undefined,
-      requiredCount: template.requiredCount,
-      pay:           template.pay ?? undefined,
-      status:        "OPEN",
+      role:           template.role ?? undefined,
+      requiredCount:  template.requiredCount,
+      pay:            template.pay ?? undefined,
+      status:         "OPEN",
     })),
   });
 
   return NextResponse.json({ created: toCreate.length, skipped: matchingDates.length - toCreate.length });
-}
+});

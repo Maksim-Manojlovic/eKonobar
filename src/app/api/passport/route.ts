@@ -1,15 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import logger from "@/lib/logger";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "WAITER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const GET = withRole("WAITER", async (_req, _ctx, session) => {
   const [passport, recentReviews] = await Promise.all([
     db.waiterPassport.findUnique({
       where: { userId: session.user.id },
@@ -41,14 +35,9 @@ export async function GET() {
 
   if (!passport) return NextResponse.json(null);
   return NextResponse.json({ ...passport, recentReviews });
-}
+});
 
-export async function PUT(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "WAITER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const PUT = withRole("WAITER", async (req, _ctx, session) => {
   const body = await req.json();
   const { bio, skills, languages, yearsExperience, currentlyAvailable, profilePhoto, galleryPhotos, venueTypePreferences } = body;
 
@@ -104,4 +93,4 @@ export async function PUT(req: NextRequest) {
     logger.error({ err }, "PUT /api/passport");
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
-}
+});

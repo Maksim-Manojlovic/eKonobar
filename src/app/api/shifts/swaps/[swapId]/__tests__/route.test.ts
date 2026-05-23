@@ -68,10 +68,10 @@ describe("PATCH /api/shifts/swaps/[swapId]", () => {
     vi.mocked(db.$transaction).mockImplementation((ops: any) => Promise.all(ops));
   });
 
-  it("returns 403 when unauthenticated", async () => {
+  it("returns 401 when unauthenticated", async () => {
     vi.mocked(getServerSession).mockResolvedValue(null);
     const res = await PATCH(makeReq({ action: "ACCEPTED" }), makeCtx());
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("returns 403 when role is HEADHUNTER", async () => {

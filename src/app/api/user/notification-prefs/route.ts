@@ -1,24 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/with-role";
 import { db } from "@/lib/db";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+export const GET = withAuth(async (_req, _ctx, session) => {
   const user = await db.user.findUnique({
     where: { id: session.user.id },
     select: { phone: true, smsOptIn: true, waOptIn: true },
   });
 
   return NextResponse.json(user ?? { phone: null, smsOptIn: false, waOptIn: false });
-}
+});
 
-export async function PATCH(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+export const PATCH = withAuth(async (req, _ctx, session) => {
   const body = await req.json();
   const data: { phone?: string | null; smsOptIn?: boolean; waOptIn?: boolean } = {};
 
@@ -36,4 +29,4 @@ export async function PATCH(req: NextRequest) {
   });
 
   return NextResponse.json(user);
-}
+});

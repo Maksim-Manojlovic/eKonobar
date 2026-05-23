@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+﻿import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ authOptions: {} }));
@@ -45,10 +45,10 @@ describe("GET /api/passport/subscription", () => {
     expect(res.status).toBe(403);
   });
 
-  it("unauthenticated → 403", async () => {
+  it("unauthenticated → 401", async () => {
     mockNoSession();
     const res = await GET();
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("passport not found → 404", async () => {

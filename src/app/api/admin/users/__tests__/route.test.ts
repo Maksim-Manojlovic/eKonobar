@@ -56,10 +56,10 @@ describe("GET /api/admin/users", () => {
     expect(json.pages).toBe(1);
   });
 
-  it("non-ADMIN → 401", async () => {
+  it("non-ADMIN → 403", async () => {
     mockSession("VENUE_OWNER", "o-1");
     const res = await GET(makeReq());
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {

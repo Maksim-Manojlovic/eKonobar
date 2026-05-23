@@ -1,20 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { dbRaw } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 
 // PATCH — admin approves or rejects a submission
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
+export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", async (req, ctx, session) => {
+  const { id } = await ctx.params;
   const { action, rejectReason } = await req.json(); // action: "approve" | "reject"
 
   if (action !== "approve" && action !== "reject") {
@@ -70,4 +61,4 @@ export async function PATCH(
   );
 
   return NextResponse.json(updated);
-}
+});

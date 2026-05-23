@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { withAuth } from "@/lib/with-role";
 import { db } from "@/lib/db";
 
 export const dynamic    = "force-dynamic";
@@ -16,12 +15,7 @@ export const maxDuration = 300;
 // X-Accel-Buffering: no — disables nginx/Vercel edge buffering so
 // events are not held until the buffer fills.
 
-export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return new Response("Unauthorized", { status: 401 });
-  }
-
+export const GET = withAuth(async (req, _ctx, session) => {
   const userId  = session.user.id;
   const encoder = new TextEncoder();
 
@@ -72,4 +66,4 @@ export async function GET(req: Request) {
       "X-Accel-Buffering": "no",
     },
   });
-}
+});

@@ -1,3 +1,4 @@
+import { NextRequest } from "next/server";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
@@ -24,6 +25,7 @@ function mockSession(role = "ADMIN") {
 function mockNoSession() {
   vi.mocked(getServerSession).mockResolvedValue(null);
 }
+function makeReq() {  return new NextRequest("http://localhost");}
 
 function setupDefaultMocks() {
   vi.mocked(dbRaw.waiterPassport.findMany).mockResolvedValue([
@@ -56,24 +58,24 @@ describe("GET /api/admin/leaderboard", () => {
   });
 
   it("ADMIN gets leaderboard → 200", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
   });
 
-  it("non-ADMIN → 401", async () => {
+  it("non-ADMIN → 403", async () => {
     mockSession("VENUE_OWNER");
-    const res = await GET();
-    expect(res.status).toBe(401);
+    const res = await GET(makeReq());
+    expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(401);
   });
 
   it("response has topWaiters, topVenues, revenue keys", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     expect(json).toHaveProperty("topWaiters");
     expect(json).toHaveProperty("topVenues");
@@ -81,13 +83,13 @@ describe("GET /api/admin/leaderboard", () => {
   });
 
   it("waiter score rounded to integer", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     expect(json.topWaiters[0].score).toBe(87);
   });
 
   it("waiter isActive true when subscription in future", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     expect(json.topWaiters[0].isActive).toBe(true);
   });
@@ -103,25 +105,25 @@ describe("GET /api/admin/leaderboard", () => {
         user: { id: "w-2", name: "Ana", image: null, verificationTier: "UNVERIFIED" },
       },
     ] as never);
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     expect(json.topWaiters[0].isActive).toBe(false);
   });
 
   it("venue score rounded to integer", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     expect(json.topVenues[0].score).toBe(92);
   });
 
   it("revenue array has 30 entries", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     expect(json.revenue).toHaveLength(30);
   });
 
   it("revenue entries have date and revenue fields", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     const entry = json.revenue[0];
     expect(entry).toHaveProperty("date");
@@ -131,13 +133,13 @@ describe("GET /api/admin/leaderboard", () => {
 
   it("no payments → all revenue days are 0", async () => {
     vi.mocked(dbRaw.passportPayment.findMany).mockResolvedValue([]);
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     expect(json.revenue.every((d: { revenue: number }) => d.revenue === 0)).toBe(true);
   });
 
   it("payment amount converted ÷100", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     const today = new Date().toISOString().slice(0, 10);
     const todayEntry = json.revenue.find((d: { date: string }) => d.date === today);

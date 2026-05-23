@@ -1,14 +1,10 @@
-import { NextResponse }    from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions }      from "@/lib/auth";
-import { db }               from "@/lib/db";
+import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/with-role";
+import { db } from "@/lib/db";
 
 const ALLOWED: string[] = ["WAITER", "VENUE_OWNER", "HEADHUNTER"];
 
-export async function PATCH(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+export const PATCH = withAuth(async (req, _ctx, session) => {
   const { role } = await req.json();
   if (!role || !ALLOWED.includes(role)) {
     return NextResponse.json({ error: "Nevažeća uloga." }, { status: 400 });
@@ -20,4 +16,4 @@ export async function PATCH(req: Request) {
   });
 
   return NextResponse.json({ ok: true, role });
-}
+});

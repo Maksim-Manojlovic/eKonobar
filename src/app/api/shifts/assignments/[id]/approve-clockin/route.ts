@@ -1,16 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { notify } from "@/lib/notify";
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "VENUE_OWNER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
+export const PATCH = withRole<{ params: Promise<{ id: string }> }>("VENUE_OWNER", async (req, ctx, session) => {
+  const { id } = await ctx.params;
   const { action } = await req.json(); // "approve" | "reject"
   if (action !== "approve" && action !== "reject") {
     return NextResponse.json({ error: "action mora biti 'approve' ili 'reject'" }, { status: 400 });
@@ -78,4 +72,4 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   ).catch(console.error);
 
   return NextResponse.json({ ok: true });
-}
+});

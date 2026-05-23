@@ -1,15 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "WAITER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
+export const PATCH = withRole<{ params: Promise<{ id: string }> }>("WAITER", async (req, ctx, session) => {
+  const { id } = await ctx.params;
   const invite = await db.invite.findFirst({
     where: { id, recipientId: session.user.id, type: "JOB_INVITE" },
   });
@@ -39,4 +33,4 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     console.error("[PATCH /api/invites/[id]]", err);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
-}
+});

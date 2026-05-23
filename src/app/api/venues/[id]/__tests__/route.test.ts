@@ -96,10 +96,10 @@ describe("PATCH /api/venues/[id]", () => {
     expect(vi.mocked(db.venue.update)).toHaveBeenCalledOnce();
   });
 
-  it("unauthenticated → 403", async () => {
+  it("unauthenticated → 401", async () => {
     mockNoSession();
     const res = await PATCH(makeReq({ description: "x" }), makeCtx());
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("non-VENUE_OWNER role → 403", async () => {

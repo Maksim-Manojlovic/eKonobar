@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+﻿import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
@@ -78,10 +78,10 @@ describe("GET /api/passport", () => {
     expect(res.status).toBe(403);
   });
 
-  it("unauthenticated → 403", async () => {
+  it("unauthenticated → 401", async () => {
     mockNoSession();
     const res = await GET();
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 });
 
@@ -108,10 +108,10 @@ describe("PUT /api/passport", () => {
     expect(res.status).toBe(403);
   });
 
-  it("unauthenticated → 403", async () => {
+  it("unauthenticated → 401", async () => {
     mockNoSession();
     const res = await PUT(makePutReq({ bio: "x" }));
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("profilePhoto triggers user.image sync", async () => {

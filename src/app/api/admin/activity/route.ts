@@ -1,14 +1,8 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { withRole } from "@/lib/with-role";
 import { dbRaw } from "@/lib/db";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const GET = withRole("ADMIN", async () => {
   const [users, payments, reviews, applications] = await Promise.all([
     dbRaw.user.findMany({
       where: { deletedAt: null },
@@ -77,4 +71,4 @@ export async function GET() {
   events.sort((a, b) => b.ts.getTime() - a.ts.getTime());
 
   return NextResponse.json(events.slice(0, 25));
-}
+});

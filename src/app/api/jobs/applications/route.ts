@@ -1,14 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth, withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { notify } from "@/lib/notify";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+export const GET = withAuth(async (_req, _ctx, session) => {
   if (session.user.role === "WAITER") {
     const applications = await db.jobApplication.findMany({
       where: { waiterId: session.user.id },
@@ -47,14 +43,9 @@ export async function GET() {
   }
 
   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-}
+});
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "WAITER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const POST = withRole("WAITER", async (req, _ctx, session) => {
   const allowed = await checkRateLimit(session.user.id, "apply_job", 10);
   if (!allowed) {
     return NextResponse.json({ error: "Previše prijava. Pokušaj ponovo za sat vremena." }, { status: 429 });
@@ -122,4 +113,4 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json(application, { status: 201 });
-}
+});

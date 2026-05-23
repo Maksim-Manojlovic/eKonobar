@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+﻿import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
@@ -84,10 +84,10 @@ describe("GET /api/waiters", () => {
     expect(res.status).toBe(403);
   });
 
-  it("unauthenticated → 403", async () => {
+  it("unauthenticated → 401", async () => {
     mockNoSession();
     const res = await GET(makeReq());
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("available=true filter applied to passportFilter", async () => {

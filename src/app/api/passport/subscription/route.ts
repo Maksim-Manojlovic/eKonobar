@@ -1,14 +1,8 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "WAITER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const GET = withRole("WAITER", async (_req, _ctx, session) => {
   const passport = await db.waiterPassport.findUnique({
     where: { userId: session.user.id },
     select: { passportTier: true, subscriptionExpiresAt: true },
@@ -30,4 +24,4 @@ export async function GET() {
       ? Math.ceil((passport.subscriptionExpiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
       : 0,
   });
-}
+});

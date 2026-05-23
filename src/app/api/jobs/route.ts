@@ -1,13 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { withRole } from "@/lib/with-role";
+import { NextResponse } from "next/server";
+import { withOptionalAuth, withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { EngagementType, TipSystem } from "@prisma/client";
 import { getEffectiveTier } from "@/lib/passport-tier";
 
-export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+export const GET = withOptionalAuth(async (req, _ctx, session) => {
   const { searchParams } = new URL(req.url);
 
   // Venue owner sees only their own posts (all statuses)
@@ -74,7 +71,7 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(posts);
-}
+});
 
 export const POST = withRole("VENUE_OWNER", async (req, _ctx, session) => {
   const body = await req.json();

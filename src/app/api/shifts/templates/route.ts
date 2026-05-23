@@ -1,14 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user.role !== "VENUE_OWNER" && session.user.role !== "WAITER")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const GET = withRole(["VENUE_OWNER", "WAITER"], async (_req, _ctx, session) => {
   const venueFilter = session.user.role === "VENUE_OWNER"
     ? { venue: { ownerId: session.user.id } }
     : { venue: { headWaiterId: session.user.id } };
@@ -20,14 +14,9 @@ export async function GET() {
   });
 
   return NextResponse.json(templates);
-}
+});
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user.role !== "VENUE_OWNER" && session.user.role !== "WAITER")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const POST = withRole(["VENUE_OWNER", "WAITER"], async (req, _ctx, session) => {
   const body = await req.json();
   const { venueId, name, dayOfWeek, weekdaysOnly, metadata, startTime, endTime, requiredCount, role, pay } = body;
 
@@ -61,4 +50,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(template, { status: 201 });
-}
+});

@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { dbRaw } from "@/lib/db";
 import { ApplicationStatus } from "@prisma/client";
@@ -19,14 +18,8 @@ const WAITER_TRANSITIONS: Partial<Record<ApplicationStatus, ApplicationStatus[]>
   SHORTLISTED: ["WITHDRAWN"],
 };
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const { id } = await params;
+export const PATCH = withAuth<{ params: Promise<{ id: string }> }>(async (req, ctx, session) => {
+  const { id } = await ctx.params;
   const body = await req.json();
   const { status } = body as { status: ApplicationStatus };
 
@@ -120,4 +113,4 @@ export async function PATCH(
   }
 
   return NextResponse.json(updated);
-}
+});

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 
+type Ctx = { params: Promise<{ id: string }> };
+
+// GET — public (no auth required)
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -83,16 +85,9 @@ export async function GET(
   return NextResponse.json({ ...venue, waiterReviews, guestReviews });
 }
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "VENUE_OWNER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
+// PATCH — venue owner only
+export const PATCH = withRole<Ctx>("VENUE_OWNER", async (req, ctx, session) => {
+  const { id } = await ctx.params;
   const body = await req.json();
   const { images, logo, phone, website, instagram, description, capacity, priceRangeMin, priceRangeMax, geofenceEnabled, isActive } =
     body as {
@@ -156,4 +151,4 @@ export async function PATCH(
   });
 
   return NextResponse.json(updated);
-}
+});

@@ -1,13 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth, withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+export const GET = withAuth(async (_req, _ctx, session) => {
   try {
     if (session.user.role === "VENUE_OWNER") {
       const invites = await db.invite.findMany({
@@ -42,14 +38,9 @@ export async function GET() {
     console.error("[GET /api/invites]", err);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
-}
+});
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "VENUE_OWNER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const POST = withRole("VENUE_OWNER", async (req, _ctx, session) => {
   const allowed = await checkRateLimit(session.user.id, "post_invite", 20);
   if (!allowed) {
     return NextResponse.json({ error: "Previše pozivnica. Pokušaj ponovo za sat vremena." }, { status: 429 });
@@ -105,4 +96,4 @@ export async function POST(req: NextRequest) {
     console.error("[POST /api/invites]", err);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
-}
+});

@@ -1,20 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { dbRaw } from "@/lib/db";
 import { syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
 import { logAudit } from "@/lib/audit";
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
+export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", async (req, ctx, session) => {
+  const { id } = await ctx.params;
   const { action } = await req.json(); // "publish" | "remove"
 
   if (action !== "publish" && action !== "remove") {
@@ -46,4 +37,4 @@ export async function PATCH(
   logAudit(session.user.id, action === "publish" ? "REVIEW_PUBLISHED" : "REVIEW_REMOVED", id, "Review");
 
   return NextResponse.json(updated);
-}
+});

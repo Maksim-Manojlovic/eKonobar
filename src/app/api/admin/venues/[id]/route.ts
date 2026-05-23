@@ -1,20 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { dbRaw } from "@/lib/db";
 
 // DELETE — GDPR hard-delete. Cascades to all related records via schema onDelete.
 // Uses dbRaw — bypasses soft-delete filter so already-soft-deleted venues can also be purged.
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
+export const DELETE = withRole<{ params: Promise<{ id: string }> }>("ADMIN", async (_req, ctx) => {
+  const { id } = await ctx.params;
 
   const venue = await dbRaw.venue.findUnique({
     where: { id },
@@ -27,4 +18,4 @@ export async function DELETE(
   await dbRaw.venue.delete({ where: { id } });
 
   return NextResponse.json({ deleted: true, id, name: venue.name });
-}
+});

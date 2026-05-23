@@ -62,10 +62,10 @@ describe("POST /api/shifts/templates/[id]/generate", () => {
     vi.mocked(db.shift.createMany).mockResolvedValue({ count: 1 } as never);
   });
 
-  it("returns 403 when unauthenticated", async () => {
+  it("returns 401 when unauthenticated", async () => {
     vi.mocked(getServerSession).mockResolvedValue(null);
     const res = await POST(makeReq({ fromDate: TEST_DATE, toDate: TEST_DATE }), makeCtx());
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("returns 403 when role is HEADHUNTER", async () => {

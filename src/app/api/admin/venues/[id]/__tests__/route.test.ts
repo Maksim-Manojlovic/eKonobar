@@ -54,10 +54,10 @@ describe("DELETE /api/admin/venues/[id]", () => {
     expect(res.status).toBe(403);
   });
 
-  it("unauthenticated → 403", async () => {
+  it("unauthenticated → 401", async () => {
     mockNoSession();
     const res = await DELETE(makeReq(), makeCtx());
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("venue not found → 404", async () => {

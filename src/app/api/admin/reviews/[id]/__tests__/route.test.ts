@@ -85,10 +85,10 @@ describe("PATCH /api/admin/reviews/[id]", () => {
     expect(res.status).toBe(403);
   });
 
-  it("unauthenticated → 403", async () => {
+  it("unauthenticated → 401", async () => {
     mockNoSession();
     const res = await PATCH(makeReq({ action: "publish" }), makeCtx());
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("invalid action → 400", async () => {

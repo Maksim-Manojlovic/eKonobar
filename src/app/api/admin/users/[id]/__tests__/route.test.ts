@@ -70,10 +70,10 @@ describe("PATCH /api/admin/users/[id]", () => {
     expect(res.status).toBe(200);
   });
 
-  it("non-ADMIN → 401", async () => {
+  it("non-ADMIN → 403", async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: { id: "o-1", role: "VENUE_OWNER" } } as never);
     const res = await PATCH(makeReq({ action: "delete" }), makeCtx());
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {

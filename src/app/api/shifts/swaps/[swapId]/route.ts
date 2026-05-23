@@ -1,17 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { notify } from "@/lib/notify";
 
 // PATCH — owner or head waiter approves or rejects a swap request
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ swapId: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user.role !== "VENUE_OWNER" && session.user.role !== "WAITER")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { swapId } = await params;
+export const PATCH = withRole<{ params: Promise<{ swapId: string }> }>(["VENUE_OWNER", "WAITER"], async (req, ctx, session) => {
+  const { swapId } = await ctx.params;
   const { action } = await req.json(); // "ACCEPTED" | "REJECTED"
 
   if (action !== "ACCEPTED" && action !== "REJECTED") {
@@ -67,8 +61,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sw
     ]);
   }
 
-  const fromId  = swapReq.fromAssignment.waiterId;
-  const title   = swapReq.shift.title ?? "smena";
+  const fromId = swapReq.fromAssignment.waiterId;
+  const title  = swapReq.shift.title ?? "smena";
   if (action === "ACCEPTED") {
     notify(fromId, "SWAP_RESOLVED", "Zamena odobrena", `Zamena smene "${title}" je odobrena.`, `/dashboard/waiter`).catch(console.error);
     notify(swapReq.toWaiterId, "SWAP_RESOLVED", "Dodeljeni ste na smenu", `Preuzeli ste smenu "${title}".`, `/dashboard/waiter`).catch(console.error);
@@ -77,4 +71,4 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sw
   }
 
   return NextResponse.json({ ok: true });
-}
+});

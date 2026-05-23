@@ -1,19 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "HEADHUNTER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const GET = withRole("HEADHUNTER", async (_req, _ctx, session) => {
   const saved = await db.savedProfile.findMany({
     where: { headhunterId: session.user.id },
-    include: {
-      // savedWaiterId is just a string FK — fetch user data separately
-    },
+    include: {},
     orderBy: { savedAt: "desc" },
   });
 
@@ -44,14 +36,9 @@ export async function GET() {
   })).filter((r) => r.waiter !== null);
 
   return NextResponse.json(result);
-}
+});
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "HEADHUNTER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const POST = withRole("HEADHUNTER", async (req, _ctx, session) => {
   const { waiterId, notes } = await req.json();
   if (!waiterId) return NextResponse.json({ error: "waiterId required" }, { status: 400 });
 
@@ -65,14 +52,9 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(saved, { status: 201 });
-}
+});
 
-export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "HEADHUNTER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const DELETE = withRole("HEADHUNTER", async (req, _ctx, session) => {
   const { waiterId } = await req.json();
   if (!waiterId) return NextResponse.json({ error: "waiterId required" }, { status: 400 });
 
@@ -81,4 +63,4 @@ export async function DELETE(req: NextRequest) {
   });
 
   return NextResponse.json({ deleted: true });
-}
+});

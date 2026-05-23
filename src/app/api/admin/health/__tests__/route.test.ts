@@ -1,3 +1,4 @@
+import { NextRequest } from "next/server";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
@@ -24,6 +25,7 @@ function mockSession(role = "ADMIN") {
 function mockNoSession() {
   vi.mocked(getServerSession).mockResolvedValue(null);
 }
+function makeReq() {  return new NextRequest("http://localhost");}
 
 function setupDefaultMocks() {
   vi.mocked(dbRaw.review.count)
@@ -49,24 +51,24 @@ describe("GET /api/admin/health", () => {
   });
 
   it("ADMIN gets health → 200", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
   });
 
-  it("non-ADMIN → 401", async () => {
+  it("non-ADMIN → 403", async () => {
     mockSession("VENUE_OWNER");
-    const res = await GET();
-    expect(res.status).toBe(401);
+    const res = await GET(makeReq());
+    expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(401);
   });
 
   it("response has expected top-level keys", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     expect(json).toHaveProperty("reviews");
     expect(json).toHaveProperty("passports");
@@ -76,27 +78,27 @@ describe("GET /api/admin/health", () => {
   });
 
   it("reviews shape correct", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     expect(json.reviews.overdueGuest).toBe(0);
     expect(json.reviews.overdueRegular).toBe(2);
   });
 
   it("passports expiredPaid count returned", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     expect(json.passports.expiredPaid).toBe(3);
   });
 
   it("system metrics returned", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     expect(json.system.rateLimitEntries).toBe(42);
     expect(json.system.pendingClockIns).toBe(1);
   });
 
   it("cron timestamps returned as ISO strings", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     expect(json.cron.lastPublishedReviewAt).toBe("2025-01-01T00:00:00.000Z");
     expect(json.cron.lastRenewalPaymentAt).toBe("2025-01-02T00:00:00.000Z");
@@ -104,20 +106,20 @@ describe("GET /api/admin/health", () => {
 
   it("null lastPublishedReview → cron.lastPublishedReviewAt null", async () => {
     vi.mocked(dbRaw.review.findFirst).mockResolvedValue(null);
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     expect(json.cron.lastPublishedReviewAt).toBeNull();
   });
 
   it("null lastRenewalPayment → cron.lastRenewalPaymentAt null", async () => {
     vi.mocked(dbRaw.passportPayment.findFirst).mockResolvedValue(null);
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     expect(json.cron.lastRenewalPaymentAt).toBeNull();
   });
 
   it("users.softDeleted returned", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     expect(json.users.softDeleted).toBe(5);
   });

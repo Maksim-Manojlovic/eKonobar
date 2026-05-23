@@ -47,10 +47,10 @@ describe("PATCH /api/invites/[id]", () => {
     vi.mocked(db.invite.update).mockResolvedValue({ ...BASE_INVITE } as never);
   });
 
-  it("returns 403 when unauthenticated", async () => {
+  it("returns 401 when unauthenticated", async () => {
     vi.mocked(getServerSession).mockResolvedValue(null);
     const res = await PATCH(makeReq({ status: "ACCEPTED" }), makeCtx());
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("returns 403 when role is not WAITER", async () => {

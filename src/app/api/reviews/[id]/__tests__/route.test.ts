@@ -60,10 +60,10 @@ describe("PATCH /api/reviews/[id]", () => {
 
   // ── Auth / role guards ────────────────────────────────────────────────────
 
-  it("returns 403 when unauthenticated", async () => {
+  it("returns 401 when unauthenticated", async () => {
     vi.mocked(getServerSession).mockResolvedValue(null);
     const res = await PATCH(makeReq({ action: "approve" }), makeCtx());
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("returns 403 when role is WAITER", async () => {

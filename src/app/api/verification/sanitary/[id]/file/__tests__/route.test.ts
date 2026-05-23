@@ -55,10 +55,10 @@ describe("GET /api/verification/sanitary/[id]/file", () => {
     expect(res.status).toBe(403);
   });
 
-  it("unauthenticated → 403", async () => {
+  it("unauthenticated → 401", async () => {
     mockNoSession();
     const res = await GET(makeReq(), makeCtx());
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("sanitary book not found → 404", async () => {

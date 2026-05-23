@@ -63,10 +63,10 @@ describe("PATCH /api/shifts/templates/[id]", () => {
     expect(res.status).toBe(403);
   });
 
-  it("unauthenticated → 403", async () => {
+  it("unauthenticated → 401", async () => {
     mockNoSession();
     const res = await PATCH(makePatchReq({ name: "X" }), makeCtx());
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("template not found → 404", async () => {
@@ -103,10 +103,10 @@ describe("DELETE /api/shifts/templates/[id]", () => {
     expect(res.status).toBe(403);
   });
 
-  it("unauthenticated → 403", async () => {
+  it("unauthenticated → 401", async () => {
     mockNoSession();
     const res = await DELETE(makeDeleteReq(), makeCtx());
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("template not found → 404", async () => {

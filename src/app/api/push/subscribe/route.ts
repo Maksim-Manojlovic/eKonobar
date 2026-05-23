@@ -1,12 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/with-role";
 import { db } from "@/lib/db";
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+export const POST = withAuth(async (req, _ctx, session) => {
   const { endpoint, keys } = await req.json();
   if (!endpoint || !keys?.p256dh || !keys?.auth) {
     return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
@@ -19,12 +15,9 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({ ok: true });
-}
+});
 
-export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+export const DELETE = withAuth(async (req, _ctx, session) => {
   const { endpoint } = await req.json();
   if (!endpoint) return NextResponse.json({ error: "endpoint required" }, { status: 400 });
 
@@ -33,4 +26,4 @@ export async function DELETE(req: NextRequest) {
   });
 
   return NextResponse.json({ ok: true });
-}
+});

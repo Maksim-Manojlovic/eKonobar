@@ -130,10 +130,10 @@ describe("PATCH /api/jobs/[id]", () => {
     expect(res.status).toBe(200);
   });
 
-  it("unauthenticated → 403", async () => {
+  it("unauthenticated → 401", async () => {
     mockNoSession();
     const res = await PATCH(makePatchReq({ status: "PAUSED" }), makeCtx());
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("WAITER role → 403", async () => {

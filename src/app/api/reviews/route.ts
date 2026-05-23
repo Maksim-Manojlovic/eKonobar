@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { withAuth } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
 import {
@@ -18,6 +17,7 @@ function clampRating(v: unknown): number | null {
   return isNaN(n) ? null : Math.min(100, Math.max(0, n));
 }
 
+// GET — public, no auth needed
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const venueId   = searchParams.get("venueId")   ?? undefined;
@@ -70,12 +70,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(reviews);
 }
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const POST = withAuth(async (req, _ctx, session) => {
   const allowed = await checkRateLimit(session.user.id, "post_review", 5);
   if (!allowed) {
     return NextResponse.json({ error: "Previše recenzija. Pokušaj ponovo za sat vremena." }, { status: 429 });
@@ -250,4 +245,4 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json(review, { status: 201 });
-}
+});

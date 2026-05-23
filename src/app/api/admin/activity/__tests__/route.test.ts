@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ authOptions: {} }));
@@ -25,6 +26,10 @@ function mockSession(role = "ADMIN") {
 
 function mockNoSession() {
   vi.mocked(getServerSession).mockResolvedValue(null);
+}
+
+function makeReq() {
+  return new NextRequest("http://localhost/api/admin/activity");
 }
 
 function setupDefaultMocks() {
@@ -54,30 +59,30 @@ describe("GET /api/admin/activity", () => {
   });
 
   it("ADMIN gets activity → 200", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
   });
 
-  it("non-ADMIN → 401", async () => {
+  it("non-ADMIN → 403", async () => {
     mockSession("VENUE_OWNER");
-    const res = await GET();
-    expect(res.status).toBe(401);
+    const res = await GET(makeReq());
+    expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(401);
   });
 
   it("returns array of events", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     expect(Array.isArray(json)).toBe(true);
   });
 
   it("events sorted newest first", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     // NOW > EARLIER > EARLIEST
     expect(json[0].ts).toBe(NOW.toISOString());
@@ -85,7 +90,7 @@ describe("GET /api/admin/activity", () => {
   });
 
   it("registration event has correct shape", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     const reg = json.find((e: { type: string }) => e.type === "registration");
     expect(reg).toBeDefined();
@@ -96,7 +101,7 @@ describe("GET /api/admin/activity", () => {
   });
 
   it("payment event has correct shape", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     const pay = json.find((e: { type: string }) => e.type === "payment");
     expect(pay).toBeDefined();
@@ -107,7 +112,7 @@ describe("GET /api/admin/activity", () => {
   });
 
   it("review event has correct shape", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     const rev = json.find((e: { type: string }) => e.type === "review");
     expect(rev).toBeDefined();
@@ -121,21 +126,21 @@ describe("GET /api/admin/activity", () => {
         author: null, venue: { name: "Kafana" } },
     ] as never);
 
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     const rev = json.find((e: { type: string }) => e.type === "review");
     expect(rev.link).toBe("/admin/moderation");
   });
 
   it("non-DISPUTED review has no link", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     const rev = json.find((e: { type: string }) => e.type === "review");
     expect(rev.link).toBeUndefined();
   });
 
   it("application event has correct shape", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     const app = json.find((e: { type: string }) => e.type === "application");
     expect(app).toBeDefined();
@@ -155,7 +160,7 @@ describe("GET /api/admin/activity", () => {
     vi.mocked(dbRaw.review.findMany).mockResolvedValue([]);
     vi.mocked(dbRaw.jobApplication.findMany).mockResolvedValue([]);
 
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     expect(json.length).toBe(25);
   });
@@ -166,7 +171,7 @@ describe("GET /api/admin/activity", () => {
         author: null, venue: { name: "Kafana XYZ" } },
     ] as never);
 
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     const rev = json.find((e: { type: string }) => e.type === "review");
     expect(rev.sub).toBe("Kafana XYZ");
@@ -178,7 +183,7 @@ describe("GET /api/admin/activity", () => {
         author: null, venue: null },
     ] as never);
 
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     const rev = json.find((e: { type: string }) => e.type === "review");
     expect(rev.sub).toBe("Gost");
@@ -189,7 +194,7 @@ describe("GET /api/admin/activity", () => {
       { id: "o-1", name: "Petar", email: "p@test.com", role: "VENUE_OWNER", createdAt: NOW },
     ] as never);
 
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     const reg = json.find((e: { type: string }) => e.type === "registration");
     expect(reg.sub).toBe("Vlasnik lokala");
@@ -200,7 +205,7 @@ describe("GET /api/admin/activity", () => {
       { id: "h-1", name: "Ana", email: "a@test.com", role: "HEADHUNTER", createdAt: NOW },
     ] as never);
 
-    const res = await GET();
+    const res = await GET(makeReq());
     const json = await res.json();
     const reg = json.find((e: { type: string }) => e.type === "registration");
     expect(reg.sub).toBe("Headhunter");

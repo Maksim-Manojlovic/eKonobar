@@ -1,16 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { VerificationTier } from "@prisma/client";
 import logger from "@/lib/logger";
 
-export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user.role !== "VENUE_OWNER" && session.user.role !== "HEADHUNTER")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async (req, _ctx) => {
   const { searchParams } = new URL(req.url);
 
   const available       = searchParams.get("available");
@@ -95,4 +89,4 @@ export async function GET(req: NextRequest) {
     logger.error({ err }, "GET /api/waiters");
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
-}
+});

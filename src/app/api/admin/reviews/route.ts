@@ -1,14 +1,8 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { withRole } from "@/lib/with-role";
 import { dbRaw } from "@/lib/db";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+export const GET = withRole("ADMIN", async () => {
   const reviews = await dbRaw.review.findMany({
     where: { status: "DISPUTED" },
     select: {
@@ -30,4 +24,4 @@ export async function GET() {
   });
 
   return NextResponse.json(reviews);
-}
+});

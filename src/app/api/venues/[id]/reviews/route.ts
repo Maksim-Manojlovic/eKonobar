@@ -1,18 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "VENUE_OWNER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
+export const GET = withRole<{ params: Promise<{ id: string }> }>("VENUE_OWNER", async (_req, ctx, session) => {
+  const { id } = await ctx.params;
 
   const venue = await db.venue.findUnique({ where: { id }, select: { ownerId: true } });
   if (!venue) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -50,4 +41,4 @@ export async function GET(
   });
 
   return NextResponse.json(reviews);
-}
+});

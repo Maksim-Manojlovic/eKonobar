@@ -1,8 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withAuth, withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
-import { withRole } from "@/lib/with-role";
 import { computeScheduledStart } from "@/lib/shift-utils";
 import logger from "@/lib/logger";
 
@@ -18,11 +16,8 @@ const ASSIGNMENT_SELECT = {
   waiter: { select: { id: true, name: true } },
 };
 
-export async function GET(req: NextRequest) {
+export const GET = withAuth(async (req, _ctx, session) => {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
     const { searchParams } = new URL(req.url);
     const view = searchParams.get("view"); // "open" | "swaps" | null (mine)
 
@@ -128,7 +123,7 @@ export async function GET(req: NextRequest) {
     logger.error({ err }, "GET /api/shifts");
     return NextResponse.json({ error: "Internal error", detail: String(err) }, { status: 500 });
   }
-}
+});
 
 export const POST = withRole(["VENUE_OWNER", "WAITER"], async (req, _ctx, session) => {
   const body = await req.json();

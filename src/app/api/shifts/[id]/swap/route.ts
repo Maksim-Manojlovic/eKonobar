@@ -1,16 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { notify } from "@/lib/notify";
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "WAITER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
+export const POST = withRole<{ params: Promise<{ id: string }> }>("WAITER", async (req, ctx, session) => {
+  const { id } = await ctx.params;
   const { toWaiterId } = await req.json();
 
   if (!toWaiterId) {
@@ -52,11 +46,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       });
       if (existingPending) throw Object.assign(new Error("conflict"), { code: "CONFLICT" });
 
-      const req = await tx.shiftSwapRequest.create({
+      const swapRequest = await tx.shiftSwapRequest.create({
         data: { shiftId: id, fromAssignmentId: myAssignment.id, toWaiterId },
       });
       await tx.shift.update({ where: { id }, data: { status: "PENDING_SWAP" } });
-      return req;
+      return swapRequest;
     });
   } catch (err: unknown) {
     if (err instanceof Error && (err as NodeJS.ErrnoException).code === "CONFLICT") {
@@ -74,4 +68,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     `${fromName} traži zamenu smene "${shift.title}"`, `/dashboard/venue`).catch(console.error);
 
   return NextResponse.json(swapReq, { status: 201 });
-}
+});

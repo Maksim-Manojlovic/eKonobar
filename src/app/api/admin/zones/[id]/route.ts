@@ -1,21 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { dbRaw } from "@/lib/db";
 import { ZoneType } from "@prisma/client";
 import { refreshAllVenueZoneCaches } from "@/lib/analytics";
 
 // PATCH — update zone fields
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
+export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", async (req, ctx) => {
+  const { id } = await ctx.params;
   const body = await req.json();
 
   const zone = await dbRaw.venueZone.findUnique({ where: { id } });
@@ -44,19 +35,11 @@ export async function PATCH(
   refreshAllVenueZoneCaches().catch(console.error);
 
   return NextResponse.json(updated);
-}
+});
 
 // DELETE — remove zone (also clears VenueZoneRelation via cascade)
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
+export const DELETE = withRole<{ params: Promise<{ id: string }> }>("ADMIN", async (_req, ctx) => {
+  const { id } = await ctx.params;
 
   const zone = await dbRaw.venueZone.findUnique({ where: { id }, select: { id: true } });
   if (!zone) return NextResponse.json({ error: "Zone not found" }, { status: 404 });
@@ -70,4 +53,4 @@ export async function DELETE(
   refreshAllVenueZoneCaches().catch(console.error);
 
   return NextResponse.json({ deleted: true, id });
-}
+});

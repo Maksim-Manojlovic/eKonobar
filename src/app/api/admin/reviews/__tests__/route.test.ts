@@ -1,3 +1,4 @@
+import { NextRequest } from "next/server";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
@@ -36,6 +37,7 @@ function mockSession(role = "ADMIN", id = ADMIN_ID) {
 function mockNoSession() {
   vi.mocked(getServerSession).mockResolvedValue(null);
 }
+function makeReq() {  return new NextRequest("http://localhost");}
 
 describe("GET /api/admin/reviews", () => {
   beforeEach(() => {
@@ -45,7 +47,7 @@ describe("GET /api/admin/reviews", () => {
   });
 
   it("ADMIN gets DISPUTED reviews", async () => {
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toHaveLength(1);
@@ -53,7 +55,7 @@ describe("GET /api/admin/reviews", () => {
   });
 
   it("queries only DISPUTED status", async () => {
-    await GET();
+    await GET(makeReq());
     expect(vi.mocked(dbRaw.review.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: { status: "DISPUTED" } }),
     );
@@ -61,13 +63,13 @@ describe("GET /api/admin/reviews", () => {
 
   it("non-ADMIN → 403", async () => {
     mockSession("VENUE_OWNER", "o-1");
-    const res = await GET();
+    const res = await GET(makeReq());
     expect(res.status).toBe(403);
   });
 
-  it("unauthenticated → 403", async () => {
+  it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET();
-    expect(res.status).toBe(403);
+    const res = await GET(makeReq());
+    expect(res.status).toBe(401);
   });
 });

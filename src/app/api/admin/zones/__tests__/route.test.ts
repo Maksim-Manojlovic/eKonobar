@@ -108,10 +108,10 @@ describe("POST /api/admin/zones", () => {
     expect(res.status).toBe(403);
   });
 
-  it("unauthenticated → 403", async () => {
+  it("unauthenticated → 401", async () => {
     mockNoSession();
     const res = await POST(makePostReq({ name: "X", zoneType: "FESTIVAL_ZONE", geoJson: {}, centerLat: 0, centerLng: 0 }));
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("missing name → 400", async () => {

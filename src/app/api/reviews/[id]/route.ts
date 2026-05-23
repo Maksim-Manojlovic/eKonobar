@@ -1,19 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "VENUE_OWNER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { id } = await params;
+export const PATCH = withRole<{ params: Promise<{ id: string }> }>("VENUE_OWNER", async (req, ctx, session) => {
+  const { id } = await ctx.params;
   const { action } = await req.json();
 
   if (action !== "approve" && action !== "reject") {
@@ -59,4 +50,4 @@ export async function PATCH(
   }
 
   return NextResponse.json({ ok: true });
-}
+});

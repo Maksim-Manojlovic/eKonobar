@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+﻿import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
@@ -118,10 +118,10 @@ describe("POST /api/venues", () => {
     expect(res.status).toBe(403);
   });
 
-  it("unauthenticated → 403", async () => {
+  it("unauthenticated → 401", async () => {
     mockNoSession();
     const res = await POST(makePostReq(VALID_BODY));
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("missing name → 400", async () => {

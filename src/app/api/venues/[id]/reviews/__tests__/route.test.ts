@@ -64,10 +64,10 @@ describe("GET /api/venues/[id]/reviews", () => {
     expect(res.status).toBe(403);
   });
 
-  it("unauthenticated → 403", async () => {
+  it("unauthenticated → 401", async () => {
     mockNoSession();
     const res = await GET(new NextRequest("http://localhost"), makeCtx());
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
   });
 
   it("wrong owner → 403", async () => {
