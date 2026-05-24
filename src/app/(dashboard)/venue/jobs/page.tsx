@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { JOB_STATUS_COLORS, JOB_STATUS_LABELS, ENGAGEMENT_LABELS } from "@/lib/display-maps";
+import { formatSalary } from "@/lib/format-utils";
 
 type JobPost = {
   id: string;
@@ -19,14 +20,6 @@ type JobPost = {
   _count: { applications: number };
 };
 
-
-function formatSalary(j: Pick<JobPost, "salaryMin" | "salaryMax" | "engagementType">) {
-  if (!j.salaryMin && !j.salaryMax) return "Po dogovoru";
-  const sfx = j.engagementType === "FULL_TIME" ? "/mes" : "/sm";
-  if (j.salaryMin && j.salaryMax) return `${j.salaryMin.toLocaleString("sr-RS")}–${j.salaryMax.toLocaleString("sr-RS")} RSD${sfx}`;
-  if (j.salaryMin) return `od ${j.salaryMin.toLocaleString("sr-RS")} RSD${sfx}`;
-  return `do ${j.salaryMax!.toLocaleString("sr-RS")} RSD${sfx}`;
-}
 
 export default function VenueJobsPage() {
   const { data: session, status } = useSession();

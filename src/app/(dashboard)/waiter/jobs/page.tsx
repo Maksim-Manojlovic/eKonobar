@@ -10,6 +10,7 @@ import {
   ENGAGEMENT_LABELS,
   formatDate,
 } from "@/lib/display-maps";
+import { formatSalary } from "@/lib/format-utils";
 
 type JobPost = {
   id: string;
@@ -50,15 +51,6 @@ const FILTERS: { key: EngFilter; label: string }[] = [
   { key: "WEEKEND",     label: "Vikend" },
   { key: "CELEBRATION", label: "Slavlje" },
 ];
-
-function formatSalary(job: Pick<JobPost, "salaryMin" | "salaryMax" | "engagementType">) {
-  if (!job.salaryMin && !job.salaryMax) return "Po dogovoru";
-  const sfx = job.engagementType === "FULL_TIME" ? "/mes" : "/sm";
-  if (job.salaryMin && job.salaryMax)
-    return `${job.salaryMin.toLocaleString("sr-RS")}–${job.salaryMax.toLocaleString("sr-RS")} RSD${sfx}`;
-  if (job.salaryMin) return `od ${job.salaryMin.toLocaleString("sr-RS")} RSD${sfx}`;
-  return `do ${job.salaryMax!.toLocaleString("sr-RS")} RSD${sfx}`;
-}
 
 function TrustDot({ score }: { score: number }) {
   const color = score >= 70 ? "#16a34a" : score >= 45 ? "#d97706" : "#dc2626";

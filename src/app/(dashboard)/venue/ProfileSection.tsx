@@ -6,7 +6,8 @@ import ImageUpload from "@/components/ui/ImageUpload";
 import DeactivateVenueButton from "@/components/venue/DeactivateVenueButton";
 import VenueInsightsBadge from "@/components/venue/VenueInsightsBadge";
 import type { Venue } from "./venue-types";
-import { getInitials, trustDimensions } from "./venue-types";
+import { trustDimensions } from "./venue-types";
+import { getInitials } from "@/lib/format-utils";
 import { VENUE_TYPE_LABELS } from "@/lib/display-maps";
 import { Sk } from "./venue-helpers";
 

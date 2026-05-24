@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { VENUE_TYPE_LABELS } from "@/lib/display-maps";
+import { getInitials } from "@/lib/format-utils";
 
 type ApiVenue = {
   id: string;
@@ -33,9 +34,6 @@ const VENUE_TYPE_TAGS: Record<string, string[]> = {
   OTHER:      ["Fleksibilno"],
 };
 
-function getInitials(name: string): string {
-  return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-}
 
 // Hardcoded fallback shown before API data loads
 const FALLBACK = [

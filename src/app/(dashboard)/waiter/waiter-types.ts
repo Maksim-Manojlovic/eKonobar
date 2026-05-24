@@ -1,6 +1,5 @@
-// Types, constants, and utility functions for the Waiter dashboard.
+// Types and display constants for the Waiter dashboard.
 // No JSX — safe to import in both client and server contexts.
-export { formatDate } from "@/lib/display-maps";
 
 export type Section = "overview" | "alerts" | "jobs" | "applications" | "shifts" | "invites" | "reviews" | "passport" | "manage" | "notifications";
 export type AppFilter = "all" | "accepted" | "pending" | "rejected";
@@ -199,26 +198,11 @@ export type WaiterReview = {
 /* ── Utility ──────────────────────────────────────────────────────────────── */
 
 
-export function getInitials(name: string | null | undefined): string {
-  if (!name) return "?";
-  return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-}
-
-export function formatSalary({ salaryMin, salaryMax, engagementType }: Pick<JobPost, "salaryMin" | "salaryMax" | "engagementType">): string {
-  if (!salaryMin && !salaryMax) return "Po dogovoru";
-  const sfx = engagementType === "FULL_TIME" ? "/mes" : "/sm";
-  if (salaryMin && salaryMax) return `${salaryMin.toLocaleString("sr-RS")} – ${salaryMax.toLocaleString("sr-RS")} RSD${sfx}`;
-  if (salaryMin) return `od ${salaryMin.toLocaleString("sr-RS")} RSD${sfx}`;
-  return `do ${salaryMax!.toLocaleString("sr-RS")} RSD${sfx}`;
-}
-
 export function appStatusKey(status: string): "accepted" | "pending" | "rejected" {
   if (status === "ACCEPTED" || status === "COMPLETED") return "accepted";
   if (status === "REJECTED" || status === "WITHDRAWN") return "rejected";
   return "pending";
 }
-
-// formatDate is re-exported above from @/lib/display-maps
 
 /* ── Tier helpers ────────────────────────────────────────────────────────── */
 

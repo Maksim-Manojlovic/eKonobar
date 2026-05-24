@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import type { Venue, VenueShift, ShiftTemplate, TemplateMeta } from "./venue-types";
-import { DAYS_SR, MONTHS_SR, getInitials } from "./venue-types";
+import { DAYS_SR, MONTHS_SR } from "./venue-types";
+import { getInitials } from "@/lib/format-utils";
 import { Sk, ShiftsSkeleton, EmptyVenue } from "./venue-helpers";
 import { ShiftModal, TemplateModal, GenerateModal, DAYS_FULL_SR } from "./VenueSmeneModals";
 /* ── Shift template tab ──────────────────────────────────────────────────── */

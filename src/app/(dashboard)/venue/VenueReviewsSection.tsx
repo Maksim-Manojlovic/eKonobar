@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { useReviewModeration } from "@/hooks/useReviewModeration";
 import type { Venue, VenueReview } from "./venue-types";
-import { formatDate } from "./venue-types";
+import { formatDate } from "@/lib/display-maps";
 import { ReviewsSkeleton } from "./venue-helpers";
 
 /* ── Shared display helpers ──────────────────────────────────────────────── */

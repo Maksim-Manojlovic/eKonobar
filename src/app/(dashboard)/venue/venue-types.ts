@@ -1,5 +1,4 @@
 import type { VenueZoneInsights } from "@/lib/analytics";
-export { formatDate } from "@/lib/display-maps";
 
 export type Section = "overview" | "posts" | "new-post" | "smene" | "applications" | "waiters" | "discover" | "reviews" | "qr-review" | "profile" | "notifications";
 export type AppFilter = "SVE" | "PENDING" | "SHORTLISTED" | "ACCEPTED" | "REJECTED";
@@ -161,20 +160,6 @@ export type IncomingApp = {
 };
 
 
-export function getInitials(name: string | null | undefined): string {
-  if (!name) return "?";
-  return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-}
-
-export function formatSalary({ salaryMin, salaryMax, engagementType }: Pick<OwnPost, "salaryMin" | "salaryMax" | "engagementType">): string {
-  if (!salaryMin && !salaryMax) return "Po dogovoru";
-  const sfx = engagementType === "FULL_TIME" ? "/mes" : "/sm";
-  if (salaryMin && salaryMax) return `${salaryMin.toLocaleString("sr-RS")} – ${salaryMax.toLocaleString("sr-RS")} RSD${sfx}`;
-  if (salaryMin) return `od ${salaryMin.toLocaleString("sr-RS")} RSD${sfx}`;
-  return `do ${salaryMax!.toLocaleString("sr-RS")} RSD${sfx}`;
-}
-
-// formatDate is re-exported above from @/lib/display-maps
 
 export function trustDimensions(ts: Venue["venueTrustScore"]): { label: string; value: number }[] {
   if (!ts) return [
