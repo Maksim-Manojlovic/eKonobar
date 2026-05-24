@@ -533,6 +533,10 @@ NextAuth is configured with `PrismaAdapter(dbRaw)` + JWT strategy. Adapter persi
 
 **signIn callback:** rejects sign-ins for soft-deleted users (`deletedAt IS NOT NULL`).
 
+**Token revocation cache (`lib/auth-revocation.ts`):**
+- `isTokenRevoked(userId, tokenIat)` — checks in-process LRU cache (60s TTL, 5 000-entry cap) before hitting `TokenRevocation` table. Imported by `lib/auth.ts`; intentionally isolated so the cache can be unit-tested without importing `authOptions`.
+- `_clearRevCacheForTests()` — exported for test teardown only.
+
 **Account linking:** not implemented — same-email collision between credentials and OAuth returns a NextAuth error. Users must use the provider they originally signed up with.
 
 ## Password Reset Flow
