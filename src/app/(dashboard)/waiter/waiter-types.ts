@@ -95,10 +95,6 @@ export type ManagedShift = {
   swapRequests: ManagedSwapRequest[];
 };
 
-export const DAYS_SR   = ["Pon", "Uto", "Sre", "Čet", "Pet", "Sub", "Ned"];
-export const MONTHS_SR = ["Januar", "Februar", "Mart", "April", "Maj", "Jun",
-                          "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"];
-
 export type JobPost = {
   id: string;
   title: string;
@@ -194,15 +190,6 @@ export type WaiterReview = {
   publishedAt: string | null;
   author: { id: string; name: string | null; verificationTier: string };
 };
-
-/* ── Utility ──────────────────────────────────────────────────────────────── */
-
-
-export function appStatusKey(status: string): "accepted" | "pending" | "rejected" {
-  if (status === "ACCEPTED" || status === "COMPLETED") return "accepted";
-  if (status === "REJECTED" || status === "WITHDRAWN") return "rejected";
-  return "pending";
-}
 
 /* ── Tier helpers ────────────────────────────────────────────────────────── */
 

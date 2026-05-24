@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
-import { notify } from "@/lib/notify";
+import { fireSideEffects } from "@/lib/side-effects";
 
 // PATCH — owner or head waiter approves or rejects a swap request
 export const PATCH = withRole<{ params: Promise<{ swapId: string }> }>(["VENUE_OWNER", "WAITER"], async (req, ctx, session) => {
@@ -63,12 +63,16 @@ export const PATCH = withRole<{ params: Promise<{ swapId: string }> }>(["VENUE_O
 
   const fromId = swapReq.fromAssignment.waiterId;
   const title  = swapReq.shift.title ?? "smena";
-  if (action === "ACCEPTED") {
-    notify(fromId, "SWAP_RESOLVED", "Zamena odobrena", `Zamena smene "${title}" je odobrena.`, `/dashboard/waiter`).catch(console.error);
-    notify(swapReq.toWaiterId, "SWAP_RESOLVED", "Dodeljeni ste na smenu", `Preuzeli ste smenu "${title}".`, `/dashboard/waiter`).catch(console.error);
-  } else {
-    notify(fromId, "SWAP_RESOLVED", "Zamena odbijena", `Zamena smene "${title}" nije odobrena.`, `/dashboard/waiter`).catch(console.error);
-  }
+  fireSideEffects({
+    notifications: action === "ACCEPTED"
+      ? [
+          { userId: fromId,             type: "SWAP_RESOLVED", title: "Zamena odobrena",       body: `Zamena smene "${title}" je odobrena.`,     link: "/dashboard/waiter" },
+          { userId: swapReq.toWaiterId, type: "SWAP_RESOLVED", title: "Dodeljeni ste na smenu", body: `Preuzeli ste smenu "${title}".`,           link: "/dashboard/waiter" },
+        ]
+      : [
+          { userId: fromId,             type: "SWAP_RESOLVED", title: "Zamena odbijena",        body: `Zamena smene "${title}" nije odobrena.`,   link: "/dashboard/waiter" },
+        ],
+  });
 
   return NextResponse.json({ ok: true });
 });

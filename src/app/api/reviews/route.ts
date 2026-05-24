@@ -9,13 +9,8 @@ import {
 } from "@/lib/geofence";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { notify } from "@/lib/notify";
+import { clampRating } from "@/lib/format-utils";
 import { ReviewDirection } from "@prisma/client";
-
-function clampRating(v: unknown): number | null {
-  if (v == null) return null;
-  const n = Number(v);
-  return isNaN(n) ? null : Math.min(100, Math.max(0, n));
-}
 
 // GET — public, no auth needed
 export async function GET(req: NextRequest) {

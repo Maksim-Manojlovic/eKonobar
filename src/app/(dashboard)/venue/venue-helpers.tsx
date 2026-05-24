@@ -1,6 +1,6 @@
 "use client";
 
-import type { Section } from "./venue-types";
+import type { Section, Venue } from "./venue-types";
 export { PassportTierBadge, ScorePill } from "@/components/ui/PassportWidgets";
 
 export function PostStatusBadge({ status }: { status: string }) {
@@ -282,4 +282,23 @@ export function EmptyVenue({ onNavigate }: { onNavigate: (s: Section) => void })
       <button onClick={() => onNavigate("profile")} className="btn-dash-orange px-5 py-2">Dodaj lokal</button>
     </div>
   );
+}
+
+/* ── Trust score display ─────────────────────────────────────────────────── */
+
+/** Maps a venueTrustScore DB object to a label+value array for chart rendering. */
+export function trustDimensions(ts: Venue["venueTrustScore"]): { label: string; value: number }[] {
+  if (!ts) return [
+    { label: "Atmosfera", value: 0 }, { label: "Organizacija", value: 0 },
+    { label: "Isplata", value: 0 },   { label: "Bakšiš sistem", value: 0 },
+    { label: "Higijena", value: 0 },  { label: "Menadžment", value: 0 },
+  ];
+  return [
+    { label: "Atmosfera",     value: Math.round(ts.atmosphere)      },
+    { label: "Organizacija",  value: Math.round(ts.organization)    },
+    { label: "Isplata",       value: Math.round(ts.pay)             },
+    { label: "Bakšiš sistem", value: Math.round(ts.tips)            },
+    { label: "Higijena",      value: Math.round(ts.hygieneStandards)},
+    { label: "Menadžment",    value: Math.round(ts.management)      },
+  ];
 }

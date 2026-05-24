@@ -56,10 +56,6 @@ export type ShiftTemplate = {
   pay: number | null;
 };
 
-export const DAYS_SR   = ["Pon", "Uto", "Sre", "Čet", "Pet", "Sub", "Ned"];
-export const MONTHS_SR = ["Januar", "Februar", "Mart", "April", "Maj", "Jun",
-                          "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"];
-
 export type Venue = {
   id: string;
   name: string;
@@ -178,18 +174,3 @@ export type VenueInviteWaiter = {
   waiterPassport: { score: number; currentlyAvailable: boolean; sanitaryBookValid: boolean } | null;
 };
 
-export function trustDimensions(ts: Venue["venueTrustScore"]): { label: string; value: number }[] {
-  if (!ts) return [
-    { label: "Atmosfera", value: 0 }, { label: "Organizacija", value: 0 },
-    { label: "Isplata", value: 0 },   { label: "Bakšiš sistem", value: 0 },
-    { label: "Higijena", value: 0 },  { label: "Menadžment", value: 0 },
-  ];
-  return [
-    { label: "Atmosfera",    value: Math.round(ts.atmosphere) },
-    { label: "Organizacija", value: Math.round(ts.organization) },
-    { label: "Isplata",      value: Math.round(ts.pay) },
-    { label: "Bakšiš sistem",value: Math.round(ts.tips) },
-    { label: "Higijena",     value: Math.round(ts.hygieneStandards) },
-    { label: "Menadžment",   value: Math.round(ts.management) },
-  ];
-}

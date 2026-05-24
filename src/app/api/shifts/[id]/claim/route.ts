@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
-import { notify } from "@/lib/notify";
+import { fireSideEffects } from "@/lib/side-effects";
 
 export const POST = withRole<{ params: Promise<{ id: string }> }>("WAITER", async (_req, ctx, session) => {
   const { id } = await ctx.params;
@@ -37,13 +37,15 @@ export const POST = withRole<{ params: Promise<{ id: string }> }>("WAITER", asyn
     }),
   ]);
 
-  notify(
-    shift.venue.ownerId,
-    "SHIFT_CLAIMED",
-    "Smena preuzeta",
-    `${session.user.name ?? "Konobar"} je preuzeo smenu "${shift.title}"`,
-    `/dashboard/venue`,
-  ).catch(console.error);
+  fireSideEffects({
+    notifications: [{
+      userId: shift.venue.ownerId,
+      type:   "SHIFT_CLAIMED",
+      title:  "Smena preuzeta",
+      body:   `${session.user.name ?? "Konobar"} je preuzeo smenu "${shift.title}"`,
+      link:   "/dashboard/venue",
+    }],
+  });
 
   return NextResponse.json(assignment, { status: 201 });
 });

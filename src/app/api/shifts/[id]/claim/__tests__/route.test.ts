@@ -10,11 +10,11 @@ vi.mock("@/lib/db", () => ({
     $transaction:    vi.fn(),
   },
 }));
-vi.mock("@/lib/notify", () => ({ notify: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/lib/side-effects", () => ({ fireSideEffects: vi.fn() }));
 
 import { getServerSession } from "next-auth";
 import { db } from "@/lib/db";
-import { notify } from "@/lib/notify";
+import { fireSideEffects } from "@/lib/side-effects";
 import { POST } from "../route";
 
 const SHIFT_ID  = "shift-1";
@@ -131,9 +131,12 @@ describe("POST /api/shifts/[id]/claim", () => {
 
   it("notifies venue owner after claim", async () => {
     await POST(makeReq(), makeCtx());
-    await new Promise((r) => setTimeout(r, 0));
-    expect(notify).toHaveBeenCalledWith(
-      OWNER_ID, "SHIFT_CLAIMED", expect.any(String), expect.any(String), expect.any(String),
+    expect(fireSideEffects).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notifications: expect.arrayContaining([
+          expect.objectContaining({ userId: OWNER_ID, type: "SHIFT_CLAIMED" }),
+        ]),
+      }),
     );
   });
 });

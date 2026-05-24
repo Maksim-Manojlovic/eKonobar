@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
-import { notify } from "@/lib/notify";
+import { fireSideEffects } from "@/lib/side-effects";
 
 export const POST = withRole<{ params: Promise<{ id: string }> }>("WAITER", async (req, ctx, session) => {
   const { id } = await ctx.params;
@@ -60,12 +60,24 @@ export const POST = withRole<{ params: Promise<{ id: string }> }>("WAITER", asyn
   }
 
   const fromName = session.user.name ?? "Konobar";
-  // Notify target waiter
-  notify(toWaiterId, "SWAP_REQUESTED", "Zahtev za zamenu smene",
-    `${fromName} traži zamenu za smenu "${shift.title}"`, `/dashboard/waiter`).catch(console.error);
-  // Notify venue owner
-  notify(shift.venue.ownerId, "SWAP_REQUESTED", "Zahtev za zamenu",
-    `${fromName} traži zamenu smene "${shift.title}"`, `/dashboard/venue`).catch(console.error);
+  fireSideEffects({
+    notifications: [
+      {
+        userId: toWaiterId,
+        type:   "SWAP_REQUESTED",
+        title:  "Zahtev za zamenu smene",
+        body:   `${fromName} traži zamenu za smenu "${shift.title}"`,
+        link:   "/dashboard/waiter",
+      },
+      {
+        userId: shift.venue.ownerId,
+        type:   "SWAP_REQUESTED",
+        title:  "Zahtev za zamenu",
+        body:   `${fromName} traži zamenu smene "${shift.title}"`,
+        link:   "/dashboard/venue",
+      },
+    ],
+  });
 
   return NextResponse.json(swapReq, { status: 201 });
 });

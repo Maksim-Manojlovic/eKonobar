@@ -33,6 +33,18 @@ export function timeAgo(dateStr: string): string {
   return `pre ${Math.floor(days / 30)}m`;
 }
 
+/* ── Rating helpers ─────────────────────────────────────────────────────── */
+
+/**
+ * Clamps an unknown input to a 0–100 rating integer, or null when absent/invalid.
+ * Used by both the authenticated and guest review POST handlers.
+ */
+export function clampRating(v: unknown): number | null {
+  if (v == null) return null;
+  const n = Number(v);
+  return isNaN(n) ? null : Math.min(100, Math.max(0, n));
+}
+
 /* ── Salary formatting ───────────────────────────────────────────────────── */
 
 type SalaryFields = {

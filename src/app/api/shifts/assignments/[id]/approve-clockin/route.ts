@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
-import { notify } from "@/lib/notify";
+import { fireSideEffects } from "@/lib/side-effects";
 
 export const PATCH = withRole<{ params: Promise<{ id: string }> }>("VENUE_OWNER", async (req, ctx, session) => {
   const { id } = await ctx.params;
@@ -46,13 +46,15 @@ export const PATCH = withRole<{ params: Promise<{ id: string }> }>("VENUE_OWNER"
       },
     });
 
-    notify(
-      assignment.waiter.id,
-      "CLOCKIN_RESOLVED",
-      "Prijava odobrena",
-      `Vlasnik je odobrio tvoju prijavu na smenu "${shiftTitle}"`,
-      "/dashboard/waiter",
-    ).catch(console.error);
+    fireSideEffects({
+      notifications: [{
+        userId: assignment.waiter.id,
+        type:   "CLOCKIN_RESOLVED",
+        title:  "Prijava odobrena",
+        body:   `Vlasnik je odobrio tvoju prijavu na smenu "${shiftTitle}"`,
+        link:   "/dashboard/waiter",
+      }],
+    });
 
     return NextResponse.json(updated);
   }
@@ -63,13 +65,15 @@ export const PATCH = withRole<{ params: Promise<{ id: string }> }>("VENUE_OWNER"
     data: { pendingClockIn: false },
   });
 
-  notify(
-    assignment.waiter.id,
-    "CLOCKIN_RESOLVED",
-    "Prijava odbijena",
-    `Vlasnik nije odobrio prijavu na smenu "${shiftTitle}". Kontaktiraj vlasnika.`,
-    "/dashboard/waiter",
-  ).catch(console.error);
+  fireSideEffects({
+    notifications: [{
+      userId: assignment.waiter.id,
+      type:   "CLOCKIN_RESOLVED",
+      title:  "Prijava odbijena",
+      body:   `Vlasnik nije odobrio prijavu na smenu "${shiftTitle}". Kontaktiraj vlasnika.`,
+      link:   "/dashboard/waiter",
+    }],
+  });
 
   return NextResponse.json({ ok: true });
 });

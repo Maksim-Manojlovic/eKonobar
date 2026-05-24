@@ -2,24 +2,11 @@
 
 import { useState, useEffect } from "react";
 import type { Venue, VenueShift, ShiftTemplate, TemplateMeta } from "./venue-types";
-import { DAYS_SR, MONTHS_SR } from "./venue-types";
+import { DAYS_SR, MONTHS_SR } from "@/lib/i18n-constants";
 import { getInitials } from "@/lib/format-utils";
+import { shiftsOverlap } from "@/lib/shift-utils";
 import { Sk, ShiftsSkeleton, EmptyVenue } from "./venue-helpers";
 import { ShiftModal, TemplateModal, GenerateModal, DAYS_FULL_SR } from "./VenueSmeneModals";
-/* ── Shift template tab ──────────────────────────────────────────────────── */
-
-function toMins(t: string) {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-}
-function shiftsOverlap(a: ShiftTemplate, b: ShiftTemplate) {
-  const aS = toMins(a.startTime); let aE = toMins(a.endTime);
-  const bS = toMins(b.startTime); let bE = toMins(b.endTime);
-  if (aE <= aS) aE += 1440;
-  if (bE <= bS) bE += 1440;
-  const sameDay = a.weekdaysOnly || b.weekdaysOnly || a.dayOfWeek === b.dayOfWeek;
-  return sameDay && aS < bE && bS < aE;
-}
 
 const QUICK_APPLY_PRESETS: Array<{
   name: string; startTime: string; endTime: string;

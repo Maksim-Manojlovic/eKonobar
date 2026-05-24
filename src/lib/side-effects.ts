@@ -1,5 +1,5 @@
 import { syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
-import { notify } from "@/lib/notify";
+import { notify, type TierHint } from "@/lib/notify";
 import { NotificationType } from "@prisma/client";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -10,6 +10,11 @@ export interface NotifyOpts {
   title: string;
   body: string;
   link?: string;
+  /**
+   * Optional pre-resolved tier hint. Pass when the calling route already knows
+   * the recipient's effective tier to skip the internal waiterPassport DB lookup.
+   */
+  tierHint?: TierHint;
 }
 
 export interface SideEffectOpts {
@@ -35,7 +40,7 @@ export function fireSideEffects(opts: SideEffectOpts): void {
   if (opts.syncWaiterId) tasks.push(syncPassportScore(opts.syncWaiterId));
 
   for (const n of opts.notifications ?? []) {
-    tasks.push(notify(n.userId, n.type, n.title, n.body, n.link));
+    tasks.push(notify(n.userId, n.type, n.title, n.body, n.link, n.tierHint));
   }
 
   if (tasks.length === 0) return;

@@ -8,11 +8,11 @@ vi.mock("@/lib/db", () => ({
     shiftAssignment: { findUnique: vi.fn(), update: vi.fn() },
   },
 }));
-vi.mock("@/lib/notify", () => ({ notify: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/lib/side-effects", () => ({ fireSideEffects: vi.fn() }));
 
 import { getServerSession } from "next-auth";
 import { db } from "@/lib/db";
-import { notify } from "@/lib/notify";
+import { fireSideEffects } from "@/lib/side-effects";
 import { PATCH } from "../route";
 
 const ASSIGN_ID = "assign-1";
@@ -107,10 +107,12 @@ describe("PATCH /api/shifts/assignments/[id]/approve-clockin", () => {
     expect(call.data.clockInAt).toBeInstanceOf(Date);
     expect(call.data.lateMinutes).toBeGreaterThanOrEqual(14);
 
-    await new Promise((r) => setTimeout(r, 0));
-    expect(notify).toHaveBeenCalledWith(
-      WAITER_ID, "CLOCKIN_RESOLVED", expect.any(String),
-      expect.stringMatching(/odobrio/i), expect.any(String),
+    expect(fireSideEffects).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notifications: expect.arrayContaining([
+          expect.objectContaining({ userId: WAITER_ID, type: "CLOCKIN_RESOLVED", body: expect.stringMatching(/odobrio/i) }),
+        ]),
+      }),
     );
   });
 
@@ -122,10 +124,12 @@ describe("PATCH /api/shifts/assignments/[id]/approve-clockin", () => {
     expect(call.data.pendingClockIn).toBe(false);
     expect(call.data.clockInMethod).toBeUndefined();
 
-    await new Promise((r) => setTimeout(r, 0));
-    expect(notify).toHaveBeenCalledWith(
-      WAITER_ID, "CLOCKIN_RESOLVED", expect.any(String),
-      expect.stringMatching(/nije odobrio/i), expect.any(String),
+    expect(fireSideEffects).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notifications: expect.arrayContaining([
+          expect.objectContaining({ userId: WAITER_ID, type: "CLOCKIN_RESOLVED", body: expect.stringMatching(/nije odobrio/i) }),
+        ]),
+      }),
     );
   });
 });

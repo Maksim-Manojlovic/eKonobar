@@ -3,12 +3,7 @@ import { db } from "@/lib/db";
 import { fireSideEffects } from "@/lib/side-effects";
 import { isInsideVenueRadius, createGeolocationHash, parseGuestCoordinates } from "@/lib/geofence";
 import { rateLimit } from "@/lib/rate-limit";
-
-function clampRating(v: unknown): number | null {
-  if (v == null) return null;
-  const n = Number(v);
-  return isNaN(n) ? null : Math.min(100, Math.max(0, n));
-}
+import { clampRating } from "@/lib/format-utils";
 
 export async function POST(req: NextRequest) {
   // IP-based rate limit: 3 guest reviews per hour per IP

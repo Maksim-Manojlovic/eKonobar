@@ -2,7 +2,14 @@
 
 import { useState, useEffect } from "react";
 import type { Section, MarketData } from "./waiter-types";
-import { appStatusKey } from "./waiter-types";
+
+/* ── Application status helper ───────────────────────────────────────────── */
+
+export function appStatusKey(status: string): "accepted" | "pending" | "rejected" {
+  if (status === "ACCEPTED" || status === "COMPLETED") return "accepted";
+  if (status === "REJECTED" || status === "WITHDRAWN") return "rejected";
+  return "pending";
+}
 
 /* ── Base helpers ─────────────────────────────────────────────────────────── */
 

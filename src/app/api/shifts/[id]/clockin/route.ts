@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
-import { notify } from "@/lib/notify";
+import { fireSideEffects } from "@/lib/side-effects";
 import { isInsideVenueRadius, parseGuestCoordinates } from "@/lib/geofence";
 
 const WINDOW_BEFORE_MS  = 15 * 60 * 1000;  // 15 min early
@@ -85,13 +85,15 @@ export const POST = withRole<{ params: Promise<{ id: string }> }>("WAITER", asyn
       },
     });
 
-    notify(
-      shift.venue.ownerId,
-      "CLOCKIN_APPROVAL_REQUESTED",
-      "Zahtev za prijavu",
-      `${waiterName} traži odobrenje za smenu "${shift.title}"`,
-      "/dashboard/venue",
-    ).catch(console.error);
+    fireSideEffects({
+      notifications: [{
+        userId: shift.venue.ownerId,
+        type:   "CLOCKIN_APPROVAL_REQUESTED",
+        title:  "Zahtev za prijavu",
+        body:   `${waiterName} traži odobrenje za smenu "${shift.title}"`,
+        link:   "/dashboard/venue",
+      }],
+    });
 
     return NextResponse.json({ pending: true }, { status: 202 });
   }

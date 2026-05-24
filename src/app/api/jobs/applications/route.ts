@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { withAuth, withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { notify } from "@/lib/notify";
+import { fireSideEffects } from "@/lib/side-effects";
 import type { Session } from "next-auth";
 
 // ── GET ───────────────────────────────────────────────────────────────────────
@@ -93,13 +93,15 @@ export const POST = withRole("WAITER", async (req, _ctx, session) => {
   });
 
   // Notify venue owner of new application (fire-and-forget)
-  notify(
-    post.venue.ownerId,
-    "APPLICATION_RECEIVED",
-    "Nova prijava na oglas",
-    `${session.user.name ?? "Konobar"} se prijavio na "${application.jobPost.title}"`,
-    `/dashboard/venue`,
-  ).catch(console.error);
+  fireSideEffects({
+    notifications: [{
+      userId: post.venue.ownerId,
+      type:   "APPLICATION_RECEIVED",
+      title:  "Nova prijava na oglas",
+      body:   `${session.user.name ?? "Konobar"} se prijavio na "${application.jobPost.title}"`,
+      link:   "/dashboard/venue",
+    }],
+  });
 
   if (post.redAlert) {
     const responseMinutes = Math.round((Date.now() - post.createdAt.getTime()) / 60_000);
