@@ -3,47 +3,54 @@ import { withAuth, withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { notify } from "@/lib/notify";
+import type { Session } from "next-auth";
+
+// ── GET ───────────────────────────────────────────────────────────────────────
 
 export const GET = withAuth(async (_req, _ctx, session) => {
-  if (session.user.role === "WAITER") {
-    const applications = await db.jobApplication.findMany({
-      where: { waiterId: session.user.id },
-      include: {
-        jobPost: {
-          include: {
-            venue: { select: { id: true, name: true, address: true, municipality: true } },
-          },
+  if (session.user.role === "WAITER")      return getWaiterApplications(session);
+  if (session.user.role === "VENUE_OWNER") return getOwnerApplications(session);
+  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+});
+
+async function getWaiterApplications(session: Session) {
+  const applications = await db.jobApplication.findMany({
+    where: { waiterId: session.user.id },
+    include: {
+      jobPost: {
+        include: {
+          venue: { select: { id: true, name: true, address: true, municipality: true } },
         },
       },
-      orderBy: { appliedAt: "desc" },
-    });
-    return NextResponse.json(applications);
-  }
+    },
+    orderBy: { appliedAt: "desc" },
+  });
+  return NextResponse.json(applications);
+}
 
-  if (session.user.role === "VENUE_OWNER") {
-    const applications = await db.jobApplication.findMany({
-      where: { jobPost: { ownerId: session.user.id } },
-      include: {
-        jobPost: { select: { id: true, title: true, venueId: true } },
-        waiter: {
-          select: {
-            id: true, name: true, verificationTier: true,
-            waiterPassport: {
-              select: {
-                score: true, badges: true, skills: true,
-                sanitaryBookValid: true, currentlyAvailable: true,
-              },
+async function getOwnerApplications(session: Session) {
+  const applications = await db.jobApplication.findMany({
+    where: { jobPost: { ownerId: session.user.id } },
+    include: {
+      jobPost: { select: { id: true, title: true, venueId: true } },
+      waiter: {
+        select: {
+          id: true, name: true, verificationTier: true,
+          waiterPassport: {
+            select: {
+              score: true, badges: true, skills: true,
+              sanitaryBookValid: true, currentlyAvailable: true,
             },
           },
         },
       },
-      orderBy: { appliedAt: "desc" },
-    });
-    return NextResponse.json(applications);
-  }
+    },
+    orderBy: { appliedAt: "desc" },
+  });
+  return NextResponse.json(applications);
+}
 
-  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-});
+// ── POST ──────────────────────────────────────────────────────────────────────
 
 export const POST = withRole("WAITER", async (req, _ctx, session) => {
   const allowed = await checkRateLimit(session.user.id, "apply_job", 10);

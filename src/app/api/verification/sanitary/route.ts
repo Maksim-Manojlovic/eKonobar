@@ -2,34 +2,42 @@ import { NextResponse } from "next/server";
 import { withAuth, withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { dbRaw } from "@/lib/db";
+import type { Session } from "next-auth";
 
-// GET — waiter: own status; admin: all pending submissions
+// ── GET ───────────────────────────────────────────────────────────────────────
+// ADMIN  → all PENDING submissions ordered by uploadedAt asc
+// WAITER → own SanitaryBook record (or null)
+
 export const GET = withAuth(async (_req, _ctx, session) => {
-  if (session.user.role === "ADMIN") {
-    const pending = await dbRaw.sanitaryBook.findMany({
-      where: { status: "PENDING" },
-      select: {
-        id: true, status: true, expiryDate: true, uploadedAt: true,
-        rejectReason: true, reviewedBy: true, reviewedAt: true,
-        user: { select: { id: true, name: true, email: true } },
-      },
-      orderBy: { uploadedAt: "asc" },
-    });
-    // fileUrl is omitted — admins access documents via the auth-gated /file endpoint
-    return NextResponse.json(pending);
-  }
+  if (session.user.role === "ADMIN")  return getAdminPending();
+  if (session.user.role === "WAITER") return getWaiterStatus(session);
+  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+});
 
-  if (session.user.role !== "WAITER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+async function getAdminPending() {
+  const pending = await dbRaw.sanitaryBook.findMany({
+    where: { status: "PENDING" },
+    select: {
+      id: true, status: true, expiryDate: true, uploadedAt: true,
+      rejectReason: true, reviewedBy: true, reviewedAt: true,
+      user: { select: { id: true, name: true, email: true } },
+    },
+    orderBy: { uploadedAt: "asc" },
+  });
+  // fileUrl is omitted — admins access documents via the auth-gated /file endpoint
+  return NextResponse.json(pending);
+}
 
+async function getWaiterStatus(session: Session) {
   const book = await db.sanitaryBook.findUnique({
     where: { userId: session.user.id },
   });
   return NextResponse.json(book ?? null);
-});
+}
 
-// POST — waiter submits (or re-submits) their sanitary book URL
+// ── POST ──────────────────────────────────────────────────────────────────────
+// WAITER submits (or re-submits) their sanitary book URL
+
 export const POST = withRole("WAITER", async (req, _ctx, session) => {
   const { fileUrl, expiryDate } = await req.json();
 

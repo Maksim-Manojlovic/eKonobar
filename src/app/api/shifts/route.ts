@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { withAuth, withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { computeScheduledStart } from "@/lib/shift-utils";
 import logger from "@/lib/logger";
+import type { Session } from "next-auth";
 
 const ASSIGNMENT_SELECT = {
   id: true,
@@ -16,114 +17,120 @@ const ASSIGNMENT_SELECT = {
   waiter: { select: { id: true, name: true } },
 };
 
+// ── GET ───────────────────────────────────────────────────────────────────────
+
 export const GET = withAuth(async (req, _ctx, session) => {
   try {
-    const { searchParams } = new URL(req.url);
-    const view = searchParams.get("view"); // "open" | "swaps" | null (mine)
-
-    if (session.user.role === "VENUE_OWNER") {
-      const fromParam = searchParams.get("from");
-      const toParam   = searchParams.get("to");
-      const defaultFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-      const shifts = await db.shift.findMany({
-        where: {
-          venue: { ownerId: session.user.id },
-          date: {
-            gte: fromParam ? new Date(fromParam) : defaultFrom,
-            ...(toParam && { lte: new Date(toParam) }),
-          },
-        },
-        include: {
-          assignments: { include: { waiter: { select: { id: true, name: true } } } },
-          swapRequests: {
-            where: { status: "PENDING" },
-            include: {
-              fromAssignment: { include: { waiter: { select: { id: true, name: true } } } },
-              toWaiter: { select: { id: true, name: true } },
-            },
-          },
-        },
-        orderBy: [{ date: "asc" }, { startTime: "asc" }],
-      });
-      return NextResponse.json(shifts);
-    }
-
-    if (session.user.role === "WAITER") {
-      if (view === "manage") {
-        const managedVenue = await db.venue.findFirst({
-          where: { headWaiterId: session.user.id },
-          select: { id: true, name: true },
-        });
-        if (!managedVenue) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
-        const shifts = await db.shift.findMany({
-          where: { venueId: managedVenue.id },
-          include: {
-            assignments: { include: { waiter: { select: { id: true, name: true } } } },
-            swapRequests: {
-              where: { status: "PENDING" },
-              include: {
-                fromAssignment: { include: { waiter: { select: { id: true, name: true } } } },
-                toWaiter: { select: { id: true, name: true } },
-              },
-            },
-          },
-          orderBy: [{ date: "asc" }, { startTime: "asc" }],
-        });
-        return NextResponse.json({ venue: managedVenue, shifts });
-      }
-
-      if (view === "open") {
-        const shifts = await db.shift.findMany({
-          where: { status: "OPEN" },
-          include: {
-            venue: { select: { id: true, name: true, address: true, municipality: true } },
-            assignments: { select: { waiterId: true } },
-          },
-          orderBy: [{ date: "asc" }, { startTime: "asc" }],
-          take: 50,
-        });
-        return NextResponse.json(shifts);
-      }
-
-      if (view === "swaps") {
-        const swaps = await db.shiftSwapRequest.findMany({
-          where: { toWaiterId: session.user.id, status: "PENDING" },
-          include: {
-            shift: {
-              include: {
-                venue: { select: { id: true, name: true, address: true, municipality: true } },
-              },
-            },
-            fromAssignment: { include: { waiter: { select: { id: true, name: true } } } },
-          },
-          orderBy: { requestedAt: "desc" },
-        });
-        return NextResponse.json(swaps);
-      }
-
-      // default: my assigned shifts
-      const shifts = await db.shift.findMany({
-        where: { assignments: { some: { waiterId: session.user.id } } },
-        include: {
-          venue: { select: { id: true, name: true, address: true, municipality: true } },
-          assignments: {
-            where: { waiterId: session.user.id },
-            select: ASSIGNMENT_SELECT,
-          },
-        },
-        orderBy: [{ date: "asc" }, { startTime: "asc" }],
-      });
-      return NextResponse.json(shifts);
-    }
-
+    if (session.user.role === "VENUE_OWNER") return getOwnerShifts(req, session);
+    if (session.user.role === "WAITER")      return getWaiterShifts(req, session);
     return NextResponse.json([]);
   } catch (err) {
     logger.error({ err }, "GET /api/shifts");
     return NextResponse.json({ error: "Internal error", detail: String(err) }, { status: 500 });
   }
 });
+
+async function getOwnerShifts(req: NextRequest, session: Session) {
+  const { searchParams } = new URL(req.url);
+  const fromParam   = searchParams.get("from");
+  const toParam     = searchParams.get("to");
+  const defaultFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const shifts = await db.shift.findMany({
+    where: {
+      venue: { ownerId: session.user.id },
+      date: {
+        gte: fromParam ? new Date(fromParam) : defaultFrom,
+        ...(toParam && { lte: new Date(toParam) }),
+      },
+    },
+    include: {
+      assignments: { include: { waiter: { select: { id: true, name: true } } } },
+      swapRequests: {
+        where: { status: "PENDING" },
+        include: {
+          fromAssignment: { include: { waiter: { select: { id: true, name: true } } } },
+          toWaiter: { select: { id: true, name: true } },
+        },
+      },
+    },
+    orderBy: [{ date: "asc" }, { startTime: "asc" }],
+  });
+  return NextResponse.json(shifts);
+}
+
+async function getWaiterShifts(req: NextRequest, session: Session) {
+  const view = new URL(req.url).searchParams.get("view"); // "manage" | "open" | "swaps" | null
+
+  if (view === "manage") {
+    const managedVenue = await db.venue.findFirst({
+      where: { headWaiterId: session.user.id },
+      select: { id: true, name: true },
+    });
+    if (!managedVenue) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const shifts = await db.shift.findMany({
+      where: { venueId: managedVenue.id },
+      include: {
+        assignments: { include: { waiter: { select: { id: true, name: true } } } },
+        swapRequests: {
+          where: { status: "PENDING" },
+          include: {
+            fromAssignment: { include: { waiter: { select: { id: true, name: true } } } },
+            toWaiter: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: [{ date: "asc" }, { startTime: "asc" }],
+    });
+    return NextResponse.json({ venue: managedVenue, shifts });
+  }
+
+  if (view === "open") {
+    const shifts = await db.shift.findMany({
+      where: { status: "OPEN" },
+      include: {
+        venue: { select: { id: true, name: true, address: true, municipality: true } },
+        assignments: { select: { waiterId: true } },
+      },
+      orderBy: [{ date: "asc" }, { startTime: "asc" }],
+      take: 50,
+    });
+    return NextResponse.json(shifts);
+  }
+
+  if (view === "swaps") {
+    const swaps = await db.shiftSwapRequest.findMany({
+      where: { toWaiterId: session.user.id, status: "PENDING" },
+      include: {
+        shift: {
+          include: {
+            venue: { select: { id: true, name: true, address: true, municipality: true } },
+          },
+        },
+        fromAssignment: { include: { waiter: { select: { id: true, name: true } } } },
+      },
+      orderBy: { requestedAt: "desc" },
+    });
+    return NextResponse.json(swaps);
+  }
+
+  // default: my assigned shifts
+  const shifts = await db.shift.findMany({
+    where: { assignments: { some: { waiterId: session.user.id } } },
+    include: {
+      venue: { select: { id: true, name: true, address: true, municipality: true } },
+      assignments: {
+        where: { waiterId: session.user.id },
+        select: ASSIGNMENT_SELECT,
+      },
+    },
+    orderBy: [{ date: "asc" }, { startTime: "asc" }],
+  });
+  return NextResponse.json(shifts);
+}
+
+// ── POST ──────────────────────────────────────────────────────────────────────
 
 export const POST = withRole(["VENUE_OWNER", "WAITER"], async (req, _ctx, session) => {
   const body = await req.json();

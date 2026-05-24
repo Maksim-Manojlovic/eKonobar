@@ -2,43 +2,50 @@ import { NextResponse } from "next/server";
 import { withAuth, withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
+import type { Session } from "next-auth";
+
+// ── GET ───────────────────────────────────────────────────────────────────────
 
 export const GET = withAuth(async (_req, _ctx, session) => {
   try {
-    if (session.user.role === "VENUE_OWNER") {
-      const invites = await db.invite.findMany({
-        where: { senderId: session.user.id, type: "JOB_INVITE" },
-        include: {
-          recipient: { select: { id: true, name: true, verificationTier: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      });
-      return NextResponse.json(invites);
-    }
-
-    if (session.user.role === "WAITER") {
-      const invites = await db.invite.findMany({
-        where: { recipientId: session.user.id, type: "JOB_INVITE" },
-        include: {
-          sender: {
-            select: {
-              id: true,
-              name: true,
-              venues: { select: { id: true, name: true }, take: 1 },
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      });
-      return NextResponse.json(invites);
-    }
-
+    if (session.user.role === "VENUE_OWNER") return getSentInvites(session);
+    if (session.user.role === "WAITER")      return getReceivedInvites(session);
     return NextResponse.json([]);
   } catch (err) {
     console.error("[GET /api/invites]", err);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 });
+
+async function getSentInvites(session: Session) {
+  const invites = await db.invite.findMany({
+    where: { senderId: session.user.id, type: "JOB_INVITE" },
+    include: {
+      recipient: { select: { id: true, name: true, verificationTier: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  return NextResponse.json(invites);
+}
+
+async function getReceivedInvites(session: Session) {
+  const invites = await db.invite.findMany({
+    where: { recipientId: session.user.id, type: "JOB_INVITE" },
+    include: {
+      sender: {
+        select: {
+          id: true,
+          name: true,
+          venues: { select: { id: true, name: true }, take: 1 },
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  return NextResponse.json(invites);
+}
+
+// ── POST ──────────────────────────────────────────────────────────────────────
 
 export const POST = withRole("VENUE_OWNER", async (req, _ctx, session) => {
   const allowed = await checkRateLimit(session.user.id, "post_invite", 20);
