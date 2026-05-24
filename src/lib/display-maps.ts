@@ -109,6 +109,24 @@ export const VENUE_TYPE_LABELS: Record<string, string> = {
   EVENT:      "Event",
 };
 
+/* ── Review direction (WAITER_TO_VENUE | VENUE_TO_WAITER | GUEST_TO_WAITER | GUEST_TO_VENUE) ── */
+
+export const DIRECTION_LABELS: Record<string, string> = {
+  WAITER_TO_VENUE: "Konobar → Lokal",
+  VENUE_TO_WAITER: "Lokal → Konobar",
+  GUEST_TO_WAITER: "Gost → Konobar",
+  GUEST_TO_VENUE:  "Gost → Lokal",
+};
+
+/* ── User role (WAITER | VENUE_OWNER | HEADHUNTER | ADMIN) ──────────────── */
+
+export const ROLE_LABELS: Record<string, string> = {
+  WAITER:      "Konobar",
+  VENUE_OWNER: "Vlasnik",
+  HEADHUNTER:  "Headhunter",
+  ADMIN:       "Admin",
+};
+
 /* ── Date formatting — Serbian locale ────────────────────────────────────── */
 
 /** Formats ISO date string → "15. maj 2025." in Serbian locale. */

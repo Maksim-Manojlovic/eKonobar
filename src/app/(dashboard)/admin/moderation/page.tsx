@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { VERIFICATION_TIER_COLORS, formatDate } from "@/lib/display-maps";
+import { VERIFICATION_TIER_COLORS, DIRECTION_LABELS, formatDate } from "@/lib/display-maps";
 
 type Review = {
   id: string;
@@ -17,12 +17,6 @@ type Review = {
   author: { id: string; name: string | null; email: string; verificationTier: string };
   venue: { id: string; name: string; municipality: string } | null;
   subject: { id: string; name: string | null } | null;
-};
-
-const DIRECTION_LABELS: Record<string, string> = {
-  WAITER_TO_VENUE:  "Konobar → Lokal",
-  VENUE_TO_WAITER:  "Lokal → Konobar",
-  GUEST_TO_WAITER:  "Gost → Konobar",
 };
 
 function Stars({ rating }: { rating: number }) {

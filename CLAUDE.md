@@ -217,6 +217,8 @@ Providers are no-ops when env vars are missing — safe in development.
 - `PASSPORT_TIER_COLORS` — per passport tier, dark-bg variant
 - `APPLICATION_STATUS_COLORS`, `APPLICATION_STATUS_LABELS` — per application status
 - `INVITE_STATUS_COLORS`, `INVITE_STATUS_LABELS` — per invite status
+- `DIRECTION_LABELS` — all 4 review directions (WAITER_TO_VENUE, VENUE_TO_WAITER, GUEST_TO_WAITER, GUEST_TO_VENUE)
+- `ROLE_LABELS` — all 4 user roles (WAITER, VENUE_OWNER, HEADHUNTER, ADMIN)
 
 ### Side effects
 

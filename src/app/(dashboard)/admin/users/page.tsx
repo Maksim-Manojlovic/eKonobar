@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { PASSPORT_TIER_COLORS } from "@/lib/display-maps";
+import { PASSPORT_TIER_COLORS, ROLE_LABELS } from "@/lib/display-maps";
 import { timeAgo } from "../admin-helpers";
 
 type Passport = { passportTier: string; score: number; subscriptionExpiresAt: string | null };
@@ -15,10 +15,6 @@ type User = {
 };
 
 const ROLES = ["", "WAITER", "VENUE_OWNER", "HEADHUNTER", "ADMIN"];
-
-const ROLE_LABELS: Record<string, string> = {
-  WAITER: "Konobar", VENUE_OWNER: "Vlasnik", HEADHUNTER: "Headhunter", ADMIN: "Admin",
-};
 
 function Sk({ className = "" }: { className?: string }) {
   return <div className={`bg-white/8 rounded-xl animate-pulse ${className}`} />;

@@ -21,13 +21,6 @@ export const NEXT_TIER: Record<string, string | null> = {
   BRONZE: "SILVER", SILVER: "GOLD", GOLD: "PLATINUM", PLATINUM: null,
 };
 
-/* ── Direction labels ─────────────────────────────────────────────────────── */
-
-export const DIRECTION_LABELS: Record<string, string> = {
-  VENUE_TO_WAITER: "Lokal",
-  GUEST_TO_WAITER: "Gost",
-};
-
 /* ── Passport badge metadata ─────────────────────────────────────────────── */
 
 export const BADGE_META: Record<string, { emoji: string; label: string; sub: string }> = {
