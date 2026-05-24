@@ -7,14 +7,9 @@ import type { Session } from "next-auth";
 // ── GET ───────────────────────────────────────────────────────────────────────
 
 export const GET = withAuth(async (_req, _ctx, session) => {
-  try {
-    if (session.user.role === "VENUE_OWNER") return getSentInvites(session);
-    if (session.user.role === "WAITER")      return getReceivedInvites(session);
-    return NextResponse.json([]);
-  } catch (err) {
-    console.error("[GET /api/invites]", err);
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
-  }
+  if (session.user.role === "VENUE_OWNER") return getSentInvites(session);
+  if (session.user.role === "WAITER")      return getReceivedInvites(session);
+  return NextResponse.json([]);
 });
 
 async function getSentInvites(session: Session) {
@@ -85,22 +80,17 @@ export const POST = withRole("VENUE_OWNER", async (req, _ctx, session) => {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
-  try {
-    const invite = await db.invite.create({
-      data: {
-        senderId: session.user.id,
-        recipientId: waiterId,
-        venueId: venueId ?? null,
-        jobPostId: jobPostId ?? null,
-        type: "JOB_INVITE",
-        status: "PENDING",
-        message: message || undefined,
-        expiresAt,
-      },
-    });
-    return NextResponse.json(invite, { status: 201 });
-  } catch (err) {
-    console.error("[POST /api/invites]", err);
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
-  }
+  const invite = await db.invite.create({
+    data: {
+      senderId: session.user.id,
+      recipientId: waiterId,
+      venueId: venueId ?? null,
+      jobPostId: jobPostId ?? null,
+      type: "JOB_INVITE",
+      status: "PENDING",
+      message: message || undefined,
+      expiresAt,
+    },
+  });
+  return NextResponse.json(invite, { status: 201 });
 });

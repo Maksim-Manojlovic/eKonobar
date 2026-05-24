@@ -20,17 +20,12 @@ export const PATCH = withRole<{ params: Promise<{ id: string }> }>("WAITER", asy
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
-  try {
-    const updated = await db.invite.update({
-      where: { id },
-      data: {
-        status,
-        usedAt: status === "ACCEPTED" ? new Date() : undefined,
-      },
-    });
-    return NextResponse.json(updated);
-  } catch (err) {
-    console.error("[PATCH /api/invites/[id]]", err);
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
-  }
+  const updated = await db.invite.update({
+    where: { id },
+    data: {
+      status,
+      usedAt: status === "ACCEPTED" ? new Date() : undefined,
+    },
+  });
+  return NextResponse.json(updated);
 });

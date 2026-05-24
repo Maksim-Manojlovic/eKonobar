@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { VerificationTier } from "@prisma/client";
-import logger from "@/lib/logger";
 
 export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async (req, _ctx) => {
   const { searchParams } = new URL(req.url);
@@ -41,52 +40,47 @@ export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async (req, _ctx) => 
     ...(Object.keys(passportFilter).length > 0 && { waiterPassport: passportFilter }),
   };
 
-  try {
-    const [total, waiters] = await Promise.all([
-      db.user.count({ where }),
-      db.user.findMany({
-        where,
-        select: {
-          id: true,
-          name: true,
-          image: true,
-          verificationTier: true,
-          waiterPassport: {
-            select: {
-              score: true,
-              tierRank: true,
-              skills: true,
-              languages: true,
-              yearsExperience: true,
-              sanitaryBookValid: true,
-              currentlyAvailable: true,
-              badges: true,
-              bio: true,
-              reviewCount: true,
-              totalEngagements: true,
-              shareToken: true,
-              passportTier: true,
-              subscriptionExpiresAt: true,
-            },
+  const [total, waiters] = await Promise.all([
+    db.user.count({ where }),
+    db.user.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        image: true,
+        verificationTier: true,
+        waiterPassport: {
+          select: {
+            score: true,
+            tierRank: true,
+            skills: true,
+            languages: true,
+            yearsExperience: true,
+            sanitaryBookValid: true,
+            currentlyAvailable: true,
+            badges: true,
+            bio: true,
+            reviewCount: true,
+            totalEngagements: true,
+            shareToken: true,
+            passportTier: true,
+            subscriptionExpiresAt: true,
           },
         },
-        orderBy: [
-          { waiterPassport: { tierRank: "desc" } },
-          { waiterPassport: { score: "desc" } },
-        ],
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-    ]);
+      },
+      orderBy: [
+        { waiterPassport: { tierRank: "desc" } },
+        { waiterPassport: { score: "desc" } },
+      ],
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+  ]);
 
-    return NextResponse.json({
-      waiters,
-      total,
-      page,
-      pages: Math.ceil(total / limit),
-    });
-  } catch (err) {
-    logger.error({ err }, "GET /api/waiters");
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
-  }
+  return NextResponse.json({
+    waiters,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+  });
 });

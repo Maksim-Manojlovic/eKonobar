@@ -1,6 +1,7 @@
 import { getServerSession, type Session } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
+import logger from "@/lib/logger";
 import type { Role } from "@prisma/client";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,7 +44,12 @@ export function withRole<C extends RouteCtx = RouteCtx>(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    return handler(req, ctx, session);
+    try {
+      return await handler(req, ctx, session);
+    } catch (err) {
+      logger.error({ err }, `${req.method} ${req.nextUrl?.pathname ?? req.url}`);
+      return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    }
   };
 }
 
@@ -59,7 +65,12 @@ export function withAuth<C extends RouteCtx = RouteCtx>(handler: AuthedHandler<C
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    return handler(req, ctx, session);
+    try {
+      return await handler(req, ctx, session);
+    } catch (err) {
+      logger.error({ err }, `${req.method} ${req.nextUrl?.pathname ?? req.url}`);
+      return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    }
   };
 }
 
@@ -71,6 +82,11 @@ export function withAuth<C extends RouteCtx = RouteCtx>(handler: AuthedHandler<C
 export function withOptionalAuth<C extends RouteCtx = RouteCtx>(handler: OptionalAuthHandler<C>) {
   return async (req: NextRequest, ctx: C): Promise<Response> => {
     const session = await getServerSession(authOptions);
-    return handler(req, ctx, session ?? null);
+    try {
+      return await handler(req, ctx, session ?? null);
+    } catch (err) {
+      logger.error({ err }, `${req.method} ${req.nextUrl?.pathname ?? req.url}`);
+      return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    }
   };
 }

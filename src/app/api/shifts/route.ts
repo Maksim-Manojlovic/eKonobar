@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { withAuth, withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { computeScheduledStart } from "@/lib/shift-utils";
-import logger from "@/lib/logger";
 import type { Session } from "next-auth";
 
 const ASSIGNMENT_SELECT = {
@@ -20,14 +19,9 @@ const ASSIGNMENT_SELECT = {
 // ── GET ───────────────────────────────────────────────────────────────────────
 
 export const GET = withAuth(async (req, _ctx, session) => {
-  try {
-    if (session.user.role === "VENUE_OWNER") return getOwnerShifts(req, session);
-    if (session.user.role === "WAITER")      return getWaiterShifts(req, session);
-    return NextResponse.json([]);
-  } catch (err) {
-    logger.error({ err }, "GET /api/shifts");
-    return NextResponse.json({ error: "Internal error", detail: String(err) }, { status: 500 });
-  }
+  if (session.user.role === "VENUE_OWNER") return getOwnerShifts(req, session);
+  if (session.user.role === "WAITER")      return getWaiterShifts(req, session);
+  return NextResponse.json([]);
 });
 
 async function getOwnerShifts(req: NextRequest, session: Session) {
@@ -163,34 +157,29 @@ export const POST = withRole(["VENUE_OWNER", "WAITER"], async (req, _ctx, sessio
   const scheduledStart = computeScheduledStart(date, startTime);
   const status = ids.length >= rc ? "ASSIGNED" : "OPEN";
 
-  try {
-    const shift = await db.shift.create({
-      data: {
-        venueId,
-        title,
-        date: new Date(date),
-        startTime,
-        endTime,
-        scheduledStart,
-        role: role || undefined,
-        requiredCount: rc,
-        tipEstimate: tipEstimate ? Number(tipEstimate) : undefined,
-        pay: pay ? Math.round(Number(pay)) : undefined,
-        briefingNote: briefingNote || undefined,
-        notes: notes || undefined,
-        swapLocked: Boolean(swapLocked),
-        status,
-        assignments: ids.length
-          ? { create: ids.map((waiterId: string) => ({ waiterId })) }
-          : undefined,
-      },
-      include: {
-        assignments: { include: { waiter: { select: { id: true, name: true } } } },
-      },
-    });
-    return NextResponse.json(shift, { status: 201 });
-  } catch (err) {
-    logger.error({ err }, "POST /api/shifts");
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
-  }
+  const shift = await db.shift.create({
+    data: {
+      venueId,
+      title,
+      date: new Date(date),
+      startTime,
+      endTime,
+      scheduledStart,
+      role: role || undefined,
+      requiredCount: rc,
+      tipEstimate: tipEstimate ? Number(tipEstimate) : undefined,
+      pay: pay ? Math.round(Number(pay)) : undefined,
+      briefingNote: briefingNote || undefined,
+      notes: notes || undefined,
+      swapLocked: Boolean(swapLocked),
+      status,
+      assignments: ids.length
+        ? { create: ids.map((waiterId: string) => ({ waiterId })) }
+        : undefined,
+    },
+    include: {
+      assignments: { include: { waiter: { select: { id: true, name: true } } } },
+    },
+  });
+  return NextResponse.json(shift, { status: 201 });
 });
