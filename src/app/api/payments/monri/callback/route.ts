@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbRaw } from "@/lib/db";
 import { verifyCallback, callbackApproved, type MonriCallbackPayload } from "@/lib/monri";
-import { notify } from "@/lib/notify";
+import { fireSideEffects } from "@/lib/side-effects";
 
 export async function POST(req: NextRequest) {
   let payload: MonriCallbackPayload;
@@ -82,13 +82,15 @@ export async function POST(req: NextRequest) {
     }),
   ]);
 
-  notify(
-    payment.userId,
-    "APPLICATION_STATUS_CHANGED",
-    `Passport ${payment.tier} aktiviran`,
-    `Vaša pretplata je aktivna do ${subscriptionExpiresAt.toLocaleDateString("sr-RS")}.`,
-    "/waiter",
-  ).catch(console.error);
+  fireSideEffects({
+    notifications: [{
+      userId: payment.userId,
+      type:   "APPLICATION_STATUS_CHANGED",
+      title:  `Passport ${payment.tier} aktiviran`,
+      body:   `Vaša pretplata je aktivna do ${subscriptionExpiresAt.toLocaleDateString("sr-RS")}.`,
+      link:   "/waiter",
+    }],
+  });
 
   return NextResponse.json({ ok: true });
 }

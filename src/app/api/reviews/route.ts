@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/with-role";
 import { db } from "@/lib/db";
-import { syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
 import {
   isInsideVenueRadius,
   createGeolocationHash,
   parseGuestCoordinates,
 } from "@/lib/geofence";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { notify } from "@/lib/notify";
+import { fireSideEffects } from "@/lib/side-effects";
 import { clampRating } from "@/lib/format-utils";
 import { ReviewDirection } from "@prisma/client";
 
@@ -126,6 +125,13 @@ export const POST = withAuth(async (req, _ctx, session) => {
     return NextResponse.json({ error: "overallRating must be 0-100" }, { status: 400 });
   }
 
+  // Resolve venue owner for WAITER_TO_VENUE notification (single query, before review create)
+  let venueOwnerId: string | null = null;
+  if (direction === "WAITER_TO_VENUE" && venueId) {
+    const v = await db.venue.findUnique({ where: { id: venueId }, select: { ownerId: true } });
+    venueOwnerId = v?.ownerId ?? null;
+  }
+
   // Geofencing for GUEST_TO_WAITER
   let geolocationHash: string | undefined;
   let guestLat: number | undefined;
@@ -222,22 +228,21 @@ export const POST = withAuth(async (req, _ctx, session) => {
     },
   });
 
-  // Fire-and-forget score sync after review is created
-  if (direction === "WAITER_TO_VENUE" && venueId) {
-    syncVenueTrustScore(venueId).catch(console.error);
-    // notify venue owner
-    db.venue.findUnique({ where: { id: venueId }, select: { ownerId: true } })
-      .then(v => {
-        if (v?.ownerId) {
-          const stars = Math.round(rating / 20);
-          notify(v.ownerId, "REVIEW_RECEIVED", "Nova recenzija lokala",
-            `${session.user.name ?? "Konobar"} je ocenio vaš lokal sa ${stars}★`, "/venue")
-            .catch(console.error);
-        }
-      }).catch(console.error);
-  } else if ((direction === "VENUE_TO_WAITER" || direction === "GUEST_TO_WAITER") && subjectId) {
-    syncPassportScore(subjectId).catch(console.error);
-  }
+  // Fire-and-forget side effects
+  const stars = Math.round(rating / 20);
+  fireSideEffects({
+    syncVenueId:  direction === "WAITER_TO_VENUE" ? (venueId ?? null) : null,
+    syncWaiterId: (direction === "VENUE_TO_WAITER" || direction === "GUEST_TO_WAITER") ? (subjectId ?? null) : null,
+    notifications: venueOwnerId
+      ? [{
+          userId: venueOwnerId,
+          type:   "REVIEW_RECEIVED" as const,
+          title:  "Nova recenzija lokala",
+          body:   `${session.user.name ?? "Konobar"} je ocenio vaš lokal sa ${stars}★`,
+          link:   "/venue",
+        }]
+      : [],
+  });
 
   return NextResponse.json(review, { status: 201 });
 });

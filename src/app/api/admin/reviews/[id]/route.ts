@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/with-role";
 import { dbRaw } from "@/lib/db";
-import { syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
+import { fireSideEffects } from "@/lib/side-effects";
 import { logAudit } from "@/lib/audit";
 
 export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", async (req, ctx, session) => {
@@ -27,11 +27,10 @@ export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", asyn
 
   // Fire-and-forget score sync
   if (action === "publish") {
-    if (review.direction === "WAITER_TO_VENUE" && review.venueId) {
-      syncVenueTrustScore(review.venueId).catch(console.error);
-    } else if (review.subjectId) {
-      syncPassportScore(review.subjectId).catch(console.error);
-    }
+    fireSideEffects({
+      syncVenueId:  review.direction === "WAITER_TO_VENUE" ? review.venueId : null,
+      syncWaiterId: review.direction !== "WAITER_TO_VENUE" ? review.subjectId : null,
+    });
   }
 
   logAudit(session.user.id, action === "publish" ? "REVIEW_PUBLISHED" : "REVIEW_REMOVED", id, "Review");
