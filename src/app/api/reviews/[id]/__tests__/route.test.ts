@@ -11,14 +11,11 @@ vi.mock("@/lib/db", () => ({
     },
   },
 }));
-vi.mock("@/lib/sync-scores", () => ({
-  syncVenueTrustScore: vi.fn().mockResolvedValue(undefined),
-  syncPassportScore:   vi.fn().mockResolvedValue(undefined),
-}));
+vi.mock("@/lib/side-effects", () => ({ fireSideEffects: vi.fn() }));
 
 import { getServerSession } from "next-auth";
 import { db } from "@/lib/db";
-import { syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
+import { fireSideEffects } from "@/lib/side-effects";
 import { PATCH } from "../route";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -140,9 +137,7 @@ describe("PATCH /api/reviews/[id]", () => {
     mockSession();
     vi.mocked(db.review.findUnique).mockResolvedValue(BASE_REVIEW as never);
     await PATCH(makeReq({ action: "approve" }), makeCtx());
-    await new Promise(r => setTimeout(r, 0));
-    expect(syncVenueTrustScore).toHaveBeenCalledWith("venue-1");
-    expect(syncPassportScore).not.toHaveBeenCalled();
+    expect(fireSideEffects).toHaveBeenCalledWith({ syncVenueId: "venue-1", syncWaiterId: null });
   });
 
   it("approve GUEST_TO_VENUE: triggers venue score sync", async () => {
@@ -151,8 +146,7 @@ describe("PATCH /api/reviews/[id]", () => {
       ...BASE_REVIEW, direction: "GUEST_TO_VENUE",
     } as never);
     await PATCH(makeReq({ action: "approve" }), makeCtx());
-    await new Promise(r => setTimeout(r, 0));
-    expect(syncVenueTrustScore).toHaveBeenCalledWith("venue-1");
+    expect(fireSideEffects).toHaveBeenCalledWith({ syncVenueId: "venue-1", syncWaiterId: null });
   });
 
   it("approve GUEST_TO_WAITER: triggers passport score sync", async () => {
@@ -163,9 +157,7 @@ describe("PATCH /api/reviews/[id]", () => {
       subjectId: "waiter-1",
     } as never);
     await PATCH(makeReq({ action: "approve" }), makeCtx());
-    await new Promise(r => setTimeout(r, 0));
-    expect(syncPassportScore).toHaveBeenCalledWith("waiter-1");
-    expect(syncVenueTrustScore).not.toHaveBeenCalled();
+    expect(fireSideEffects).toHaveBeenCalledWith({ syncVenueId: null, syncWaiterId: "waiter-1" });
   });
 
   // ── Reject ────────────────────────────────────────────────────────────────
@@ -186,8 +178,6 @@ describe("PATCH /api/reviews/[id]", () => {
     mockSession();
     vi.mocked(db.review.findUnique).mockResolvedValue(BASE_REVIEW as never);
     await PATCH(makeReq({ action: "reject" }), makeCtx());
-    await new Promise(r => setTimeout(r, 0));
-    expect(syncVenueTrustScore).not.toHaveBeenCalled();
-    expect(syncPassportScore).not.toHaveBeenCalled();
+    expect(fireSideEffects).not.toHaveBeenCalled();
   });
 });

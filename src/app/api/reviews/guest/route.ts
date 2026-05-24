@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { syncPassportScore, syncVenueTrustScore } from "@/lib/sync-scores";
+import { fireSideEffects } from "@/lib/side-effects";
 import { isInsideVenueRadius, createGeolocationHash, parseGuestCoordinates } from "@/lib/geofence";
 import { rateLimit } from "@/lib/rate-limit";
-import { notify } from "@/lib/notify";
 
 function clampRating(v: unknown): number | null {
   if (v == null) return null;
@@ -109,12 +108,17 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    syncVenueTrustScore(venueId).catch(console.error);
-    if (venue.ownerId) {
-      const stars = Math.round(rating / 20);
-      notify(venue.ownerId, "REVIEW_RECEIVED", "Nova recenzija lokala",
-        `Gost je ocenio vaš lokal sa ${stars}★`, "/venue").catch(console.error);
-    }
+    const starsV = Math.round(rating / 20);
+    fireSideEffects({
+      syncVenueId: venueId,
+      notifications: venue.ownerId ? [{
+        userId: venue.ownerId,
+        type:   "REVIEW_RECEIVED",
+        title:  "Nova recenzija lokala",
+        body:   `Gost je ocenio vaš lokal sa ${starsV}★`,
+        link:   "/venue",
+      }] : [],
+    });
     return NextResponse.json({ ok: true, id: review.id }, { status: 201 });
   }
 
@@ -139,11 +143,16 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  syncPassportScore(subjectId).catch(console.error);
-  if (venue.ownerId) {
-    const stars = Math.round(rating / 20);
-    notify(venue.ownerId, "REVIEW_RECEIVED", "Nova gostinska recenzija",
-      `Gost je ocenio konobara sa ${stars}★`, "/venue").catch(console.error);
-  }
+  const starsW = Math.round(rating / 20);
+  fireSideEffects({
+    syncWaiterId: subjectId,
+    notifications: venue.ownerId ? [{
+      userId: venue.ownerId,
+      type:   "REVIEW_RECEIVED",
+      title:  "Nova gostinska recenzija",
+      body:   `Gost je ocenio konobara sa ${starsW}★`,
+      link:   "/venue",
+    }] : [],
+  });
   return NextResponse.json({ ok: true, id: review.id }, { status: 201 });
 }

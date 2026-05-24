@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
-import { syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
+import { fireSideEffects } from "@/lib/side-effects";
 
 export const PATCH = withRole<{ params: Promise<{ id: string }> }>("VENUE_OWNER", async (req, ctx, session) => {
   const { id } = await ctx.params;
@@ -36,12 +36,12 @@ export const PATCH = withRole<{ params: Promise<{ id: string }> }>("VENUE_OWNER"
       where: { id },
       data: { status: "PUBLISHED", publishedAt: new Date() },
     });
-    if (review.venueId && (review.direction === "WAITER_TO_VENUE" || review.direction === "GUEST_TO_VENUE")) {
-      syncVenueTrustScore(review.venueId).catch(console.error);
-    }
-    if (review.subjectId && (review.direction === "VENUE_TO_WAITER" || review.direction === "GUEST_TO_WAITER")) {
-      syncPassportScore(review.subjectId).catch(console.error);
-    }
+    fireSideEffects({
+      syncVenueId: (review.venueId && (review.direction === "WAITER_TO_VENUE" || review.direction === "GUEST_TO_VENUE"))
+        ? review.venueId : null,
+      syncWaiterId: (review.subjectId && (review.direction === "VENUE_TO_WAITER" || review.direction === "GUEST_TO_WAITER"))
+        ? review.subjectId : null,
+    });
   } else {
     await db.review.update({
       where: { id },

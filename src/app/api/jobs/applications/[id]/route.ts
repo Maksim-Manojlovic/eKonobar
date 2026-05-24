@@ -3,8 +3,7 @@ import { withAuth } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { dbRaw } from "@/lib/db";
 import { ApplicationStatus } from "@prisma/client";
-import { syncPassportScore } from "@/lib/sync-scores";
-import { notify } from "@/lib/notify";
+import { fireSideEffects } from "@/lib/side-effects";
 
 // Valid transitions per role
 const VENUE_TRANSITIONS: Partial<Record<ApplicationStatus, ApplicationStatus[]>> = {
@@ -80,7 +79,15 @@ export const PATCH = withAuth<{ params: Promise<{ id: string }> }>(async (req, c
   };
   const msg = statusMessages[status];
   if (msg && isOwner) {
-    notify(application.waiterId, "APPLICATION_STATUS_CHANGED", "Prijava ažurirana", msg, `/dashboard/waiter`).catch(console.error);
+    fireSideEffects({
+      notifications: [{
+        userId: application.waiterId,
+        type:   "APPLICATION_STATUS_CHANGED",
+        title:  "Prijava ažurirana",
+        body:   msg,
+        link:   "/dashboard/waiter",
+      }],
+    });
   }
 
   // COMPLETED side-effects: create engagement record + update passport
@@ -109,7 +116,7 @@ export const PATCH = withAuth<{ params: Promise<{ id: string }> }>(async (req, c
     ]);
 
     // Fire-and-forget score recalc
-    syncPassportScore(waiterId).catch(console.error);
+    fireSideEffects({ syncWaiterId: waiterId });
   }
 
   return NextResponse.json(updated);

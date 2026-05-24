@@ -7,20 +7,16 @@ vi.mock("@/lib/db", () => ({
     review: { create: vi.fn() },
   },
 }));
-vi.mock("@/lib/sync-scores", () => ({
-  syncPassportScore:   vi.fn().mockResolvedValue(undefined),
-  syncVenueTrustScore: vi.fn().mockResolvedValue(undefined),
-}));
+vi.mock("@/lib/side-effects", () => ({ fireSideEffects: vi.fn() }));
 vi.mock("@/lib/geofence", () => ({
   isInsideVenueRadius:   vi.fn(),
   parseGuestCoordinates: vi.fn(),
   createGeolocationHash: vi.fn().mockReturnValue("hash-abc"),
 }));
 vi.mock("@/lib/rate-limit", () => ({ rateLimit: vi.fn() }));
-vi.mock("@/lib/notify",     () => ({ notify: vi.fn().mockResolvedValue(undefined) }));
 
 import { db } from "@/lib/db";
-import { syncPassportScore, syncVenueTrustScore } from "@/lib/sync-scores";
+import { fireSideEffects } from "@/lib/side-effects";
 import { isInsideVenueRadius, parseGuestCoordinates } from "@/lib/geofence";
 import { rateLimit } from "@/lib/rate-limit";
 import { POST } from "../route";
@@ -141,9 +137,9 @@ describe("POST /api/reviews/guest", () => {
     expect(created.authorId).toBeNull();
     expect(created.weight).toBe(1.0);
 
-    await new Promise((r) => setTimeout(r, 0));
-    expect(syncPassportScore).toHaveBeenCalledWith(WAITER_ID);
-    expect(syncVenueTrustScore).not.toHaveBeenCalled();
+    expect(fireSideEffects).toHaveBeenCalledWith(
+      expect.objectContaining({ syncWaiterId: WAITER_ID }),
+    );
   });
 
   it("GUEST_TO_VENUE: creates review and triggers venue score sync", async () => {
@@ -155,9 +151,9 @@ describe("POST /api/reviews/guest", () => {
     expect(created.subjectId).toBeNull();
     expect(created.weight).toBe(0.7);
 
-    await new Promise((r) => setTimeout(r, 0));
-    expect(syncVenueTrustScore).toHaveBeenCalledWith(VENUE_ID);
-    expect(syncPassportScore).not.toHaveBeenCalled();
+    expect(fireSideEffects).toHaveBeenCalledWith(
+      expect.objectContaining({ syncVenueId: VENUE_ID }),
+    );
   });
 
   it("stores guestHandle trimmed to 50 chars max", async () => {

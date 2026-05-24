@@ -13,13 +13,11 @@ vi.mock("@/lib/db", () => ({
     waiterPassport:   { updateMany: vi.fn() },
   },
 }));
-vi.mock("@/lib/sync-scores", () => ({ syncPassportScore: vi.fn().mockResolvedValue(undefined) }));
-vi.mock("@/lib/notify",      () => ({ notify:            vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/lib/side-effects", () => ({ fireSideEffects: vi.fn() }));
 
 import { getServerSession } from "next-auth";
 import { db, dbRaw } from "@/lib/db";
-import { syncPassportScore } from "@/lib/sync-scores";
-import { notify } from "@/lib/notify";
+import { fireSideEffects } from "@/lib/side-effects";
 import { PATCH } from "../route";
 
 const OWNER_ID    = "owner-1";
@@ -142,40 +140,41 @@ describe("PATCH /api/jobs/applications/[id]", () => {
       expect(vi.mocked(dbRaw.$transaction)).toHaveBeenCalled();
     });
 
-    it("COMPLETED fires syncPassportScore fire-and-forget", async () => {
+    it("COMPLETED fires passport score sync", async () => {
       vi.mocked(db.jobApplication.findUnique).mockResolvedValue({
         ...BASE_APPLICATION, status: "ACCEPTED",
       } as never);
       await PATCH(makeReq({ status: "COMPLETED" }), makeCtx());
-      await new Promise((r) => setTimeout(r, 0));
-      expect(syncPassportScore).toHaveBeenCalledWith(WAITER_ID);
+      expect(fireSideEffects).toHaveBeenCalledWith(
+        expect.objectContaining({ syncWaiterId: WAITER_ID }),
+      );
     });
 
     it("notifies waiter on ACCEPTED", async () => {
       await PATCH(makeReq({ status: "ACCEPTED" }), makeCtx());
-      await new Promise((r) => setTimeout(r, 0));
-      expect(notify).toHaveBeenCalledWith(
-        WAITER_ID,
-        "APPLICATION_STATUS_CHANGED",
-        expect.any(String),
-        expect.any(String),
-        expect.any(String),
+      expect(fireSideEffects).toHaveBeenCalledWith(
+        expect.objectContaining({
+          notifications: expect.arrayContaining([
+            expect.objectContaining({ userId: WAITER_ID, type: "APPLICATION_STATUS_CHANGED" }),
+          ]),
+        }),
       );
     });
 
     it("notifies waiter on REJECTED", async () => {
       await PATCH(makeReq({ status: "REJECTED" }), makeCtx());
-      await new Promise((r) => setTimeout(r, 0));
-      expect(notify).toHaveBeenCalledWith(
-        WAITER_ID, "APPLICATION_STATUS_CHANGED", expect.any(String), expect.any(String), expect.any(String),
+      expect(fireSideEffects).toHaveBeenCalledWith(
+        expect.objectContaining({
+          notifications: expect.arrayContaining([
+            expect.objectContaining({ userId: WAITER_ID, type: "APPLICATION_STATUS_CHANGED" }),
+          ]),
+        }),
       );
     });
 
-    it("does not notify on SHORTLISTED (no message key)", async () => {
+    it("notifies waiter on SHORTLISTED", async () => {
       await PATCH(makeReq({ status: "SHORTLISTED" }), makeCtx());
-      await new Promise((r) => setTimeout(r, 0));
-      // notify is called with SHORTLISTED message
-      expect(notify).toHaveBeenCalled();
+      expect(fireSideEffects).toHaveBeenCalled();
     });
   });
 
@@ -215,10 +214,9 @@ describe("PATCH /api/jobs/applications/[id]", () => {
       expect(res.status).toBe(400);
     });
 
-    it("waiter action does not notify (notify only fires for owner actions)", async () => {
+    it("waiter action does not fire side effects", async () => {
       await PATCH(makeReq({ status: "WITHDRAWN" }), makeCtx());
-      await new Promise((r) => setTimeout(r, 0));
-      expect(notify).not.toHaveBeenCalled();
+      expect(fireSideEffects).not.toHaveBeenCalled();
     });
   });
 });
