@@ -1,5 +1,7 @@
 "use client";
 
+export { timeAgo } from "@/lib/format-utils";
+
 /* ── Skeleton ────────────────────────────────────────────────────────────── */
 
 export function Sk({ className = "" }: { className?: string }) {
@@ -80,17 +82,3 @@ export function SectionCard({ title, icon, children }: { title: string; icon: st
   );
 }
 
-/* ── Utilities ───────────────────────────────────────────────────────────── */
-
-/** Formats a date string as a relative Serbian time label ("pre 3h", "upravo", …). */
-export function timeAgo(dateStr: string): string {
-  const diff  = Date.now() - new Date(dateStr).getTime();
-  const mins  = Math.floor(diff / 60_000);
-  const hours = Math.floor(diff / 3_600_000);
-  const days  = Math.floor(diff / 86_400_000);
-  if (mins < 2)   return "upravo";
-  if (mins < 60)  return `pre ${mins}min`;
-  if (hours < 24) return `pre ${hours}h`;
-  if (days < 30)  return `pre ${days}d`;
-  return `pre ${Math.floor(days / 30)}m`;
-}

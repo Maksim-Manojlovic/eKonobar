@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { timeAgo } from "@/lib/format-utils";
+export { timeAgo };
 
 export type NotificationItem = {
   id: string;
@@ -25,16 +27,6 @@ export const TYPE_ICONS: Record<string, string> = {
   CLOCKIN_APPROVAL_REQUESTED:  "⏰",
   CLOCKIN_RESOLVED:            "✅",
 };
-
-export function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1)  return "upravo";
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  return `${Math.floor(h / 24)}d`;
-}
 
 function NotifRow({ n, onClick }: { n: NotificationItem; onClick?: () => void }) {
   return (

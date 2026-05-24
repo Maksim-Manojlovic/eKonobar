@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PASSPORT_TIER_COLORS } from "@/lib/display-maps";
+import { timeAgo } from "../admin-helpers";
 
 type Passport = { passportTier: string; score: number; subscriptionExpiresAt: string | null };
 type User = {
@@ -18,16 +19,6 @@ const ROLES = ["", "WAITER", "VENUE_OWNER", "HEADHUNTER", "ADMIN"];
 const ROLE_LABELS: Record<string, string> = {
   WAITER: "Konobar", VENUE_OWNER: "Vlasnik", HEADHUNTER: "Headhunter", ADMIN: "Admin",
 };
-
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const days = Math.floor(diff / 86_400_000);
-  if (days === 0) return "danas";
-  if (days === 1) return "juče";
-  if (days < 30) return `pre ${days}d`;
-  if (days < 365) return `pre ${Math.floor(days / 30)}m`;
-  return `pre ${Math.floor(days / 365)}g`;
-}
 
 function Sk({ className = "" }: { className?: string }) {
   return <div className={`bg-white/8 rounded-xl animate-pulse ${className}`} />;
