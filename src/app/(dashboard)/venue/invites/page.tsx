@@ -10,29 +10,14 @@ import {
   INVITE_STATUS_LABELS,
   formatDate,
 } from "@/lib/display-maps";
-
-type SentInvite = {
-  id: string;
-  status: string;
-  message: string | null;
-  createdAt: string;
-  expiresAt: string;
-  recipient: { id: string; name: string | null; verificationTier: string };
-};
-
-type Waiter = {
-  id: string;
-  name: string | null;
-  verificationTier: string;
-  waiterPassport: { score: number; currentlyAvailable: boolean; sanitaryBookValid: boolean } | null;
-};
+import type { SentInvite, VenueInviteWaiter } from "../venue-types";
 
 export default function VenueInvitesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
   const [invites, setInvites]       = useState<SentInvite[]>([]);
-  const [waiters, setWaiters]       = useState<Waiter[]>([]);
+  const [waiters, setWaiters]       = useState<VenueInviteWaiter[]>([]);
   const [loading, setLoading]       = useState(true);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQ, setSearchQ]       = useState("");

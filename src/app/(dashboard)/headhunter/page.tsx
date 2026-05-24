@@ -5,11 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Initials } from "@/components/ui/PassportWidgets";
-
-type SavedEntry = {
-  savedAt: string;
-  waiter: { id: string; name?: string | null; verificationTier: string; waiterPassport?: { score: number; currentlyAvailable: boolean } | null };
-};
+import type { SavedEntry } from "./headhunter-types";
 
 function Sk({ className = "" }: { className?: string }) {
   return <div className={`bg-neutral-200 rounded-lg animate-pulse ${className}`} />;

@@ -161,6 +161,23 @@ export type IncomingApp = {
 
 
 
+export type SentInvite = {
+  id: string;
+  status: string;
+  message: string | null;
+  createdAt: string;
+  expiresAt: string;
+  recipient: { id: string; name: string | null; verificationTier: string };
+};
+
+/** Waiter shape used in the venue invites search panel */
+export type VenueInviteWaiter = {
+  id: string;
+  name: string | null;
+  verificationTier: string;
+  waiterPassport: { score: number; currentlyAvailable: boolean; sanitaryBookValid: boolean } | null;
+};
+
 export function trustDimensions(ts: Venue["venueTrustScore"]): { label: string; value: number }[] {
   if (!ts) return [
     { label: "Atmosfera", value: 0 }, { label: "Organizacija", value: 0 },

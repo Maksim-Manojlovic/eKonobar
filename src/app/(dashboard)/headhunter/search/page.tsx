@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { VERIFICATION_TIER_COLORS } from "@/lib/display-maps";
 import { Initials, PassportTierBadge, ScorePill } from "@/components/ui/PassportWidgets";
+import type { Waiter } from "../headhunter-types";
 
 const VERIFICATION_TIERS = [
   { value: "",            label: "Svi nivoi"    },
@@ -14,20 +15,6 @@ const VERIFICATION_TIERS = [
   { value: "SILVER",      label: "Silver"       },
   { value: "UNVERIFIED",  label: "Neverifikovan" },
 ];
-
-type Waiter = {
-  id: string;
-  name?: string | null;
-  image?: string | null;
-  verificationTier: string;
-  waiterPassport?: {
-    score: number; skills: string[]; languages: string[];
-    yearsExperience: number; sanitaryBookValid: boolean;
-    currentlyAvailable: boolean; reviewCount: number;
-    totalEngagements: number; shareToken?: string | null;
-    passportTier?: string; subscriptionExpiresAt?: string | null;
-  } | null;
-};
 
 export default function HeadhunterSearch() {
   const { data: session, status } = useSession();

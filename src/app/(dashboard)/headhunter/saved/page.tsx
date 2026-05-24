@@ -6,21 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { VERIFICATION_TIER_COLORS } from "@/lib/display-maps";
 import { Initials, PassportTierBadge } from "@/components/ui/PassportWidgets";
-
-type SavedEntry = {
-  savedAt: string;
-  notes?: string | null;
-  waiter: {
-    id: string; name?: string | null; image?: string | null; verificationTier: string;
-    waiterPassport?: {
-      score: number; skills: string[]; languages: string[];
-      sanitaryBookValid: boolean; currentlyAvailable: boolean;
-      reviewCount: number; totalEngagements: number;
-      yearsExperience: number; shareToken?: string | null;
-      passportTier?: string; subscriptionExpiresAt?: string | null;
-    } | null;
-  };
-};
+import type { SavedEntry } from "../headhunter-types";
 
 export default function SavedProfilesPage() {
   const { data: session, status } = useSession();
