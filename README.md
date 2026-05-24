@@ -141,67 +141,100 @@ src/
       for-waiters/     # Waiter Passport™ landing page (in-page nav: #kako-radi, #tierovi, #faq)
       landing/         # Original shared landing page (/landing)
                        # Also: venue listings, job listings, public passport (/passport/[shareToken])
-    (auth)/            # Login, register, onboarding (waiter | venue | headhunter)
-    (dashboard)/       # Waiter, venue owner, headhunter, admin dashboards
-      venue/           # Venue owner dashboard (dark theme, skeleton loaders, guided tour)
-      waiter/          # Waiter dashboard (dark theme, skeleton loaders, passport + subscriptions)
-      headhunter/      # Headhunter dashboard (saved profiles, search entry)
-      admin/           # Admin dashboard (dark theme, analytics, activity feed)
-        users/         # User management — search, filter, soft-delete, restore
-    (public)/
       review/[venueId]/ # Guest QR review page — 3-choice flow (venue / waiter / both), no auth
+    (auth)/            # Login, register, onboarding (waiter | venue | headhunter)
+    (dashboard)/
+      venue/                    # Venue owner dashboard (dark theme, skeleton loaders, guided tour)
+        page.tsx                # Root client component — session + section state only
+        venue-types.ts          # Section type + all API response shapes
+        venue-helpers.tsx       # Shared UI: PostStatusBadge, PassportTierBadge, ScorePill, Sk, *Skeleton
+        VenueJobsSection.tsx
+        VenueSmeneSection.tsx   # Shift scheduling UI
+        VenueSmeneModals.tsx    # Shift create/edit modals
+        VenueDiscoverSection.tsx
+        VenueReviewsSection.tsx
+        ProfileSection.tsx
+        applications/           # /venue/applications sub-page
+        invites/                # /venue/invites sub-page
+        jobs/                   # /venue/jobs sub-page
+        reviews/                # /venue/reviews sub-page
+      waiter/                   # Waiter dashboard (dark theme, passport + subscriptions)
+        page.tsx                # Root client component
+        waiter-types.ts         # Section type + API response shapes
+        waiter-helpers.tsx      # Shared UI: StatusBadge, ShiftStatusBadge, Sk, *Skeleton
+        WaiterOverviewSection.tsx
+        WaiterJobsSection.tsx
+        WaiterSmeneSection.tsx
+        WaiterPassportSection.tsx
+        WaiterInvitesSection.tsx
+        WaiterReviewsSection.tsx
+        history/                # /waiter/history sub-page
+        jobs/                   # /waiter/jobs sub-page
+      headhunter/               # Headhunter dashboard
+        page.tsx
+        saved/                  # Saved profiles list
+        search/                 # Waiter search
+      admin/                    # Admin dashboard (dark theme, analytics, moderation)
+        page.tsx                # Root client component
+        admin-types.ts          # PlatformStats, ActivityEvent, HealthData, LeaderboardData, etc.
+        admin-helpers.tsx       # DashboardSkeleton, BigStat, MiniStat, SectionCard, timeAgo
+        users/                  # User management — search, filter, soft-delete, restore
+        venues/                 # Venue list + hard-delete
+        analytics/zones/        # Zone analytics page
+        moderation/             # Disputed review moderation
+        verifications/          # Sanitary book verification queue
     api/
       cron/
-        publish-reviews/     # POST — publishes due reviews + syncs trust scores
-        renew-subscriptions/ # POST — charges stored Monri pan_tokens for expiring PRO/PRO_PLUS
-      jobs/                  # Job posts (CRUD), applications, GeoJSON
-        applications/        # Application lifecycle (PATCH status transitions)
-      reviews/               # Review submission (WAITER_TO_VENUE, VENUE_TO_WAITER)
-        guest/               # POST — unauthenticated guest reviews (GUEST_TO_VENUE | GUEST_TO_WAITER)
-        [id]/                # PATCH — venue owner approve/reject PENDING reviews
-      venues/                # Venue CRUD, GeoJSON, images
-        [id]/public/         # GET — public venue info + accepted waiters (no auth)
-      upload/                # POST — Cloudinary image upload (avatar, venue-photo)
-      invites/               # Job invites: send (owner), respond (waiter)
-      shifts/                # Shift scheduling, marketplace, templates
-        [id]/clockin/        # POST — clock-in (GPS 3-tier: auto / grace / pending approval)
-        [id]/clockout/       # POST — clock-out with early-exit detection
-        assignments/
-          [id]/approve-clockin/ # PATCH — venue owner approves/rejects pending clock-in
-        [id]/claim/          # POST — marketplace claim (WAITER)
-        [id]/swap/           # POST — initiate swap request
-        swaps/[swapId]/      # PATCH — owner approves/rejects swap
-        templates/           # Shift template CRUD + bulk generation
-      passport/              # Waiter passport read/write, engagements
-        share/               # POST — generate 30-day share link
-        public/[shareToken]/ # GET — public passport view (no auth)
-        subscribe/           # POST — direct tier change (admin/cancel path)
-        subscription/        # GET — current tier + expiry info
+        publish-reviews/        # POST — publishes due reviews + syncs trust scores
+        renew-subscriptions/    # POST — charges stored Monri pan_tokens for expiring PRO/PRO_PLUS
+        retry-notifications/    # POST — retries failed WA/SMS sends (hourly)
+      jobs/                     # Job posts (CRUD), applications, GeoJSON
+        applications/           # Application lifecycle (PATCH status transitions)
+      reviews/                  # Review submission (WAITER_TO_VENUE, VENUE_TO_WAITER)
+        guest/                  # POST — unauthenticated guest reviews (GUEST_TO_VENUE | GUEST_TO_WAITER)
+        [id]/                   # PATCH — venue owner approve/reject PENDING reviews
+      venues/                   # Venue CRUD, GeoJSON, images
+        [id]/public/            # GET — public venue info + accepted waiters (no auth)
+      upload/                   # POST — Cloudinary image upload (avatar, venue-photo)
+      invites/                  # Job invites: send (owner), respond (waiter)
+      shifts/                   # Shift scheduling, marketplace, templates
+        [id]/clockin/           # POST — GPS 3-tier clock-in (auto / grace / pending approval)
+        [id]/clockout/          # POST — clock-out with early-exit detection
+        [id]/claim/             # POST — marketplace claim (WAITER)
+        [id]/swap/              # POST — initiate swap request
+        assignments/[id]/approve-clockin/  # PATCH — owner approves/rejects pending clock-in
+        swaps/[swapId]/         # PATCH — owner approves/rejects swap
+        templates/              # Shift template CRUD + bulk generation
+      passport/                 # Waiter passport read/write, engagements
+        share/                  # POST — generate 30-day share link
+        public/[shareToken]/    # GET — public passport view (no auth)
+        subscribe/              # POST — direct tier change (admin/cancel path)
+        subscription/           # GET — current tier + expiry info
       payments/monri/
-        checkout/            # POST — create Monri payment session, returns paymentUrl
-        callback/            # POST — server-to-server callback (no auth), activates tier
-        success/             # GET — redirect after successful payment
-        cancel/              # GET — redirect after cancelled payment
+        checkout/               # POST — create Monri payment session, returns paymentUrl
+        callback/               # POST — server-to-server callback (no auth), activates tier
+        success/                # GET — redirect after successful payment
+        cancel/                 # GET — redirect after cancelled payment
       user/
-        tour-complete/       # PATCH — mark User.tourCompleted = true (called on tour close)
-        notification-prefs/  # GET + PATCH — phone, smsOptIn, waOptIn preferences
-      waiters/               # GET — waiter search (VENUE_OWNER, HEADHUNTER)
-      headhunter/saved/      # Saved waiter profiles (GET | POST | DELETE)
-      insights/market/       # GET — market stats (open positions, avg salary, top municipalities)
+        tour-complete/          # PATCH — mark User.tourCompleted = true
+        notification-prefs/     # GET + PATCH — phone, smsOptIn, waOptIn preferences
+      waiters/                  # GET — waiter search (VENUE_OWNER, HEADHUNTER)
+      headhunter/saved/         # Saved waiter profiles (GET | POST | DELETE)
+      insights/market/          # GET — open positions, avg salary, top municipalities
       admin/
-        stats/               # GET — platform analytics (users, passports, venues, jobs, reviews, revenue)
-        activity/            # GET — recent 25 events across registrations/payments/reviews/applications
-        users/               # GET — paginated user list with name/email search + role filter
-          [id]/              # PATCH — soft-delete, restore, role change (blocks self-modify)
-        health/              # GET — system health (overdue reviews, stale subscriptions, cron proxies)
-        reviews/             # GET DISPUTED reviews; PATCH publish/remove
-        venues/[id]/         # DELETE — GDPR hard-delete
-        zones/               # Zone CRUD (public read, admin write)
+        stats/                  # GET — platform analytics (13 parallel queries)
+        activity/               # GET — recent 25 events (registrations/payments/reviews/applications)
+        leaderboard/            # GET — top waiters + venues by score
+        users/[id]/             # GET paginated list; PATCH soft-delete, restore, role change
+        health/                 # GET — system health (overdue reviews, stale subs, cron proxies)
+        reviews/                # GET DISPUTED; PATCH publish/remove
+        venues/[id]/            # DELETE — GDPR hard-delete
+        zones/                  # Zone CRUD (public read, admin write)
       verification/
-        sanitary/            # Sanitary book submit (waiter) + approve/reject (admin)
-      notifications/         # GET + PATCH mark-read
-      push/subscribe/        # POST — register Web Push subscription
-      auth/                  # NextAuth + registration
+        sanitary/               # Submit (waiter) + approve/reject (admin)
+      notifications/            # GET + PATCH mark-read
+      push/subscribe/           # POST — register Web Push subscription
+      auth/                     # NextAuth + registration
   components/
     venue/             # VenueCard, VenueInsightsBadge
     job/               # JobCard, JobPostForm, RedAlertBadge
@@ -218,21 +251,34 @@ src/
     useDashboardTour.ts  # driver.js first-login tour; returns { startTour } for manual re-trigger
   lib/
     i18n.ts            # Lang type, FLAGS array (inline SVG), translation map (sr/en/ru)
-    auth.ts            # NextAuth config
+    auth.ts            # NextAuth config (authOptions + in-process token revocation cache)
+    auth-helpers.ts    # verifyCredentials, buildJwtToken, checkLoginRateLimit
     db.ts              # Prisma client (soft-delete filtered) + dbRaw
     cloudinary.ts      # Cloudinary v2 client (used by /api/upload)
-    trust-score.ts     # Bayesian scoring
-    geofence.ts        # Haversine + isInsideVenueRadius()
+    trust-score.ts     # Bayesian scoring — calculatePassportScore, calculateVenueTrustScore
+    geofence.ts        # Haversine + isInsideVenueRadius(), parseGuestCoordinates()
     sync-scores.ts     # publishDueReviews, syncVenueTrustScore, syncPassportScore
-    rate-limit.ts      # DB-backed rate limiter: rateLimit() via AnonRateLimit (no FK, pre-auth) + checkRateLimit() via RateLimit (userId, post-auth)
+    side-effects.ts    # fireSideEffects() — fire-and-forget score syncs + notifications
+    shift-auth.ts      # canManageShifts, getManagedShift, getManagedTemplate
+    shift-utils.ts     # computeScheduledStart, computeScheduledEnd
+    rate-limit.ts      # rateLimit() (AnonRateLimit, pre-auth) + checkRateLimit() (RateLimit, post-auth)
     analytics.ts       # Zone insight cache: getVenueZoneInsights, refreshVenueZoneCache
     notify.ts          # Unified notification dispatch (DB + push + WhatsApp + SMS)
     webpush.ts         # Web Push (VAPID) sender
     whatsapp.ts        # WhatsApp Business API sender
     sms.ts             # Infobip SMS sender
-    shift-utils.ts     # computeScheduledStart / computeScheduledEnd helpers
-    __tests__/         # Unit tests for trust-score and geofence (pure functions)
-  app/api/reviews/[id]/__tests__/  # Route handler tests (vi.mock() pattern)
+    monri.ts           # Monri payment gateway client
+    passport-tier.ts   # getEffectiveTier, isPro, isProPlus, tierRank — canonical tier resolution
+    format-utils.ts    # getInitials, formatSalary — pure formatting, no project imports
+    display-maps.ts    # VERIFICATION_TIER_COLORS, PASSPORT_TIER_COLORS, APPLICATION_STATUS_* etc.
+    parse-body.ts      # parseBody / parseQuery — Zod-validated request parsing
+    with-role.ts       # withRole / withAuth — session auth + role check wrappers
+    audit.ts           # logAudit() — fire-and-forget AuditLog write
+    logger.ts          # pino logger (pretty-print dev, JSON prod)
+    email.ts           # nodemailer SMTP — sendPasswordResetEmail, sendNotificationEmail
+    env.ts             # Validates required env vars at startup (imported by auth.ts)
+    utils.ts           # cn() — clsx + tailwind-merge
+    __tests__/         # Unit tests for trust-score, geofence, sync-scores, notify (pure functions)
   design-system/
     tokens.ts          # Color palette and design tokens
 prisma/

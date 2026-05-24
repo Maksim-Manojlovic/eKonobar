@@ -204,6 +204,65 @@ Providers are no-ops when env vars are missing — safe in development.
 - "Označi sve pročitanim" button when unread > 0
 - Per-item read via `PATCH /api/notifications { ids: [id] }` (optimistic UI, then confirm)
 
+### Shared formatting & display utilities
+
+`lib/format-utils.ts` — pure formatting helpers, zero imports from other project modules. Safe to import from any layer:
+
+- `getInitials(name)` — up to 2 uppercase initials, or `"?"` when blank
+- `formatSalary({ salaryMin, salaryMax, engagementType })` — Serbian locale salary range; `"/mes"` for FULL_TIME, `"/sm"` otherwise; falls back to `"Po dogovoru"`
+
+`lib/display-maps.ts` — **single source of truth** for Tailwind badge classes and human-readable labels. Never define `*_COLORS` or `*_LABELS` maps inline in a page; import from here:
+
+- `VERIFICATION_TIER_COLORS` — per verification tier (UNVERIFIED → ID_VERIFIED)
+- `PASSPORT_TIER_COLORS` — per passport tier, dark-bg variant
+- `APPLICATION_STATUS_COLORS`, `APPLICATION_STATUS_LABELS` — per application status
+- `INVITE_STATUS_COLORS`, `INVITE_STATUS_LABELS` — per invite status
+
+### Side effects
+
+`lib/side-effects.ts` — `fireSideEffects(opts)` — schedules score syncs and notifications as fire-and-forget. Use instead of calling `notify()` and `syncPassportScore()`/`syncVenueTrustScore()` directly in route handlers:
+
+```typescript
+import { fireSideEffects } from "@/lib/side-effects";
+
+fireSideEffects({
+  syncVenueId:   venueId,       // optional
+  syncWaiterId:  waiterId,      // optional
+  notifications: [{ userId, type, title, body, link }],  // optional
+});
+// Returns void — never await.
+```
+
+Tests mock as `vi.fn()` — no `await new Promise(r => setTimeout(r, 0))` timer hacks needed.
+
+### Shift authorization
+
+`lib/shift-auth.ts` — shift management access helpers. Use in shift route handlers instead of repeating the owner/head-waiter check inline:
+
+- `canManageShifts(userId, role, venue)` → `boolean` — true if VENUE_OWNER owns the venue or WAITER is the venue's `headWaiterId`
+- `getManagedShift(shiftId, userId, role)` → shift with venue + assignments, or `null` if not found / not authorized
+- `getManagedTemplate(templateId, userId, role)` → same for shift templates
+
+### Audit logging
+
+`lib/audit.ts` — `logAudit(actorId, action, targetId, targetType, meta?)` — fire-and-forget write to `AuditLog` table. Use for sensitive admin actions (role changes, hard deletes):
+
+```typescript
+import { logAudit } from "@/lib/audit";
+logAudit(session.user.id, "USER_ROLE_CHANGE", targetId, "User", { from: old, to: newRole });
+```
+
+### Logging
+
+`lib/logger.ts` — pino logger. Dev: pretty-print. Production: JSON. Import as:
+
+```typescript
+import logger from "@/lib/logger";
+logger.error({ err }, "something failed");
+```
+
+Use `logger` in lib modules. `console.error` stays acceptable for fire-and-forget `.catch()` callbacks.
+
 ### Shift utilities
 
 Use `lib/shift-utils.ts` for DateTime computation — never manually concatenate date + time strings:
@@ -235,6 +294,39 @@ When `template.weekdaysOnly === true`, generation loops Mon–Fri (days 1–5) a
 The `/review/[venueId]` public page (`src/app/(public)/review/[venueId]/page.tsx`) presents a 3-choice flow: "Oceni restoran" (GUEST_TO_VENUE), "Oceni konobara" (GUEST_TO_WAITER), "Oceni oba" (both — two sequential POSTs sharing the same geolocation coords). Step type: `"loading" | "error404" | "choose" | "venue" | "waiter" | "both-venue" | "both-waiter" | "success"`.
 
 The public venue info endpoint `GET /api/venues/[id]/public` returns venue + accepted waiters list — no auth required.
+
+### Dashboard architecture
+
+Each dashboard is split across several co-located files. Do not put shared helpers or type definitions back into `page.tsx`.
+
+**Venue dashboard** (`src/app/(dashboard)/venue/`):
+- `page.tsx` — root client component, session + section state only; no business logic
+- `venue-types.ts` — `Section` type, all API response shapes used by venue sections
+- `venue-helpers.tsx` — shared UI: `PostStatusBadge`, `AppStatusBadge`, `TierBadge`, `PassportTierBadge`, `ScorePill`, `Sk`, and all `*Skeleton` loader components
+- Section components: `VenueJobsSection`, `VenueSmeneSection`, `VenueDiscoverSection`, `VenueReviewsSection`, `ProfileSection`, `VenueSmeneModals`
+
+**Waiter dashboard** (`src/app/(dashboard)/waiter/`):
+- `page.tsx` — root client component
+- `waiter-types.ts` — `Section` type, `ShiftAssignment`, `WaiterShift`, and all API response shapes
+- `waiter-helpers.tsx` — shared UI: `StatusBadge`, `ShiftStatusBadge`, `Sk`, and all `*Skeleton` loaders
+- Section components: `WaiterOverviewSection`, `WaiterJobsSection`, `WaiterSmeneSection`, `WaiterPassportSection`, `WaiterInvitesSection`, `WaiterReviewsSection`
+
+**Admin dashboard** (`src/app/(dashboard)/admin/`):
+- `admin-types.ts` — `PlatformStats`, `ActivityEvent`, `HealthData`, `LeaderboardData`, and all other admin-scoped types
+- `admin-helpers.tsx` — `DashboardSkeleton`, `BigStat`, `MiniStat`, `SectionCard`, `timeAgo` — **always import from here, never redefine**
+- Sub-pages: `users/`, `venues/`, `analytics/zones/`, `moderation/`, `verifications/`
+
+### Code conventions
+
+**Inline UI micro-components:** Never define `Initials`, `PassportTierBadge`, `ScorePill`, or similar inside a page file. For venue/headhunter contexts import from `venue-helpers.tsx`. For cross-dashboard reuse, promote to `components/ui/`.
+
+**`timeAgo()`:** Admin pages import from `admin-helpers.tsx`. Notification components use the export from `components/ui/NotificationBell.tsx`. Do not write a new local definition — there are already too many copies.
+
+**Display maps:** Always import `*_COLORS` and `*_LABELS` constants from `lib/display-maps.ts`. Do not define them inline in a page.
+
+**Page-level types:** Define API response shapes in the co-located `*-types.ts` file (e.g., `venue-types.ts`, `waiter-types.ts`, `admin-types.ts`), not inline in the page component. This keeps the shape and the page editable independently.
+
+**Fire-and-forget side effects:** Use `fireSideEffects()` from `lib/side-effects.ts` instead of calling `notify()` and score-sync functions directly. Keeps route handlers clean and makes tests trivial to write (mock the whole module as `vi.fn()`).
 
 ### Dark dashboard theme
 
