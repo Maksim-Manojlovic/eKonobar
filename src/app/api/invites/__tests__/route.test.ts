@@ -23,6 +23,8 @@ const WAITER_ID = "waiter-1";
 
 function makeReq() { return new NextRequest("http://localhost/api/test"); }
 
+const CTX = { params: Promise.resolve({}) };
+
 function makePostReq(body: object) {
   return new NextRequest("http://localhost/api/invites", {
     method: "POST",
@@ -43,13 +45,13 @@ describe("GET /api/invites", () => {
 
   it("returns 401 when unauthenticated", async () => {
     vi.mocked(getServerSession).mockResolvedValue(null);
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(401);
   });
 
   it("queries sent invites for VENUE_OWNER", async () => {
     mockSession("VENUE_OWNER");
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     const call = vi.mocked(db.invite.findMany).mock.calls[0]?.[0];
     expect(call?.where).toMatchObject({ senderId: OWNER_ID, type: "JOB_INVITE" });
@@ -57,7 +59,7 @@ describe("GET /api/invites", () => {
 
   it("queries received invites for WAITER", async () => {
     mockSession("WAITER", WAITER_ID);
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     const call = vi.mocked(db.invite.findMany).mock.calls[0]?.[0];
     expect(call?.where).toMatchObject({ recipientId: WAITER_ID, type: "JOB_INVITE" });
@@ -65,7 +67,7 @@ describe("GET /api/invites", () => {
 
   it("returns empty array for other roles", async () => {
     mockSession("HEADHUNTER", "hh-1");
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     const d = await res.json();
     expect(d).toEqual([]);
@@ -85,35 +87,35 @@ describe("POST /api/invites", () => {
 
   it("returns 403 when not VENUE_OWNER", async () => {
     mockSession("WAITER", WAITER_ID);
-    const res = await POST(makePostReq({ waiterId: WAITER_ID }));
+    const res = await POST(makePostReq({ waiterId: WAITER_ID }), CTX);
     expect(res.status).toBe(403);
   });
 
   it("returns 429 when rate limit exceeded", async () => {
     vi.mocked(checkRateLimit).mockResolvedValue(false);
-    const res = await POST(makePostReq({ waiterId: WAITER_ID }));
+    const res = await POST(makePostReq({ waiterId: WAITER_ID }), CTX);
     expect(res.status).toBe(429);
   });
 
   it("returns 400 when waiterId missing", async () => {
-    const res = await POST(makePostReq({}));
+    const res = await POST(makePostReq({}), CTX);
     expect(res.status).toBe(400);
   });
 
   it("returns 404 when waiter not found", async () => {
     vi.mocked(db.user.findFirst).mockResolvedValue(null);
-    const res = await POST(makePostReq({ waiterId: "ghost" }));
+    const res = await POST(makePostReq({ waiterId: "ghost" }), CTX);
     expect(res.status).toBe(404);
   });
 
   it("returns 409 when pending invite already exists", async () => {
     vi.mocked(db.invite.findFirst).mockResolvedValue({ id: "existing" } as never);
-    const res = await POST(makePostReq({ waiterId: WAITER_ID }));
+    const res = await POST(makePostReq({ waiterId: WAITER_ID }), CTX);
     expect(res.status).toBe(409);
   });
 
   it("creates invite with correct fields and returns 201", async () => {
-    const res = await POST(makePostReq({ waiterId: WAITER_ID, message: "Hej!" }));
+    const res = await POST(makePostReq({ waiterId: WAITER_ID, message: "Hej!" }), CTX);
     expect(res.status).toBe(201);
     const d = await res.json();
     expect(d.id).toBe("invite-1");
@@ -127,7 +129,7 @@ describe("POST /api/invites", () => {
   });
 
   it("sets expiresAt ~7 days from now", async () => {
-    await POST(makePostReq({ waiterId: WAITER_ID }));
+    await POST(makePostReq({ waiterId: WAITER_ID }), CTX);
     const data = vi.mocked(db.invite.create).mock.calls[0][0].data;
     const diffDays = ((data.expiresAt as Date).getTime() - Date.now()) / 86_400_000;
     expect(diffDays).toBeGreaterThan(6.9);
@@ -135,7 +137,7 @@ describe("POST /api/invites", () => {
   });
 
   it("dedup check scopes to PENDING + same sender + same recipient", async () => {
-    await POST(makePostReq({ waiterId: WAITER_ID }));
+    await POST(makePostReq({ waiterId: WAITER_ID }), CTX);
     const where = vi.mocked(db.invite.findFirst).mock.calls[0]?.[0]?.where;
     expect(where).toMatchObject({
       senderId: OWNER_ID,

@@ -30,6 +30,8 @@ const PENDING_BOOK = {
 
 function makeReq() { return new NextRequest("http://localhost/api/test"); }
 
+const CTX = { params: Promise.resolve({}) };
+
 function makePostReq(body: object) {
   return new NextRequest("http://localhost/api/verification/sanitary", {
     method: "POST",
@@ -53,7 +55,7 @@ describe("GET /api/verification/sanitary", () => {
     mockSession("ADMIN", ADMIN_ID);
     vi.mocked(dbRaw.sanitaryBook.findMany).mockResolvedValue([PENDING_BOOK] as never);
 
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toHaveLength(1);
@@ -66,7 +68,7 @@ describe("GET /api/verification/sanitary", () => {
     mockSession("WAITER", WAITER_ID);
     vi.mocked(db.sanitaryBook.findUnique).mockResolvedValue(PENDING_BOOK as never);
 
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.userId).toBe(WAITER_ID);
@@ -76,20 +78,20 @@ describe("GET /api/verification/sanitary", () => {
     mockSession("WAITER", WAITER_ID);
     vi.mocked(db.sanitaryBook.findUnique).mockResolvedValue(null);
 
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     expect(await res.json()).toBeNull();
   });
 
   it("VENUE_OWNER → 403", async () => {
     mockSession("VENUE_OWNER", "o-1");
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(401);
   });
 });
@@ -102,14 +104,14 @@ describe("POST /api/verification/sanitary", () => {
 
   it("WAITER submits fileUrl → 201", async () => {
     mockSession("WAITER", WAITER_ID);
-    const res = await POST(makePostReq({ fileUrl: "https://cdn.test/doc.pdf" }));
+    const res = await POST(makePostReq({ fileUrl: "https://cdn.test/doc.pdf" }), CTX);
     expect(res.status).toBe(201);
     expect(vi.mocked(db.sanitaryBook.upsert)).toHaveBeenCalledOnce();
   });
 
   it("re-submit clears prior review fields", async () => {
     mockSession("WAITER", WAITER_ID);
-    await POST(makePostReq({ fileUrl: "https://cdn.test/doc.pdf" }));
+    await POST(makePostReq({ fileUrl: "https://cdn.test/doc.pdf" }), CTX);
 
     const call = vi.mocked(db.sanitaryBook.upsert).mock.calls[0][0] as {
       update: Record<string, unknown>;
@@ -122,25 +124,25 @@ describe("POST /api/verification/sanitary", () => {
 
   it("missing fileUrl → 400", async () => {
     mockSession("WAITER", WAITER_ID);
-    const res = await POST(makePostReq({}));
+    const res = await POST(makePostReq({}), CTX);
     expect(res.status).toBe(400);
   });
 
   it("non-string fileUrl → 400", async () => {
     mockSession("WAITER", WAITER_ID);
-    const res = await POST(makePostReq({ fileUrl: 123 }));
+    const res = await POST(makePostReq({ fileUrl: 123 }), CTX);
     expect(res.status).toBe(400);
   });
 
   it("VENUE_OWNER → 403", async () => {
     mockSession("VENUE_OWNER", "o-1");
-    const res = await POST(makePostReq({ fileUrl: "https://cdn.test/doc.pdf" }));
+    const res = await POST(makePostReq({ fileUrl: "https://cdn.test/doc.pdf" }), CTX);
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await POST(makePostReq({ fileUrl: "https://cdn.test/doc.pdf" }));
+    const res = await POST(makePostReq({ fileUrl: "https://cdn.test/doc.pdf" }), CTX);
     expect(res.status).toBe(401);
   });
 });

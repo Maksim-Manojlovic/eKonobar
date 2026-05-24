@@ -39,6 +39,8 @@ function mockNoSession() {
 }
 function makeReq() {  return new NextRequest("http://localhost");}
 
+const CTX = { params: Promise.resolve({}) };
+
 describe("GET /api/admin/reviews", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -47,7 +49,7 @@ describe("GET /api/admin/reviews", () => {
   });
 
   it("ADMIN gets DISPUTED reviews", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toHaveLength(1);
@@ -55,7 +57,7 @@ describe("GET /api/admin/reviews", () => {
   });
 
   it("queries only DISPUTED status", async () => {
-    await GET(makeReq());
+    await GET(makeReq(), CTX);
     expect(vi.mocked(dbRaw.review.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: { status: "DISPUTED" } }),
     );
@@ -63,13 +65,13 @@ describe("GET /api/admin/reviews", () => {
 
   it("non-ADMIN → 403", async () => {
     mockSession("VENUE_OWNER", "o-1");
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(401);
   });
 });

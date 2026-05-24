@@ -13,6 +13,8 @@ import { getServerSession } from "next-auth";
 import { db } from "@/lib/db";
 import { POST, DELETE } from "../route";
 
+const CTX = { params: Promise.resolve({}) };
+
 const USER_ID = "user-1";
 
 const VALID_SUB = {
@@ -52,7 +54,7 @@ describe("POST /api/push/subscribe", () => {
   });
 
   it("valid subscription → 200", async () => {
-    const res = await POST(makePostReq(VALID_SUB));
+    const res = await POST(makePostReq(VALID_SUB), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.ok).toBe(true);
@@ -60,27 +62,27 @@ describe("POST /api/push/subscribe", () => {
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await POST(makePostReq(VALID_SUB));
+    const res = await POST(makePostReq(VALID_SUB), CTX);
     expect(res.status).toBe(401);
   });
 
   it("missing endpoint → 400", async () => {
-    const res = await POST(makePostReq({ keys: VALID_SUB.keys }));
+    const res = await POST(makePostReq({ keys: VALID_SUB.keys }), CTX);
     expect(res.status).toBe(400);
   });
 
   it("missing keys.p256dh → 400", async () => {
-    const res = await POST(makePostReq({ endpoint: VALID_SUB.endpoint, keys: { auth: "x" } }));
+    const res = await POST(makePostReq({ endpoint: VALID_SUB.endpoint, keys: { auth: "x" } }), CTX);
     expect(res.status).toBe(400);
   });
 
   it("missing keys.auth → 400", async () => {
-    const res = await POST(makePostReq({ endpoint: VALID_SUB.endpoint, keys: { p256dh: "x" } }));
+    const res = await POST(makePostReq({ endpoint: VALID_SUB.endpoint, keys: { p256dh: "x" } }), CTX);
     expect(res.status).toBe(400);
   });
 
   it("upserts with correct data", async () => {
-    await POST(makePostReq(VALID_SUB));
+    await POST(makePostReq(VALID_SUB), CTX);
     expect(vi.mocked(db.pushSubscription.upsert)).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { endpoint: VALID_SUB.endpoint },
@@ -99,7 +101,7 @@ describe("DELETE /api/push/subscribe", () => {
   });
 
   it("valid delete → 200", async () => {
-    const res = await DELETE(makeDeleteReq({ endpoint: VALID_SUB.endpoint }));
+    const res = await DELETE(makeDeleteReq({ endpoint: VALID_SUB.endpoint }), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.ok).toBe(true);
@@ -107,17 +109,17 @@ describe("DELETE /api/push/subscribe", () => {
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await DELETE(makeDeleteReq({ endpoint: VALID_SUB.endpoint }));
+    const res = await DELETE(makeDeleteReq({ endpoint: VALID_SUB.endpoint }), CTX);
     expect(res.status).toBe(401);
   });
 
   it("missing endpoint → 400", async () => {
-    const res = await DELETE(makeDeleteReq({}));
+    const res = await DELETE(makeDeleteReq({}), CTX);
     expect(res.status).toBe(400);
   });
 
   it("deletes scoped to userId and endpoint", async () => {
-    await DELETE(makeDeleteReq({ endpoint: VALID_SUB.endpoint }));
+    await DELETE(makeDeleteReq({ endpoint: VALID_SUB.endpoint }), CTX);
     expect(vi.mocked(db.pushSubscription.deleteMany)).toHaveBeenCalledWith({
       where: { endpoint: VALID_SUB.endpoint, userId: USER_ID },
     });

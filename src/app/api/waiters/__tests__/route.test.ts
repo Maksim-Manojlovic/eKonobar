@@ -14,6 +14,8 @@ import { getServerSession } from "next-auth";
 import { db } from "@/lib/db";
 import { GET } from "../route";
 
+const CTX = { params: Promise.resolve({}) };
+
 const OWNER_ID      = "owner-1";
 const HEADHUNTER_ID = "hh-1";
 const WAITER_ID     = "waiter-1";
@@ -63,7 +65,7 @@ describe("GET /api/waiters", () => {
   it("VENUE_OWNER gets paginated waiters", async () => {
     mockSession("VENUE_OWNER", OWNER_ID);
 
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.waiters).toHaveLength(1);
@@ -74,26 +76,26 @@ describe("GET /api/waiters", () => {
   it("HEADHUNTER gets paginated waiters", async () => {
     mockSession("HEADHUNTER", HEADHUNTER_ID);
 
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
   });
 
   it("WAITER → 403", async () => {
     mockSession("WAITER", WAITER_ID);
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(401);
   });
 
   it("available=true filter applied to passportFilter", async () => {
     mockSession("VENUE_OWNER", OWNER_ID);
 
-    await GET(makeReq("available=true"));
+    await GET(makeReq("available=true"), CTX);
 
     const call = vi.mocked(db.user.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
     expect(call.where.waiterPassport).toMatchObject({ currentlyAvailable: true });
@@ -102,7 +104,7 @@ describe("GET /api/waiters", () => {
   it("minScore filter applied", async () => {
     mockSession("VENUE_OWNER", OWNER_ID);
 
-    await GET(makeReq("minScore=60"));
+    await GET(makeReq("minScore=60"), CTX);
 
     const call = vi.mocked(db.user.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
     expect(call.where.waiterPassport).toMatchObject({ score: { gte: 60 } });
@@ -111,7 +113,7 @@ describe("GET /api/waiters", () => {
   it("skills filter applied (comma-separated)", async () => {
     mockSession("VENUE_OWNER", OWNER_ID);
 
-    await GET(makeReq("skills=coffee,wine"));
+    await GET(makeReq("skills=coffee,wine"), CTX);
 
     const call = vi.mocked(db.user.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
     expect(call.where.waiterPassport).toMatchObject({ skills: { hasSome: ["coffee", "wine"] } });
@@ -120,7 +122,7 @@ describe("GET /api/waiters", () => {
   it("search filter → name contains check", async () => {
     mockSession("VENUE_OWNER", OWNER_ID);
 
-    await GET(makeReq("search=Marko"));
+    await GET(makeReq("search=Marko"), CTX);
 
     const call = vi.mocked(db.user.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
     expect(call.where.name).toMatchObject({ contains: "Marko" });
@@ -129,7 +131,7 @@ describe("GET /api/waiters", () => {
   it("verificationTier filter → ignored if invalid", async () => {
     mockSession("VENUE_OWNER", OWNER_ID);
 
-    await GET(makeReq("verificationTier=INVALID_TIER"));
+    await GET(makeReq("verificationTier=INVALID_TIER"), CTX);
 
     const call = vi.mocked(db.user.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
     expect(call.where).not.toHaveProperty("verificationTier");
@@ -138,7 +140,7 @@ describe("GET /api/waiters", () => {
   it("verificationTier filter → applied if valid", async () => {
     mockSession("VENUE_OWNER", OWNER_ID);
 
-    await GET(makeReq("verificationTier=GOLD"));
+    await GET(makeReq("verificationTier=GOLD"), CTX);
 
     const call = vi.mocked(db.user.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
     expect(call.where.verificationTier).toBe("GOLD");
@@ -148,7 +150,7 @@ describe("GET /api/waiters", () => {
     mockSession("VENUE_OWNER", OWNER_ID);
     vi.mocked(db.user.count).mockResolvedValue(25);
 
-    const res = await GET(makeReq("page=2&limit=10"));
+    const res = await GET(makeReq("page=2&limit=10"), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.page).toBe(2);

@@ -27,6 +27,8 @@ const NOTIF = {
 
 function makeReq() { return new NextRequest("http://localhost/api/test"); }
 
+const CTX = { params: Promise.resolve({}) };
+
 function makePatchReq(body: object) {
   return new NextRequest("http://localhost/api/notifications", {
     method: "PATCH",
@@ -52,7 +54,7 @@ describe("GET /api/notifications", () => {
   });
 
   it("returns notifications + unreadCount", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.notifications).toHaveLength(1);
@@ -60,7 +62,7 @@ describe("GET /api/notifications", () => {
   });
 
   it("scoped to current user", async () => {
-    await GET(makeReq());
+    await GET(makeReq(), CTX);
     expect(vi.mocked(db.notification.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: { userId: USER_ID } }),
     );
@@ -68,7 +70,7 @@ describe("GET /api/notifications", () => {
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(401);
   });
 });
@@ -81,7 +83,7 @@ describe("PATCH /api/notifications", () => {
   });
 
   it("marks specific ids as read", async () => {
-    const res = await PATCH(makePatchReq({ ids: ["n-1", "n-2"] }));
+    const res = await PATCH(makePatchReq({ ids: ["n-1", "n-2"] }), CTX);
     expect(res.status).toBe(200);
     expect(vi.mocked(db.notification.updateMany)).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -92,7 +94,7 @@ describe("PATCH /api/notifications", () => {
   });
 
   it("empty ids array → marks all read", async () => {
-    const res = await PATCH(makePatchReq({ ids: [] }));
+    const res = await PATCH(makePatchReq({ ids: [] }), CTX);
     expect(res.status).toBe(200);
     expect(vi.mocked(db.notification.updateMany)).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -103,7 +105,7 @@ describe("PATCH /api/notifications", () => {
   });
 
   it("no ids field → marks all read", async () => {
-    const res = await PATCH(makePatchReq({}));
+    const res = await PATCH(makePatchReq({}), CTX);
     expect(res.status).toBe(200);
     expect(vi.mocked(db.notification.updateMany)).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -113,7 +115,7 @@ describe("PATCH /api/notifications", () => {
   });
 
   it("always scoped to current user", async () => {
-    await PATCH(makePatchReq({ ids: ["n-1"] }));
+    await PATCH(makePatchReq({ ids: ["n-1"] }), CTX);
     const call = vi.mocked(db.notification.updateMany).mock.calls[0][0] as {
       where: Record<string, unknown>;
     };
@@ -122,7 +124,7 @@ describe("PATCH /api/notifications", () => {
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await PATCH(makePatchReq({ ids: ["n-1"] }));
+    const res = await PATCH(makePatchReq({ ids: ["n-1"] }), CTX);
     expect(res.status).toBe(401);
   });
 });

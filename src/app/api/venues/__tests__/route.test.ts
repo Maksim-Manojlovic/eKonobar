@@ -37,6 +37,8 @@ const PUBLIC_VENUE = {
 
 function makeReq() { return new NextRequest("http://localhost/api/test"); }
 
+const CTX = { params: Promise.resolve({}) };
+
 function makePostReq(body: object) {
   return new NextRequest("http://localhost/api/venues", {
     method: "POST",
@@ -69,7 +71,7 @@ describe("GET /api/venues", () => {
     mockSession("VENUE_OWNER");
     vi.mocked(db.venue.findMany).mockResolvedValue([OWNER_VENUE] as never);
 
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toEqual([OWNER_VENUE]);
@@ -82,7 +84,7 @@ describe("GET /api/venues", () => {
     mockSession("WAITER", "waiter-1");
     vi.mocked(db.venue.findMany).mockResolvedValue([PUBLIC_VENUE] as never);
 
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     expect(vi.mocked(db.venue.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: { isActive: true } }),
@@ -93,7 +95,7 @@ describe("GET /api/venues", () => {
     mockNoSession();
     vi.mocked(db.venue.findMany).mockResolvedValue([PUBLIC_VENUE] as never);
 
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     expect(vi.mocked(db.venue.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: { isActive: true } }),
@@ -108,7 +110,7 @@ describe("POST /api/venues", () => {
     mockSession("VENUE_OWNER");
     vi.mocked(db.venue.create).mockResolvedValue({ id: "v-new", ...VALID_BODY } as never);
 
-    const res = await POST(makePostReq(VALID_BODY));
+    const res = await POST(makePostReq(VALID_BODY), CTX);
     expect(res.status).toBe(201);
     const json = await res.json();
     expect(json.id).toBe("v-new");
@@ -116,13 +118,13 @@ describe("POST /api/venues", () => {
 
   it("WAITER → 403", async () => {
     mockSession("WAITER", "w-1");
-    const res = await POST(makePostReq(VALID_BODY));
+    const res = await POST(makePostReq(VALID_BODY), CTX);
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await POST(makePostReq(VALID_BODY));
+    const res = await POST(makePostReq(VALID_BODY), CTX);
     expect(res.status).toBe(401);
   });
 
@@ -130,7 +132,7 @@ describe("POST /api/venues", () => {
     mockSession("VENUE_OWNER");
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { name: _name, ...noName } = VALID_BODY;
-    const res = await POST(makePostReq(noName));
+    const res = await POST(makePostReq(noName), CTX);
     expect(res.status).toBe(400);
   });
 
@@ -138,13 +140,13 @@ describe("POST /api/venues", () => {
     mockSession("VENUE_OWNER");
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { latitude: _lat, longitude: _lng, ...noCoords } = VALID_BODY;
-    const res = await POST(makePostReq(noCoords));
+    const res = await POST(makePostReq(noCoords), CTX);
     expect(res.status).toBe(400);
   });
 
   it("invalid venueType → 400", async () => {
     mockSession("VENUE_OWNER");
-    const res = await POST(makePostReq({ ...VALID_BODY, venueType: "INVALID_TYPE" }));
+    const res = await POST(makePostReq({ ...VALID_BODY, venueType: "INVALID_TYPE" }), CTX);
     expect(res.status).toBe(400);
   });
 
@@ -153,7 +155,7 @@ describe("POST /api/venues", () => {
     vi.mocked(db.venue.create).mockResolvedValue({ id: "v-new" } as never);
 
     const body = { ...VALID_BODY, capacity: 50, description: "Nice place", phone: "+381601234567" };
-    await POST(makePostReq(body));
+    await POST(makePostReq(body), CTX);
 
     expect(vi.mocked(db.venue.create)).toHaveBeenCalledWith(
       expect.objectContaining({

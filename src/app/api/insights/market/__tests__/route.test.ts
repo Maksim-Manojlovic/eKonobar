@@ -15,6 +15,8 @@ import { GET } from "../route";
 
 function makeReq() { return new NextRequest("http://localhost/api/test"); }
 
+const CTX = { params: Promise.resolve({}) };
+
 function mockSession(role = "WAITER", id = "u-1") {
   vi.mocked(getServerSession).mockResolvedValue({ user: { id, role } } as never);
 }
@@ -37,7 +39,7 @@ describe("GET /api/insights/market", () => {
   });
 
   it("authenticated → 200 with aggregate stats", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.openPositions).toBe(3);
@@ -46,25 +48,25 @@ describe("GET /api/insights/market", () => {
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(401);
   });
 
   it("any role can access (VENUE_OWNER)", async () => {
     mockSession("VENUE_OWNER", "o-1");
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
   });
 
   it("avgSalaryMin computed from posts with salaryMin set", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const json = await res.json();
     // Posts with salaryMin: 60000 and 50000 → avg = 55000
     expect(json.avgSalaryMin).toBe(55000);
   });
 
   it("avgSalaryMax computed correctly", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const json = await res.json();
     // salaryMax: 80000 and 70000 → avg = 75000
     expect(json.avgSalaryMax).toBe(75000);
@@ -75,13 +77,13 @@ describe("GET /api/insights/market", () => {
       { redAlert: false, salaryMin: null, salaryMax: null, venue: { municipality: "Beograd" } },
     ] as never);
 
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const json = await res.json();
     expect(json.avgSalaryMin).toBeNull();
   });
 
   it("topMunicipalities sorted desc by count, max 3", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const json = await res.json();
     // Beograd: 2, Novi Sad: 1
     expect(json.topMunicipalities[0]).toMatchObject({ name: "Beograd", count: 2 });
@@ -96,13 +98,13 @@ describe("GET /api/insights/market", () => {
       { redAlert: false, salaryMin: null, salaryMax: null, venue: { municipality: "D" } },
     ] as never);
 
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const json = await res.json();
     expect(json.topMunicipalities).toHaveLength(3);
   });
 
   it("queries only ACTIVE posts", async () => {
-    await GET(makeReq());
+    await GET(makeReq(), CTX);
     expect(vi.mocked(db.jobPost.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: { status: "ACTIVE" } }),
     );

@@ -31,6 +31,8 @@ const TEMPLATE = {
 
 function makeReq() { return new NextRequest("http://localhost/api/test"); }
 
+const CTX = { params: Promise.resolve({}) };
+
 function makePostReq(body: object) {
   return new NextRequest("http://localhost/api/shifts/templates", {
     method: "POST",
@@ -61,7 +63,7 @@ describe("GET /api/shifts/templates", () => {
   });
 
   it("VENUE_OWNER gets templates → 200", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toHaveLength(1);
@@ -69,12 +71,12 @@ describe("GET /api/shifts/templates", () => {
 
   it("WAITER (headWaiter) gets templates → 200", async () => {
     mockSession("WAITER", WAITER_ID);
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
   });
 
   it("VENUE_OWNER query filters by ownerId", async () => {
-    await GET(makeReq());
+    await GET(makeReq(), CTX);
     expect(vi.mocked(db.shiftTemplate.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: { venue: { ownerId: OWNER_ID } } }),
     );
@@ -82,7 +84,7 @@ describe("GET /api/shifts/templates", () => {
 
   it("WAITER query filters by headWaiterId", async () => {
     mockSession("WAITER", WAITER_ID);
-    await GET(makeReq());
+    await GET(makeReq(), CTX);
     expect(vi.mocked(db.shiftTemplate.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: { venue: { headWaiterId: WAITER_ID } } }),
     );
@@ -90,13 +92,13 @@ describe("GET /api/shifts/templates", () => {
 
   it("HEADHUNTER → 403", async () => {
     mockSession("HEADHUNTER", "h-1");
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(401);
   });
 });
@@ -110,50 +112,50 @@ describe("POST /api/shifts/templates", () => {
   });
 
   it("VENUE_OWNER creates template → 201", async () => {
-    const res = await POST(makePostReq(VALID_BODY));
+    const res = await POST(makePostReq(VALID_BODY), CTX);
     expect(res.status).toBe(201);
   });
 
   it("HEADHUNTER → 403", async () => {
     mockSession("HEADHUNTER", "h-1");
-    const res = await POST(makePostReq(VALID_BODY));
+    const res = await POST(makePostReq(VALID_BODY), CTX);
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await POST(makePostReq(VALID_BODY));
+    const res = await POST(makePostReq(VALID_BODY), CTX);
     expect(res.status).toBe(401);
   });
 
   it("missing venueId → 400", async () => {
-    const res = await POST(makePostReq({ ...VALID_BODY, venueId: undefined }));
+    const res = await POST(makePostReq({ ...VALID_BODY, venueId: undefined }), CTX);
     expect(res.status).toBe(400);
   });
 
   it("missing startTime → 400", async () => {
-    const res = await POST(makePostReq({ ...VALID_BODY, startTime: undefined }));
+    const res = await POST(makePostReq({ ...VALID_BODY, startTime: undefined }), CTX);
     expect(res.status).toBe(400);
   });
 
   it("weekdaysOnly=false with missing dayOfWeek → 400", async () => {
-    const res = await POST(makePostReq({ ...VALID_BODY, dayOfWeek: undefined }));
+    const res = await POST(makePostReq({ ...VALID_BODY, dayOfWeek: undefined }), CTX);
     expect(res.status).toBe(400);
   });
 
   it("weekdaysOnly=false with dayOfWeek=7 → 400", async () => {
-    const res = await POST(makePostReq({ ...VALID_BODY, dayOfWeek: 7 }));
+    const res = await POST(makePostReq({ ...VALID_BODY, dayOfWeek: 7 }), CTX);
     expect(res.status).toBe(400);
   });
 
   it("weekdaysOnly=true with no dayOfWeek → 201", async () => {
-    const res = await POST(makePostReq({ ...VALID_BODY, weekdaysOnly: true, dayOfWeek: undefined }));
+    const res = await POST(makePostReq({ ...VALID_BODY, weekdaysOnly: true, dayOfWeek: undefined }), CTX);
     expect(res.status).toBe(201);
   });
 
   it("venue not found → 404", async () => {
     vi.mocked(db.venue.findFirst).mockResolvedValue(null);
-    const res = await POST(makePostReq(VALID_BODY));
+    const res = await POST(makePostReq(VALID_BODY), CTX);
     expect(res.status).toBe(404);
   });
 });

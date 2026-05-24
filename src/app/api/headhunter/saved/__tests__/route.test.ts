@@ -14,6 +14,8 @@ import { getServerSession } from "next-auth";
 import { db } from "@/lib/db";
 import { GET, POST, DELETE } from "../route";
 
+const CTX = { params: Promise.resolve({}) };
+
 const HH_ID     = "hh-1";
 const WAITER_ID = "waiter-1";
 
@@ -66,24 +68,24 @@ describe("GET /api/headhunter/saved", () => {
 
   it("returns 401 when unauthenticated", async () => {
     vi.mocked(getServerSession).mockResolvedValue(null);
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(401);
   });
 
   it("returns 403 for non-HEADHUNTER role", async () => {
     mockSession("VENUE_OWNER");
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(403);
   });
 
   it("returns 403 for WAITER role", async () => {
     mockSession("WAITER");
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(403);
   });
 
   it("returns enriched saved profiles", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     const d = await res.json();
     expect(d).toHaveLength(1);
@@ -94,13 +96,13 @@ describe("GET /api/headhunter/saved", () => {
 
   it("filters out saved rows whose waiter is missing from user lookup", async () => {
     vi.mocked(db.user.findMany).mockResolvedValue([]);
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const d = await res.json();
     expect(d).toHaveLength(0);
   });
 
   it("queries savedProfile by headhunterId ordered by savedAt desc", async () => {
-    await GET(makeReq());
+    await GET(makeReq(), CTX);
     expect(vi.mocked(db.savedProfile.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({
         where:   { headhunterId: HH_ID },
@@ -110,7 +112,7 @@ describe("GET /api/headhunter/saved", () => {
   });
 
   it("queries users for the correct waiter ids", async () => {
-    await GET(makeReq());
+    await GET(makeReq(), CTX);
     expect(vi.mocked(db.user.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: { in: [WAITER_ID] }, role: "WAITER" },
@@ -129,12 +131,12 @@ describe("POST /api/headhunter/saved", () => {
 
   it("returns 403 for non-HEADHUNTER", async () => {
     mockSession("WAITER");
-    const res = await POST(makeReq({ waiterId: WAITER_ID }, "POST"));
+    const res = await POST(makeReq({ waiterId: WAITER_ID }, "POST"), CTX);
     expect(res.status).toBe(403);
   });
 
   it("returns 400 when waiterId is missing", async () => {
-    const res = await POST(makeReq({}, "POST"));
+    const res = await POST(makeReq({}, "POST"), CTX);
     expect(res.status).toBe(400);
     const d = await res.json();
     expect(d.error).toMatch(/waiterId/i);
@@ -142,17 +144,17 @@ describe("POST /api/headhunter/saved", () => {
 
   it("returns 404 when waiter user not found", async () => {
     vi.mocked(db.user.findFirst).mockResolvedValue(null);
-    const res = await POST(makeReq({ waiterId: WAITER_ID }, "POST"));
+    const res = await POST(makeReq({ waiterId: WAITER_ID }, "POST"), CTX);
     expect(res.status).toBe(404);
   });
 
   it("upserts and returns 201", async () => {
-    const res = await POST(makeReq({ waiterId: WAITER_ID, notes: "Interested" }, "POST"));
+    const res = await POST(makeReq({ waiterId: WAITER_ID, notes: "Interested" }, "POST"), CTX);
     expect(res.status).toBe(201);
   });
 
   it("upsert includes correct create and update fields", async () => {
-    await POST(makeReq({ waiterId: WAITER_ID, notes: "Interested" }, "POST"));
+    await POST(makeReq({ waiterId: WAITER_ID, notes: "Interested" }, "POST"), CTX);
     expect(vi.mocked(db.savedProfile.upsert)).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
@@ -166,7 +168,7 @@ describe("POST /api/headhunter/saved", () => {
   });
 
   it("sets notes to null when not provided", async () => {
-    await POST(makeReq({ waiterId: WAITER_ID }, "POST"));
+    await POST(makeReq({ waiterId: WAITER_ID }, "POST"), CTX);
     expect(vi.mocked(db.savedProfile.upsert)).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({ notes: null }),
@@ -185,24 +187,24 @@ describe("DELETE /api/headhunter/saved", () => {
 
   it("returns 403 for non-HEADHUNTER", async () => {
     mockSession("WAITER");
-    const res = await DELETE(makeReq({ waiterId: WAITER_ID }, "DELETE"));
+    const res = await DELETE(makeReq({ waiterId: WAITER_ID }, "DELETE"), CTX);
     expect(res.status).toBe(403);
   });
 
   it("returns 400 when waiterId is missing", async () => {
-    const res = await DELETE(makeReq({}, "DELETE"));
+    const res = await DELETE(makeReq({}, "DELETE"), CTX);
     expect(res.status).toBe(400);
   });
 
   it("calls deleteMany with correct filter", async () => {
-    await DELETE(makeReq({ waiterId: WAITER_ID }, "DELETE"));
+    await DELETE(makeReq({ waiterId: WAITER_ID }, "DELETE"), CTX);
     expect(vi.mocked(db.savedProfile.deleteMany)).toHaveBeenCalledWith({
       where: { headhunterId: HH_ID, savedWaiterId: WAITER_ID },
     });
   });
 
   it("returns { deleted: true } on success", async () => {
-    const res = await DELETE(makeReq({ waiterId: WAITER_ID }, "DELETE"));
+    const res = await DELETE(makeReq({ waiterId: WAITER_ID }, "DELETE"), CTX);
     expect(res.status).toBe(200);
     const d = await res.json();
     expect(d.deleted).toBe(true);

@@ -43,6 +43,8 @@ const APPLICATION = {
 
 function makeReq() { return new NextRequest("http://localhost/api/test"); }
 
+const CTX = { params: Promise.resolve({}) };
+
 function makePostReq(body: object) {
   return new NextRequest("http://localhost/api/jobs/applications", {
     method: "POST",
@@ -71,14 +73,14 @@ describe("GET /api/jobs/applications", () => {
   });
 
   it("WAITER gets own applications → 200", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toHaveLength(1);
   });
 
   it("WAITER query scoped to waiterId", async () => {
-    await GET(makeReq());
+    await GET(makeReq(), CTX);
     expect(vi.mocked(db.jobApplication.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: { waiterId: WAITER_ID } }),
     );
@@ -87,13 +89,13 @@ describe("GET /api/jobs/applications", () => {
   it("VENUE_OWNER gets venue applications → 200", async () => {
     mockOwnerSession();
     vi.mocked(db.jobApplication.findMany).mockResolvedValue([APPLICATION] as never);
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
   });
 
   it("VENUE_OWNER query scoped to ownerId", async () => {
     mockOwnerSession();
-    await GET(makeReq());
+    await GET(makeReq(), CTX);
     expect(vi.mocked(db.jobApplication.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: { jobPost: { ownerId: OWNER_ID } } }),
     );
@@ -101,13 +103,13 @@ describe("GET /api/jobs/applications", () => {
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(401);
   });
 
   it("HEADHUNTER → 403", async () => {
     mockSession("HEADHUNTER", "h-1");
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(403);
   });
 });
@@ -124,47 +126,47 @@ describe("POST /api/jobs/applications", () => {
   });
 
   it("WAITER applies → 201", async () => {
-    const res = await POST(makePostReq({ jobPostId: JOB_ID }));
+    const res = await POST(makePostReq({ jobPostId: JOB_ID }), CTX);
     expect(res.status).toBe(201);
   });
 
   it("non-WAITER → 403", async () => {
     mockOwnerSession();
-    const res = await POST(makePostReq({ jobPostId: JOB_ID }));
+    const res = await POST(makePostReq({ jobPostId: JOB_ID }), CTX);
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await POST(makePostReq({ jobPostId: JOB_ID }));
+    const res = await POST(makePostReq({ jobPostId: JOB_ID }), CTX);
     expect(res.status).toBe(401);
   });
 
   it("rate limited → 429", async () => {
     vi.mocked(checkRateLimit).mockResolvedValue(false);
-    const res = await POST(makePostReq({ jobPostId: JOB_ID }));
+    const res = await POST(makePostReq({ jobPostId: JOB_ID }), CTX);
     expect(res.status).toBe(429);
   });
 
   it("missing jobPostId → 400", async () => {
-    const res = await POST(makePostReq({}));
+    const res = await POST(makePostReq({}), CTX);
     expect(res.status).toBe(400);
   });
 
   it("job not found or not active → 404", async () => {
     vi.mocked(db.jobPost.findFirst).mockResolvedValue(null);
-    const res = await POST(makePostReq({ jobPostId: "bad" }));
+    const res = await POST(makePostReq({ jobPostId: "bad" }), CTX);
     expect(res.status).toBe(404);
   });
 
   it("duplicate application → 409", async () => {
     vi.mocked(db.jobApplication.findUnique).mockResolvedValue(APPLICATION as never);
-    const res = await POST(makePostReq({ jobPostId: JOB_ID }));
+    const res = await POST(makePostReq({ jobPostId: JOB_ID }), CTX);
     expect(res.status).toBe(409);
   });
 
   it("VENUE_ID included in create data", async () => {
-    await POST(makePostReq({ jobPostId: JOB_ID, coverNote: "Hi" }));
+    await POST(makePostReq({ jobPostId: JOB_ID, coverNote: "Hi" }), CTX);
     expect(vi.mocked(db.jobApplication.create)).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ jobPostId: JOB_ID, waiterId: WAITER_ID, coverNote: "Hi" }),

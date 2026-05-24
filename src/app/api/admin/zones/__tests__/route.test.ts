@@ -23,6 +23,8 @@ import { getServerSession } from "next-auth";
 import { dbRaw } from "@/lib/db";
 import { GET, POST } from "../route";
 
+const CTX = { params: Promise.resolve({}) };
+
 const ZONE = {
   id: "z-1",
   name: "Test Zone",
@@ -62,7 +64,7 @@ describe("GET /api/admin/zones", () => {
   });
 
   it("ADMIN gets all zones (including inactive)", async () => {
-    const res = await GET(makeGetReq());
+    const res = await GET(makeGetReq(), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toHaveLength(1);
@@ -70,14 +72,14 @@ describe("GET /api/admin/zones", () => {
 
   it("public (no session) sees only active zones", async () => {
     mockNoSession();
-    await GET(makeGetReq());
+    await GET(makeGetReq(), CTX);
     expect(vi.mocked(dbRaw.venueZone.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ isActive: true }) }),
     );
   });
 
   it("ADMIN where is undefined (no isActive filter)", async () => {
-    await GET(makeGetReq());
+    await GET(makeGetReq(), CTX);
     expect(vi.mocked(dbRaw.venueZone.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: undefined }),
     );
@@ -98,39 +100,39 @@ describe("POST /api/admin/zones", () => {
       geoJson: {},
       centerLat: 44.8,
       centerLng: 20.4,
-    }));
+    }), CTX);
     expect(res.status).toBe(201);
   });
 
   it("non-ADMIN → 403", async () => {
     mockSession("VENUE_OWNER");
-    const res = await POST(makePostReq({ name: "X", zoneType: "FESTIVAL_ZONE", geoJson: {}, centerLat: 0, centerLng: 0 }));
+    const res = await POST(makePostReq({ name: "X", zoneType: "FESTIVAL_ZONE", geoJson: {}, centerLat: 0, centerLng: 0 }), CTX);
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await POST(makePostReq({ name: "X", zoneType: "FESTIVAL_ZONE", geoJson: {}, centerLat: 0, centerLng: 0 }));
+    const res = await POST(makePostReq({ name: "X", zoneType: "FESTIVAL_ZONE", geoJson: {}, centerLat: 0, centerLng: 0 }), CTX);
     expect(res.status).toBe(401);
   });
 
   it("missing name → 400", async () => {
-    const res = await POST(makePostReq({ zoneType: "FESTIVAL_ZONE", geoJson: {}, centerLat: 0, centerLng: 0 }));
+    const res = await POST(makePostReq({ zoneType: "FESTIVAL_ZONE", geoJson: {}, centerLat: 0, centerLng: 0 }), CTX);
     expect(res.status).toBe(400);
   });
 
   it("missing geoJson → 400", async () => {
-    const res = await POST(makePostReq({ name: "X", zoneType: "FESTIVAL_ZONE", centerLat: 0, centerLng: 0 }));
+    const res = await POST(makePostReq({ name: "X", zoneType: "FESTIVAL_ZONE", centerLat: 0, centerLng: 0 }), CTX);
     expect(res.status).toBe(400);
   });
 
   it("missing centerLat → 400", async () => {
-    const res = await POST(makePostReq({ name: "X", zoneType: "FESTIVAL_ZONE", geoJson: {}, centerLng: 0 }));
+    const res = await POST(makePostReq({ name: "X", zoneType: "FESTIVAL_ZONE", geoJson: {}, centerLng: 0 }), CTX);
     expect(res.status).toBe(400);
   });
 
   it("invalid zoneType → 400", async () => {
-    const res = await POST(makePostReq({ name: "X", zoneType: "INVALID_TYPE", geoJson: {}, centerLat: 0, centerLng: 0 }));
+    const res = await POST(makePostReq({ name: "X", zoneType: "INVALID_TYPE", geoJson: {}, centerLat: 0, centerLng: 0 }), CTX);
     expect(res.status).toBe(400);
   });
 });

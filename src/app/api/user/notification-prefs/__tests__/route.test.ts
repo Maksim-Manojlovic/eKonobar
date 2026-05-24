@@ -19,6 +19,8 @@ const PREFS = { phone: "+381601234567", smsOptIn: true, waOptIn: false };
 
 function makeReq() { return new NextRequest("http://localhost/api/test"); }
 
+const CTX = { params: Promise.resolve({}) };
+
 function makePatchReq(body: object) {
   return new NextRequest("http://localhost/api/user/notification-prefs", {
     method: "PATCH",
@@ -43,7 +45,7 @@ describe("GET /api/user/notification-prefs", () => {
   });
 
   it("authenticated → returns prefs", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toEqual(PREFS);
@@ -51,14 +53,14 @@ describe("GET /api/user/notification-prefs", () => {
 
   it("user not found → returns default nulls", async () => {
     vi.mocked(db.user.findUnique).mockResolvedValue(null);
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const json = await res.json();
     expect(json).toEqual({ phone: null, smsOptIn: false, waOptIn: false });
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(401);
   });
 });
@@ -71,7 +73,7 @@ describe("PATCH /api/user/notification-prefs", () => {
   });
 
   it("updates smsOptIn → 200", async () => {
-    const res = await PATCH(makePatchReq({ smsOptIn: true }));
+    const res = await PATCH(makePatchReq({ smsOptIn: true }), CTX);
     expect(res.status).toBe(200);
     expect(vi.mocked(db.user.update)).toHaveBeenCalledWith(
       expect.objectContaining({ data: { smsOptIn: true } }),
@@ -79,45 +81,45 @@ describe("PATCH /api/user/notification-prefs", () => {
   });
 
   it("updates waOptIn → 200", async () => {
-    await PATCH(makePatchReq({ waOptIn: true }));
+    await PATCH(makePatchReq({ waOptIn: true }), CTX);
     expect(vi.mocked(db.user.update)).toHaveBeenCalledWith(
       expect.objectContaining({ data: { waOptIn: true } }),
     );
   });
 
   it("phone trimmed and stored", async () => {
-    await PATCH(makePatchReq({ phone: "  +381601234567  " }));
+    await PATCH(makePatchReq({ phone: "  +381601234567  " }), CTX);
     const call = vi.mocked(db.user.update).mock.calls[0][0] as { data: { phone: string } };
     expect(call.data.phone).toBe("+381601234567");
   });
 
   it("empty string phone → stored as null", async () => {
-    await PATCH(makePatchReq({ phone: "" }));
+    await PATCH(makePatchReq({ phone: "" }), CTX);
     const call = vi.mocked(db.user.update).mock.calls[0][0] as { data: { phone: null } };
     expect(call.data.phone).toBeNull();
   });
 
   it("non-string phone → stored as null", async () => {
-    await PATCH(makePatchReq({ phone: 12345 }));
+    await PATCH(makePatchReq({ phone: 12345 }), CTX);
     const call = vi.mocked(db.user.update).mock.calls[0][0] as { data: { phone: null } };
     expect(call.data.phone).toBeNull();
   });
 
   it("non-boolean smsOptIn ignored", async () => {
-    await PATCH(makePatchReq({ smsOptIn: "yes" }));
+    await PATCH(makePatchReq({ smsOptIn: "yes" }), CTX);
     const call = vi.mocked(db.user.update).mock.calls[0][0] as { data: Record<string, unknown> };
     expect(call.data.smsOptIn).toBeUndefined();
   });
 
   it("partial update: only provided keys sent to DB", async () => {
-    await PATCH(makePatchReq({ waOptIn: false }));
+    await PATCH(makePatchReq({ waOptIn: false }), CTX);
     const call = vi.mocked(db.user.update).mock.calls[0][0] as { data: Record<string, unknown> };
     expect(Object.keys(call.data)).toEqual(["waOptIn"]);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await PATCH(makePatchReq({ smsOptIn: true }));
+    const res = await PATCH(makePatchReq({ smsOptIn: true }), CTX);
     expect(res.status).toBe(401);
   });
 });

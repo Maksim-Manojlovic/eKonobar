@@ -13,6 +13,8 @@ import { getServerSession } from "next-auth";
 import { dbRaw } from "@/lib/db";
 import { GET } from "../route";
 
+const CTX = { params: Promise.resolve({}) };
+
 const ADMIN_ID = "admin-1";
 
 const USER_ROW = {
@@ -47,7 +49,7 @@ describe("GET /api/admin/users", () => {
   });
 
   it("ADMIN gets paginated user list", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.users).toHaveLength(1);
@@ -58,18 +60,18 @@ describe("GET /api/admin/users", () => {
 
   it("non-ADMIN → 403", async () => {
     mockSession("VENUE_OWNER", "o-1");
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(401);
   });
 
   it("search filter applied to name and email OR", async () => {
-    await GET(makeReq("search=marko"));
+    await GET(makeReq("search=marko"), CTX);
 
     const call = vi.mocked(dbRaw.user.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
     expect(call.where.OR).toBeDefined();
@@ -77,14 +79,14 @@ describe("GET /api/admin/users", () => {
   });
 
   it("role filter applied", async () => {
-    await GET(makeReq("role=WAITER"));
+    await GET(makeReq("role=WAITER"), CTX);
 
     const call = vi.mocked(dbRaw.user.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
     expect(call.where.role).toBe("WAITER");
   });
 
   it("no role filter when role param empty", async () => {
-    await GET(makeReq());
+    await GET(makeReq(), CTX);
 
     const call = vi.mocked(dbRaw.user.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
     expect(call.where.role).toBeUndefined();
@@ -93,7 +95,7 @@ describe("GET /api/admin/users", () => {
   it("pagination: page=2 → skip=25", async () => {
     vi.mocked(dbRaw.user.count).mockResolvedValue(30);
 
-    const res = await GET(makeReq("page=2"));
+    const res = await GET(makeReq("page=2"), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.page).toBe(2);
@@ -104,7 +106,7 @@ describe("GET /api/admin/users", () => {
   });
 
   it("soft-deleted users excluded (deletedAt: null in where)", async () => {
-    const call = (await GET(makeReq()), vi.mocked(dbRaw.user.findMany).mock.calls[0][0]) as { where: Record<string, unknown> };
+    const call = (await GET(makeReq(), CTX), vi.mocked(dbRaw.user.findMany).mock.calls[0][0]) as { where: Record<string, unknown> };
     expect(call.where.deletedAt).toBeNull();
   });
 });

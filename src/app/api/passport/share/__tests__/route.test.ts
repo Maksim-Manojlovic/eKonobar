@@ -15,6 +15,8 @@ import { POST } from "../route";
 
 function makeReq() { return new NextRequest("http://localhost/api/test"); }
 
+const CTX = { params: Promise.resolve({}) };
+
 const WAITER_ID = "waiter-1";
 
 const FUTURE = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -38,7 +40,7 @@ describe("POST /api/passport/share", () => {
   });
 
   it("WAITER generates share token → 200", async () => {
-    const res = await POST(makeReq());
+    const res = await POST(makeReq(), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.shareToken).toBeDefined();
@@ -46,7 +48,7 @@ describe("POST /api/passport/share", () => {
   });
 
   it("upserts with 30-day expiry", async () => {
-    await POST(makeReq());
+    await POST(makeReq(), CTX);
 
     const call = vi.mocked(db.waiterPassport.upsert).mock.calls[0][0] as {
       update: { shareTokenExpiry: Date };
@@ -59,13 +61,13 @@ describe("POST /api/passport/share", () => {
 
   it("VENUE_OWNER → 403", async () => {
     mockSession("VENUE_OWNER", "o-1");
-    const res = await POST(makeReq());
+    const res = await POST(makeReq(), CTX);
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await POST(makeReq());
+    const res = await POST(makeReq(), CTX);
     expect(res.status).toBe(401);
   });
 });

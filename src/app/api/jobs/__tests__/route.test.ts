@@ -15,6 +15,8 @@ import { getServerSession } from "next-auth";
 import { db } from "@/lib/db";
 import { GET, POST } from "../route";
 
+const CTX = { params: Promise.resolve({}) };
+
 const OWNER_ID  = "owner-1";
 const WAITER_ID = "waiter-1";
 const VENUE_ID  = "venue-1";
@@ -59,7 +61,7 @@ describe("GET /api/jobs", () => {
   it("VENUE_OWNER gets own posts (all statuses)", async () => {
     mockSession("VENUE_OWNER", OWNER_ID);
 
-    const res = await GET(makeGetReq());
+    const res = await GET(makeGetReq(), CTX);
     expect(res.status).toBe(200);
     expect(vi.mocked(db.jobPost.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: { ownerId: OWNER_ID } }),
@@ -69,7 +71,7 @@ describe("GET /api/jobs", () => {
   it("unauthenticated gets active public posts", async () => {
     mockNoSession();
 
-    const res = await GET(makeGetReq());
+    const res = await GET(makeGetReq(), CTX);
     expect(res.status).toBe(200);
     expect(vi.mocked(db.jobPost.findMany)).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ status: "ACTIVE" }) }),
@@ -83,7 +85,7 @@ describe("GET /api/jobs", () => {
       subscriptionExpiresAt: null,
     } as never);
 
-    await GET(makeGetReq());
+    await GET(makeGetReq(), CTX);
 
     const call = vi.mocked(db.jobPost.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
     // FREE waiter where clause should include the OR Red Alert delay filter
@@ -97,7 +99,7 @@ describe("GET /api/jobs", () => {
       subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     } as never);
 
-    await GET(makeGetReq());
+    await GET(makeGetReq(), CTX);
 
     const call = vi.mocked(db.jobPost.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
     // PRO waiter should not have the extra OR filter for Red Alert delay
@@ -111,7 +113,7 @@ describe("GET /api/jobs", () => {
       subscriptionExpiresAt: new Date(Date.now() - 1000), // expired
     } as never);
 
-    await GET(makeGetReq());
+    await GET(makeGetReq(), CTX);
 
     const call = vi.mocked(db.jobPost.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
     expect(JSON.stringify(call.where)).toContain("redAlert");
@@ -120,7 +122,7 @@ describe("GET /api/jobs", () => {
   it("redAlert=true filter passed through", async () => {
     mockNoSession();
 
-    await GET(makeGetReq("redAlert=true"));
+    await GET(makeGetReq("redAlert=true"), CTX);
 
     const call = vi.mocked(db.jobPost.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
     expect(call.where).toMatchObject({ redAlert: true });

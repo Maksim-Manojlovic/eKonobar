@@ -15,6 +15,8 @@ import { GET } from "../route";
 
 function makeReq() { return new NextRequest("http://localhost/api/test"); }
 
+const CTX = { params: Promise.resolve({}) };
+
 const WAITER_ID = "waiter-1";
 const FUTURE = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000); // +20 days
 const PAST   = new Date(Date.now() - 5  * 24 * 60 * 60 * 1000); // -5 days
@@ -38,37 +40,37 @@ describe("GET /api/passport/subscription", () => {
   });
 
   it("WAITER gets subscription → 200", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
   });
 
   it("non-WAITER → 403", async () => {
     mockSession("VENUE_OWNER", "o-1");
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(401);
   });
 
   it("passport not found → 404", async () => {
     vi.mocked(db.waiterPassport.findUnique).mockResolvedValue(null);
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(404);
   });
 
   it("active subscription returns correct tier", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const json = await res.json();
     expect(json.tier).toBe("PRO");
     expect(json.isActive).toBe(true);
   });
 
   it("active subscription returns positive daysRemaining", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const json = await res.json();
     expect(json.daysRemaining).toBeGreaterThan(0);
   });
@@ -78,7 +80,7 @@ describe("GET /api/passport/subscription", () => {
       passportTier: "PRO",
       subscriptionExpiresAt: PAST,
     } as never);
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const json = await res.json();
     expect(json.tier).toBe("FREE");
     expect(json.isActive).toBe(false);
@@ -90,7 +92,7 @@ describe("GET /api/passport/subscription", () => {
       passportTier: "FREE",
       subscriptionExpiresAt: null,
     } as never);
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const json = await res.json();
     expect(json.tier).toBe("FREE");
     expect(json.isActive).toBe(false);
@@ -98,7 +100,7 @@ describe("GET /api/passport/subscription", () => {
   });
 
   it("response includes subscriptionExpiresAt", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const json = await res.json();
     expect(json).toHaveProperty("subscriptionExpiresAt");
   });

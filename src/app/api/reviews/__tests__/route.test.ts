@@ -29,6 +29,8 @@ import { getServerSession } from "next-auth";
 import { db } from "@/lib/db";
 import { POST } from "../route";
 
+const CTX = { params: Promise.resolve({}) };
+
 function makeReq(body: object) {
   return new NextRequest("http://localhost/api/reviews", {
     method: "POST",
@@ -55,19 +57,19 @@ describe("POST /api/reviews", () => {
 
   it("returns 401 when unauthenticated", async () => {
     vi.mocked(getServerSession).mockResolvedValue(null);
-    const res = await POST(makeReq({ direction: "WAITER_TO_VENUE", venueId: "v1", overallRating: 50 }));
+    const res = await POST(makeReq({ direction: "WAITER_TO_VENUE", venueId: "v1", overallRating: 50 }), CTX);
     expect(res.status).toBe(401);
   });
 
   it("returns 400 when overallRating > 100", async () => {
     mockSession();
-    const res = await POST(makeReq({ direction: "WAITER_TO_VENUE", venueId: "v1", overallRating: 150 }));
+    const res = await POST(makeReq({ direction: "WAITER_TO_VENUE", venueId: "v1", overallRating: 150 }), CTX);
     expect(res.status).toBe(400);
   });
 
   it("returns 400 when overallRating < 0", async () => {
     mockSession();
-    const res = await POST(makeReq({ direction: "WAITER_TO_VENUE", venueId: "v1", overallRating: -1 }));
+    const res = await POST(makeReq({ direction: "WAITER_TO_VENUE", venueId: "v1", overallRating: -1 }), CTX);
     expect(res.status).toBe(400);
   });
 
@@ -78,7 +80,7 @@ describe("POST /api/reviews", () => {
       venueId: "v1",
       overallRating: 80,
       ratingAtmosphere: 999,
-    }));
+    }), CTX);
     const createCall = vi.mocked(db.review.create).mock.calls[0]?.[0];
     expect(createCall?.data.ratingAtmosphere).toBe(100);
   });
@@ -90,7 +92,7 @@ describe("POST /api/reviews", () => {
       venueId: "v1",
       overallRating: 80,
       ratingPay: -50,
-    }));
+    }), CTX);
     const createCall = vi.mocked(db.review.create).mock.calls[0]?.[0];
     expect(createCall?.data.ratingPay).toBe(0);
   });
@@ -99,7 +101,7 @@ describe("POST /api/reviews", () => {
     mockSession();
     const { checkRateLimit } = await import("@/lib/rate-limit");
     vi.mocked(checkRateLimit).mockResolvedValueOnce(false);
-    const res = await POST(makeReq({ direction: "WAITER_TO_VENUE", venueId: "v1", overallRating: 80 }));
+    const res = await POST(makeReq({ direction: "WAITER_TO_VENUE", venueId: "v1", overallRating: 80 }), CTX);
     expect(res.status).toBe(429);
   });
 });

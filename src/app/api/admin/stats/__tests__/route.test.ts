@@ -31,6 +31,8 @@ function mockNoSession() {
 }
 function makeReq() {  return new NextRequest("http://localhost");}
 
+const CTX = { params: Promise.resolve({}) };
+
 function setupDefaultMocks() {
   vi.mocked(dbRaw.user.groupBy).mockResolvedValue([
     { role: "WAITER",      _count: { _all: 10 } },
@@ -70,24 +72,24 @@ describe("GET /api/admin/stats", () => {
   });
 
   it("ADMIN gets stats → 200", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
   });
 
   it("non-ADMIN → 403", async () => {
     mockSession("VENUE_OWNER", "o-1");
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(401);
   });
 
   it("users shape mapped from groupBy result", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const json = await res.json();
     expect(json.users.waiters).toBe(10);
     expect(json.users.venueOwners).toBe(5);
@@ -95,7 +97,7 @@ describe("GET /api/admin/stats", () => {
   });
 
   it("passports shape with tier breakdown", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const json = await res.json();
     expect(json.passports.free).toBe(8);
     expect(json.passports.pro).toBe(2);
@@ -104,7 +106,7 @@ describe("GET /api/admin/stats", () => {
   });
 
   it("reviews shape with all statuses", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const json = await res.json();
     expect(json.reviews.published).toBe(20);
     expect(json.reviews.pending).toBe(5);
@@ -113,7 +115,7 @@ describe("GET /api/admin/stats", () => {
   });
 
   it("revenue converted from minor units (÷100)", async () => {
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const json = await res.json();
     expect(json.payments.revenueThisMonth).toBe(5800); // 580000 / 100
   });
@@ -124,7 +126,7 @@ describe("GET /api/admin/stats", () => {
       // HEADHUNTER and ADMIN omitted
     ] as never);
 
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const json = await res.json();
     expect(json.users.headhunters).toBe(0);
     expect(json.users.admins).toBe(0);
@@ -135,7 +137,7 @@ describe("GET /api/admin/stats", () => {
       _sum: { amountRsd: null },
     } as never);
 
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const json = await res.json();
     expect(json.payments.revenueThisMonth).toBe(0);
   });

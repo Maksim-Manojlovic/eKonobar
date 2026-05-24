@@ -31,6 +31,8 @@ const BASE_PASSPORT = {
 
 function makeReq() { return new NextRequest("http://localhost/api/test"); }
 
+const CTX = { params: Promise.resolve({}) };
+
 function makePutReq(body: object) {
   return new NextRequest("http://localhost/api/passport", {
     method: "PUT",
@@ -57,7 +59,7 @@ describe("GET /api/passport", () => {
   it("WAITER gets passport + recentReviews", async () => {
     mockSession();
 
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.id).toBe("pp-1");
@@ -68,7 +70,7 @@ describe("GET /api/passport", () => {
     mockSession();
     vi.mocked(db.waiterPassport.findUnique).mockResolvedValue(null);
 
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toBeNull();
@@ -76,13 +78,13 @@ describe("GET /api/passport", () => {
 
   it("VENUE_OWNER → 403", async () => {
     mockSession("VENUE_OWNER", "owner-1");
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(401);
   });
 });
@@ -99,26 +101,26 @@ describe("PUT /api/passport", () => {
   });
 
   it("WAITER upserts passport → 200", async () => {
-    const res = await PUT(makePutReq({ bio: "Updated bio" }));
+    const res = await PUT(makePutReq({ bio: "Updated bio" }), CTX);
     expect(res.status).toBe(200);
     expect(vi.mocked(db.waiterPassport.upsert)).toHaveBeenCalledOnce();
   });
 
   it("VENUE_OWNER → 403", async () => {
     mockSession("VENUE_OWNER", "owner-1");
-    const res = await PUT(makePutReq({ bio: "x" }));
+    const res = await PUT(makePutReq({ bio: "x" }), CTX);
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await PUT(makePutReq({ bio: "x" }));
+    const res = await PUT(makePutReq({ bio: "x" }), CTX);
     expect(res.status).toBe(401);
   });
 
   it("profilePhoto triggers user.image sync", async () => {
     const PHOTO_URL = "https://res.cloudinary.com/test/image/upload/v1/avatar.jpg";
-    await PUT(makePutReq({ profilePhoto: PHOTO_URL }));
+    await PUT(makePutReq({ profilePhoto: PHOTO_URL }), CTX);
 
     expect(vi.mocked(db.user.update)).toHaveBeenCalledWith(
       expect.objectContaining({ data: { image: PHOTO_URL } }),
@@ -126,13 +128,13 @@ describe("PUT /api/passport", () => {
   });
 
   it("no profilePhoto → user.update not called", async () => {
-    await PUT(makePutReq({ bio: "no photo" }));
+    await PUT(makePutReq({ bio: "no photo" }), CTX);
     expect(vi.mocked(db.user.update)).not.toHaveBeenCalled();
   });
 
   it("galleryPhotos capped at 4", async () => {
     const photos = Array(6).fill("https://img.test/photo.jpg");
-    await PUT(makePutReq({ galleryPhotos: photos }));
+    await PUT(makePutReq({ galleryPhotos: photos }), CTX);
 
     const upsertCall = vi.mocked(db.waiterPassport.upsert).mock.calls[0][0] as {
       create: { galleryPhotos: string[] };
@@ -141,7 +143,7 @@ describe("PUT /api/passport", () => {
   });
 
   it("currentlyAvailable=true on previously-false passport sets lastAvailableDate", async () => {
-    await PUT(makePutReq({ currentlyAvailable: true }));
+    await PUT(makePutReq({ currentlyAvailable: true }), CTX);
 
     const upsertCall = vi.mocked(db.waiterPassport.upsert).mock.calls[0][0] as {
       update: Record<string, unknown>;
@@ -154,7 +156,7 @@ describe("PUT /api/passport", () => {
       currentlyAvailable: true,
     } as never);
 
-    await PUT(makePutReq({ currentlyAvailable: false }));
+    await PUT(makePutReq({ currentlyAvailable: false }), CTX);
 
     const upsertCall = vi.mocked(db.waiterPassport.upsert).mock.calls[0][0] as {
       update: Record<string, unknown>;

@@ -15,6 +15,8 @@ import { PATCH } from "../route";
 
 function makeReq() { return new NextRequest("http://localhost/api/test"); }
 
+const CTX = { params: Promise.resolve({}) };
+
 const USER_ID = "user-1";
 
 function mockSession(id = USER_ID, role = "VENUE_OWNER") {
@@ -33,7 +35,7 @@ describe("PATCH /api/user/tour-complete", () => {
   });
 
   it("authenticated user marks tour complete → 200", async () => {
-    const res = await PATCH(makeReq());
+    const res = await PATCH(makeReq(), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.ok).toBe(true);
@@ -41,12 +43,12 @@ describe("PATCH /api/user/tour-complete", () => {
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await PATCH(makeReq());
+    const res = await PATCH(makeReq(), CTX);
     expect(res.status).toBe(401);
   });
 
   it("sets tourCompleted: true for correct user", async () => {
-    await PATCH(makeReq());
+    await PATCH(makeReq(), CTX);
     expect(vi.mocked(db.user.update)).toHaveBeenCalledWith({
       where: { id: USER_ID },
       data: { tourCompleted: true },
@@ -55,7 +57,7 @@ describe("PATCH /api/user/tour-complete", () => {
 
   it("works for any role (WAITER)", async () => {
     mockSession(USER_ID, "WAITER");
-    const res = await PATCH(makeReq());
+    const res = await PATCH(makeReq(), CTX);
     expect(res.status).toBe(200);
   });
 });
