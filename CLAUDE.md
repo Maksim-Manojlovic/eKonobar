@@ -307,7 +307,8 @@ Each dashboard is split across several co-located files. Do not put shared helpe
 
 **Waiter dashboard** (`src/app/(dashboard)/waiter/`):
 - `page.tsx` — root client component
-- `waiter-types.ts` — `Section` type, `ShiftAssignment`, `WaiterShift`, and all API response shapes
+- `waiter-types.ts` — type declarations only: `Section`, `ShiftAssignment`, `WaiterShift`, and all API response shapes. No runtime values.
+- `waiter-constants.ts` — runtime display constants: `TIER_BADGE`, `NEXT_TIER`, `DIRECTION_LABELS`, `BADGE_META`, `BADGE_PROGRESS` (named progress functions + map), `VENUE_TYPE_OPTIONS`, `SCORE_DIMS`, `SECTION_TITLES`. Imports types from `waiter-types.ts`.
 - `waiter-helpers.tsx` — shared UI: `StatusBadge`, `ShiftStatusBadge`, `Sk`, and all `*Skeleton` loaders
 - Section components: `WaiterOverviewSection`, `WaiterJobsSection`, `WaiterSmeneSection`, `WaiterPassportSection`, `WaiterInvitesSection`, `WaiterReviewsSection`
 
@@ -324,7 +325,7 @@ Each dashboard is split across several co-located files. Do not put shared helpe
 
 **Display maps:** Always import `*_COLORS` and `*_LABELS` constants from `lib/display-maps.ts`. Do not define them inline in a page.
 
-**Page-level types:** Define API response shapes in the co-located `*-types.ts` file (e.g., `venue-types.ts`, `waiter-types.ts`, `admin-types.ts`), not inline in the page component. This keeps the shape and the page editable independently.
+**Page-level types:** Define API response shapes in the co-located `*-types.ts` file (e.g., `venue-types.ts`, `waiter-types.ts`, `admin-types.ts`), not inline in the page component. `*-types.ts` must contain **type/interface declarations only** — no runtime values. Co-locate runtime display constants (label maps, badge configs, section titles) in a sibling `*-constants.ts` file that imports from the types file. See `waiter-constants.ts` for the pattern.
 
 **Fire-and-forget side effects:** Use `fireSideEffects()` from `lib/side-effects.ts` instead of calling `notify()` and score-sync functions directly. Keeps route handlers clean and makes tests trivial to write (mock the whole module as `vi.fn()`).
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import ImageUpload from "@/components/ui/ImageUpload";
 import TagInput from "@/components/ui/TagInput";
 import type { PassportData, PassportSubscription } from "./waiter-types";
-import { BADGE_META, BADGE_PROGRESS, VENUE_TYPE_OPTIONS, SCORE_DIMS } from "./waiter-types";
+import { BADGE_META, BADGE_PROGRESS, VENUE_TYPE_OPTIONS, SCORE_DIMS } from "./waiter-constants";
 
 
 /* ── Section: Passport ───────────────────────────────────────────────────── */
