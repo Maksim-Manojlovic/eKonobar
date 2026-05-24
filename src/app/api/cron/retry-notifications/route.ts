@@ -3,6 +3,7 @@ import { dbRaw } from "@/lib/db";
 import { sendWhatsApp } from "@/lib/whatsapp";
 import { sendSms } from "@/lib/sms";
 import { isPro, isProPlus } from "@/lib/passport-tier";
+import { buildSmsText } from "@/lib/notify";
 
 // Retries failed WhatsApp and SMS notification sends.
 // Max 3 attempts per channel, within 24h of creation.
@@ -78,7 +79,7 @@ async function run() {
 
       // SMS retry
       if (!n.smsSent && n.smsRetries < MAX_RETRIES && user.smsOptIn && user.phone && isProPlus(user.waiterPassport)) {
-        const smsText = `${n.title}: ${n.body}${n.link ? " | ekonobar.rs" : ""}`.slice(0, 160);
+        const smsText = buildSmsText(n.title, n.body, n.link);
         try {
           await sendSms(user.phone, smsText);
           await dbRaw.notification.update({ where: { id: n.id }, data: { smsSent: true } });
