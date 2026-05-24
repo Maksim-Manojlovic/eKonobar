@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbRaw } from "@/lib/db";
 import { verifyCallback, callbackApproved, type MonriCallbackPayload } from "@/lib/monri";
-import { notify, type TierHint } from "@/lib/notify";
+import { notify } from "@/lib/notify";
 
 export async function POST(req: NextRequest) {
   let payload: MonriCallbackPayload;
@@ -82,20 +82,12 @@ export async function POST(req: NextRequest) {
     }),
   ]);
 
-  // Tier is already known from the payment record — pass it as a hint so
-  // notify() skips the internal waiterPassport DB lookup.
-  const tierHint: TierHint = {
-    isPro:     payment.tier === "PRO" || payment.tier === "PRO_PLUS",
-    isProPlus: payment.tier === "PRO_PLUS",
-  };
-
   notify(
     payment.userId,
     "APPLICATION_STATUS_CHANGED",
     `Passport ${payment.tier} aktiviran`,
     `Vaša pretplata je aktivna do ${subscriptionExpiresAt.toLocaleDateString("sr-RS")}.`,
     "/waiter",
-    tierHint,
   ).catch(console.error);
 
   return NextResponse.json({ ok: true });

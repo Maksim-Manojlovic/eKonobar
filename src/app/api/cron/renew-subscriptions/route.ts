@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { dbRaw } from "@/lib/db";
 import { chargeStoredCard } from "@/lib/monri";
-import { notify, type TierHint } from "@/lib/notify";
+import { notify } from "@/lib/notify";
 import { PassportTier } from "@prisma/client";
 
 function isAuthorized(req: NextRequest): boolean {
@@ -85,18 +85,12 @@ async function run() {
         }),
       ]);
 
-      // Tier already known — skip the internal passport lookup inside notify().
-      const successHint: TierHint = {
-        isPro:     true, // renewed tier is always PRO or PRO_PLUS
-        isProPlus: tier === "PRO_PLUS",
-      };
       notify(
         passport.userId,
         "APPLICATION_STATUS_CHANGED",
         "Pretplata obnovljena",
         `${tier === "PRO_PLUS" ? "PRO+" : "PRO"} aktivan do ${newExpiry.toLocaleDateString("sr-RS")}.`,
         "/waiter",
-        successHint,
       ).catch(console.error);
 
       renewed++;
