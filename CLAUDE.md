@@ -305,8 +305,9 @@ Each dashboard is split across several co-located files. Do not put shared helpe
 
 **Venue dashboard** (`src/app/(dashboard)/venue/`):
 - `page.tsx` — root client component, session + section state only; no business logic
-- `venue-types.ts` — `Section` type, all API response shapes used by venue sections
-- `venue-helpers.tsx` — shared UI: `PostStatusBadge`, `AppStatusBadge`, `TierBadge`, `PassportTierBadge`, `ScorePill`, `Sk`, and all `*Skeleton` loader components
+- `venue-types.ts` — type declarations only: `Section`, `AppFilter`, and all API response shapes. No runtime values.
+- `venue-constants.ts` — runtime display constants: `SECTION_TITLES`. Imports types from `venue-types.ts`.
+- `venue-helpers.tsx` — shared UI: `PostStatusBadge`, `AppStatusBadge`, `TierBadge`, `PassportTierBadge`, `ScorePill`, `Sk` (re-exported from `components/ui/Sk`), and all `*Skeleton` loader components
 - Section components: `VenueJobsSection`, `VenueSmeneSection`, `VenueDiscoverSection`, `VenueReviewsSection`, `ProfileSection`, `VenueSmeneModals`
 
 **Waiter dashboard** (`src/app/(dashboard)/waiter/`):
@@ -355,14 +356,24 @@ The venue-owner, waiter, headhunter, and admin dashboards all share the same dar
 
 ### Skeleton loaders
 
-All dashboards use content-shaped skeleton loaders instead of spinners. Pattern:
+All dashboards use content-shaped skeleton loaders instead of spinners.
+
+**Shared component:** `components/ui/Sk.tsx` — never redefine `Sk` locally:
 
 ```typescript
-function Sk({ className = "" }: { className?: string }) {
-  return <div className={`bg-neutral-200 rounded-lg animate-pulse ${className}`} />;
-}
-// On dark backgrounds use bg-white/10 instead of bg-neutral-200
+import { Sk } from "@/components/ui/Sk";
+
+// light (venue / waiter dash-card context):
+<Sk className="h-8 w-40" />
+
+// dark (admin dark dashboard):
+<Sk dark className="h-8 w-40" />
 ```
+
+- `dark=false` → `bg-neutral-200 rounded-lg` (venue / waiter dashboards)
+- `dark=true`  → `bg-white/10 rounded-xl`  (admin dashboard)
+
+`venue-helpers.tsx` and `waiter-helpers.tsx` re-export `Sk` from the shared component (light variant). `admin-helpers.tsx` exports a dark-pinned wrapper so existing admin consumers need no change.
 
 Each section has a dedicated `*Skeleton` function that mirrors the real layout — same grid columns, same card heights, no generic spinner. Wire via `if (loading) return <SectionNameSkeleton />;` at the top of each section component.
 

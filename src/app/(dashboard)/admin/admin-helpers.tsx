@@ -4,8 +4,10 @@ export { timeAgo } from "@/lib/format-utils";
 
 /* ── Skeleton ────────────────────────────────────────────────────────────── */
 
+// Dark-pinned variant for the admin dashboard — all admin consumers import Sk from here.
+import { Sk as SkBase } from "@/components/ui/Sk";
 export function Sk({ className = "" }: { className?: string }) {
-  return <div className={`bg-white/10 rounded-xl animate-pulse ${className}`} />;
+  return <SkBase dark className={className} />;
 }
 
 export function DashboardSkeleton() {

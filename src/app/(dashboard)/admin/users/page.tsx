@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PASSPORT_TIER_COLORS, ROLE_LABELS } from "@/lib/display-maps";
-import { timeAgo } from "../admin-helpers";
+import { timeAgo, Sk } from "../admin-helpers";
 
 type Passport = { passportTier: string; score: number; subscriptionExpiresAt: string | null };
 type User = {
@@ -15,10 +15,6 @@ type User = {
 };
 
 const ROLES = ["", "WAITER", "VENUE_OWNER", "HEADHUNTER", "ADMIN"];
-
-function Sk({ className = "" }: { className?: string }) {
-  return <div className={`bg-white/8 rounded-xl animate-pulse ${className}`} />;
-}
 
 export default function AdminUsersPage() {
   const { data: session, status } = useSession();

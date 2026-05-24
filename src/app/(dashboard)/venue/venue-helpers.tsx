@@ -24,9 +24,8 @@ export function TierBadge({ tier }: { tier: string }) {
 }
 
 
-export function Sk({ className = "" }: { className?: string }) {
-  return <div className={`bg-neutral-200 rounded-lg animate-pulse ${className}`} />;
-}
+import { Sk } from "@/components/ui/Sk";
+export { Sk };
 
 export function OverviewSkeleton() {
   return (
