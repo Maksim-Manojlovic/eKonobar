@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { VERIFICATION_TIER_COLORS, formatDate } from "@/lib/display-maps";
 
 type Venue = { id: string; name: string };
 
@@ -22,13 +23,6 @@ type Review = {
   ratingManagement: number | null;
 };
 
-const TIER_COLORS: Record<string, string> = {
-  ID_VERIFIED: "text-purple-700 bg-purple-50 border-purple-300",
-  GOLD:        "text-amber-700 bg-amber-50 border-amber-300",
-  SILVER:      "text-slate-600 bg-slate-50 border-slate-300",
-  UNVERIFIED:  "text-neutral-500 bg-neutral-50 border-neutral-300",
-};
-
 const DIM_LABELS = [
   { key: "ratingAtmosphere",   label: "Atmosfera" },
   { key: "ratingOrganization", label: "Organizacija" },
@@ -41,10 +35,6 @@ const DIM_LABELS = [
 function Stars({ rating }: { rating: number }) {
   const stars = Math.round(rating / 20);
   return <span className="text-amber-400 text-sm">{"★".repeat(stars)}{"☆".repeat(5 - stars)}</span>;
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "short", year: "numeric" });
 }
 
 export default function VenueReviewsPage() {
@@ -129,7 +119,7 @@ export default function VenueReviewsPage() {
               <div key={r.id} className="dash-card p-5">
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${TIER_COLORS[r.author.verificationTier] ?? TIER_COLORS.UNVERIFIED}`}>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${VERIFICATION_TIER_COLORS[r.author.verificationTier] ?? VERIFICATION_TIER_COLORS.UNVERIFIED}`}>
                       {r.author.verificationTier.replace("_", " ")}
                     </span>
                     <span className="text-sm font-semibold text-neutral-700">{r.author.name ?? "Konobar"}</span>

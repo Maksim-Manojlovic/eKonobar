@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { formatDate } from "@/lib/display-maps";
 
 type SanitaryBook = {
   id: string;
@@ -13,10 +14,6 @@ type SanitaryBook = {
   rejectReason: string | null;
   user: { id: string; name: string | null; email: string };
 };
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "short", year: "numeric" });
-}
 
 export default function AdminVerificationsPage() {
   const { data: session, status } = useSession();

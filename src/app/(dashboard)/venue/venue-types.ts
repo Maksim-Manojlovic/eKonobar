@@ -1,4 +1,5 @@
 import type { VenueZoneInsights } from "@/lib/analytics";
+export { formatDate } from "@/lib/display-maps";
 
 export type Section = "overview" | "posts" | "new-post" | "smene" | "applications" | "waiters" | "discover" | "reviews" | "qr-review" | "profile" | "notifications";
 export type AppFilter = "SVE" | "PENDING" | "SHORTLISTED" | "ACCEPTED" | "REJECTED";
@@ -181,9 +182,7 @@ export function formatSalary({ salaryMin, salaryMax, engagementType }: Pick<OwnP
   return `do ${salaryMax!.toLocaleString("sr-RS")} RSD${sfx}`;
 }
 
-export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "short", year: "numeric" });
-}
+// formatDate is re-exported above from @/lib/display-maps
 
 export function trustDimensions(ts: Venue["venueTrustScore"]): { label: string; value: number }[] {
   if (!ts) return [

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { VERIFICATION_TIER_COLORS, formatDate } from "@/lib/display-maps";
 
 type Review = {
   id: string;
@@ -24,13 +25,6 @@ const DIRECTION_LABELS: Record<string, string> = {
   GUEST_TO_WAITER:  "Gost → Konobar",
 };
 
-const TIER_COLORS: Record<string, string> = {
-  ID_VERIFIED: "text-purple-700 bg-purple-50 border-purple-300",
-  GOLD:        "text-amber-700  bg-amber-50  border-amber-300",
-  SILVER:      "text-slate-600  bg-slate-50  border-slate-300",
-  UNVERIFIED:  "text-neutral-500 bg-neutral-50 border-neutral-300",
-};
-
 function Stars({ rating }: { rating: number }) {
   const stars = Math.round(rating / 20);
   return (
@@ -38,10 +32,6 @@ function Stars({ rating }: { rating: number }) {
       {"★".repeat(stars)}{"☆".repeat(5 - stars)}
     </span>
   );
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "short", year: "numeric" });
 }
 
 export default function AdminModerationPage() {
@@ -143,7 +133,7 @@ export default function AdminModerationPage() {
 
                 {/* Author row */}
                 <div className="flex items-center gap-2 mb-4">
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${TIER_COLORS[review.author.verificationTier] ?? TIER_COLORS.UNVERIFIED}`}>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${VERIFICATION_TIER_COLORS[review.author.verificationTier] ?? VERIFICATION_TIER_COLORS.UNVERIFIED}`}>
                     {review.author.verificationTier.replace("_", " ")}
                   </span>
                   <span className="text-xs text-neutral-500">{review.author.name ?? review.author.email}</span>

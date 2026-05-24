@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { PASSPORT_TIER_COLORS } from "@/lib/display-maps";
 
 type Passport = { passportTier: string; score: number; subscriptionExpiresAt: string | null };
 type User = {
@@ -16,12 +17,6 @@ const ROLES = ["", "WAITER", "VENUE_OWNER", "HEADHUNTER", "ADMIN"];
 
 const ROLE_LABELS: Record<string, string> = {
   WAITER: "Konobar", VENUE_OWNER: "Vlasnik", HEADHUNTER: "Headhunter", ADMIN: "Admin",
-};
-
-const TIER_COLORS: Record<string, string> = {
-  FREE: "text-white/40 bg-white/5",
-  PRO: "text-orange-400 bg-orange-500/15",
-  PRO_PLUS: "text-amber-300 bg-amber-500/15",
 };
 
 function timeAgo(dateStr: string) {
@@ -185,7 +180,7 @@ export default function AdminUsersPage() {
                     {/* Passport tier */}
                     <div className="hidden sm:flex items-center">
                       {passport ? (
-                        <span className={`text-xs font-black px-2.5 py-1 rounded-full ${TIER_COLORS[tier] ?? TIER_COLORS.FREE}`}>
+                        <span className={`text-xs font-black px-2.5 py-1 rounded-full ${PASSPORT_TIER_COLORS[tier] ?? PASSPORT_TIER_COLORS.FREE}`}>
                           {tier.replace("_", "+")}
                         </span>
                       ) : (

@@ -4,13 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-
-const TIER_COLORS: Record<string, string> = {
-  ID_VERIFIED: "text-purple-700 bg-purple-50 border-purple-300",
-  GOLD:        "text-amber-700  bg-amber-50  border-amber-300",
-  SILVER:      "text-slate-600  bg-slate-50  border-slate-300",
-  UNVERIFIED:  "text-neutral-500 bg-neutral-50 border-neutral-300",
-};
+import { VERIFICATION_TIER_COLORS } from "@/lib/display-maps";
 
 type SavedEntry = {
   savedAt: string;
@@ -125,7 +119,7 @@ export default function SavedProfilesPage() {
                         <p className="font-black text-neutral-900 text-sm truncate">{w.name ?? "Konobar"}</p>
                         <PassportTierBadge tier={p?.passportTier} expiresAt={p?.subscriptionExpiresAt} />
                       </div>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${TIER_COLORS[w.verificationTier] ?? TIER_COLORS.UNVERIFIED}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${VERIFICATION_TIER_COLORS[w.verificationTier] ?? VERIFICATION_TIER_COLORS.UNVERIFIED}`}>
                         {w.verificationTier.replace("_", " ")}
                       </span>
                     </div>

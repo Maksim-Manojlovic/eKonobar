@@ -5,6 +5,12 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ReviewWizard from "@/components/review/ReviewWizard";
+import {
+  VERIFICATION_TIER_COLORS,
+  APPLICATION_STATUS_COLORS,
+  APPLICATION_STATUS_LABELS_VENUE,
+  formatDate,
+} from "@/lib/display-maps";
 
 type Application = {
   id: string;
@@ -24,28 +30,6 @@ type Application = {
   };
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: "Na čekanju", SHORTLISTED: "Shortlist",
-  ACCEPTED: "Prihvaćeno", REJECTED: "Odbijeno",
-  COMPLETED: "Završeno", WITHDRAWN: "Povučena",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  PENDING:     "badge-pending",
-  SHORTLISTED: "text-blue-700 bg-blue-50 border border-blue-200",
-  ACCEPTED:    "badge-accepted",
-  COMPLETED:   "badge-accepted",
-  REJECTED:    "badge-rejected",
-  WITHDRAWN:   "badge-rejected",
-};
-
-const TIER_COLORS: Record<string, string> = {
-  ID_VERIFIED: "text-purple-700 bg-purple-50 border-purple-300",
-  GOLD:        "text-amber-700 bg-amber-50 border-amber-300",
-  SILVER:      "text-slate-600 bg-slate-50 border-slate-300",
-  UNVERIFIED:  "text-neutral-500 bg-neutral-50 border-neutral-300",
-};
-
 type Filter = "SVE" | "PENDING" | "SHORTLISTED" | "ACCEPTED" | "REJECTED" | "COMPLETED";
 
 const FILTERS: { key: Filter; label: string }[] = [
@@ -56,10 +40,6 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: "REJECTED",    label: "Odbijene" },
   { key: "COMPLETED",   label: "Završene" },
 ];
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "short" });
-}
 
 export default function VenueApplicationsPage() {
   const { data: session, status } = useSession();
@@ -144,7 +124,7 @@ export default function VenueApplicationsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-bold text-neutral-900 text-sm">{app.waiter.name ?? "Konobar"}</p>
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${TIER_COLORS[app.waiter.verificationTier] ?? TIER_COLORS.UNVERIFIED}`}>
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${VERIFICATION_TIER_COLORS[app.waiter.verificationTier] ?? VERIFICATION_TIER_COLORS.UNVERIFIED}`}>
                             {app.waiter.verificationTier.replace("_", " ")}
                           </span>
                           {p && (
@@ -163,8 +143,8 @@ export default function VenueApplicationsPage() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                      <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${STATUS_COLORS[app.status] ?? ""}`}>
-                        {STATUS_LABELS[app.status] ?? app.status}
+                      <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${APPLICATION_STATUS_COLORS[app.status] ?? ""}`}>
+                        {APPLICATION_STATUS_LABELS_VENUE[app.status] ?? app.status}
                       </span>
                       {app.status === "PENDING" && (
                         <div className="flex gap-1.5">

@@ -1,5 +1,6 @@
 // Types, constants, and utility functions for the Waiter dashboard.
 // No JSX — safe to import in both client and server contexts.
+export { formatDate } from "@/lib/display-maps";
 
 export type Section = "overview" | "alerts" | "jobs" | "applications" | "shifts" | "invites" | "reviews" | "passport" | "manage" | "notifications";
 export type AppFilter = "all" | "accepted" | "pending" | "rejected";
@@ -220,9 +221,7 @@ export function appStatusKey(status: string): "accepted" | "pending" | "rejected
   return "pending";
 }
 
-export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "short", year: "numeric" });
-}
+// formatDate is re-exported above from @/lib/display-maps
 
 /* ── Tier helpers ────────────────────────────────────────────────────────── */
 

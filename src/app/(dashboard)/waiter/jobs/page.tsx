@@ -4,6 +4,11 @@ import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import {
+  APPLICATION_STATUS_COLORS,
+  APPLICATION_STATUS_LABELS_WAITER,
+  formatDate,
+} from "@/lib/display-maps";
 
 type JobPost = {
   id: string;
@@ -48,21 +53,6 @@ const FILTERS: { key: EngFilter; label: string }[] = [
   { key: "CELEBRATION", label: "Slavlje" },
 ];
 
-const APP_STATUS_LABELS: Record<string, string> = {
-  PENDING: "Prijavljeno", SHORTLISTED: "Shortlist",
-  ACCEPTED: "Prihvaćeno", REJECTED: "Odbijeno",
-  WITHDRAWN: "Povučena", COMPLETED: "Završeno",
-};
-
-const APP_STATUS_COLORS: Record<string, string> = {
-  PENDING:     "text-amber-700 bg-amber-50 border-amber-300",
-  SHORTLISTED: "text-blue-700 bg-blue-50 border-blue-200",
-  ACCEPTED:    "text-green-700 bg-green-50 border-green-300",
-  REJECTED:    "text-red-700 bg-red-50 border-red-300",
-  WITHDRAWN:   "text-neutral-500 bg-neutral-50 border-neutral-300",
-  COMPLETED:   "text-green-700 bg-green-50 border-green-300",
-};
-
 function formatSalary(job: Pick<JobPost, "salaryMin" | "salaryMax" | "engagementType">) {
   if (!job.salaryMin && !job.salaryMax) return "Po dogovoru";
   const sfx = job.engagementType === "FULL_TIME" ? "/mes" : "/sm";
@@ -70,10 +60,6 @@ function formatSalary(job: Pick<JobPost, "salaryMin" | "salaryMax" | "engagement
     return `${job.salaryMin.toLocaleString("sr-RS")}–${job.salaryMax.toLocaleString("sr-RS")} RSD${sfx}`;
   if (job.salaryMin) return `od ${job.salaryMin.toLocaleString("sr-RS")} RSD${sfx}`;
   return `do ${job.salaryMax!.toLocaleString("sr-RS")} RSD${sfx}`;
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "short" });
 }
 
 function TrustDot({ score }: { score: number }) {
@@ -290,8 +276,8 @@ export default function WaiterJobsPage() {
                       </div>
 
                       {appStatus ? (
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${APP_STATUS_COLORS[appStatus] ?? "text-neutral-500 bg-neutral-50 border-neutral-200"}`}>
-                          {APP_STATUS_LABELS[appStatus] ?? appStatus}
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${APPLICATION_STATUS_COLORS[appStatus] ?? "text-neutral-500 bg-neutral-50 border-neutral-200"}`}>
+                          {APPLICATION_STATUS_LABELS_WAITER[appStatus] ?? appStatus}
                         </span>
                       ) : (
                         <button

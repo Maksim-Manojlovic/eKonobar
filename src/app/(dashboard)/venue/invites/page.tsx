@@ -4,6 +4,12 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import {
+  VERIFICATION_TIER_COLORS,
+  INVITE_STATUS_COLORS,
+  INVITE_STATUS_LABELS,
+  formatDate,
+} from "@/lib/display-maps";
 
 type SentInvite = {
   id: string;
@@ -20,28 +26,6 @@ type Waiter = {
   verificationTier: string;
   waiterPassport: { score: number; currentlyAvailable: boolean; sanitaryBookValid: boolean } | null;
 };
-
-const STATUS_COLORS: Record<string, string> = {
-  PENDING:  "text-amber-700 bg-amber-50 border-amber-300",
-  ACCEPTED: "text-green-700 bg-green-50 border-green-300",
-  DECLINED: "text-neutral-500 bg-neutral-50 border-neutral-300",
-  EXPIRED:  "text-red-500 bg-red-50 border-red-200",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: "Na čekanju", ACCEPTED: "Prihvaćena", DECLINED: "Odbijena", EXPIRED: "Istekla",
-};
-
-const TIER_COLORS: Record<string, string> = {
-  ID_VERIFIED: "text-purple-700 bg-purple-50 border-purple-300",
-  GOLD:        "text-amber-700 bg-amber-50 border-amber-300",
-  SILVER:      "text-slate-600 bg-slate-50 border-slate-300",
-  UNVERIFIED:  "text-neutral-500 bg-neutral-50 border-neutral-300",
-};
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "short", year: "numeric" });
-}
 
 export default function VenueInvitesPage() {
   const { data: session, status } = useSession();
@@ -148,7 +132,7 @@ export default function VenueInvitesPage() {
                       <div>
                         <p className="text-sm font-bold text-neutral-900">{w.name ?? "Konobar"}</p>
                         <div className="flex items-center gap-1.5">
-                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${TIER_COLORS[w.verificationTier] ?? TIER_COLORS.UNVERIFIED}`}>
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${VERIFICATION_TIER_COLORS[w.verificationTier] ?? VERIFICATION_TIER_COLORS.UNVERIFIED}`}>
                             {w.verificationTier.replace("_", " ")}
                           </span>
                           {w.waiterPassport && (
@@ -204,8 +188,8 @@ export default function VenueInvitesPage() {
                     <td className="px-4 py-3 text-xs text-neutral-500">{formatDate(inv.createdAt)}</td>
                     <td className="px-4 py-3 text-xs text-neutral-500">{formatDate(inv.expiresAt)}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[inv.status] ?? ""}`}>
-                        {STATUS_LABELS[inv.status] ?? inv.status}
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${INVITE_STATUS_COLORS[inv.status] ?? ""}`}>
+                        {INVITE_STATUS_LABELS[inv.status] ?? inv.status}
                       </span>
                     </td>
                   </tr>

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { JOB_STATUS_COLORS, JOB_STATUS_LABELS } from "@/lib/display-maps";
 
 type JobPost = {
   id: string;
@@ -16,17 +17,6 @@ type JobPost = {
   createdAt: string;
   venue: { id: string; name: string };
   _count: { applications: number };
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  ACTIVE: "Aktivan", PAUSED: "Pauziran", FILLED: "Popunjen", CLOSED: "Zatvoren",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  ACTIVE:  "text-green-700 bg-green-50 border-green-300",
-  PAUSED:  "text-amber-700 bg-amber-50 border-amber-300",
-  FILLED:  "text-blue-700  bg-blue-50  border-blue-300",
-  CLOSED:  "text-neutral-500 bg-neutral-50 border-neutral-300",
 };
 
 const ENG_LABELS: Record<string, string> = {
@@ -122,8 +112,8 @@ export default function VenueJobsPage() {
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[j.status] ?? "text-neutral-500 bg-neutral-50 border-neutral-300"}`}>
-                        {STATUS_LABELS[j.status] ?? j.status}
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${JOB_STATUS_COLORS[j.status] ?? "text-neutral-500 bg-neutral-50 border-neutral-300"}`}>
+                        {JOB_STATUS_LABELS[j.status] ?? j.status}
                       </span>
                     </td>
                   </tr>
