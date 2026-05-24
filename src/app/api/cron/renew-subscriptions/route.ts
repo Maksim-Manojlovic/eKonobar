@@ -4,6 +4,7 @@ import { dbRaw } from "@/lib/db";
 import { chargeStoredCard } from "@/lib/monri";
 import { notify } from "@/lib/notify";
 import { PassportTier } from "@prisma/client";
+import logger from "@/lib/logger";
 
 function isAuthorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
@@ -91,7 +92,7 @@ async function run() {
         "Pretplata obnovljena",
         `${tier === "PRO_PLUS" ? "PRO+" : "PRO"} aktivan do ${newExpiry.toLocaleDateString("sr-RS")}.`,
         "/waiter",
-      ).catch(console.error);
+      ).catch(err => logger.error({ err, userId: passport.userId }, "notify failed after subscription renewal"));
 
       renewed++;
     } else {
@@ -113,7 +114,7 @@ async function run() {
         "Obnova pretplate nije uspela",
         "Naplata kartice nije prošla. Obnovi pretplatu ručno u dashboardu.",
         "/waiter",
-      ).catch(console.error);
+      ).catch(err => logger.error({ err, userId: passport.userId }, "notify failed after subscription renewal failure"));
 
       failed++;
     }

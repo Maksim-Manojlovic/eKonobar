@@ -1,6 +1,7 @@
 import { syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
 import { notify } from "@/lib/notify";
 import { NotificationType } from "@prisma/client";
+import logger from "@/lib/logger";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -43,7 +44,7 @@ export function fireSideEffects(opts: SideEffectOpts): void {
   Promise.allSettled(tasks).then(results => {
     for (const r of results) {
       if (r.status === "rejected") {
-        console.error("[side-effects] fire-and-forget failed", r.reason);
+        logger.error({ err: r.reason }, "[side-effects] fire-and-forget failed");
       }
     }
   });

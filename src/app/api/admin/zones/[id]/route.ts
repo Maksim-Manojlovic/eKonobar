@@ -3,6 +3,7 @@ import { withRole } from "@/lib/with-role";
 import { dbRaw } from "@/lib/db";
 import { ZoneType } from "@prisma/client";
 import { refreshAllVenueZoneCaches } from "@/lib/analytics";
+import logger from "@/lib/logger";
 
 // PATCH — update zone fields
 export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", async (req, ctx) => {
@@ -32,7 +33,7 @@ export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", asyn
     },
   });
 
-  refreshAllVenueZoneCaches().catch(console.error);
+  refreshAllVenueZoneCaches().catch(err => logger.error({ err, zoneId: id }, "refreshAllVenueZoneCaches failed after zone update"));
 
   return NextResponse.json(updated);
 });
@@ -50,7 +51,7 @@ export const DELETE = withRole<{ params: Promise<{ id: string }> }>("ADMIN", asy
     dbRaw.venueZone.delete({ where: { id } }),
   ]);
 
-  refreshAllVenueZoneCaches().catch(console.error);
+  refreshAllVenueZoneCaches().catch(err => logger.error({ err, zoneId: id }, "refreshAllVenueZoneCaches failed after zone delete"));
 
   return NextResponse.json({ deleted: true, id });
 });

@@ -267,7 +267,13 @@ import logger from "@/lib/logger";
 logger.error({ err }, "something failed");
 ```
 
-Use `logger` in lib modules. `console.error` stays acceptable for fire-and-forget `.catch()` callbacks.
+Use `logger` in lib modules and in cron/admin route fire-and-forget callbacks. The pattern is:
+
+```typescript
+someAsyncOp().catch(err => logger.error({ err, contextId }, "op failed in route-name"));
+```
+
+`console.error` is acceptable only in truly ephemeral callbacks where the context is obvious (e.g. simple client-side fetch handlers). Do **not** use `console.error` in lib modules or cron routes — pino outputs structured JSON in production; `console.error` bypasses it and produces unstructured stderr with no request context.
 
 ### Shift utilities
 

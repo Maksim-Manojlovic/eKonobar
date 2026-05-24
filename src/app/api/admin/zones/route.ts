@@ -3,6 +3,7 @@ import { withOptionalAuth, withRole } from "@/lib/with-role";
 import { dbRaw } from "@/lib/db";
 import { ZoneType } from "@prisma/client";
 import { refreshAllVenueZoneCaches } from "@/lib/analytics";
+import logger from "@/lib/logger";
 
 // GET — list all zones (public for map, admin sees inactive too)
 export const GET = withOptionalAuth(async (req, _ctx, session) => {
@@ -54,7 +55,7 @@ export const POST = withRole("ADMIN", async (req) => {
     },
   });
 
-  refreshAllVenueZoneCaches().catch(console.error);
+  refreshAllVenueZoneCaches().catch(err => logger.error({ err }, "refreshAllVenueZoneCaches failed after zone create"));
 
   return NextResponse.json(zone, { status: 201 });
 });

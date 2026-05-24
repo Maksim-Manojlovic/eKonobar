@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbRaw } from "@/lib/db";
 import { publishDueReviews, syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
+import logger from "@/lib/logger";
 
 // Accepts GET or POST.
 // Requires: Authorization: Bearer <CRON_SECRET>
@@ -48,8 +49,8 @@ async function run() {
   }
 
   await Promise.all([
-    ...[...venueIds].map(id  => syncVenueTrustScore(id).catch(console.error)),
-    ...[...waiterIds].map(id => syncPassportScore(id).catch(console.error)),
+    ...[...venueIds].map(id   => syncVenueTrustScore(id).catch(err => logger.error({ err, venueId: id },  "syncVenueTrustScore failed in publish-reviews cron"))),
+    ...[...waiterIds].map(id  => syncPassportScore(id).catch(err  => logger.error({ err, waiterId: id }, "syncPassportScore failed in publish-reviews cron"))),
   ]);
 
   return {
