@@ -4,16 +4,20 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider    from "next-auth/providers/google";
 import FacebookProvider  from "next-auth/providers/facebook";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { compare } from "bcryptjs";
-import { db, dbRaw } from "./db";
-import { rateLimit } from "./rate-limit";
+import { dbRaw } from "./db";
 import type { Role, VerificationTier } from "@prisma/client";
+import {
+  TTL_REMEMBER,
+  checkLoginRateLimit,
+  verifyCredentials,
+  buildJwtToken,
+  buildSessionUser,
+} from "./auth-helpers";
 
-const TTL_DEFAULT  = 24 * 60 * 60;      // 24 h — standard session
-const TTL_REMEMBER =  7 * 24 * 60 * 60; // 7 d  — "zapamti me"
-
-// In-process revocation cache — avoids a DB hit on every getServerSession() call.
+// ── In-process token revocation cache ────────────────────────────────────────
+// Avoids a DB hit on every getServerSession() call.
 // TTL of 60s means role changes propagate within one minute.
+
 const _revCache = new Map<string, { revokedAt: number | null; cachedAt: number }>();
 const REV_CACHE_TTL_MS = 60_000;
 const REV_CACHE_MAX    = 5_000;
@@ -41,6 +45,8 @@ async function isTokenRevoked(userId: string, tokenIat: number): Promise<boolean
   evictRevCache(now);
   return row !== null && tokenIat < row.revokedAt.getTime() / 1000;
 }
+
+// ── authOptions ───────────────────────────────────────────────────────────────
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(dbRaw),
@@ -77,35 +83,18 @@ export const authOptions: NextAuthOptions = {
 
         const email = credentials.email.toLowerCase();
 
-        // IP guard — broad limit, stops distributed credential stuffing
         const rawIp = req?.headers?.["x-forwarded-for"];
         const ip = (Array.isArray(rawIp) ? rawIp[0] : rawIp?.split(",")[0])?.trim() ?? "unknown";
-        const ipAllowed = await rateLimit(`login:ip:${ip}`, 20, 15 * 60 * 1000);
-        if (!ipAllowed) {
-          throw new Error("Previše pokušaja prijave. Sačekaj 15 minuta.");
-        }
 
-        // Per-email guard — tight limit, stops targeted brute-force
-        const emailAllowed = await rateLimit(`login:email:${email}`, 5, 15 * 60 * 1000);
-        if (!emailAllowed) {
-          throw new Error("Previše neuspelih pokušaja prijave. Sačekaj 15 minuta.");
-        }
+        await checkLoginRateLimit(ip, email); // throws on limit exceeded
 
-        const user = await db.user.findUnique({ where: { email } });
-
-        if (!user?.hashedPassword) return null;
-
-        const valid = await compare(credentials.password, user.hashedPassword);
-        if (!valid) return null;
+        const user = await verifyCredentials(email, credentials.password);
+        if (!user) return null;
 
         return {
-          id:               user.id,
-          email:            user.email,
-          name:             user.name ?? undefined,
-          role:             user.role,
-          verificationTier: user.verificationTier,
-          rememberMe:       credentials.rememberMe === "true",
-          tourCompleted:    user.tourCompleted,
+          ...user,
+          name:       user.name ?? undefined,
+          rememberMe: credentials.rememberMe === "true",
         };
       },
     }),
@@ -121,9 +110,9 @@ export const authOptions: NextAuthOptions = {
     },
 
     async jwt({ token, user, account, trigger, session }) {
-      // Client-side session.update({ role, ... }) — update token fields
+      // Client-side session.update({ role, ... }) — patch token fields in place
       if (trigger === "update" && session) {
-        if (session.role)             token.role             = session.role;
+        if (session.role)                        token.role          = session.role;
         if (session.tourCompleted !== undefined) token.tourCompleted = session.tourCompleted;
         return token;
       }
@@ -139,34 +128,47 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         if (account?.provider === "credentials") {
           // Credentials: authorize() already returned all needed fields
-          token.id               = user.id;
-          token.role             = user.role as Role;
-          token.verificationTier = user.verificationTier as VerificationTier;
-          token.tourCompleted    = user.tourCompleted;
-          const ttl = user.rememberMe ? TTL_REMEMBER : TTL_DEFAULT;
-          token.sessionExpiry = Math.floor(Date.now() / 1000) + ttl;
+          const fields = buildJwtToken({
+            id:               user.id,
+            role:             user.role,
+            verificationTier: user.verificationTier,
+            tourCompleted:    user.tourCompleted,
+            rememberMe:       user.rememberMe,
+          });
+          token.id               = fields.id;
+          token.role             = fields.role;
+          token.verificationTier = fields.verificationTier;
+          token.tourCompleted    = fields.tourCompleted;
+          token.sessionExpiry    = fields.sessionExpiry;
         } else {
           // OAuth: adapter provides basic user; fetch role/tier from DB
           const dbUser = await dbRaw.user.findUnique({
             where:  { id: user.id },
             select: { role: true, verificationTier: true, tourCompleted: true },
           });
-          token.id               = user.id;
-          token.role             = (dbUser?.role ?? "WAITER") as Role;
-          token.verificationTier = (dbUser?.verificationTier ?? "UNVERIFIED") as VerificationTier;
-          token.tourCompleted    = dbUser?.tourCompleted ?? false;
-          token.sessionExpiry    = Math.floor(Date.now() / 1000) + TTL_DEFAULT;
+          const fields = buildJwtToken({
+            id:               user.id,
+            role:             (dbUser?.role ?? "WAITER") as Role,
+            verificationTier: (dbUser?.verificationTier ?? "UNVERIFIED") as VerificationTier,
+            tourCompleted:    dbUser?.tourCompleted ?? false,
+          }, true); // isOAuth = true → TTL_DEFAULT, ignores rememberMe
+          token.id               = fields.id;
+          token.role             = fields.role;
+          token.verificationTier = fields.verificationTier;
+          token.tourCompleted    = fields.tourCompleted;
+          token.sessionExpiry    = fields.sessionExpiry;
         }
       }
       return token;
     },
 
     session({ session, token }) {
-      session.user.id               = token.id as string;
-      session.user.role             = token.role as Role;
-      session.user.verificationTier = token.verificationTier as VerificationTier;
-      session.user.tourCompleted    = token.tourCompleted;
-      session.sessionExpiry         = token.sessionExpiry as number;
+      const u = buildSessionUser(token);
+      session.user.id               = u.id;
+      session.user.role             = u.role;
+      session.user.verificationTier = u.verificationTier;
+      session.user.tourCompleted    = u.tourCompleted;
+      session.sessionExpiry         = token.sessionExpiry;
       return session;
     },
   },
