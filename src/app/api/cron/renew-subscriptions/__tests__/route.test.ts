@@ -90,6 +90,7 @@ describe("GET /api/cron/renew-subscriptions", () => {
       expect.stringContaining("obnovljena"),
       expect.any(String),
       "/waiter",
+      { isPro: true, isProPlus: false },
     );
   });
 
