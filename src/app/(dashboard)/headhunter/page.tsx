@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Initials } from "@/components/ui/PassportWidgets";
 
 type SavedEntry = {
   savedAt: string;
@@ -60,15 +61,6 @@ function DashboardSkeleton() {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Initials({ name }: { name?: string | null }) {
-  const l = name ? name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : "?";
-  return (
-    <div className="w-9 h-9 rounded-full bg-orange-100 text-orange-600 font-black text-sm flex items-center justify-center border-2 border-orange-200 flex-shrink-0">
-      {l}
     </div>
   );
 }
@@ -144,7 +136,7 @@ export default function HeadhunterDashboard() {
             <div className="flex flex-col gap-3">
               {saved.map((s) => (
                 <div key={s.waiter?.id} className="flex items-center gap-3">
-                  <Initials name={s.waiter?.name} />
+                  <Initials name={s.waiter?.name} className="w-9 h-9 text-sm" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-neutral-900 truncate">{s.waiter?.name ?? "Konobar"}</p>
                     <p className="text-xs text-neutral-400">

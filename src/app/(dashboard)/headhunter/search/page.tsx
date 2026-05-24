@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { VERIFICATION_TIER_COLORS } from "@/lib/display-maps";
+import { Initials, PassportTierBadge, ScorePill } from "@/components/ui/PassportWidgets";
 
 const VERIFICATION_TIERS = [
   { value: "",            label: "Svi nivoi"    },
@@ -27,33 +28,6 @@ type Waiter = {
     passportTier?: string; subscriptionExpiresAt?: string | null;
   } | null;
 };
-
-function Initials({ name }: { name?: string | null }) {
-  const l = name ? name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : "?";
-  return (
-    <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 font-black text-base flex items-center justify-center border-2 border-orange-200">
-      {l}
-    </div>
-  );
-}
-
-function ScorePill({ score }: { score: number }) {
-  const color = score >= 80 ? "text-green-700 bg-green-50 border-green-300"
-              : score >= 60 ? "text-amber-700 bg-amber-50 border-amber-300"
-              :               "text-neutral-500 bg-neutral-50 border-neutral-300";
-  return (
-    <span className={`text-xs font-black px-2 py-0.5 rounded-full border ${color}`}>
-      {Math.round(score)}
-    </span>
-  );
-}
-
-function PassportTierBadge({ tier, expiresAt }: { tier?: string; expiresAt?: string | null }) {
-  if (!tier || tier === "FREE") return null;
-  if (expiresAt && new Date(expiresAt) <= new Date()) return null;
-  if (tier === "PRO_PLUS") return <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-500 text-white tracking-wide">PRO+</span>;
-  return <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-300">PRO</span>;
-}
 
 export default function HeadhunterSearch() {
   const { data: session, status } = useSession();

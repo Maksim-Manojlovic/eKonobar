@@ -1,6 +1,7 @@
 "use client";
 
 import type { Section } from "./venue-types";
+export { PassportTierBadge, ScorePill } from "@/components/ui/PassportWidgets";
 
 export function PostStatusBadge({ status }: { status: string }) {
   if (status === "ACTIVE")  return <span className="badge-accepted text-xs font-semibold px-2.5 py-0.5 rounded-full">Aktivan</span>;
@@ -22,17 +23,6 @@ export function TierBadge({ tier }: { tier: string }) {
   return null;
 }
 
-export function PassportTierBadge({ tier, expiresAt }: { tier?: string; expiresAt?: string | null }) {
-  if (!tier || tier === "FREE") return null;
-  if (expiresAt && new Date(expiresAt) <= new Date()) return null;
-  if (tier === "PRO_PLUS") return <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-500 text-white tracking-wide">PRO+</span>;
-  return <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-300">PRO</span>;
-}
-
-export function ScorePill({ score }: { score: number }) {
-  const color = score >= 85 ? "#f97316" : score >= 70 ? "#eab308" : "#6b7280";
-  return <span className="text-xs font-black px-2 py-0.5 rounded-full" style={{ background: `${color}18`, color }}>{Math.round(score)}</span>;
-}
 
 export function Sk({ className = "" }: { className?: string }) {
   return <div className={`bg-neutral-200 rounded-lg animate-pulse ${className}`} />;

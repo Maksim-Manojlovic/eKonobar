@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { VERIFICATION_TIER_COLORS } from "@/lib/display-maps";
+import { Initials, PassportTierBadge } from "@/components/ui/PassportWidgets";
 
 type SavedEntry = {
   savedAt: string;
@@ -20,22 +21,6 @@ type SavedEntry = {
     } | null;
   };
 };
-
-function Initials({ name }: { name?: string | null }) {
-  const l = name ? name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : "?";
-  return (
-    <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 font-black text-base flex items-center justify-center border-2 border-orange-200 flex-shrink-0">
-      {l}
-    </div>
-  );
-}
-
-function PassportTierBadge({ tier, expiresAt }: { tier?: string; expiresAt?: string | null }) {
-  if (!tier || tier === "FREE") return null;
-  if (expiresAt && new Date(expiresAt) <= new Date()) return null;
-  if (tier === "PRO_PLUS") return <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-500 text-white tracking-wide">PRO+</span>;
-  return <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-300">PRO</span>;
-}
 
 export default function SavedProfilesPage() {
   const { data: session, status } = useSession();

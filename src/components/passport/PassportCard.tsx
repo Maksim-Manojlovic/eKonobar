@@ -1,5 +1,6 @@
 import Image from "next/image";
 import SkillBadges from "./SkillBadges";
+import { Initials } from "@/components/ui/PassportWidgets";
 
 const TIER_LABELS: Record<string, { label: string; color: string }> = {
   ID_VERIFIED: { label: "ID Verifikovan",  color: "bg-purple-100 text-purple-700 border-purple-300" },
@@ -42,17 +43,6 @@ function ScoreCircle({ score }: { score: number }) {
   );
 }
 
-function Initials({ name }: { name?: string | null }) {
-  const letters = name
-    ? name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()
-    : "?";
-  return (
-    <div className="w-16 h-16 rounded-full bg-orange-100 text-orange-600 font-black text-xl flex items-center justify-center border-2 border-orange-200">
-      {letters}
-    </div>
-  );
-}
-
 export default function PassportCard({
   name, image, score, verificationTier, yearsExperience,
   totalEngagements, reviewCount, sanitaryBookValid, currentlyAvailable,
@@ -67,7 +57,7 @@ export default function PassportCard({
         <div className="flex flex-col items-center gap-2">
           {image
             ? <Image src={image} alt={name ?? ""} width={64} height={64} className="w-16 h-16 rounded-full object-cover border-2 border-orange-200" />
-            : <Initials name={name} />
+            : <Initials name={name} className="w-16 h-16 text-xl" />
           }
           <ScoreCircle score={score} />
         </div>
