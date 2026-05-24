@@ -7,10 +7,7 @@ import Link from "next/link";
 import TrustRadar from "@/components/trust-score/TrustRadar";
 import Navbar from "@/components/layout/Navbar";
 import Spinner from "@/components/ui/Spinner";
-
-const ENGAGEMENT_LABELS: Record<string, string> = {
-  FULL_TIME: "Stalno", SEASONAL: "Sezonski", WEEKEND: "Vikend", CELEBRATION: "Slavlje",
-};
+import { ENGAGEMENT_LABELS } from "@/lib/display-maps";
 const TIP_LABELS: Record<string, string> = {
   INDIVIDUAL: "Lični bakšiš", SHARED: "Zajednički fond", VENUE_POLICY: "Politika lokala",
 };

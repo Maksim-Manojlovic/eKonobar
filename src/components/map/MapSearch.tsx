@@ -5,25 +5,10 @@ import Map, { Marker, Popup, NavigationControl, type MapRef } from "react-map-gl
 import "mapbox-gl/dist/mapbox-gl.css";
 import Link from "next/link";
 import RedAlertPulse from "./RedAlertPulse";
+import { ENGAGEMENT_LABELS, VENUE_TYPE_LABELS } from "@/lib/display-maps";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const BELGRADE = { longitude: 20.4633, latitude: 44.8176, zoom: 12 };
-
-const ENGAGEMENT_LABELS: Record<string, string> = {
-  FULL_TIME:   "Stalno",
-  SEASONAL:    "Sezonski",
-  WEEKEND:     "Vikend",
-  CELEBRATION: "Slavlje",
-};
-
-const VENUE_TYPE_LABELS: Record<string, string> = {
-  RESTAURANT: "Restoran",
-  CAFE:       "Kafić",
-  BAR:        "Bar",
-  CATERING:   "Ketering",
-  HOTEL:      "Hotel",
-  EVENT:      "Event",
-};
 
 interface JobProps {
   id:               string;

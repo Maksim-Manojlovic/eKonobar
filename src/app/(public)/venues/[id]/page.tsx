@@ -10,11 +10,7 @@ import ReviewWizard from "@/components/review/ReviewWizard";
 import Navbar from "@/components/layout/Navbar";
 import Spinner from "@/components/ui/Spinner";
 import { StarRating } from "@/components/ui/StarRating";
-
-const VENUE_TYPE_LABELS: Record<string, string> = {
-  RESTAURANT: "Restoran", CAFE: "Kafić", BAR: "Bar",
-  CATERING: "Ketering", HOTEL: "Hotel", EVENT: "Event",
-};
+import { VENUE_TYPE_LABELS } from "@/lib/display-maps";
 
 type ReviewRow = {
   id: string; overallRating: number; comment?: string | null;

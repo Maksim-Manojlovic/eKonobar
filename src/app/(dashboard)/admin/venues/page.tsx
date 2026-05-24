@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { VENUE_TYPE_LABELS } from "@/lib/display-maps";
 
 type Owner = { id: string; name: string | null; email: string };
 type Venue = {
@@ -13,10 +14,6 @@ type Venue = {
   _count: { jobPosts: number; reviews: number };
 };
 
-const VENUE_TYPE_LABELS: Record<string, string> = {
-  RESTAURANT: "Restoran", CAFE: "Kafić", BAR: "Bar",
-  CATERING: "Ketering", HOTEL: "Hotel", EVENT: "Event",
-};
 
 const VENUE_TYPES = ["", "RESTAURANT", "CAFE", "BAR", "CATERING", "HOTEL", "EVENT"];
 

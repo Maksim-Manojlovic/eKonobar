@@ -1,9 +1,4 @@
-const ENGAGEMENT_LABELS: Record<string, string> = {
-  FULL_TIME:   "Stalno",
-  SEASONAL:    "Sezonski",
-  WEEKEND:     "Vikend",
-  CELEBRATION: "Slavlje",
-};
+import { ENGAGEMENT_LABELS } from "@/lib/display-maps";
 
 const VENUE_TYPE_ICONS: Record<string, string> = {
   RESTAURANT: "🍽️",

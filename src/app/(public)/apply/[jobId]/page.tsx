@@ -5,10 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import Spinner from "@/components/ui/Spinner";
-
-const ENGAGEMENT_LABELS: Record<string, string> = {
-  FULL_TIME: "Stalno", SEASONAL: "Sezonski", WEEKEND: "Vikend", CELEBRATION: "Slavlje",
-};
+import { ENGAGEMENT_LABELS } from "@/lib/display-maps";
 
 type JobSummary = {
   id: string; title: string; engagementType: string;

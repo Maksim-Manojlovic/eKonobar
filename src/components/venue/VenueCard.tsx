@@ -1,13 +1,5 @@
 import Link from "next/link";
-
-const VENUE_TYPE_LABELS: Record<string, string> = {
-  RESTAURANT: "Restoran",
-  CAFE:       "Kafić",
-  BAR:        "Bar",
-  CATERING:   "Ketering",
-  HOTEL:      "Hotel",
-  EVENT:      "Event",
-};
+import { VENUE_TYPE_LABELS } from "@/lib/display-maps";
 
 export interface VenueCardProps {
   id: string;

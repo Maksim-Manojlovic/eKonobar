@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import type { Section, AppFilter, OwnPost, IncomingApp, Venue } from "./venue-types";
-import { getInitials, formatSalary, formatDate, ENGAGEMENT_LABELS } from "./venue-types";
+import { getInitials, formatSalary, formatDate } from "./venue-types";
+import { ENGAGEMENT_LABELS } from "@/lib/display-maps";
 import { PostStatusBadge, AppStatusBadge, TierBadge, ScorePill, PostsSkeleton, ApplicationsSkeleton, EmptyVenue } from "./venue-helpers";
 /* ── Section: Posts ──────────────────────────────────────────────────────── */
 

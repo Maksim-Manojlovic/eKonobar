@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ReviewWizard from "@/components/review/ReviewWizard";
+import { ENGAGEMENT_LABELS } from "@/lib/display-maps";
 
 type Engagement = {
   id: string;
@@ -23,9 +24,6 @@ const VENUE_TYPE_ICONS: Record<string, string> = {
   HOTEL: "🏨", CATERING: "🍱", OTHER: "🏢",
 };
 
-const ENGAGEMENT_LABELS: Record<string, string> = {
-  FULL_TIME: "Stalno", SEASONAL: "Sezonski", WEEKEND: "Vikend", CELEBRATION: "Slavlje",
-};
 
 function formatPeriod(start: string, end: string | null): string {
   const s = new Date(start).toLocaleDateString("sr-Latn-RS", { month: "short", year: "numeric" });

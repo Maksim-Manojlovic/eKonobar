@@ -89,6 +89,26 @@ export const INVITE_STATUS_LABELS: Record<string, string> = {
   EXPIRED:  "Istekla",
 };
 
+/* ── Engagement type (FULL_TIME | SEASONAL | WEEKEND | CELEBRATION) ─────── */
+
+export const ENGAGEMENT_LABELS: Record<string, string> = {
+  FULL_TIME:   "Stalno",
+  SEASONAL:    "Sezonski",
+  WEEKEND:     "Vikend",
+  CELEBRATION: "Slavlje",
+};
+
+/* ── Venue type (RESTAURANT | CAFE | BAR | CATERING | HOTEL | EVENT) ─────── */
+
+export const VENUE_TYPE_LABELS: Record<string, string> = {
+  RESTAURANT: "Restoran",
+  CAFE:       "Kafić",
+  BAR:        "Bar",
+  CATERING:   "Ketering",
+  HOTEL:      "Hotel",
+  EVENT:      "Event",
+};
+
 /* ── Date formatting — Serbian locale ────────────────────────────────────── */
 
 /** Formats ISO date string → "15. maj 2025." in Serbian locale. */

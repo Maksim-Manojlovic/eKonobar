@@ -1,11 +1,5 @@
 import Link from "next/link";
-
-const ENGAGEMENT_LABELS: Record<string, string> = {
-  FULL_TIME:   "Stalno",
-  SEASONAL:    "Sezonski",
-  WEEKEND:     "Vikend",
-  CELEBRATION: "Slavlje",
-};
+import { ENGAGEMENT_LABELS } from "@/lib/display-maps";
 
 const TIP_LABELS: Record<string, string> = {
   INDIVIDUAL:   "Lični bakšiš",

@@ -7,6 +7,7 @@ import Link from "next/link";
 import {
   APPLICATION_STATUS_COLORS,
   APPLICATION_STATUS_LABELS_WAITER,
+  ENGAGEMENT_LABELS,
   formatDate,
 } from "@/lib/display-maps";
 
@@ -37,9 +38,6 @@ type Application = { jobPostId: string; status: string };
 
 type EngFilter = "SVE" | "FULL_TIME" | "SEASONAL" | "WEEKEND" | "CELEBRATION";
 
-const ENG_LABELS: Record<string, string> = {
-  FULL_TIME: "Stalno", SEASONAL: "Sezonski", WEEKEND: "Vikend", CELEBRATION: "Slavlje",
-};
 
 const TIP_LABELS: Record<string, string> = {
   SHARED: "Napojnice deljene", INDIVIDUAL: "Lične napojnice", NONE: "Bez napojnica",
@@ -218,7 +216,7 @@ export default function WaiterJobsPage() {
                             </span>
                           )}
                           <span className="text-xs font-medium text-neutral-500 border border-neutral-200 rounded-full px-2 py-0.5 bg-neutral-50">
-                            {ENG_LABELS[job.engagementType] ?? job.engagementType}
+                            {ENGAGEMENT_LABELS[job.engagementType] ?? job.engagementType}
                           </span>
                           {job.sanitaryRequired && (
                             <span className="text-xs font-medium text-blue-700 border border-blue-200 rounded-full px-2 py-0.5 bg-blue-50">

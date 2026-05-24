@@ -160,14 +160,6 @@ export type IncomingApp = {
   };
 };
 
-export const ENGAGEMENT_LABELS: Record<string, string> = {
-  FULL_TIME: "Stalno", SEASONAL: "Sezonski", WEEKEND: "Vikend", CELEBRATION: "Slavlje",
-};
-
-export const VENUE_TYPE_LABELS: Record<string, string> = {
-  RESTAURANT: "Restoran", CAFE: "Kafić", BAR: "Bar",
-  CATERING: "Ketering", HOTEL: "Hotel", EVENT: "Event",
-};
 
 export function getInitials(name: string | null | undefined): string {
   if (!name) return "?";

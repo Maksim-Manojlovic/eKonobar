@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { VENUE_TYPE_LABELS } from "@/lib/display-maps";
 
 type ApiVenue = {
   id: string;
@@ -11,10 +12,6 @@ type ApiVenue = {
   trustScore: number;
 };
 
-const VENUE_TYPE_LABELS: Record<string, string> = {
-  RESTAURANT: "Restoran", BAR: "Bar", CAFE: "Kafić",
-  NIGHTCLUB: "Noćni klub", HOTEL: "Hotel", CATERING: "Ketering", OTHER: "Lokal",
-};
 
 const VENUE_TYPE_GRADIENTS: Record<string, string> = {
   RESTAURANT: "linear-gradient(135deg, #c2410c, #9a3412)",

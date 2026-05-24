@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { JOB_STATUS_COLORS, JOB_STATUS_LABELS } from "@/lib/display-maps";
+import { JOB_STATUS_COLORS, JOB_STATUS_LABELS, ENGAGEMENT_LABELS } from "@/lib/display-maps";
 
 type JobPost = {
   id: string;
@@ -19,9 +19,6 @@ type JobPost = {
   _count: { applications: number };
 };
 
-const ENG_LABELS: Record<string, string> = {
-  FULL_TIME: "Stalno", SEASONAL: "Sezonski", WEEKEND: "Vikend", CELEBRATION: "Slavlje",
-};
 
 function formatSalary(j: Pick<JobPost, "salaryMin" | "salaryMax" | "engagementType">) {
   if (!j.salaryMin && !j.salaryMax) return "Po dogovoru";
@@ -104,7 +101,7 @@ export default function VenueJobsPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs text-neutral-500">{ENG_LABELS[j.engagementType] ?? j.engagementType}</td>
+                    <td className="px-4 py-3 text-xs text-neutral-500">{ENGAGEMENT_LABELS[j.engagementType] ?? j.engagementType}</td>
                     <td className="px-4 py-3 text-sm font-semibold text-neutral-700">{formatSalary(j)}</td>
                     <td className="px-4 py-3">
                       <Link href="/venue/applications" className="text-sm font-bold text-orange-500 hover:underline">
