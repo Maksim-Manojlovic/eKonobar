@@ -1,4 +1,4 @@
-import { NotificationType } from "@prisma/client";
+import { NotificationType, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { sendPush } from "@/lib/webpush";
 import { sendWhatsApp } from "@/lib/whatsapp";
@@ -31,13 +31,16 @@ export function buildSmsText(title: string, body: string, link?: string | null):
 }
 
 // ── Per-channel dispatchers ───────────────────────────────────────────────────
+// Each dispatcher performs the network send only — no DB writes.
+// The coordinator collects all results and does a single batched update.
 
 /**
  * Sends web push to all active subscriptions.
- * Auto-deletes stale subs (410/404). Returns true when at least one push was delivered.
+ * Auto-deletes stale subs (410/404) — these are PushSubscription rows, not
+ * the Notification record, so the deletion is fine here.
+ * Returns true when at least one push was delivered.
  */
 async function dispatchPush(
-  notifId: string,
   subs: PushSub[],
   payload: { title: string; body: string; link?: string },
 ): Promise<boolean> {
@@ -54,40 +57,31 @@ async function dispatchPush(
     ),
   );
 
-  const anySent = results.some(r => r.status === "fulfilled");
-  if (anySent) {
-    db.notification.update({ where: { id: notifId }, data: { pushSent: true } }).catch(() => {});
-  }
-  return anySent;
+  return results.some(r => r.status === "fulfilled");
 }
 
 /**
  * Sends WhatsApp template message.
- * On failure: increments waRetries so the hourly retry cron can re-attempt (max 3×).
+ * Returns true on delivery, false on failure (coordinator increments waRetries).
  */
 async function dispatchWhatsApp(
-  notifId: string,
   phone: string,
   title: string,
   body: string,
-): Promise<void> {
+): Promise<boolean> {
   try {
     await sendWhatsApp(phone, title, body);
-    db.notification.update({ where: { id: notifId }, data: { waSent: true } }).catch(() => {});
+    return true;
   } catch {
-    db.notification.update({
-      where: { id: notifId },
-      data:  { waRetries: { increment: 1 } },
-    }).catch(() => {});
+    return false;
   }
 }
 
 /**
  * Sends Infobip SMS (≤160 chars).
- * On failure: increments smsRetries for retry cron. Returns true on delivery.
+ * Returns true on delivery, false on failure (coordinator increments smsRetries).
  */
 async function dispatchSms(
-  notifId: string,
   phone: string,
   title: string,
   body: string,
@@ -95,13 +89,8 @@ async function dispatchSms(
 ): Promise<boolean> {
   try {
     await sendSms(phone, buildSmsText(title, body, link));
-    db.notification.update({ where: { id: notifId }, data: { smsSent: true } }).catch(() => {});
     return true;
   } catch {
-    db.notification.update({
-      where: { id: notifId },
-      data:  { smsRetries: { increment: 1 } },
-    }).catch(() => {});
     return false;
   }
 }
@@ -163,11 +152,34 @@ export async function notify(
   const shouldSms = isProPlus && !!user.smsOptIn && !!user.phone;
 
   // Dispatch push + WhatsApp + SMS in parallel; failures in one channel don't block others
-  const [pushResult, , smsResult] = await Promise.allSettled([
-    dispatchPush(notification.id, user.pushSubscriptions, { title, body, link }),
-    shouldWA  ? dispatchWhatsApp(notification.id, user.phone!, title, body) : Promise.resolve(),
-    shouldSms ? dispatchSms(notification.id, user.phone!, title, body, link) : Promise.resolve<boolean>(false),
+  const [pushResult, waResult, smsResult] = await Promise.allSettled([
+    dispatchPush(user.pushSubscriptions, { title, body, link }),
+    shouldWA  ? dispatchWhatsApp(user.phone!, title, body)      : Promise.resolve(false),
+    shouldSms ? dispatchSms(user.phone!, title, body, link)     : Promise.resolve(false),
   ]);
+
+  // Build a single batched status update so delivery tracking is always consistent
+  // and observable — no fire-and-forget DB writes scattered across dispatchers.
+  const statusUpdate: Prisma.NotificationUpdateInput = {};
+
+  const pushSent = pushResult.status === "fulfilled" && pushResult.value;
+  if (pushSent) statusUpdate.pushSent = true;
+
+  if (shouldWA) {
+    const waSent = waResult.status === "fulfilled" && waResult.value;
+    if (waSent) statusUpdate.waSent = true;
+    else        statusUpdate.waRetries = { increment: 1 };
+  }
+
+  if (shouldSms) {
+    const smsSent = smsResult.status === "fulfilled" && smsResult.value;
+    if (smsSent) statusUpdate.smsSent = true;
+    else         statusUpdate.smsRetries = { increment: 1 };
+  }
+
+  if (Object.keys(statusUpdate).length > 0) {
+    await db.notification.update({ where: { id: notification.id }, data: statusUpdate });
+  }
 
   // Email fallback: only when no channel attempted delivery.
   // Push and WA are considered "attempted" if the conditions were met (retry handles failures).

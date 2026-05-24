@@ -171,6 +171,8 @@ notify(userId, "APPLICATION_RECEIVED", "Nova prijava", "Marko se prijavio...", "
 
 Providers are no-ops when env vars are missing — safe in development.
 
+**Internal architecture:** Channel dispatchers (`dispatchPush`, `dispatchWhatsApp`, `dispatchSms`) perform the network send only and return a boolean. The coordinator collects all results, then does a single `await db.notification.update` with all status flags (`pushSent`, `waSent`, `smsSent`) and retry counters (`waRetries`, `smsRetries`) in one batched write. No fire-and-forget DB writes inside dispatchers.
+
 **Tier gating logic in `notify()`:** `notify` queries `waiterPassport.passportTier` and `subscriptionExpiresAt` for the recipient. If `subscriptionExpiresAt` is in the past, the tier is treated as FREE at runtime. WhatsApp requires `isPro` (PRO or PRO_PLUS active), SMS requires `isProPlus` (PRO_PLUS active). Venue owners and other non-waiter roles always receive all channels (tier gating only applies to WAITER recipients).
 
 `NotificationType` enum values: `APPLICATION_RECEIVED`, `APPLICATION_STATUS_CHANGED`, `SWAP_REQUESTED`, `SWAP_RESOLVED`, `SHIFT_CLAIMED`, `SHIFT_ASSIGNED`, `REVIEW_RECEIVED`, `REVIEW_PUBLISHED`, `CLOCKIN_APPROVAL_REQUESTED`, `CLOCKIN_RESOLVED`.
