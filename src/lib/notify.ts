@@ -10,6 +10,15 @@ import { isPro as isPassportPro, isProPlus as isPassportProPlus } from "@/lib/pa
 
 type PushSub = { id: string; endpoint: string; p256dh: string; auth: string };
 
+/**
+ * Pre-resolved tier eligibility a caller can pass to `notify()` to skip the
+ * internal passport DB lookup when the calling route already knows the tier
+ * (e.g. the Monri callback, the subscribe endpoint, the renewal cron).
+ *
+ * When omitted, `notify` fetches passport data itself.
+ */
+export type TierHint = { isPro: boolean; isProPlus: boolean };
+
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
 /**
@@ -118,6 +127,12 @@ export async function notify(
   title: string,
   body: string,
   link?: string,
+  /**
+   * Optional pre-resolved tier. Pass this when the calling route already knows
+   * the recipient's effective tier to skip the internal waiterPassport lookup.
+   * Tests can use it to assert channel behaviour without mocking DB tier data.
+   */
+  tierHint?: TierHint,
 ): Promise<void> {
   const user = await db.user.findUnique({
     where: { id: userId },
@@ -139,9 +154,10 @@ export async function notify(
     data: { userId, type, title, body, link: link ?? null },
   });
 
-  // Tier gating: non-WAITER roles bypass the check and always get full channel access
-  const isPro     = user.role !== "WAITER" || isPassportPro(user.waiterPassport);
-  const isProPlus = user.role !== "WAITER" || isPassportProPlus(user.waiterPassport);
+  // Tier gating: use caller-supplied hint when available (avoids redundant passport lookup),
+  // otherwise derive from the DB value. Non-WAITER roles always get full channel access.
+  const isPro     = tierHint?.isPro     ?? (user.role !== "WAITER" || isPassportPro(user.waiterPassport));
+  const isProPlus = tierHint?.isProPlus ?? (user.role !== "WAITER" || isPassportProPlus(user.waiterPassport));
 
   const shouldWA  = isPro     && !!user.waOptIn  && !!user.phone;
   const shouldSms = isProPlus && !!user.smsOptIn && !!user.phone;
