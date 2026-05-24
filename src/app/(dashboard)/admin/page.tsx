@@ -4,188 +4,9 @@ import { useRef, useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-
-/* ── Skeleton ────────────────────────────────────────────────────────────── */
-
-function Sk({ className = "" }: { className?: string }) {
-  return <div className={`bg-white/10 rounded-xl animate-pulse ${className}`} />;
-}
-
-function DashboardSkeleton() {
-  return (
-    <div className="min-h-screen" style={{ background: "#0e0700" }}>
-      <div className="max-w-5xl mx-auto px-4 py-10 flex flex-col gap-8 animate-pulse">
-        <div className="flex flex-col gap-2">
-          <Sk className="h-8 w-40" />
-          <Sk className="h-4 w-60" />
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[0,1,2,3].map(i => <Sk key={i} className="h-28 rounded-2xl" />)}
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {[0,1,2,3,4,5].map(i => <Sk key={i} className="h-24 rounded-2xl" />)}
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[0,1,2].map(i => <Sk key={i} className="h-36 rounded-2xl" />)}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Types ───────────────────────────────────────────────────────────────── */
-
-type PlatformStats = {
-  users: { waiters: number; venueOwners: number; headhunters: number; admins: number; total: number };
-  passports: { total: number; free: number; pro: number; proPlus: number; available: number; verified: number };
-  venues: number;
-  jobs: { open: number; redAlert: number };
-  applications: { total: number; pending: number };
-  reviews: { pending: number; published: number; disputed: number; removed: number };
-  sanitary: { pending: number };
-  payments: { totalSuccess: number; revenueThisMonth: number };
-};
-
-type ActionStats = {
-  pendingVerifications: number;
-  disputedReviews: number;
-  zones: number;
-  venues: number;
-};
-
-type ActivityEvent = {
-  id: string; type: string; title: string; sub: string; ts: string; link?: string;
-};
-
-type LeaderboardData = {
-  topWaiters: { id: string; name: string | null; image: string | null; verificationTier: string; score: number; passportTier: string; isActive: boolean; reviewCount: number; totalEngagements: number }[];
-  topVenues:  { id: string; name: string; municipality: string | null; logo: string | null; score: number; reviewCount: number }[];
-  revenue:    { date: string; revenue: number }[];
-};
-
-type HealthData = {
-  reviews:  { overdueGuest: number; overdueRegular: number };
-  passports: { expiredPaid: number };
-  cron: { lastPublishedReviewAt: string | null; lastRenewalPaymentAt: string | null };
-  users: { softDeleted: number };
-  system: { rateLimitEntries: number; pendingClockIns: number };
-};
-
-const EVENT_ICONS: Record<string, string> = {
-  registration: "👤",
-  payment:      "💳",
-  review:       "⭐",
-  application:  "📝",
-};
-
-const EVENT_COLORS: Record<string, string> = {
-  registration: "text-blue-400",
-  payment:      "text-emerald-400",
-  review:       "text-amber-400",
-  application:  "text-orange-400",
-};
-
-/* ── Stat card components ────────────────────────────────────────────────── */
-
-function BigStat({
-  icon, label, value, sub, color = "neutral",
-}: {
-  icon: string; label: string; value: string | number; sub?: string;
-  color?: "neutral" | "orange" | "green" | "red" | "blue";
-}) {
-  const colors = {
-    neutral: { bg: "bg-white/5",        border: "border-white/10",        num: "text-white",       icon: "bg-white/10" },
-    orange:  { bg: "bg-orange-500/10",  border: "border-orange-500/20",   num: "text-orange-400",  icon: "bg-orange-500/20" },
-    green:   { bg: "bg-emerald-500/10", border: "border-emerald-500/20",  num: "text-emerald-400", icon: "bg-emerald-500/20" },
-    red:     { bg: "bg-red-500/10",     border: "border-red-500/20",      num: "text-red-400",     icon: "bg-red-500/20" },
-    blue:    { bg: "bg-blue-500/10",    border: "border-blue-500/20",     num: "text-blue-400",    icon: "bg-blue-500/20" },
-  };
-  const c = colors[color];
-  return (
-    <div className={`rounded-2xl border p-5 flex flex-col gap-3 ${c.bg} ${c.border}`}>
-      <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg ${c.icon}`}>{icon}</div>
-      <div>
-        <p className={`text-2xl font-black leading-none ${c.num}`}>{value}</p>
-        {sub && <p className="text-xs text-white/40 mt-0.5">{sub}</p>}
-      </div>
-      <p className="text-xs font-bold text-white/50 uppercase tracking-wider">{label}</p>
-    </div>
-  );
-}
-
-function MiniStat({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
-  return (
-    <div className="flex items-center justify-between py-2.5 border-b border-white/5 last:border-0">
-      <span className="text-sm text-white/60">{label}</span>
-      <span className={`text-sm font-black ${accent ? "text-orange-400" : "text-white"}`}>{value}</span>
-    </div>
-  );
-}
-
-function SectionCard({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-base">{icon}</span>
-        <h2 className="text-xs font-black text-white/40 uppercase tracking-widest">{title}</h2>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins  = Math.floor(diff / 60_000);
-  const hours = Math.floor(diff / 3_600_000);
-  const days  = Math.floor(diff / 86_400_000);
-  if (mins < 2)   return "upravo";
-  if (mins < 60)  return `pre ${mins}min`;
-  if (hours < 24) return `pre ${hours}h`;
-  if (days < 30)  return `pre ${days}d`;
-  return `pre ${Math.floor(days / 30)}m`;
-}
-
-/* ── Main ────────────────────────────────────────────────────────────────── */
-
-const NAV = [
-  {
-    href: "/admin/verifications",
-    icon: "📋",
-    title: "Sanitarne knjižice",
-    desc: "Pregled i odobravanje zahteva za verifikaciju.",
-    countKey: "pendingVerifications" as keyof ActionStats,
-    countLabel: "na čekanju",
-    alert: true,
-  },
-  {
-    href: "/admin/moderation",
-    icon: "🔍",
-    title: "Moderacija recenzija",
-    desc: "Disputed recenzije — objavi ili ukloni.",
-    countKey: "disputedReviews" as keyof ActionStats,
-    countLabel: "na pregledu",
-    alert: true,
-  },
-  {
-    href: "/admin/analytics/zones",
-    icon: "🗺️",
-    title: "Zone analitike",
-    desc: "Upravljanje investicionim i komercijalnim zonama.",
-    countKey: "zones" as keyof ActionStats,
-    countLabel: "zona",
-    alert: false,
-  },
-  {
-    href: "/admin/venues",
-    icon: "🏪",
-    title: "Upravljanje lokalima",
-    desc: "Pretraži, filtriraj i trajno obriši lokale.",
-    countKey: "venues" as keyof ActionStats,
-    countLabel: "lokala",
-    alert: false,
-  },
-];
+import type { PlatformStats, ActionStats, ActivityEvent, LeaderboardData, HealthData } from "./admin-types";
+import { EVENT_ICONS, EVENT_COLORS, NAV } from "./admin-types";
+import { DashboardSkeleton, BigStat, MiniStat, SectionCard, timeAgo } from "./admin-helpers";
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
@@ -213,10 +34,10 @@ export default function AdminDashboard() {
     ]).then(([stats, verif, reviews, zones]) => {
       if (stats) setPlatform(stats);
       setActions({
-        pendingVerifications: Array.isArray(verif) ? verif.length : 0,
-        disputedReviews: Array.isArray(reviews) ? reviews.length : 0,
-        zones: Array.isArray(zones) ? zones.length : 0,
-        venues: stats?.venues ?? 0,
+        pendingVerifications: Array.isArray(verif)   ? verif.length   : 0,
+        disputedReviews:      Array.isArray(reviews) ? reviews.length : 0,
+        zones:                Array.isArray(zones)   ? zones.length   : 0,
+        venues:               stats?.venues ?? 0,
       });
     }).catch(() => setActions({ pendingVerifications: 0, disputedReviews: 0, zones: 0, venues: 0 }));
 
@@ -304,7 +125,6 @@ export default function AdminDashboard() {
         {platform && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
-            {/* Korisnici */}
             <SectionCard title="Korisnici" icon="👤">
               <MiniStat label="Konobari" value={platform.users.waiters} />
               <MiniStat label="Vlasnici lokala" value={platform.users.venueOwners} />
@@ -312,7 +132,6 @@ export default function AdminDashboard() {
               <MiniStat label="Admini" value={platform.users.admins} />
             </SectionCard>
 
-            {/* Waiter Passport */}
             <SectionCard title="Waiter Passport" icon="🪪">
               <MiniStat label="Kreirani pasoši" value={platform.passports.total} />
               <MiniStat label="FREE tier" value={platform.passports.free} />
@@ -322,7 +141,6 @@ export default function AdminDashboard() {
               <MiniStat label="Verifikovani (GOLD+)" value={platform.passports.verified} accent={platform.passports.verified > 0} />
             </SectionCard>
 
-            {/* Platforma */}
             <SectionCard title="Platforma" icon="📊">
               <MiniStat label="Otvoreni oglasi" value={platform.jobs.open} />
               <MiniStat label="Red Alert oglasi" value={platform.jobs.redAlert} accent={platform.jobs.redAlert > 0} />
@@ -356,10 +174,10 @@ export default function AdminDashboard() {
             <SectionCard title="Verifikacije i sanitarne" icon="✅">
               <div className="grid grid-cols-2 gap-3 mt-1">
                 {[
-                  { label: "Knjižice čekaju", value: platform.sanitary.pending, color: platform.sanitary.pending > 0 ? "text-orange-400" : "text-white" },
-                  { label: "Ukupno plaćanja", value: platform.payments.totalSuccess, color: "text-white" },
-                  { label: "Zone analitike",  value: actions.zones, color: "text-blue-400" },
-                  { label: "Prijavljeni",     value: platform.users.total, color: "text-white" },
+                  { label: "Knjižice čekaju", value: platform.sanitary.pending,       color: platform.sanitary.pending > 0 ? "text-orange-400" : "text-white" },
+                  { label: "Ukupno plaćanja", value: platform.payments.totalSuccess,  color: "text-white" },
+                  { label: "Zone analitike",  value: actions.zones,                   color: "text-blue-400" },
+                  { label: "Prijavljeni",     value: platform.users.total,            color: "text-white" },
                 ].map(({ label, value, color }) => (
                   <div key={label} className="bg-white/5 rounded-xl p-3 flex flex-col gap-0.5">
                     <p className={`text-xl font-black ${color}`}>{value}</p>
@@ -376,7 +194,7 @@ export default function AdminDashboard() {
           <h2 className="text-xs font-black text-white/30 uppercase tracking-widest mb-4">Upravljanje</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {NAV.map(({ href, icon, title, desc, countKey, countLabel, alert }) => {
-              const count = actions[countKey];
+              const count    = actions[countKey];
               const hasAlert = alert && count > 0;
               return (
                 <Link
@@ -431,12 +249,12 @@ export default function AdminDashboard() {
               <div className="flex flex-col gap-3 animate-pulse">
                 {[0,1,2,3,4,5].map(i => (
                   <div key={i} className="flex items-center gap-3">
-                    <Sk className="w-8 h-8 rounded-xl flex-shrink-0" />
+                    <div className="w-8 h-8 rounded-xl bg-white/10 animate-pulse flex-shrink-0" />
                     <div className="flex-1 flex flex-col gap-1.5">
-                      <Sk className="h-3.5 w-40" />
-                      <Sk className="h-3 w-24" />
+                      <div className="h-3.5 w-40 bg-white/10 rounded-xl animate-pulse" />
+                      <div className="h-3 w-24 bg-white/10 rounded-xl animate-pulse" />
                     </div>
-                    <Sk className="h-3 w-10 flex-shrink-0" />
+                    <div className="h-3 w-10 bg-white/10 rounded-xl animate-pulse flex-shrink-0" />
                   </div>
                 ))}
               </div>
@@ -509,9 +327,9 @@ export default function AdminDashboard() {
                 {platform.passports.total > 0 && (
                   <div className="mt-1">
                     <div className="flex gap-0.5 h-2 rounded-full overflow-hidden">
-                      <div className="bg-white/15" style={{ width: `${(platform.passports.free / platform.passports.total) * 100}%` }} />
-                      <div className="bg-orange-500/60" style={{ width: `${(platform.passports.pro / platform.passports.total) * 100}%` }} />
-                      <div className="bg-amber-400/70" style={{ width: `${(platform.passports.proPlus / platform.passports.total) * 100}%` }} />
+                      <div className="bg-white/15"      style={{ width: `${(platform.passports.free    / platform.passports.total) * 100}%` }} />
+                      <div className="bg-orange-500/60" style={{ width: `${(platform.passports.pro     / platform.passports.total) * 100}%` }} />
+                      <div className="bg-amber-400/70"  style={{ width: `${(platform.passports.proPlus / platform.passports.total) * 100}%` }} />
                     </div>
                     <p className="text-[10px] text-white/20 mt-1.5">FREE / PRO / PRO+</p>
                   </div>
