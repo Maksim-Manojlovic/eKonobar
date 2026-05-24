@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PASSPORT_TIER_COLORS, ROLE_LABELS } from "@/lib/display-maps";
 import { timeAgo, Sk } from "../admin-helpers";
+import { useRequireRole } from "@/hooks/useRequireRole";
 
 type Passport = { passportTier: string; score: number; subscriptionExpiresAt: string | null };
 type User = {
@@ -17,8 +16,7 @@ type User = {
 const ROLES = ["", "WAITER", "VENUE_OWNER", "HEADHUNTER", "ADMIN"];
 
 export default function AdminUsersPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useRequireRole("ADMIN");
 
   const [users, setUsers]     = useState<User[]>([]);
   const [total, setTotal]     = useState(0);
@@ -29,11 +27,6 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [acting, setActing]   = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ id: string; name: string } | null>(null);
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status === "authenticated" && session?.user.role !== "ADMIN") router.push("/");
-  }, [status, session, router]);
 
   const fetchUsers = useCallback(() => {
     if (status !== "authenticated") return;

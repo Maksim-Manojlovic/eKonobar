@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { VERIFICATION_TIER_COLORS, DIRECTION_LABELS, formatDate } from "@/lib/display-maps";
+import { useRequireRole } from "@/hooks/useRequireRole";
 
 type Review = {
   id: string;
@@ -29,18 +28,12 @@ function Stars({ rating }: { rating: number }) {
 }
 
 export default function AdminModerationPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useRequireRole("ADMIN");
 
   const [reviews, setReviews]   = useState<Review[]>([]);
   const [loading, setLoading]   = useState(true);
   const [acting, setActing]     = useState<string | null>(null);
   const [error, setError]       = useState<string | null>(null);
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status === "authenticated" && session?.user.role !== "ADMIN") router.push("/");
-  }, [status, session, router]);
 
   useEffect(() => {
     if (status !== "authenticated") return;

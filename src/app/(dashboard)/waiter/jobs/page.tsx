@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   APPLICATION_STATUS_COLORS,
@@ -62,9 +60,9 @@ function TrustDot({ score }: { score: number }) {
   );
 }
 
+import { useRequireRole } from "@/hooks/useRequireRole";
 export default function WaiterJobsPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useRequireRole("WAITER");
 
   const [jobs, setJobs]             = useState<JobPost[]>([]);
   const [myApps, setMyApps]         = useState<Application[]>([]);
@@ -77,11 +75,6 @@ export default function WaiterJobsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [applyError, setApplyError] = useState<string | null>(null);
   const [expanded, setExpanded]     = useState<string | null>(null);
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status === "authenticated" && session?.user.role !== "WAITER") router.push("/");
-  }, [status, session, router]);
 
   useEffect(() => {
     if (status !== "authenticated") return;

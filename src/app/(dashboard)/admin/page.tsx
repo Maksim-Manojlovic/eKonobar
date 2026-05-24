@@ -1,16 +1,14 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { PlatformStats, ActionStats, ActivityEvent, LeaderboardData, HealthData } from "./admin-types";
 import { EVENT_ICONS, EVENT_COLORS, NAV } from "./admin-types";
 import { DashboardSkeleton, BigStat, MiniStat, SectionCard, timeAgo } from "./admin-helpers";
+import { useRequireRole } from "@/hooks/useRequireRole";
 
 export default function AdminDashboard() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useRequireRole("ADMIN");
   const spotlightRef = useRef<HTMLDivElement>(null);
   const [platform, setPlatform]     = useState<PlatformStats | null>(null);
   const [actions, setActions]       = useState<ActionStats | null>(null);
@@ -18,11 +16,6 @@ export default function AdminDashboard() {
   const [actLoading, setActLoading] = useState(true);
   const [health, setHealth]           = useState<HealthData | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardData | null>(null);
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status === "authenticated" && session?.user.role !== "ADMIN") router.push("/");
-  }, [status, session, router]);
 
   useEffect(() => {
     if (status !== "authenticated") return;

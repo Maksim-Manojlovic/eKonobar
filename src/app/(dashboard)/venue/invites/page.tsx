@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   VERIFICATION_TIER_COLORS,
@@ -12,9 +10,9 @@ import {
 } from "@/lib/display-maps";
 import type { SentInvite, VenueInviteWaiter } from "../venue-types";
 
+import { useRequireRole } from "@/hooks/useRequireRole";
 export default function VenueInvitesPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useRequireRole("VENUE_OWNER");
 
   const [invites, setInvites]       = useState<SentInvite[]>([]);
   const [waiters, setWaiters]       = useState<VenueInviteWaiter[]>([]);
@@ -24,11 +22,6 @@ export default function VenueInvitesPage() {
   const [message, setMessage]       = useState("");
   const [sending, setSending]       = useState<string | null>(null);
   const [sentIds, setSentIds]       = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status === "authenticated" && session?.user.role !== "VENUE_OWNER") router.push("/");
-  }, [status, session, router]);
 
   useEffect(() => {
     if (status !== "authenticated") return;

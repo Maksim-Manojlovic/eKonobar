@@ -574,6 +574,26 @@ Login page links to `/reset-password` ("Zaboravili ste lozinku?").
 - Body validation: use `parseBody` / `parseQuery` from `lib/parse-body.ts` (see below).
 - Rate limiting: `checkRateLimit(userId, action, max)` from `lib/rate-limit.ts`
 
+### useRequireRole (client pages)
+
+`src/hooks/useRequireRole.ts` — guards a client page behind role-based auth. Use in every `"use client"` dashboard or protected page instead of a raw `useEffect` redirect.
+
+```typescript
+import { useRequireRole } from "@/hooks/useRequireRole";
+
+// Standard — redirects to /login when unauthenticated, "/" when wrong role
+const { status } = useRequireRole("VENUE_OWNER");
+if (status === "loading") return <PageSkeleton />;
+
+// With callbackUrl (e.g. post-login return)
+const { status } = useRequireRole("WAITER", { loginUrl: `/login?callbackUrl=/apply/${jobId}` });
+
+// When session data is needed for rendering (e.g. display user name)
+const { session, status } = useRequireRole("HEADHUNTER");
+```
+
+Do **not** write `useEffect(() => { if (status === "unauthenticated") router.push... })` inline in pages — this pattern was removed from all 17 dashboard/protected pages and must not be reintroduced.
+
 ### withRole / withAuth
 
 `lib/with-role.ts` — wraps a route handler with session auth + role check. The handler receives the typed `Session` — no need to call `getServerSession` again.

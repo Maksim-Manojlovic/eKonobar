@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { JOB_STATUS_COLORS, JOB_STATUS_LABELS, ENGAGEMENT_LABELS } from "@/lib/display-maps";
 import { formatSalary } from "@/lib/format-utils";
@@ -21,17 +19,12 @@ type JobPost = {
 };
 
 
+import { useRequireRole } from "@/hooks/useRequireRole";
 export default function VenueJobsPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useRequireRole("VENUE_OWNER");
 
   const [jobs, setJobs]       = useState<JobPost[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status === "authenticated" && session?.user.role !== "VENUE_OWNER") router.push("/");
-  }, [status, session, router]);
 
   useEffect(() => {
     if (status !== "authenticated") return;

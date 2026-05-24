@@ -1,25 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { VERIFICATION_TIER_COLORS } from "@/lib/display-maps";
 import { Initials, PassportTierBadge } from "@/components/ui/PassportWidgets";
 import type { SavedEntry } from "../headhunter-types";
 
+import { useRequireRole } from "@/hooks/useRequireRole";
 export default function SavedProfilesPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useRequireRole("HEADHUNTER");
 
   const [saved, setSaved]     = useState<SavedEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [removing, setRemoving] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status === "authenticated" && session?.user.role !== "HEADHUNTER") router.push("/");
-  }, [status, session, router]);
 
   useEffect(() => {
     if (status !== "authenticated") return;

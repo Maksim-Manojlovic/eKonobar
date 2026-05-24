@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ReviewWizard from "@/components/review/ReviewWizard";
 import {
@@ -41,9 +39,9 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: "COMPLETED",   label: "Završene" },
 ];
 
+import { useRequireRole } from "@/hooks/useRequireRole";
 export default function VenueApplicationsPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useRequireRole("VENUE_OWNER");
 
   const [apps, setApps]         = useState<Application[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -51,11 +49,6 @@ export default function VenueApplicationsPage() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [reviewApp, setReviewApp] = useState<Application | null>(null);
   const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status === "authenticated" && session?.user.role !== "VENUE_OWNER") router.push("/");
-  }, [status, session, router]);
 
   useEffect(() => {
     if (status !== "authenticated") return;

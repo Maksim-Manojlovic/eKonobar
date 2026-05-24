@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { VENUE_TYPE_LABELS } from "@/lib/display-maps";
 import { timeAgo } from "../admin-helpers";
+import { useRequireRole } from "@/hooks/useRequireRole";
 
 type Owner = { id: string; name: string | null; email: string };
 type Venue = {
@@ -23,8 +22,7 @@ function Sk({ className = "" }: { className?: string }) {
 }
 
 export default function AdminVenuesPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useRequireRole("ADMIN");
 
   const [venues, setVenues]   = useState<Venue[]>([]);
   const [total, setTotal]     = useState(0);
@@ -36,11 +34,6 @@ export default function AdminVenuesPage() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ id: string; name: string } | null>(null);
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status === "authenticated" && session?.user.role !== "ADMIN") router.push("/");
-  }, [status, session, router]);
 
   const fetchVenues = useCallback(() => {
     if (status !== "authenticated") return;

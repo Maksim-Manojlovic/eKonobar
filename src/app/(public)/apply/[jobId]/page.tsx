@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import Spinner from "@/components/ui/Spinner";
 import { ENGAGEMENT_LABELS } from "@/lib/display-maps";
+import { useRequireRole } from "@/hooks/useRequireRole";
 
 type JobSummary = {
   id: string; title: string; engagementType: string;
@@ -17,8 +17,7 @@ type JobSummary = {
 
 export default function ApplyPage() {
   const { jobId } = useParams<{ jobId: string }>();
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useRequireRole("WAITER", { loginUrl: `/login?callbackUrl=/apply/${jobId}` });
 
   const [job, setJob]           = useState<JobSummary | null>(null);
   const [loading, setLoading]   = useState(true);
@@ -38,16 +37,6 @@ export default function ApplyPage() {
       })
       .finally(() => setLoading(false));
   }, [jobId]);
-
-  // Redirect non-waiters to login
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push(`/login?callbackUrl=/apply/${jobId}`);
-    }
-    if (status === "authenticated" && session?.user.role !== "WAITER") {
-      router.push("/");
-    }
-  }, [status, session, router, jobId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

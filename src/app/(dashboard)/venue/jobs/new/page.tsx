@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -21,8 +20,9 @@ const TIP_SYSTEMS = [
   { value: "NO_TIPS",      label: "Bez napojnica" },
 ];
 
+import { useRequireRole } from "@/hooks/useRequireRole";
 export default function NewJobPostPage() {
-  const { data: session, status } = useSession();
+  const { status } = useRequireRole("VENUE_OWNER");
   const router = useRouter();
 
   const [venues, setVenues]     = useState<Venue[]>([]);
@@ -41,11 +41,6 @@ export default function NewJobPostPage() {
   const [sanitaryRequired, setSanitary] = useState(false);
   const [redAlert, setRedAlert]         = useState(false);
   const [redAlertNote, setAlertNote]    = useState("");
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status === "authenticated" && session?.user.role !== "VENUE_OWNER") router.push("/");
-  }, [status, session, router]);
 
   useEffect(() => {
     if (status !== "authenticated") return;

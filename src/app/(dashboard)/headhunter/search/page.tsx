@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { VERIFICATION_TIER_COLORS } from "@/lib/display-maps";
 import { Initials, PassportTierBadge, ScorePill } from "@/components/ui/PassportWidgets";
@@ -16,9 +14,9 @@ const VERIFICATION_TIERS = [
   { value: "UNVERIFIED",  label: "Neverifikovan" },
 ];
 
+import { useRequireRole } from "@/hooks/useRequireRole";
 export default function HeadhunterSearch() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useRequireRole("HEADHUNTER");
 
   const [waiters, setWaiters]   = useState<Waiter[]>([]);
   const [loading, setLoading]   = useState(false);
@@ -33,11 +31,6 @@ export default function HeadhunterSearch() {
   const [sanitaryOk, setSanitaryOk] = useState(false);
   const [minExp, setMinExp]         = useState("");
   const [skills, setSkills]         = useState("");
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status === "authenticated" && session?.user.role !== "HEADHUNTER") router.push("/");
-  }, [status, session, router]);
 
   // Load saved ids
   useEffect(() => {

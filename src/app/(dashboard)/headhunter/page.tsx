@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Initials } from "@/components/ui/PassportWidgets";
 import type { SavedEntry } from "./headhunter-types";
@@ -61,16 +59,11 @@ function DashboardSkeleton() {
   );
 }
 
+import { useRequireRole } from "@/hooks/useRequireRole";
 export default function HeadhunterDashboard() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { session, status } = useRequireRole("HEADHUNTER");
   const [saved, setSaved]     = useState<SavedEntry[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status === "authenticated" && session?.user.role !== "HEADHUNTER") router.push("/");
-  }, [status, session, router]);
 
   useEffect(() => {
     if (status !== "authenticated") return;

@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { VERIFICATION_TIER_COLORS, formatDate } from "@/lib/display-maps";
 
@@ -37,19 +35,14 @@ function Stars({ rating }: { rating: number }) {
   return <span className="text-amber-400 text-sm">{"★".repeat(stars)}{"☆".repeat(5 - stars)}</span>;
 }
 
+import { useRequireRole } from "@/hooks/useRequireRole";
 export default function VenueReviewsPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useRequireRole("VENUE_OWNER");
 
   const [venues, setVenues]     = useState<Venue[]>([]);
   const [reviews, setReviews]   = useState<Review[]>([]);
   const [loading, setLoading]   = useState(true);
   const [activeVenue, setActiveVenue] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status === "authenticated" && session?.user.role !== "VENUE_OWNER") router.push("/");
-  }, [status, session, router]);
 
   useEffect(() => {
     if (status !== "authenticated") return;

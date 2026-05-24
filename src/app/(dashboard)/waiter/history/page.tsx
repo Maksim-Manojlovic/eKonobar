@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ReviewWizard from "@/components/review/ReviewWizard";
 import { ENGAGEMENT_LABELS } from "@/lib/display-maps";
@@ -32,18 +30,13 @@ function formatPeriod(start: string, end: string | null): string {
   return `${s} — ${e}`;
 }
 
+import { useRequireRole } from "@/hooks/useRequireRole";
 export default function WaiterHistoryPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useRequireRole("WAITER");
 
   const [engagements, setEngagements] = useState<Engagement[]>([]);
   const [loading, setLoading]         = useState(true);
   const [reviewTarget, setReviewTarget] = useState<{ venueId: string; venueName: string } | null>(null);
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status === "authenticated" && session?.user.role !== "WAITER") router.push("/");
-  }, [status, session, router]);
 
   useEffect(() => {
     if (status !== "authenticated") return;

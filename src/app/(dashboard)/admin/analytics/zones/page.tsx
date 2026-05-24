@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import ZoneRow, { type Zone } from "@/components/admin/ZoneRow";
 import ZoneForm, { type ZoneFormData } from "@/components/admin/ZoneForm";
+import { useRequireRole } from "@/hooks/useRequireRole";
 
 export default function AdminZonesPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useRequireRole("ADMIN");
 
   const [zones, setZones]       = useState<Zone[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -17,11 +15,6 @@ export default function AdminZonesPage() {
   const [saving, setSaving]     = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError]       = useState<string | null>(null);
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status === "authenticated" && session?.user.role !== "ADMIN") router.push("/");
-  }, [status, session, router]);
 
   useEffect(() => {
     if (status !== "authenticated") return;

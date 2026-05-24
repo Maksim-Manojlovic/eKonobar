@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatDate } from "@/lib/display-maps";
+import { useRequireRole } from "@/hooks/useRequireRole";
 
 type SanitaryBook = {
   id: string;
@@ -16,8 +15,7 @@ type SanitaryBook = {
 };
 
 export default function AdminVerificationsPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useRequireRole("ADMIN");
 
   const [books, setBooks]       = useState<SanitaryBook[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -25,11 +23,6 @@ export default function AdminVerificationsPage() {
   const [error, setError]       = useState<string | null>(null);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status === "authenticated" && session?.user.role !== "ADMIN") router.push("/");
-  }, [status, session, router]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
