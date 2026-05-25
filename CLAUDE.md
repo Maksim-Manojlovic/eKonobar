@@ -505,6 +505,19 @@ Score sync flow (run via `lib/sync-scores.ts`):
 
 The cron endpoint `POST /api/cron/publish-reviews` runs this flow on a schedule. Requires `Authorization: Bearer <CRON_SECRET>`.
 
+### Cron authorization
+
+All cron routes use `isCronAuthorized(req)` from `lib/cron-auth.ts`. **Never define a local `isAuthorized()` in a cron route** — it was previously copy-pasted 3× and has been consolidated.
+
+```typescript
+import { isCronAuthorized } from "@/lib/cron-auth";
+
+export async function GET(req: NextRequest) {
+  if (!isCronAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  return NextResponse.json(await run());
+}
+```
+
 ### Notification retry cron
 
 `POST /api/cron/retry-notifications` — hourly job that retries failed WhatsApp and SMS sends.
@@ -515,7 +528,17 @@ The cron endpoint `POST /api/cron/publish-reviews` runs this flow on a schedule.
 - On failure: increments `waRetries`/`smsRetries`; stops retrying once count reaches 3
 - Returns `{ checked, waSent, waFailed, smsSent, smsFailed }`
 
-`notify()` in `lib/notify.ts` increments `waRetries`/`smsRetries` on initial send failure instead of silently swallowing the error.
+The cron is a **pure orchestrator** — all dispatch logic and DB updates live in `lib/notify.ts`:
+
+```typescript
+// lib/notify.ts exports — used only by retry-notifications cron
+retryWhatsApp(notificationId, phone, role, passport, title, body) → "sent" | "failed" | "skipped"
+retrySms(notificationId, phone, role, passport, title, body, link?) → "sent" | "failed" | "skipped"
+```
+
+Both functions apply the same role-bypass logic as `notify()` (non-WAITER roles skip tier gating). Do **not** call `sendWhatsApp`/`sendSms` directly from cron routes — use these helpers.
+
+`notify()` increments `waRetries`/`smsRetries` on initial send failure instead of silently swallowing the error.
 
 ## OAuth (Google / Facebook)
 

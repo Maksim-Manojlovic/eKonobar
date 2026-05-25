@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbRaw } from "@/lib/db";
-import { sendWhatsApp } from "@/lib/whatsapp";
-import { sendSms } from "@/lib/sms";
-import { isPro, isProPlus } from "@/lib/passport-tier";
-import { buildSmsText } from "@/lib/notify";
+import { isCronAuthorized } from "@/lib/cron-auth";
+import { retryWhatsApp, retrySms } from "@/lib/notify";
 
 // Retries failed WhatsApp and SMS notification sends.
 // Max 3 attempts per channel, within 24h of creation.
@@ -13,13 +11,6 @@ import { buildSmsText } from "@/lib/notify";
 
 const MAX_RETRIES = 3;
 const WINDOW_MS   = 24 * 60 * 60 * 1000;
-
-function isAuthorized(req: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return req.headers.get("authorization") === `Bearer ${secret}`;
-}
-
 
 async function run() {
   const since = new Date(Date.now() - WINDOW_MS);
@@ -44,7 +35,8 @@ async function run() {
       smsRetries: true,
       user: {
         select: {
-          phone:    true,
+          role:    true,   // needed for role-bypass parity with notify()
+          phone:   true,
           waOptIn:  true,
           smsOptIn: true,
           waiterPassport: {
@@ -61,36 +53,18 @@ async function run() {
   await Promise.all(
     pending.map(async (n) => {
       const { user } = n;
+      if (!user.phone) return;
 
-      // WhatsApp retry
-      if (!n.waSent && n.waRetries < MAX_RETRIES && user.waOptIn && user.phone && isPro(user.waiterPassport)) {
-        try {
-          await sendWhatsApp(user.phone, n.title, n.body);
-          await dbRaw.notification.update({ where: { id: n.id }, data: { waSent: true } });
-          waSent++;
-        } catch {
-          await dbRaw.notification.update({
-            where: { id: n.id },
-            data:  { waRetries: { increment: 1 } },
-          });
-          waFailed++;
-        }
+      if (!n.waSent && n.waRetries < MAX_RETRIES && user.waOptIn) {
+        const r = await retryWhatsApp(n.id, user.phone, user.role, user.waiterPassport, n.title, n.body);
+        if (r === "sent")   waSent++;
+        if (r === "failed") waFailed++;
       }
 
-      // SMS retry
-      if (!n.smsSent && n.smsRetries < MAX_RETRIES && user.smsOptIn && user.phone && isProPlus(user.waiterPassport)) {
-        const smsText = buildSmsText(n.title, n.body, n.link);
-        try {
-          await sendSms(user.phone, smsText);
-          await dbRaw.notification.update({ where: { id: n.id }, data: { smsSent: true } });
-          smsSent++;
-        } catch {
-          await dbRaw.notification.update({
-            where: { id: n.id },
-            data:  { smsRetries: { increment: 1 } },
-          });
-          smsFailed++;
-        }
+      if (!n.smsSent && n.smsRetries < MAX_RETRIES && user.smsOptIn) {
+        const r = await retrySms(n.id, user.phone, user.role, user.waiterPassport, n.title, n.body, n.link);
+        if (r === "sent")   smsSent++;
+        if (r === "failed") smsFailed++;
       }
     }),
   );
@@ -99,11 +73,11 @@ async function run() {
 }
 
 export async function GET(req: NextRequest) {
-  if (!isAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isCronAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   return NextResponse.json(await run());
 }
 
 export async function POST(req: NextRequest) {
-  if (!isAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isCronAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   return NextResponse.json(await run());
 }

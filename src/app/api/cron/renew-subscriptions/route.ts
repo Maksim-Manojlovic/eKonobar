@@ -3,14 +3,9 @@ import crypto from "crypto";
 import { dbRaw } from "@/lib/db";
 import { chargeStoredCard } from "@/lib/monri";
 import { notify } from "@/lib/notify";
+import { isCronAuthorized } from "@/lib/cron-auth";
 import { PassportTier } from "@prisma/client";
 import logger from "@/lib/logger";
-
-function isAuthorized(req: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return req.headers.get("authorization") === `Bearer ${secret}`;
-}
 
 const TIER_AMOUNT_RSD: Record<Exclude<PassportTier, "FREE">, number> = {
   PRO:      29000,
@@ -124,11 +119,11 @@ async function run() {
 }
 
 export async function GET(req: NextRequest) {
-  if (!isAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isCronAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   return NextResponse.json(await run());
 }
 
 export async function POST(req: NextRequest) {
-  if (!isAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isCronAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   return NextResponse.json(await run());
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbRaw } from "@/lib/db";
 import { publishDueReviews, syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
+import { isCronAuthorized } from "@/lib/cron-auth";
 import logger from "@/lib/logger";
 
 // Accepts GET or POST.
@@ -8,13 +9,6 @@ import logger from "@/lib/logger";
 //
 // Vercel cron:  set CRON_SECRET env var, add to vercel.json crons config
 // Other:        hit with any HTTP scheduler, pass the header
-
-function isAuthorized(req: NextRequest): boolean {
-  const authHeader = req.headers.get("authorization");
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return authHeader === `Bearer ${secret}`;
-}
 
 async function run() {
   const now = new Date();
@@ -61,13 +55,13 @@ async function run() {
 }
 
 export async function GET(req: NextRequest) {
-  if (!isAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isCronAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const result = await run();
   return NextResponse.json(result);
 }
 
 export async function POST(req: NextRequest) {
-  if (!isAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isCronAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const result = await run();
   return NextResponse.json(result);
 }
