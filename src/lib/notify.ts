@@ -1,94 +1,15 @@
 import { NotificationType, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { sendPush } from "@/lib/webpush";
-import { sendWhatsApp } from "@/lib/whatsapp";
-import { sendSms } from "@/lib/sms";
 import { sendNotificationEmail } from "@/lib/email";
 import {
   isPro          as isPassportPro,
   isProPlus      as isPassportProPlus,
-  type PassportTierSource,
 } from "@/lib/passport-tier";
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type PushSub = { id: string; endpoint: string; p256dh: string; auth: string };
-
-// ── Shared helpers ────────────────────────────────────────────────────────────
-
-/**
- * Canonical SMS body formatter.
- * Exported so the retry-notifications cron can use the same 160-char format
- * instead of duplicating the template string.
- */
-export function buildSmsText(title: string, body: string, link?: string | null): string {
-  return `${title}: ${body}${link ? " | ekonobar.rs" : ""}`.slice(0, 160);
-}
-
-// ── Per-channel dispatchers ───────────────────────────────────────────────────
-// Each dispatcher performs the network send only — no DB writes.
-// The coordinator collects all results and does a single batched update.
-
-/**
- * Sends web push to all active subscriptions.
- * Auto-deletes stale subs (410/404) — these are PushSubscription rows, not
- * the Notification record, so the deletion is fine here.
- * Returns true when at least one push was delivered.
- */
-async function dispatchPush(
-  subs: PushSub[],
-  payload: { title: string; body: string; link?: string },
-): Promise<boolean> {
-  if (subs.length === 0) return false;
-
-  const results = await Promise.allSettled(
-    subs.map(sub =>
-      sendPush(sub, payload).catch(async (err: { statusCode?: number }) => {
-        if (err.statusCode === 410 || err.statusCode === 404) {
-          await db.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {});
-        }
-        throw err;
-      }),
-    ),
-  );
-
-  return results.some(r => r.status === "fulfilled");
-}
-
-/**
- * Sends WhatsApp template message.
- * Returns true on delivery, false on failure (coordinator increments waRetries).
- */
-async function dispatchWhatsApp(
-  phone: string,
-  title: string,
-  body: string,
-): Promise<boolean> {
-  try {
-    await sendWhatsApp(phone, title, body);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Sends Infobip SMS (≤160 chars).
- * Returns true on delivery, false on failure (coordinator increments smsRetries).
- */
-async function dispatchSms(
-  phone: string,
-  title: string,
-  body: string,
-  link?: string,
-): Promise<boolean> {
-  try {
-    await sendSms(phone, buildSmsText(title, body, link));
-    return true;
-  } catch {
-    return false;
-  }
-}
+import {
+  dispatchPush,
+  dispatchWhatsApp,
+  dispatchSms,
+} from "@/lib/notify-dispatch";
 
 // ── Coordinator ───────────────────────────────────────────────────────────────
 
@@ -180,51 +101,4 @@ export async function notify(
   if (!anyDelivered && user.email) {
     sendNotificationEmail({ toEmail: user.email, title, body, link }).catch(() => {});
   }
-}
-
-// ── Retry helpers ─────────────────────────────────────────────────────────────
-// Used exclusively by the retry-notifications cron.
-// Each function handles dispatch + DB status update as an atomic unit so the
-// cron remains a pure orchestrator with zero channel-specific logic.
-//
-// Role-bypass parity with notify(): non-WAITER roles skip tier gating,
-// matching the behaviour of the initial send.
-
-export async function retryWhatsApp(
-  notificationId: string,
-  phone: string,
-  role: string,
-  passport: PassportTierSource | null,
-  title: string,
-  body: string,
-): Promise<"sent" | "failed" | "skipped"> {
-  const eligible = role !== "WAITER" || isPassportPro(passport);
-  if (!eligible) return "skipped";
-
-  const ok = await dispatchWhatsApp(phone, title, body);
-  await db.notification.update({
-    where: { id: notificationId },
-    data:  ok ? { waSent: true } : { waRetries: { increment: 1 } },
-  });
-  return ok ? "sent" : "failed";
-}
-
-export async function retrySms(
-  notificationId: string,
-  phone: string,
-  role: string,
-  passport: PassportTierSource | null,
-  title: string,
-  body: string,
-  link?: string | null,
-): Promise<"sent" | "failed" | "skipped"> {
-  const eligible = role !== "WAITER" || isPassportProPlus(passport);
-  if (!eligible) return "skipped";
-
-  const ok = await dispatchSms(phone, title, body, link ?? undefined);
-  await db.notification.update({
-    where: { id: notificationId },
-    data:  ok ? { smsSent: true } : { smsRetries: { increment: 1 } },
-  });
-  return ok ? "sent" : "failed";
 }

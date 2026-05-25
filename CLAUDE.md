@@ -530,10 +530,10 @@ export async function GET(req: NextRequest) {
 - On failure: increments `waRetries`/`smsRetries`; stops retrying once count reaches 3
 - Returns `{ checked, waSent, waFailed, smsSent, smsFailed }`
 
-The cron is a **pure orchestrator** — all dispatch logic and DB updates live in `lib/notify.ts`:
+The cron is a **pure orchestrator** — retry helpers live in `lib/notify-retry.ts`:
 
 ```typescript
-// lib/notify.ts exports — used only by retry-notifications cron
+// lib/notify-retry.ts — used only by retry-notifications cron
 retryWhatsApp(notificationId, phone, role, passport, title, body) → "sent" | "failed" | "skipped"
 retrySms(notificationId, phone, role, passport, title, body, link?) → "sent" | "failed" | "skipped"
 ```
@@ -541,6 +541,11 @@ retrySms(notificationId, phone, role, passport, title, body, link?) → "sent" |
 Both functions apply the same role-bypass logic as `notify()` (non-WAITER roles skip tier gating). Do **not** call `sendWhatsApp`/`sendSms` directly from cron routes — use these helpers.
 
 `notify()` increments `waRetries`/`smsRetries` on initial send failure instead of silently swallowing the error.
+
+**Notification module structure:**
+- `lib/notify-dispatch.ts` — `dispatchPush`, `dispatchWhatsApp`, `dispatchSms`, `buildSmsText` (pure network, no DB writes, no tier checks)
+- `lib/notify.ts` — `notify()` coordinator (DB create + tier check + dispatch orchestration + email fallback)
+- `lib/notify-retry.ts` — `retryWhatsApp`, `retrySms` (used only by retry-notifications cron)
 
 ## OAuth (Google / Facebook)
 
