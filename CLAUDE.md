@@ -334,7 +334,7 @@ Each dashboard is split across several co-located files. Do not put shared helpe
 
 **Inline UI micro-components:** Never define `Initials`, `PassportTierBadge`, `ScorePill`, or similar inside a page file. For venue/headhunter contexts import from `venue-helpers.tsx`. For cross-dashboard reuse, promote to `components/ui/`.
 
-**`timeAgo()`:** Admin pages import from `admin-helpers.tsx`. Notification components use the export from `components/ui/NotificationBell.tsx`. Do not write a new local definition — there are already too many copies.
+**`timeAgo()`:** Defined once in `lib/format-utils.ts`. Import directly from there. Admin pages use the re-export in `admin-helpers.tsx` (intentional — keeps admin imports consistent). Do not write a new local definition.
 
 **Display maps:** Always import `*_COLORS` and `*_LABELS` constants from `lib/display-maps.ts`. Do not define them inline in a page.
 
