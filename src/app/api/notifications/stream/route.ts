@@ -1,5 +1,5 @@
-import { withAuth } from "@/lib/with-role";
-import { db } from "@/lib/db";
+import { withAuth } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
 
 export const dynamic    = "force-dynamic";
 export const runtime    = "nodejs";

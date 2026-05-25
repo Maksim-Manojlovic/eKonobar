@@ -2,21 +2,21 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   dbRaw: {
     review: { findUnique: vi.fn(), update: vi.fn() },
   },
 }));
-vi.mock("@/lib/sync-scores", () => ({
+vi.mock("@/lib/scoring/sync", () => ({
   syncVenueTrustScore: vi.fn().mockResolvedValue(undefined),
   syncPassportScore:   vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/core/audit", () => ({ logAudit: vi.fn() }));
 
 import { getServerSession } from "next-auth";
-import { dbRaw } from "@/lib/db";
-import { syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
+import { dbRaw } from "@/lib/core/db";
+import { syncVenueTrustScore, syncPassportScore } from "@/lib/scoring/sync";
 import { PATCH } from "../route";
 
 const ADMIN_ID  = "admin-1";

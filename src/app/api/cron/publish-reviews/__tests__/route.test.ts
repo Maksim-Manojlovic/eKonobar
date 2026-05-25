@@ -1,24 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/core/db", () => ({
   dbRaw: {
     anonRateLimit: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     rateLimit:     { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     review:        { findMany: vi.fn() },
   },
 }));
-vi.mock("@/lib/review-lifecycle", () => ({
+vi.mock("@/lib/scoring/review-lifecycle", () => ({
   publishDueReviews: vi.fn(),
 }));
-vi.mock("@/lib/sync-scores", () => ({
+vi.mock("@/lib/scoring/sync", () => ({
   syncVenueTrustScore: vi.fn().mockResolvedValue(undefined),
   syncPassportScore:   vi.fn().mockResolvedValue(undefined),
 }));
 
-import { dbRaw } from "@/lib/db";
-import { publishDueReviews } from "@/lib/review-lifecycle";
-import { syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
+import { dbRaw } from "@/lib/core/db";
+import { publishDueReviews } from "@/lib/scoring/review-lifecycle";
+import { syncVenueTrustScore, syncPassportScore } from "@/lib/scoring/sync";
 import { GET, POST } from "../route";
 
 const SECRET = "test-cron-secret";

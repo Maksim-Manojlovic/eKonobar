@@ -2,15 +2,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   dbRaw: {
     venueZone:         { findUnique: vi.fn(), update: vi.fn(), delete: vi.fn() },
     venueZoneRelation: { deleteMany: vi.fn() },
     $transaction:      vi.fn(),
   },
 }));
-vi.mock("@/lib/analytics", () => ({ refreshAllVenueZoneCaches: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/lib/geo/analytics", () => ({ refreshAllVenueZoneCaches: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("@prisma/client", () => ({
   ZoneType: {
     FESTIVAL_ZONE: "FESTIVAL_ZONE",
@@ -22,7 +22,7 @@ vi.mock("@prisma/client", () => ({
 }));
 
 import { getServerSession } from "next-auth";
-import { dbRaw } from "@/lib/db";
+import { dbRaw } from "@/lib/core/db";
 import { PATCH, DELETE } from "../route";
 
 const ZONE_ID = "zone-1";

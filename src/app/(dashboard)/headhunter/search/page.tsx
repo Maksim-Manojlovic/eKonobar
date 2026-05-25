@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { VERIFICATION_TIER_COLORS } from "@/lib/display-maps";
+import { VERIFICATION_TIER_COLORS } from "@/lib/formatting/display-maps";
 import { Initials, PassportTierBadge, ScorePill } from "@/components/ui/PassportWidgets";
 import type { Waiter } from "../headhunter-types";
 

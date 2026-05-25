@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import type { JobPost, MyApplication, AppFilter } from "./waiter-types";
-import { ENGAGEMENT_LABELS, formatDate } from "@/lib/display-maps";
-import { formatSalary } from "@/lib/format-utils";
+import { ENGAGEMENT_LABELS, formatDate } from "@/lib/formatting/display-maps";
+import { formatSalary } from "@/lib/formatting/utils";
 import { AlertsSkeleton, JobsSkeleton, WaiterApplicationsSkeleton, ApplyButton, StatusBadge, appStatusKey } from "./waiter-helpers";
 
 /* ── Section: Alerts ─────────────────────────────────────────────────────── */

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dbRaw } from "@/lib/db";
-import { publishDueReviews } from "@/lib/review-lifecycle";
-import { syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
-import { isCronAuthorized } from "@/lib/cron-auth";
-import logger from "@/lib/logger";
+import { dbRaw } from "@/lib/core/db";
+import { publishDueReviews } from "@/lib/scoring/review-lifecycle";
+import { syncVenueTrustScore, syncPassportScore } from "@/lib/scoring/sync";
+import { isCronAuthorized } from "@/lib/auth/cron-auth";
+import logger from "@/lib/core/logger";
 
 // Accepts GET or POST.
 // Requires: Authorization: Bearer <CRON_SECRET>

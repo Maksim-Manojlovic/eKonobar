@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db } from "@/lib/core/db";
 import { EngagementType } from "@prisma/client";
 
 function stableJitter(id: string): { lat: number; lng: number } {

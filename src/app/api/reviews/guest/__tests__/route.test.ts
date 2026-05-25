@@ -1,24 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/core/db", () => ({
   db: {
     venue:  { findUnique: vi.fn() },
     review: { create: vi.fn() },
   },
 }));
-vi.mock("@/lib/side-effects", () => ({ fireSideEffects: vi.fn() }));
-vi.mock("@/lib/geofence", () => ({
+vi.mock("@/lib/notifications/side-effects", () => ({ fireSideEffects: vi.fn() }));
+vi.mock("@/lib/geo/geofence", () => ({
   isInsideVenueRadius:   vi.fn(),
   parseGuestCoordinates: vi.fn(),
   createGeolocationHash: vi.fn().mockReturnValue("hash-abc"),
 }));
-vi.mock("@/lib/rate-limit", () => ({ rateLimit: vi.fn() }));
+vi.mock("@/lib/core/rate-limit", () => ({ rateLimit: vi.fn() }));
 
-import { db } from "@/lib/db";
-import { fireSideEffects } from "@/lib/side-effects";
-import { isInsideVenueRadius, parseGuestCoordinates } from "@/lib/geofence";
-import { rateLimit } from "@/lib/rate-limit";
+import { db } from "@/lib/core/db";
+import { fireSideEffects } from "@/lib/notifications/side-effects";
+import { isInsideVenueRadius, parseGuestCoordinates } from "@/lib/geo/geofence";
+import { rateLimit } from "@/lib/core/rate-limit";
 import { POST } from "../route";
 
 const VENUE_ID   = "venue-1";

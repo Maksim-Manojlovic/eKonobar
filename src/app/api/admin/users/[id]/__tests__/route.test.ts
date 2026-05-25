@@ -2,18 +2,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   dbRaw: {
     user:            { update: vi.fn() },
     tokenRevocation: { upsert: vi.fn() },
     $transaction:    vi.fn(),
   },
 }));
-vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/core/audit", () => ({ logAudit: vi.fn() }));
 
 import { getServerSession } from "next-auth";
-import { dbRaw } from "@/lib/db";
+import { dbRaw } from "@/lib/core/db";
 import { PATCH } from "../route";
 
 const ADMIN_ID  = "admin-1";

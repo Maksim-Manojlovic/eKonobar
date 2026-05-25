@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/core/db", () => ({
   db: {
     venue:          { findUnique: vi.fn() },
     jobApplication: { findMany: vi.fn() },
   },
 }));
 
-import { db } from "@/lib/db";
+import { db } from "@/lib/core/db";
 import { GET } from "../route";
 
 const VENUE_ID = "venue-1";

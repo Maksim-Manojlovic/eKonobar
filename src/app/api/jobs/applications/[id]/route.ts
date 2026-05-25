@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { withAuth } from "@/lib/with-role";
-import { db } from "@/lib/db";
-import { dbRaw } from "@/lib/db";
+import { withAuth } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
+import { dbRaw } from "@/lib/core/db";
 import { ApplicationStatus } from "@prisma/client";
-import { fireSideEffects } from "@/lib/side-effects";
+import { fireSideEffects } from "@/lib/notifications/side-effects";
 
 // Valid transitions per role
 const VENUE_TRANSITIONS: Partial<Record<ApplicationStatus, ApplicationStatus[]>> = {

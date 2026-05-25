@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { withRole } from "@/lib/with-role";
-import { db } from "@/lib/db";
-import { fireSideEffects } from "@/lib/side-effects";
+import { withRole } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
+import { fireSideEffects } from "@/lib/notifications/side-effects";
 
 // PATCH — owner or head waiter approves or rejects a swap request
 export const PATCH = withRole<{ params: Promise<{ swapId: string }> }>(["VENUE_OWNER", "WAITER"], async (req, ctx, session) => {

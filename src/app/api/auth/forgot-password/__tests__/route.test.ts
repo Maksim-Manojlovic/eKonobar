@@ -1,17 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/core/db", () => ({
   dbRaw: {
     user:               { findUnique: vi.fn() },
     passwordResetToken: { create: vi.fn() },
   },
 }));
-vi.mock("@/lib/email",      () => ({ sendPasswordResetEmail: vi.fn() }));
-vi.mock("@/lib/rate-limit", () => ({ rateLimit: vi.fn() }));
+vi.mock("@/lib/integrations/email",      () => ({ sendPasswordResetEmail: vi.fn() }));
+vi.mock("@/lib/core/rate-limit", () => ({ rateLimit: vi.fn() }));
 
-import { dbRaw } from "@/lib/db";
-import { sendPasswordResetEmail } from "@/lib/email";
-import { rateLimit } from "@/lib/rate-limit";
+import { dbRaw } from "@/lib/core/db";
+import { sendPasswordResetEmail } from "@/lib/integrations/email";
+import { rateLimit } from "@/lib/core/rate-limit";
 import { POST } from "../route";
 
 function makeReq(body: object, ip = "127.0.0.1") {

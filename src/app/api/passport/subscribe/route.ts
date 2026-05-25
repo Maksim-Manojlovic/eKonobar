@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { withRole } from "@/lib/with-role";
-import { db } from "@/lib/db";
+import { withRole } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
 import { PassportTier } from "@prisma/client";
-import { SUBSCRIPTION_DURATION_MS } from "@/lib/subscription-constants";
+import { SUBSCRIPTION_DURATION_MS } from "@/lib/passport/constants";
 
 const TIER_PRICES: Record<PassportTier, number> = {
   FREE: 0,

@@ -2,21 +2,21 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   db: {
     shift:  { create: vi.fn() },
     venue:  { findFirst: vi.fn() },
     user:   { findMany: vi.fn() },
   },
 }));
-vi.mock("@/lib/shift-utils", () => ({
+vi.mock("@/lib/shifts/utils", () => ({
   computeScheduledStart: vi.fn().mockReturnValue(new Date("2025-07-01T18:00:00Z")),
 }));
-vi.mock("@/lib/logger", () => ({ default: { error: vi.fn() } }));
+vi.mock("@/lib/core/logger", () => ({ default: { error: vi.fn() } }));
 
 import { getServerSession } from "next-auth";
-import { db } from "@/lib/db";
+import { db } from "@/lib/core/db";
 import { POST } from "../route";
 
 function makeReq(body: object) {

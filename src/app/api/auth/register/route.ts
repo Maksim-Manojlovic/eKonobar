@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
-import { dbRaw } from "@/lib/db";
+import { dbRaw } from "@/lib/core/db";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();

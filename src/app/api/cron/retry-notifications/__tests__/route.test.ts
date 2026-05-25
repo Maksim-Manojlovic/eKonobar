@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/core/db", () => ({
   dbRaw: {
     notification: { findMany: vi.fn() },
   },
@@ -10,12 +10,12 @@ vi.mock("@/lib/db", () => ({
     pushSubscription: { delete: vi.fn() },
   },
 }));
-vi.mock("@/lib/whatsapp", () => ({ sendWhatsApp: vi.fn() }));
-vi.mock("@/lib/sms",       () => ({ sendSms:      vi.fn() }));
+vi.mock("@/lib/integrations/whatsapp", () => ({ sendWhatsApp: vi.fn() }));
+vi.mock("@/lib/integrations/sms",       () => ({ sendSms:      vi.fn() }));
 
-import { dbRaw, db } from "@/lib/db";
-import { sendWhatsApp } from "@/lib/whatsapp";
-import { sendSms }      from "@/lib/sms";
+import { dbRaw, db } from "@/lib/core/db";
+import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { sendSms }      from "@/lib/integrations/sms";
 import { GET, POST }    from "../route";
 
 const SECRET = "test-secret";

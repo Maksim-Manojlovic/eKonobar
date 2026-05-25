@@ -6,8 +6,8 @@ import ImageUpload from "@/components/ui/ImageUpload";
 import DeactivateVenueButton from "@/components/venue/DeactivateVenueButton";
 import VenueInsightsBadge from "@/components/venue/VenueInsightsBadge";
 import type { Venue } from "./venue-types";
-import { getInitials } from "@/lib/format-utils";
-import { VENUE_TYPE_LABELS } from "@/lib/display-maps";
+import { getInitials } from "@/lib/formatting/utils";
+import { VENUE_TYPE_LABELS } from "@/lib/formatting/display-maps";
 import { Sk, trustDimensions } from "./venue-helpers";
 
 function VenueCreateForm({ onCreated }: { onCreated: () => void }) {

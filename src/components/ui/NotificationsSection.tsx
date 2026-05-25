@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { type NotificationItem, TYPE_ICONS } from "./NotificationBell";
-import { timeAgo } from "@/lib/format-utils";
+import { timeAgo } from "@/lib/formatting/utils";
 
 const FILTER_GROUPS = [
   { key: "SVE",          label: "Sve" },

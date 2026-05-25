@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   db: {
     shiftSwapRequest: { findUnique: vi.fn(), update: vi.fn() },
     shiftAssignment:  { delete: vi.fn(), create: vi.fn() },
@@ -11,11 +11,11 @@ vi.mock("@/lib/db", () => ({
     $transaction:     vi.fn(),
   },
 }));
-vi.mock("@/lib/notify", () => ({ notify: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/lib/notifications/notify", () => ({ notify: vi.fn().mockResolvedValue(undefined) }));
 
 import { getServerSession } from "next-auth";
-import { db } from "@/lib/db";
-import { notify } from "@/lib/notify";
+import { db } from "@/lib/core/db";
+import { notify } from "@/lib/notifications/notify";
 import { PATCH } from "../route";
 
 const SWAP_ID     = "swap-1";

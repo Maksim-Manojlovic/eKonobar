@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/core/db", () => ({
   dbRaw: {
     passportPayment: {
       findUnique:  vi.fn(),
@@ -12,16 +12,16 @@ vi.mock("@/lib/db", () => ({
     $transaction: vi.fn().mockImplementation((ops: Promise<unknown>[]) => Promise.all(ops)),
   },
 }));
-vi.mock("@/lib/monri", () => ({
+vi.mock("@/lib/integrations/monri", () => ({
   verifyCallback:   vi.fn().mockReturnValue(true),
   callbackApproved: vi.fn().mockReturnValue(true),
 }));
-vi.mock("@/lib/notify", () => ({
+vi.mock("@/lib/notifications/notify", () => ({
   notify: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { dbRaw } from "@/lib/db";
-import { verifyCallback, callbackApproved } from "@/lib/monri";
+import { dbRaw } from "@/lib/core/db";
+import { verifyCallback, callbackApproved } from "@/lib/integrations/monri";
 import { POST } from "../route";
 
 function makeReq(body: object) {

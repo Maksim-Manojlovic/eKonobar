@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import ReviewWizard from "@/components/review/ReviewWizard";
-import { ENGAGEMENT_LABELS } from "@/lib/display-maps";
+import { ENGAGEMENT_LABELS } from "@/lib/formatting/display-maps";
 
 type Engagement = {
   id: string;

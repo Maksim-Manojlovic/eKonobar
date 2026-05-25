@@ -7,8 +7,8 @@ import {
   APPLICATION_STATUS_LABELS_WAITER,
   ENGAGEMENT_LABELS,
   formatDate,
-} from "@/lib/display-maps";
-import { formatSalary } from "@/lib/format-utils";
+} from "@/lib/formatting/display-maps";
+import { formatSalary } from "@/lib/formatting/utils";
 
 type JobPost = {
   id: string;

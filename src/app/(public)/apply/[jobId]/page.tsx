@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Spinner from "@/components/ui/Spinner";
-import { ENGAGEMENT_LABELS } from "@/lib/display-maps";
+import { ENGAGEMENT_LABELS } from "@/lib/formatting/display-maps";
 import { useRequireRole } from "@/hooks/useRequireRole";
 
 type JobSummary = {

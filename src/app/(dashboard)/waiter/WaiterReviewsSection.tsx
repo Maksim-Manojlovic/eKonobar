@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import type { WaiterReview } from "./waiter-types";
-import { DIRECTION_LABELS } from "@/lib/display-maps";
+import { DIRECTION_LABELS } from "@/lib/formatting/display-maps";
 import { Sk, Stars } from "./waiter-helpers";
 
 /* ── Section: Reviews ────────────────────────────────────────────────────── */

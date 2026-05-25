@@ -1,17 +1,17 @@
-﻿import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   db: {
     user: { count: vi.fn(), findMany: vi.fn() },
   },
 }));
-vi.mock("@/lib/logger", () => ({ default: { error: vi.fn() } }));
+vi.mock("@/lib/core/logger", () => ({ default: { error: vi.fn() } }));
 
 import { getServerSession } from "next-auth";
-import { db } from "@/lib/db";
+import { db } from "@/lib/core/db";
 import { GET } from "../route";
 
 const CTX = { params: Promise.resolve({}) };

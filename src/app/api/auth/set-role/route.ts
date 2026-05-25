@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { withAuth } from "@/lib/with-role";
-import { db } from "@/lib/db";
+import { withAuth } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
 
 const ALLOWED: string[] = ["WAITER", "VENUE_OWNER", "HEADHUNTER"];
 

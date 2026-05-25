@@ -2,17 +2,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   db: {
     shiftTemplate: { findFirst: vi.fn() },
     shift:         { findMany: vi.fn(), createMany: vi.fn() },
   },
 }));
-vi.mock("@/lib/shift-utils", () => ({ computeScheduledStart: vi.fn().mockReturnValue(new Date()) }));
+vi.mock("@/lib/shifts/utils", () => ({ computeScheduledStart: vi.fn().mockReturnValue(new Date()) }));
 
 import { getServerSession } from "next-auth";
-import { db } from "@/lib/db";
+import { db } from "@/lib/core/db";
 import { POST } from "../route";
 
 const TEMPLATE_ID = "tpl-1";

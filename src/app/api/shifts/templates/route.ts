@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { withRole } from "@/lib/with-role";
-import { db } from "@/lib/db";
+import { withRole } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
 
 export const GET = withRole(["VENUE_OWNER", "WAITER"], async (_req, _ctx, session) => {
   const venueFilter = session.user.role === "VENUE_OWNER"

@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   db: {
     jobApplication: { findUnique: vi.fn(), update: vi.fn() },
   },
@@ -13,11 +13,11 @@ vi.mock("@/lib/db", () => ({
     waiterPassport:   { updateMany: vi.fn() },
   },
 }));
-vi.mock("@/lib/side-effects", () => ({ fireSideEffects: vi.fn() }));
+vi.mock("@/lib/notifications/side-effects", () => ({ fireSideEffects: vi.fn() }));
 
 import { getServerSession } from "next-auth";
-import { db, dbRaw } from "@/lib/db";
-import { fireSideEffects } from "@/lib/side-effects";
+import { db, dbRaw } from "@/lib/core/db";
+import { fireSideEffects } from "@/lib/notifications/side-effects";
 import { PATCH } from "../route";
 
 const OWNER_ID    = "owner-1";

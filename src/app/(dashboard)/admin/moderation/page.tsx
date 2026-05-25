@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { VERIFICATION_TIER_COLORS, DIRECTION_LABELS, formatDate } from "@/lib/display-maps";
+import { VERIFICATION_TIER_COLORS, DIRECTION_LABELS, formatDate } from "@/lib/formatting/display-maps";
 import { useRequireRole } from "@/hooks/useRequireRole";
 
 type Review = {

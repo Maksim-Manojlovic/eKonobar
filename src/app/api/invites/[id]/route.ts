@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { withRole } from "@/lib/with-role";
-import { db } from "@/lib/db";
+import { withRole } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
 
 export const PATCH = withRole<{ params: Promise<{ id: string }> }>("WAITER", async (req, ctx, session) => {
   const { id } = await ctx.params;

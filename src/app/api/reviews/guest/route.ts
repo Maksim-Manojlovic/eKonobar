@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { fireSideEffects } from "@/lib/side-effects";
-import { isInsideVenueRadius, createGeolocationHash, parseGuestCoordinates } from "@/lib/geofence";
-import { rateLimit } from "@/lib/rate-limit";
-import { clampRating } from "@/lib/format-utils";
+import { db } from "@/lib/core/db";
+import { fireSideEffects } from "@/lib/notifications/side-effects";
+import { isInsideVenueRadius, createGeolocationHash, parseGuestCoordinates } from "@/lib/geo/geofence";
+import { rateLimit } from "@/lib/core/rate-limit";
+import { clampRating } from "@/lib/formatting/utils";
 
 export async function POST(req: NextRequest) {
   // IP-based rate limit: 3 guest reviews per hour per IP

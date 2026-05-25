@@ -27,8 +27,8 @@ Config is in `eslint.config.mjs` (ESLint 9 flat config). Run with `npm run lint`
 
 Two patterns in use:
 
-- **Pure function tests** (`src/lib/__tests__/`) — no mocking; test trust-score and geofence helpers directly.
-- **Route handler tests** (`src/app/api/reviews/[id]/__tests__/`) — use `vi.mock()` to mock `next-auth`, `@/lib/db`, and `@/lib/sync-scores`; call the exported handler function directly; assert on `Response.status` and mock call args.
+- **Pure function tests** (co-located `__tests__/` in each `src/lib/` subdirectory) — no mocking; test trust-score and geofence helpers directly.
+- **Route handler tests** (`src/app/api/reviews/[id]/__tests__/`) — use `vi.mock()` to mock `next-auth`, `@/lib/core/db`, and `@/lib/scoring/sync`; call the exported handler function directly; assert on `Response.status` and mock call args.
 
 When adding route handler tests, mock at the module level with `vi.mock(...)` before imports, use `vi.clearAllMocks()` in `beforeEach`, and flush fire-and-forget promises with `await new Promise(r => setTimeout(r, 0))`.
 
@@ -36,10 +36,10 @@ When adding route handler tests, mock at the module level with `vi.mock(...)` be
 
 ### db vs dbRaw
 
-`db` (from `lib/db.ts`) applies a global soft-delete filter — it never returns rows where `deletedAt IS NOT NULL`. Use it everywhere except:
-- `lib/sync-scores.ts` — needs all rows for score recalculation
+`db` (from `lib/core/db.ts`) applies a global soft-delete filter — it never returns rows where `deletedAt IS NOT NULL`. Use it everywhere except:
+- `lib/scoring/sync.ts` — needs all rows for score recalculation
 - Admin routes — need to see and restore deleted records
-- `lib/rate-limit.ts` — uses `dbRaw` directly
+- `lib/core/rate-limit.ts` — uses `dbRaw` directly
 
 Use `dbRaw` for those cases.
 
@@ -74,7 +74,7 @@ import Map from 'react-map-gl/mapbox';
 
 ### Geofencing
 
-`isInsideVenueRadius()` in `lib/geofence.ts` is **synchronous** — do not await it:
+`isInsideVenueRadius()` in `lib/geo/geofence.ts` is **synchronous** — do not await it:
 
 ```typescript
 const result = isInsideVenueRadius({ lat: guestLat, lon: guestLon }, venue);
@@ -104,7 +104,7 @@ Guest reviews use 150m radius (venue.reviewRadiusKm). Shift clock-in uses a stri
 }),
 ```
 
-`redAlertCreatedAfter = new Date(now - RED_ALERT_DELAY_MS)` (from `lib/subscription-constants.ts`) for FREE, `undefined` for PRO/PRO_PLUS and unauthenticated users.
+`redAlertCreatedAfter = new Date(now - RED_ALERT_DELAY_MS)` (from `lib/passport/constants.ts`) for FREE, `undefined` for PRO/PRO_PLUS and unauthenticated users.
 
 ### Coordinate jitter
 
@@ -115,7 +115,7 @@ Venues get ~100m stable coordinate jitter derived from `venueId` hash (same logi
 Post-auth write actions use DB-backed rate limiting via `checkRateLimit`:
 
 ```typescript
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit } from "@/lib/core/rate-limit";
 
 const allowed = await checkRateLimit(userId, "post_review", 5);       // 5/hour
 if (!allowed) return NextResponse.json({ error: "..." }, { status: 429 });
@@ -126,7 +126,7 @@ Current limits:
 - `apply_job` — 10 per hour
 - `post_invite` — 20 per hour
 
-Pre-auth routes use `rateLimit(key, max, windowMs)` from `lib/rate-limit.ts`, which is backed by the `AnonRateLimit` table (no FK — works before a User row exists, survives server restarts, safe across multiple instances). Key format: `"<action>:<value>"`.
+Pre-auth routes use `rateLimit(key, max, windowMs)` from `lib/core/rate-limit.ts`, which is backed by the `AnonRateLimit` table (no FK — works before a User row exists, survives server restarts, safe across multiple instances). Key format: `"<action>:<value>"`.
 
 Login applies **two independent limits** in `authorize()`:
 - `login:ip:{ip}` — 20 attempts / 15 min (broad guard, stops distributed stuffing)
@@ -154,10 +154,10 @@ Use the `ImageUpload` component from `components/ui/ImageUpload.tsx`. It has two
 
 ### Notifications
 
-All in-app + multi-channel notifications go through `lib/notify.ts`:
+All in-app + multi-channel notifications go through `lib/notifications/notify.ts`:
 
 ```typescript
-import { notify } from "@/lib/notify";
+import { notify } from "@/lib/notifications/notify";
 
 // Always fire-and-forget — never await in a request handler
 notify(userId, "APPLICATION_RECEIVED", "Nova prijava", "Marko se prijavio...", "/dashboard/venue")
@@ -196,7 +196,7 @@ Providers are no-ops when env vars are missing — safe in development.
 - Desktop: `w-80` absolute dropdown (max-h 480px)
 - Mobile: `fixed inset-0` bottom sheet with `sheet-up` animation, `82dvh` max-height, safe-area-inset-bottom footer padding, body scroll lock while open
 - Polls every 30s; marks all read on open if unread > 0
-- Exports `NotificationItem` type, `TYPE_ICONS` map, and `timeAgo()` helper — imported by `NotificationsSection`
+- Exports `NotificationItem` type and `TYPE_ICONS` map — imported by `NotificationsSection`
 
 ### NotificationsSection
 
@@ -210,12 +210,12 @@ Providers are no-ops when env vars are missing — safe in development.
 
 ### Shared formatting & display utilities
 
-`lib/format-utils.ts` — pure formatting helpers, zero imports from other project modules. Safe to import from any layer:
+`lib/formatting/utils.ts` — pure formatting helpers, zero imports from other project modules. Safe to import from any layer:
 
 - `getInitials(name)` — up to 2 uppercase initials, or `"?"` when blank
 - `formatSalary({ salaryMin, salaryMax, engagementType })` — Serbian locale salary range; `"/mes"` for FULL_TIME, `"/sm"` otherwise; falls back to `"Po dogovoru"`
 
-`lib/display-maps.ts` — **single source of truth** for Tailwind badge classes and human-readable labels. Never define `*_COLORS` or `*_LABELS` maps inline in a page; import from here:
+`lib/formatting/display-maps.ts` — **single source of truth** for Tailwind badge classes and human-readable labels. Never define `*_COLORS` or `*_LABELS` maps inline in a page; import from here:
 
 - `VERIFICATION_TIER_COLORS` — per verification tier (UNVERIFIED → ID_VERIFIED)
 - `PASSPORT_TIER_COLORS` — per passport tier, dark-bg variant
@@ -226,10 +226,10 @@ Providers are no-ops when env vars are missing — safe in development.
 
 ### Side effects
 
-`lib/side-effects.ts` — `fireSideEffects(opts)` — schedules score syncs and notifications as fire-and-forget. Use instead of calling `notify()` and `syncPassportScore()`/`syncVenueTrustScore()` directly in route handlers:
+`lib/notifications/side-effects.ts` — `fireSideEffects(opts)` — schedules score syncs and notifications as fire-and-forget. Use instead of calling `notify()` and `syncPassportScore()`/`syncVenueTrustScore()` directly in route handlers:
 
 ```typescript
-import { fireSideEffects } from "@/lib/side-effects";
+import { fireSideEffects } from "@/lib/notifications/side-effects";
 
 fireSideEffects({
   syncVenueId:   venueId,       // optional
@@ -243,7 +243,7 @@ Tests mock as `vi.fn()` — no `await new Promise(r => setTimeout(r, 0))` timer 
 
 ### Shift authorization
 
-`lib/shift-auth.ts` — shift management access helpers. Use in shift route handlers instead of repeating the owner/head-waiter check inline:
+`lib/shifts/auth.ts` — shift management access helpers. Use in shift route handlers instead of repeating the owner/head-waiter check inline:
 
 - `canManageShifts(userId, role, venue)` → `boolean` — true if VENUE_OWNER owns the venue or WAITER is the venue's `headWaiterId`
 - `getManagedShift(shiftId, userId, role)` → shift with venue + assignments, or `null` if not found / not authorized
@@ -251,19 +251,19 @@ Tests mock as `vi.fn()` — no `await new Promise(r => setTimeout(r, 0))` timer 
 
 ### Audit logging
 
-`lib/audit.ts` — `logAudit(actorId, action, targetId, targetType, meta?)` — fire-and-forget write to `AuditLog` table. Use for sensitive admin actions (role changes, hard deletes):
+`lib/core/audit.ts` — `logAudit(actorId, action, targetId, targetType, meta?)` — fire-and-forget write to `AuditLog` table. Use for sensitive admin actions (role changes, hard deletes):
 
 ```typescript
-import { logAudit } from "@/lib/audit";
+import { logAudit } from "@/lib/core/audit";
 logAudit(session.user.id, "USER_ROLE_CHANGE", targetId, "User", { from: old, to: newRole });
 ```
 
 ### Logging
 
-`lib/logger.ts` — pino logger. Dev: pretty-print. Production: JSON. Import as:
+`lib/core/logger.ts` — pino logger. Dev: pretty-print. Production: JSON. Import as:
 
 ```typescript
-import logger from "@/lib/logger";
+import logger from "@/lib/core/logger";
 logger.error({ err }, "something failed");
 ```
 
@@ -277,10 +277,10 @@ someAsyncOp().catch(err => logger.error({ err, contextId }, "op failed in route-
 
 ### Shift utilities
 
-Use `lib/shift-utils.ts` for DateTime computation — never manually concatenate date + time strings:
+Use `lib/shifts/utils.ts` for DateTime computation — never manually concatenate date + time strings:
 
 ```typescript
-import { computeScheduledStart, computeScheduledEnd } from "@/lib/shift-utils";
+import { computeScheduledStart, computeScheduledEnd } from "@/lib/shifts/utils";
 
 const scheduledStart = computeScheduledStart("2025-06-15", "18:00"); // → Date
 const scheduledEnd   = computeScheduledEnd("2025-06-15", "18:00", "02:00"); // → Date (+1 day, overnight)
@@ -334,13 +334,13 @@ Each dashboard is split across several co-located files. Do not put shared helpe
 
 **Inline UI micro-components:** Never define `Initials`, `PassportTierBadge`, `ScorePill`, or similar inside a page file. For venue/headhunter contexts import from `venue-helpers.tsx`. For cross-dashboard reuse, promote to `components/ui/`.
 
-**`timeAgo()`:** Defined once in `lib/format-utils.ts`. Import directly from there. Admin pages use the re-export in `admin-helpers.tsx` (intentional — keeps admin imports consistent). Do not write a new local definition.
+**`timeAgo()`:** Defined once in `lib/formatting/utils.ts`. Import directly from there. Admin pages use the re-export in `admin-helpers.tsx` (intentional — keeps admin imports consistent). Do not write a new local definition.
 
-**Display maps:** Always import `*_COLORS` and `*_LABELS` constants from `lib/display-maps.ts`. Do not define them inline in a page.
+**Display maps:** Always import `*_COLORS` and `*_LABELS` constants from `lib/formatting/display-maps.ts`. Do not define them inline in a page.
 
 **Page-level types:** Define API response shapes in the co-located `*-types.ts` file (e.g., `venue-types.ts`, `waiter-types.ts`, `admin-types.ts`), not inline in the page component. `*-types.ts` must contain **type/interface declarations only** — no runtime values. Co-locate runtime display constants (label maps, badge configs, section titles) in a sibling `*-constants.ts` file that imports from the types file. See `waiter-constants.ts` for the pattern.
 
-**Fire-and-forget side effects:** Use `fireSideEffects()` from `lib/side-effects.ts` instead of calling `notify()` and score-sync functions directly. Keeps route handlers clean and makes tests trivial to write (mock the whole module as `vi.fn()`).
+**Fire-and-forget side effects:** Use `fireSideEffects()` from `lib/notifications/side-effects.ts` instead of calling `notify()` and score-sync functions directly. Keeps route handlers clean and makes tests trivial to write (mock the whole module as `vi.fn()`).
 
 ### Dark dashboard theme
 
@@ -416,11 +416,11 @@ The Prisma client is cached on `globalThis._prisma`. After every `db:push` that 
 
 Lightweight React Context — no next-intl, no route restructuring.
 
-- `src/lib/i18n.ts` — `Lang` type (`"sr" | "en" | "ru"`), `FLAGS` array (inline SVG, no emoji), translation map keyed by namespace + key
+- `src/lib/i18n/index.ts` — `Lang` type (`"sr" | "en" | "ru"`), `FLAGS` array (inline SVG, no emoji), translation map keyed by namespace + key
 - `src/components/providers/LanguageProvider.tsx` — `useState<Lang>("sr")`, reads/writes `ek_lang` to `localStorage`, type-safe `t(namespace, key)` helper
 - `src/components/ui/FlagSwitcher.tsx` — three inline SVG flag buttons (Serbia, UK, Russia); active = orange ring + scale-110. Use emoji flags nowhere — they don't render on Windows 10.
 
-Currently only the preloader page (`/`) is translated. Add new keys to `src/lib/i18n.ts` under the relevant namespace.
+Currently only the preloader page (`/`) is translated. Add new keys to `src/lib/i18n/index.ts` under the relevant namespace.
 
 ## Public Landing Pages
 
@@ -480,7 +480,7 @@ On mobile, `handleStartTour` calls `setMobileOpen(true)` + `setTimeout(startTour
 
 ### tourCompleted in JWT
 
-`User.tourCompleted` is seeded into the JWT at login (`authorize → jwt → session` callbacks in `lib/auth.ts`). No DB query needed at runtime. Caveat: if a user completes the tour, the JWT still shows `false` until they re-login. The `PATCH /api/user/tour-complete` call is idempotent so re-showing and re-completing is harmless.
+`User.tourCompleted` is seeded into the JWT at login (`authorize → jwt → session` callbacks in `lib/auth/config.ts`). No DB query needed at runtime. Caveat: if a user completes the tour, the JWT still shows `false` until they re-login. The `PATCH /api/user/tour-complete` call is idempotent so re-showing and re-completing is harmless.
 
 ### Styling
 
@@ -488,7 +488,7 @@ driver.js popover overrides are in `globals.css` under `/* ── driver.js tour
 
 ## Trust Score
 
-Bayesian scoring in `lib/trust-score.ts`. Score is 0–100.
+Bayesian scoring in `lib/scoring/trust-score.ts`. Score is 0–100.
 
 **Venue dimensions:** atmosphere, organization, pay, tips, hygieneStandards, management
 
@@ -499,20 +499,20 @@ Bayesian scoring in `lib/trust-score.ts`. Score is 0–100.
 `ID_VERIFIED` users get a ×1.2 weight multiplier on their reviews.
 
 Score sync flow (run by the publish-reviews cron):
-1. `publishDueReviews()` from `lib/review-lifecycle.ts` — moves PENDING reviews to PUBLISHED after the embargo window (2h for guest, 48h for others)
-2. `syncVenueTrustScore(venueId)` from `lib/sync-scores.ts` — recalculates venue score
-3. `syncPassportScore(waiterId)` from `lib/sync-scores.ts` — recalculates waiter passport score
+1. `publishDueReviews()` from `lib/scoring/review-lifecycle.ts` — moves PENDING reviews to PUBLISHED after the embargo window (2h for guest, 48h for others)
+2. `syncVenueTrustScore(venueId)` from `lib/scoring/sync.ts` — recalculates venue score
+3. `syncPassportScore(waiterId)` from `lib/scoring/sync.ts` — recalculates waiter passport score
 
-`lib/review-lifecycle.ts` — review state machine (time-based status transitions). Import `publishDueReviews` from here, not from `sync-scores.ts`.
+`lib/scoring/review-lifecycle.ts` — review state machine (time-based status transitions). Import `publishDueReviews` from here, not from `lib/scoring/sync.ts`.
 
 The cron endpoint `POST /api/cron/publish-reviews` runs this flow on a schedule. Requires `Authorization: Bearer <CRON_SECRET>`.
 
 ### Cron authorization
 
-All cron routes use `isCronAuthorized(req)` from `lib/cron-auth.ts`. **Never define a local `isAuthorized()` in a cron route** — it was previously copy-pasted 3× and has been consolidated.
+All cron routes use `isCronAuthorized(req)` from `lib/auth/cron-auth.ts`. **Never define a local `isAuthorized()` in a cron route** — it was previously copy-pasted 3× and has been consolidated.
 
 ```typescript
-import { isCronAuthorized } from "@/lib/cron-auth";
+import { isCronAuthorized } from "@/lib/auth/cron-auth";
 
 export async function GET(req: NextRequest) {
   if (!isCronAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -530,10 +530,10 @@ export async function GET(req: NextRequest) {
 - On failure: increments `waRetries`/`smsRetries`; stops retrying once count reaches 3
 - Returns `{ checked, waSent, waFailed, smsSent, smsFailed }`
 
-The cron is a **pure orchestrator** — retry helpers live in `lib/notify-retry.ts`:
+The cron is a **pure orchestrator** — retry helpers live in `lib/notifications/retry.ts`:
 
 ```typescript
-// lib/notify-retry.ts — used only by retry-notifications cron
+// lib/notifications/retry.ts — used only by retry-notifications cron
 retryWhatsApp(notificationId, phone, role, passport, title, body) → "sent" | "failed" | "skipped"
 retrySms(notificationId, phone, role, passport, title, body, link?) → "sent" | "failed" | "skipped"
 ```
@@ -543,9 +543,9 @@ Both functions apply the same role-bypass logic as `notify()` (non-WAITER roles 
 `notify()` increments `waRetries`/`smsRetries` on initial send failure instead of silently swallowing the error.
 
 **Notification module structure:**
-- `lib/notify-dispatch.ts` — `dispatchPush`, `dispatchWhatsApp`, `dispatchSms`, `buildSmsText` (pure network, no DB writes, no tier checks)
-- `lib/notify.ts` — `notify()` coordinator (DB create + tier check + dispatch orchestration + email fallback)
-- `lib/notify-retry.ts` — `retryWhatsApp`, `retrySms` (used only by retry-notifications cron)
+- `lib/notifications/dispatch.ts` — `dispatchPush`, `dispatchWhatsApp`, `dispatchSms`, `buildSmsText` (pure network, no DB writes, no tier checks)
+- `lib/notifications/notify.ts` — `notify()` coordinator (DB create + tier check + dispatch orchestration + email fallback)
+- `lib/notifications/retry.ts` — `retryWhatsApp`, `retrySms` (used only by retry-notifications cron)
 
 ## OAuth (Google / Facebook)
 
@@ -562,15 +562,15 @@ NextAuth is configured with `PrismaAdapter(dbRaw)` + JWT strategy. Adapter persi
 - Auth required. Accepts `WAITER | VENUE_OWNER | HEADHUNTER` only (no ADMIN escalation).
 - Updates `User.role` in DB.
 
-**JWT callback (lib/auth.ts):**
+**JWT callback (lib/auth/config.ts):**
 - `trigger === "update"` with `session.role` → patches token in place (no re-auth needed)
 - OAuth first sign-in: `account.provider !== "credentials"` → fetches role/verificationTier/tourCompleted from DB (adapter only returns basic fields)
 - Credentials first sign-in: `authorize()` already returns all fields
 
 **signIn callback:** rejects sign-ins for soft-deleted users (`deletedAt IS NOT NULL`).
 
-**Token revocation cache (`lib/auth-revocation.ts`):**
-- `isTokenRevoked(userId, tokenIat)` — checks in-process LRU cache (60s TTL, 5 000-entry cap) before hitting `TokenRevocation` table. Imported by `lib/auth.ts`; intentionally isolated so the cache can be unit-tested without importing `authOptions`.
+**Token revocation cache (`lib/auth/revocation.ts`):**
+- `isTokenRevoked(userId, tokenIat)` — checks in-process LRU cache (60s TTL, 5 000-entry cap) before hitting `TokenRevocation` table. Imported by `lib/auth/config.ts`; intentionally isolated so the cache can be unit-tested without importing `authOptions`.
 - `_clearRevCacheForTests()` — exported for test teardown only.
 
 **Account linking:** not implemented — same-email collision between credentials and OAuth returns a NextAuth error. Users must use the provider they originally signed up with.
@@ -582,7 +582,7 @@ POST /api/auth/forgot-password  { email }
   No auth. Rate-limited: 3/15min per IP (silent — always returns { ok: true } to prevent email enumeration).
   Looks up user by email. If user has no hashedPassword (OAuth-only account), silently returns ok.
   Creates PasswordResetToken (token: 32 random bytes hex, expiresAt: +1h).
-  Sends email via lib/email.ts (nodemailer SMTP — configured via SMTP_* env vars).
+  Sends email via lib/integrations/email.ts (nodemailer SMTP — configured via SMTP_* env vars).
 
 POST /api/auth/reset-password  { token, password }
   No auth. Validates: token exists, not usedAt, not expired, password ≥ 8 chars.
@@ -606,9 +606,9 @@ Login page links to `/reset-password` ("Zaboravili ste lozinku?").
 ## API Conventions
 
 - All routes use Next.js Route Handlers (`route.ts`)
-- Auth check: use `withRole` / `withAuth` from `lib/with-role.ts` (see below). Avoid calling `getServerSession` directly in new routes.
-- Body validation: use `parseBody` / `parseQuery` from `lib/parse-body.ts` (see below).
-- Rate limiting: `checkRateLimit(userId, action, max)` from `lib/rate-limit.ts`
+- Auth check: use `withRole` / `withAuth` from `lib/auth/with-role.ts` (see below). Avoid calling `getServerSession` directly in new routes.
+- Body validation: use `parseBody` / `parseQuery` from `lib/auth/parse-body.ts` (see below).
+- Rate limiting: `checkRateLimit(userId, action, max)` from `lib/core/rate-limit.ts`
 
 ### useRequireRole (client pages)
 
@@ -651,10 +651,10 @@ Do **not** inline `useState<Section>`, `useState(0)` for notifUnread, or the `to
 
 ### withRole / withAuth
 
-`lib/with-role.ts` — wraps a route handler with session auth + role check. The handler receives the typed `Session` — no need to call `getServerSession` again.
+`lib/auth/with-role.ts` — wraps a route handler with session auth + role check. The handler receives the typed `Session` — no need to call `getServerSession` again.
 
 ```typescript
-import { withRole, withAuth } from "@/lib/with-role";
+import { withRole, withAuth } from "@/lib/auth/with-role";
 
 // Single role
 export const GET = withRole("ADMIN", async (req, ctx, session) => {
@@ -677,10 +677,10 @@ Returns 401 when no session, 403 when wrong role.
 
 ### parseBody / parseQuery
 
-`lib/parse-body.ts` — validates request body or query params against a Zod schema. Returns a discriminated union — check `result.ok` before accessing `result.data`.
+`lib/auth/parse-body.ts` — validates request body or query params against a Zod schema. Returns a discriminated union — check `result.ok` before accessing `result.data`.
 
 ```typescript
-import { parseBody, parseQuery } from "@/lib/parse-body";
+import { parseBody, parseQuery } from "@/lib/auth/parse-body";
 import { z } from "zod";
 
 const Schema = z.object({ title: z.string().min(1), count: z.number().int().positive() });
@@ -900,7 +900,7 @@ GET /api/waiters
 ## Zone Analytics
 
 ```
-lib/analytics.ts — zone insight helpers (use dbRaw, not db):
+lib/geo/analytics.ts — zone insight helpers (use dbRaw, not db):
 
 getVenueZoneInsights(lat, lon) → VenueZoneInsights
   Finds all active VenueZone records the point falls within.
@@ -1082,7 +1082,7 @@ MONRI_AUTHENTICITY_TOKEN=""       # from Monri dashboard → API keys
 Test endpoint: `https://ipgtest.monri.com`  
 Production endpoint: `https://ipg.monri.com`
 
-### lib/monri.ts
+### lib/integrations/monri.ts
 
 ```typescript
 import { createPaymentSession, verifyCallback, callbackApproved } from "@/lib/monri";

@@ -2,15 +2,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   dbRaw: {
     venue: { findUnique: vi.fn(), delete: vi.fn() },
   },
 }));
 
 import { getServerSession } from "next-auth";
-import { dbRaw } from "@/lib/db";
+import { dbRaw } from "@/lib/core/db";
 import { DELETE } from "../route";
 
 const VENUE_ID = "venue-1";

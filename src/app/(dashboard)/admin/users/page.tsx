@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { PASSPORT_TIER_COLORS, ROLE_LABELS } from "@/lib/display-maps";
+import { PASSPORT_TIER_COLORS, ROLE_LABELS } from "@/lib/formatting/display-maps";
 import { timeAgo, Sk } from "../admin-helpers";
 import { useRequireRole } from "@/hooks/useRequireRole";
-import { getEffectiveTier } from "@/lib/passport-tier";
+import { getEffectiveTier } from "@/lib/passport/tier";
 
 type Passport = { passportTier: string; score: number; subscriptionExpiresAt: string | null };
 type User = {

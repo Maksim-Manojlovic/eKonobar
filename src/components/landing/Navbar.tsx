@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authOptions } from "@/lib/auth/config";
 
 function dashboardUrl(role: string | undefined): string {
   if (role === "VENUE_OWNER")  return "/venue";

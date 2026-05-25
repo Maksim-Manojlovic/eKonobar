@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dbRaw } from "@/lib/db";
-import { isCronAuthorized } from "@/lib/cron-auth";
-import { retryWhatsApp, retrySms } from "@/lib/notify-retry";
+import { dbRaw } from "@/lib/core/db";
+import { isCronAuthorized } from "@/lib/auth/cron-auth";
+import { retryWhatsApp, retrySms } from "@/lib/notifications/retry";
 
 // Retries failed WhatsApp and SMS notification sends.
 // Max 3 attempts per channel, within 24h of creation.

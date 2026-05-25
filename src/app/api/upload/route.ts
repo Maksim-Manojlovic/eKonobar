@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { withAuth } from "@/lib/with-role";
-import cloudinary from "@/lib/cloudinary";
-import logger from "@/lib/logger";
+import { withAuth } from "@/lib/auth/with-role";
+import cloudinary from "@/lib/integrations/cloudinary";
+import logger from "@/lib/core/logger";
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 

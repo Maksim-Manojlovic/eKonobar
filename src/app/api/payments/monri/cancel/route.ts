@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dbRaw } from "@/lib/db";
+import { dbRaw } from "@/lib/core/db";
 
 export async function GET(req: NextRequest) {
   const appUrl      = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";

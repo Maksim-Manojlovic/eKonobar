@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { withAuth, withRole } from "@/lib/with-role";
-import { db } from "@/lib/db";
-import { dbRaw } from "@/lib/db";
+import { withAuth, withRole } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
+import { dbRaw } from "@/lib/core/db";
 import type { Session } from "next-auth";
 
 // ── GET ───────────────────────────────────────────────────────────────────────

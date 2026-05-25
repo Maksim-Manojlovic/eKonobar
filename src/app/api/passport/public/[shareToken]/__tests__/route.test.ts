@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/core/db", () => ({
   db: {
     waiterPassport:   { findUnique: vi.fn() },
     engagementRecord: { findMany: vi.fn() },
@@ -9,7 +9,7 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
-import { db } from "@/lib/db";
+import { db } from "@/lib/core/db";
 import { GET } from "../route";
 
 const TOKEN     = "valid-token-abc123";

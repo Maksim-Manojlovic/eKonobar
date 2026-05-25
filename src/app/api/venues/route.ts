@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { withOptionalAuth, withRole } from "@/lib/with-role";
-import { db } from "@/lib/db";
+import { withOptionalAuth, withRole } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
 import { VenueType } from "@prisma/client";
 
 export const GET = withOptionalAuth(async (_req, _ctx, session) => {

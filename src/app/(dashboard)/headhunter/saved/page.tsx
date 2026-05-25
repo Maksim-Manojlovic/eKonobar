@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { VERIFICATION_TIER_COLORS } from "@/lib/display-maps";
+import { VERIFICATION_TIER_COLORS } from "@/lib/formatting/display-maps";
 import { Initials, PassportTierBadge } from "@/components/ui/PassportWidgets";
 import type { SavedEntry } from "../headhunter-types";
 

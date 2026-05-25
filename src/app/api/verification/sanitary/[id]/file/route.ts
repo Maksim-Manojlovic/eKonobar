@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { withRole } from "@/lib/with-role";
-import { dbRaw } from "@/lib/db";
-import { signCloudinaryUrl } from "@/lib/cloudinary";
+import { withRole } from "@/lib/auth/with-role";
+import { dbRaw } from "@/lib/core/db";
+import { signCloudinaryUrl } from "@/lib/integrations/cloudinary";
 
 export const GET = withRole<{ params: Promise<{ id: string }> }>("ADMIN", async (_req, ctx) => {
   const { id } = await ctx.params;

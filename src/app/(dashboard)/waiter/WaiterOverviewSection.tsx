@@ -2,8 +2,8 @@
 
 import type { Section, JobPost, MyApplication, WaiterShift, PassportData } from "./waiter-types";
 import { TIER_BADGE, NEXT_TIER } from "./waiter-constants";
-import { ENGAGEMENT_LABELS } from "@/lib/display-maps";
-import { formatSalary } from "@/lib/format-utils";
+import { ENGAGEMENT_LABELS } from "@/lib/formatting/display-maps";
+import { formatSalary } from "@/lib/formatting/utils";
 import { ApplyButton, MarketInsights, OverviewSkeleton, StatusBadge } from "./waiter-helpers";
 
 export function OverviewSection({ jobs, applications, shifts, userName, verificationTier, passport, onNavigate, onApply, applying, loading }: {

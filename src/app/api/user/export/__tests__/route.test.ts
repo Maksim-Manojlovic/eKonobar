@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   dbRaw: {
     user:              { findUnique: vi.fn() },
     waiterPassport:    { findUnique: vi.fn() },
@@ -18,7 +18,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import { getServerSession } from "next-auth";
-import { dbRaw } from "@/lib/db";
+import { dbRaw } from "@/lib/core/db";
 import { GET } from "../route";
 
 const USER_ID = "user-1";

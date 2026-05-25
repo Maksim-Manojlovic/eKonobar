@@ -8,7 +8,7 @@ import {
   APPLICATION_STATUS_COLORS,
   APPLICATION_STATUS_LABELS_VENUE,
   formatDate,
-} from "@/lib/display-maps";
+} from "@/lib/formatting/display-maps";
 
 type Application = {
   id: string;

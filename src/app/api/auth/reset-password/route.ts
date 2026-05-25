@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import { hash }         from "bcryptjs";
-import { dbRaw }        from "@/lib/db";
+import { dbRaw }        from "@/lib/core/db";
 
 export async function POST(req: Request) {
   const { token, password } = await req.json();

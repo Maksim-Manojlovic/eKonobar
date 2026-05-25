@@ -7,7 +7,7 @@ import {
   INVITE_STATUS_COLORS,
   INVITE_STATUS_LABELS,
   formatDate,
-} from "@/lib/display-maps";
+} from "@/lib/formatting/display-maps";
 import type { SentInvite, VenueInviteWaiter } from "../venue-types";
 
 import { useRequireRole } from "@/hooks/useRequireRole";

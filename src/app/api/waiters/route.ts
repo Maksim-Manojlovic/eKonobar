@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { withRole } from "@/lib/with-role";
-import { db } from "@/lib/db";
+import { withRole } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
 import { VerificationTier } from "@prisma/client";
 
 export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async (req, _ctx) => {

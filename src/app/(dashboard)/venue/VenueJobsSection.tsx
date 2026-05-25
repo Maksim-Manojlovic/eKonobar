@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import type { Section, AppFilter, OwnPost, IncomingApp, Venue } from "./venue-types";
-import { getInitials, formatSalary } from "@/lib/format-utils";
-import { formatDate } from "@/lib/display-maps";
-import { ENGAGEMENT_LABELS } from "@/lib/display-maps";
+import { getInitials, formatSalary } from "@/lib/formatting/utils";
+import { formatDate } from "@/lib/formatting/display-maps";
+import { ENGAGEMENT_LABELS } from "@/lib/formatting/display-maps";
 import { PostStatusBadge, AppStatusBadge, TierBadge, ScorePill, PostsSkeleton, ApplicationsSkeleton, EmptyVenue } from "./venue-helpers";
 /* ── Section: Posts ──────────────────────────────────────────────────────── */
 

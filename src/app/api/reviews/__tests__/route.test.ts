@@ -2,31 +2,31 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   db: {
     review: { create: vi.fn() },
     venue:  { findUnique: vi.fn() },
   },
 }));
-vi.mock("@/lib/sync-scores", () => ({
+vi.mock("@/lib/scoring/sync", () => ({
   syncVenueTrustScore: vi.fn().mockResolvedValue(undefined),
   syncPassportScore:   vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock("@/lib/rate-limit", () => ({
+vi.mock("@/lib/core/rate-limit", () => ({
   checkRateLimit: vi.fn().mockResolvedValue(true),
 }));
-vi.mock("@/lib/notify", () => ({
+vi.mock("@/lib/notifications/notify", () => ({
   notify: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock("@/lib/geofence", () => ({
+vi.mock("@/lib/geo/geofence", () => ({
   isInsideVenueRadius:   vi.fn().mockReturnValue({ allowed: true, distanceKm: 0.01, radiusKm: 0.15 }),
   createGeolocationHash: vi.fn().mockReturnValue("hash"),
   parseGuestCoordinates: vi.fn().mockReturnValue({ lat: 44.8, lon: 20.4 }),
 }));
 
 import { getServerSession } from "next-auth";
-import { db } from "@/lib/db";
+import { db } from "@/lib/core/db";
 import { POST } from "../route";
 
 const CTX = { params: Promise.resolve({}) };
@@ -99,7 +99,7 @@ describe("POST /api/reviews", () => {
 
   it("returns 429 when rate limit exceeded", async () => {
     mockSession();
-    const { checkRateLimit } = await import("@/lib/rate-limit");
+    const { checkRateLimit } = await import("@/lib/core/rate-limit");
     vi.mocked(checkRateLimit).mockResolvedValueOnce(false);
     const res = await POST(makeReq({ direction: "WAITER_TO_VENUE", venueId: "v1", overallRating: 80 }), CTX);
     expect(res.status).toBe(429);

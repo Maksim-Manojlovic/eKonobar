@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { withRole } from "@/lib/with-role";
-import { dbRaw } from "@/lib/db";
+import { withRole } from "@/lib/auth/with-role";
+import { dbRaw } from "@/lib/core/db";
 import { ZoneType } from "@prisma/client";
-import { refreshAllVenueZoneCaches } from "@/lib/analytics";
-import logger from "@/lib/logger";
+import { refreshAllVenueZoneCaches } from "@/lib/geo/analytics";
+import logger from "@/lib/core/logger";
 
 // PATCH — update zone fields
 export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", async (req, ctx) => {

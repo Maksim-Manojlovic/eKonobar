@@ -1,19 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/core/db", () => ({
   dbRaw: {
     waiterPassport:  { findMany: vi.fn(), update: vi.fn() },
     passportPayment: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
     $transaction:    vi.fn(),
   },
 }));
-vi.mock("@/lib/monri",  () => ({ chargeStoredCard: vi.fn() }));
-vi.mock("@/lib/notify", () => ({ notify: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/lib/integrations/monri",  () => ({ chargeStoredCard: vi.fn() }));
+vi.mock("@/lib/notifications/notify", () => ({ notify: vi.fn().mockResolvedValue(undefined) }));
 
-import { dbRaw } from "@/lib/db";
-import { chargeStoredCard } from "@/lib/monri";
-import { notify } from "@/lib/notify";
+import { dbRaw } from "@/lib/core/db";
+import { chargeStoredCard } from "@/lib/integrations/monri";
+import { notify } from "@/lib/notifications/notify";
 import { GET, POST } from "../route";
 
 const SECRET = "renew-secret";

@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import { randomBytes }  from "crypto";
-import { dbRaw }        from "@/lib/db";
-import { sendPasswordResetEmail } from "@/lib/email";
-import { rateLimit } from "@/lib/rate-limit";
+import { dbRaw }        from "@/lib/core/db";
+import { sendPasswordResetEmail } from "@/lib/integrations/email";
+import { rateLimit } from "@/lib/core/rate-limit";
 
 export async function POST(req: Request) {
   const { email } = await req.json();

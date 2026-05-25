@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { withOptionalAuth, withRole } from "@/lib/with-role";
-import { dbRaw } from "@/lib/db";
+import { withOptionalAuth, withRole } from "@/lib/auth/with-role";
+import { dbRaw } from "@/lib/core/db";
 import { ZoneType } from "@prisma/client";
-import { refreshAllVenueZoneCaches } from "@/lib/analytics";
-import logger from "@/lib/logger";
+import { refreshAllVenueZoneCaches } from "@/lib/geo/analytics";
+import logger from "@/lib/core/logger";
 
 // GET — list all zones (public for map, admin sees inactive too)
 export const GET = withOptionalAuth(async (req, _ctx, session) => {

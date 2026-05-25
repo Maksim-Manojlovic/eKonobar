@@ -1,4 +1,4 @@
-import { ENGAGEMENT_LABELS } from "@/lib/display-maps";
+import { ENGAGEMENT_LABELS } from "@/lib/formatting/display-maps";
 
 const VENUE_TYPE_ICONS: Record<string, string> = {
   RESTAURANT: "🍽️",

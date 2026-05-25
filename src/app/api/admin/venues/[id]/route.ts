@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { withRole } from "@/lib/with-role";
-import { dbRaw } from "@/lib/db";
+import { withRole } from "@/lib/auth/with-role";
+import { dbRaw } from "@/lib/core/db";
 
 // DELETE — GDPR hard-delete. Cascades to all related records via schema onDelete.
 // Uses dbRaw — bypasses soft-delete filter so already-soft-deleted venues can also be purged.

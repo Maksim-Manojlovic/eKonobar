@@ -9,7 +9,7 @@ import DashboardShell from "@/components/layout/DashboardShell";
 import { useDashboardNav } from "@/hooks/useDashboardNav";
 import type { Section, JobPost, MyApplication, WaiterShift, InviteItem, PassportData, ManagedShift } from "./waiter-types";
 import { SECTION_TITLES } from "./waiter-constants";
-import { getInitials } from "@/lib/format-utils";
+import { getInitials } from "@/lib/formatting/utils";
 import { NAV_ITEMS } from "./waiter-helpers";
 import { OverviewSection } from "./WaiterOverviewSection";
 import { AlertsSection, JobsSection, ApplicationsSection } from "./WaiterJobsSection";

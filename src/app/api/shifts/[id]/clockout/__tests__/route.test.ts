@@ -2,18 +2,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   db: {
     shift:           { findUnique: vi.fn() },
     shiftAssignment: { update: vi.fn() },
   },
 }));
-vi.mock("@/lib/shift-utils", () => ({ computeScheduledEnd: vi.fn() }));
+vi.mock("@/lib/shifts/utils", () => ({ computeScheduledEnd: vi.fn() }));
 
 import { getServerSession } from "next-auth";
-import { db } from "@/lib/db";
-import { computeScheduledEnd } from "@/lib/shift-utils";
+import { db } from "@/lib/core/db";
+import { computeScheduledEnd } from "@/lib/shifts/utils";
 import { POST } from "../route";
 
 const SHIFT_ID  = "shift-1";

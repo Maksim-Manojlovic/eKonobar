@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { withRole } from "@/lib/with-role";
-import { db } from "@/lib/db";
-import { fireSideEffects } from "@/lib/side-effects";
-import { isInsideVenueRadius, parseGuestCoordinates } from "@/lib/geofence";
+import { withRole } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
+import { fireSideEffects } from "@/lib/notifications/side-effects";
+import { isInsideVenueRadius, parseGuestCoordinates } from "@/lib/geo/geofence";
 
 const WINDOW_BEFORE_MS  = 15 * 60 * 1000;  // 15 min early
 const WINDOW_AFTER_MS   = 60 * 60 * 1000;  // 60 min late

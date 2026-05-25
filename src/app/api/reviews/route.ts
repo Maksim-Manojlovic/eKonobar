@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/with-role";
-import { db } from "@/lib/db";
+import { withAuth } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
 import {
   isInsideVenueRadius,
   createGeolocationHash,
   parseGuestCoordinates,
-} from "@/lib/geofence";
-import { checkRateLimit } from "@/lib/rate-limit";
-import { fireSideEffects } from "@/lib/side-effects";
-import { clampRating } from "@/lib/format-utils";
+} from "@/lib/geo/geofence";
+import { checkRateLimit } from "@/lib/core/rate-limit";
+import { fireSideEffects } from "@/lib/notifications/side-effects";
+import { clampRating } from "@/lib/formatting/utils";
 import { ReviewDirection } from "@prisma/client";
 
 // GET — public, no auth needed

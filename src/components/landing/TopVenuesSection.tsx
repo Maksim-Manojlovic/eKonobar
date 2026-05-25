@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { VENUE_TYPE_LABELS } from "@/lib/display-maps";
-import { getInitials } from "@/lib/format-utils";
+import { VENUE_TYPE_LABELS } from "@/lib/formatting/display-maps";
+import { getInitials } from "@/lib/formatting/utils";
 
 type ApiVenue = {
   id: string;

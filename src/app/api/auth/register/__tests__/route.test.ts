@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/core/db", () => ({
   dbRaw: {
     user: { findUnique: vi.fn(), create: vi.fn() },
   },
 }));
 vi.mock("bcryptjs", () => ({ hash: vi.fn().mockResolvedValue("hashed-pw") }));
 
-import { dbRaw } from "@/lib/db";
+import { dbRaw } from "@/lib/core/db";
 import { POST } from "../route";
 
 function makeReq(body: object) {

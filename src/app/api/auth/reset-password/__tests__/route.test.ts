@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/core/db", () => ({
   dbRaw: {
     passwordResetToken: { findUnique: vi.fn(), update: vi.fn() },
     user:               { update: vi.fn() },
@@ -9,7 +9,7 @@ vi.mock("@/lib/db", () => ({
 }));
 vi.mock("bcryptjs", () => ({ hash: vi.fn().mockResolvedValue("new-hashed-pw") }));
 
-import { dbRaw } from "@/lib/db";
+import { dbRaw } from "@/lib/core/db";
 import { POST } from "../route";
 
 function makeReq(body: object) {

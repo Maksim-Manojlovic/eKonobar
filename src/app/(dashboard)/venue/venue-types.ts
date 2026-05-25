@@ -1,4 +1,4 @@
-import type { VenueZoneInsights } from "@/lib/analytics";
+import type { VenueZoneInsights } from "@/lib/geo/analytics";
 
 export type Section = "overview" | "posts" | "new-post" | "smene" | "applications" | "waiters" | "discover" | "reviews" | "qr-review" | "profile" | "notifications";
 export type AppFilter = "SVE" | "PENDING" | "SHORTLISTED" | "ACCEPTED" | "REJECTED";

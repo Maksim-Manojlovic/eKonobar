@@ -1,6 +1,6 @@
 "use client";
 
-export { timeAgo } from "@/lib/format-utils";
+export { timeAgo } from "@/lib/formatting/utils";
 
 /* ── Skeleton ────────────────────────────────────────────────────────────── */
 

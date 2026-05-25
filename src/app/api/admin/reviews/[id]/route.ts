@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { withRole } from "@/lib/with-role";
-import { dbRaw } from "@/lib/db";
-import { fireSideEffects } from "@/lib/side-effects";
-import { logAudit } from "@/lib/audit";
+import { withRole } from "@/lib/auth/with-role";
+import { dbRaw } from "@/lib/core/db";
+import { fireSideEffects } from "@/lib/notifications/side-effects";
+import { logAudit } from "@/lib/core/audit";
 
 export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", async (req, ctx, session) => {
   const { id } = await ctx.params;

@@ -1,6 +1,6 @@
 "use client";
 
-import type { VenueZoneInsights } from "@/lib/analytics";
+import type { VenueZoneInsights } from "@/lib/geo/analytics";
 
 const ZONE_LABELS: Record<string, string> = {
   FESTIVAL_ZONE: "Festival zona",

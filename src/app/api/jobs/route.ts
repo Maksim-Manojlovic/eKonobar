@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { withOptionalAuth, withRole } from "@/lib/with-role";
-import { db } from "@/lib/db";
+import { withOptionalAuth, withRole } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
 import { EngagementType, TipSystem } from "@prisma/client";
-import { getEffectiveTier } from "@/lib/passport-tier";
-import { RED_ALERT_DELAY_MS } from "@/lib/subscription-constants";
+import { getEffectiveTier } from "@/lib/passport/tier";
+import { RED_ALERT_DELAY_MS } from "@/lib/passport/constants";
 
 export const GET = withOptionalAuth(async (req, _ctx, session) => {
   const { searchParams } = new URL(req.url);

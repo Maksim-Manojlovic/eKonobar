@@ -2,19 +2,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   dbRaw: {
     sanitaryBook: { findUnique: vi.fn() },
   },
 }));
-vi.mock("@/lib/cloudinary", () => ({
+vi.mock("@/lib/integrations/cloudinary", () => ({
   signCloudinaryUrl: vi.fn().mockReturnValue("https://res.cloudinary.com/signed?token=abc"),
 }));
 
 import { getServerSession } from "next-auth";
-import { dbRaw } from "@/lib/db";
-import { signCloudinaryUrl } from "@/lib/cloudinary";
+import { dbRaw } from "@/lib/core/db";
+import { signCloudinaryUrl } from "@/lib/integrations/cloudinary";
 import { GET } from "../route";
 
 const BOOK_ID = "book-1";

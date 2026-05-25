@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dbRaw } from "@/lib/db";
-import { verifyCallback, callbackApproved, type MonriCallbackPayload } from "@/lib/monri";
-import { fireSideEffects } from "@/lib/side-effects";
-import { SUBSCRIPTION_DURATION_MS } from "@/lib/subscription-constants";
+import { dbRaw } from "@/lib/core/db";
+import { verifyCallback, callbackApproved, type MonriCallbackPayload } from "@/lib/integrations/monri";
+import { fireSideEffects } from "@/lib/notifications/side-effects";
+import { SUBSCRIPTION_DURATION_MS } from "@/lib/passport/constants";
 
 export async function POST(req: NextRequest) {
   let payload: MonriCallbackPayload;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { VENUE_TYPE_LABELS } from "@/lib/display-maps";
+import { VENUE_TYPE_LABELS } from "@/lib/formatting/display-maps";
 
 export interface VenueCardProps {
   id: string;

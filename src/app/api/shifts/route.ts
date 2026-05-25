@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth, withRole } from "@/lib/with-role";
-import { db } from "@/lib/db";
-import { computeScheduledStart } from "@/lib/shift-utils";
+import { withAuth, withRole } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
+import { computeScheduledStart } from "@/lib/shifts/utils";
 import type { Session } from "next-auth";
 
 const ASSIGNMENT_SELECT = {

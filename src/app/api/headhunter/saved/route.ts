@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { withRole } from "@/lib/with-role";
-import { db } from "@/lib/db";
+import { withRole } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
 
 export const GET = withRole("HEADHUNTER", async (_req, _ctx, session) => {
   const saved = await db.savedProfile.findMany({

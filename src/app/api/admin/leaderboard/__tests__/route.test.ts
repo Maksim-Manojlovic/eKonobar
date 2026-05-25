@@ -2,8 +2,8 @@ import { NextRequest } from "next/server";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   dbRaw: {
     waiterPassport:   { findMany: vi.fn() },
     venueTrustScore:  { findMany: vi.fn() },
@@ -12,7 +12,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import { getServerSession } from "next-auth";
-import { dbRaw } from "@/lib/db";
+import { dbRaw } from "@/lib/core/db";
 import { GET } from "../route";
 
 const FUTURE = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);

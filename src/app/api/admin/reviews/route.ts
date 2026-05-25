@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { withRole } from "@/lib/with-role";
-import { dbRaw } from "@/lib/db";
+import { withRole } from "@/lib/auth/with-role";
+import { dbRaw } from "@/lib/core/db";
 
 export const GET = withRole("ADMIN", async () => {
   const reviews = await dbRaw.review.findMany({

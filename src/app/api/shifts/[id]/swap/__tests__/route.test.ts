@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   db: {
     shift:            { findUnique: vi.fn() },
     user:             { findUnique: vi.fn() },
@@ -11,10 +11,10 @@ vi.mock("@/lib/db", () => ({
     $transaction:     vi.fn(),
   },
 }));
-vi.mock("@/lib/notify", () => ({ notify: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/lib/notifications/notify", () => ({ notify: vi.fn().mockResolvedValue(undefined) }));
 
 import { getServerSession } from "next-auth";
-import { db } from "@/lib/db";
+import { db } from "@/lib/core/db";
 import { POST } from "../route";
 
 const SHIFT_ID     = "shift-1";

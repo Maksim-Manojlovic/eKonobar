@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/core/db", () => ({
   db: {
     jobPost: { findMany: vi.fn() },
   },
@@ -15,7 +15,7 @@ vi.mock("@prisma/client", () => ({
   },
 }));
 
-import { db } from "@/lib/db";
+import { db } from "@/lib/core/db";
 import { GET } from "../route";
 
 const BBOX = "swLat=44.7&swLng=20.3&neLat=44.9&neLng=20.5";

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { formatDate } from "@/lib/display-maps";
+import { formatDate } from "@/lib/formatting/display-maps";
 import { useRequireRole } from "@/hooks/useRequireRole";
 
 type SanitaryBook = {

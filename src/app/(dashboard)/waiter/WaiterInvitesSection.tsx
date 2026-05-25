@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import type { InviteItem } from "./waiter-types";
-import { formatDate } from "@/lib/display-maps";
-import { getInitials } from "@/lib/format-utils";
+import { formatDate } from "@/lib/formatting/display-maps";
+import { getInitials } from "@/lib/formatting/utils";
 import { InvitesSkeleton } from "./waiter-helpers";
 
 /* ── Section: Invites ────────────────────────────────────────────────────── */

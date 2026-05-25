@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { dbRaw } from "@/lib/db";
-import { chargeStoredCard } from "@/lib/monri";
-import { notify } from "@/lib/notify";
-import { isCronAuthorized } from "@/lib/cron-auth";
+import { dbRaw } from "@/lib/core/db";
+import { chargeStoredCard } from "@/lib/integrations/monri";
+import { notify } from "@/lib/notifications/notify";
+import { isCronAuthorized } from "@/lib/auth/cron-auth";
 import { PassportTier } from "@prisma/client";
-import logger from "@/lib/logger";
-import { SUBSCRIPTION_DURATION_MS } from "@/lib/subscription-constants";
+import logger from "@/lib/core/logger";
+import { SUBSCRIPTION_DURATION_MS } from "@/lib/passport/constants";
 
 const TIER_AMOUNT_RSD: Record<Exclude<PassportTier, "FREE">, number> = {
   PRO:      29000,

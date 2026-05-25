@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   db: {
     user: { update: vi.fn() },
   },
@@ -10,7 +10,7 @@ vi.mock("@/lib/db", () => ({
 
 import { getServerSession } from "next-auth";
 import { NextRequest } from "next/server";
-import { db } from "@/lib/db";
+import { db } from "@/lib/core/db";
 import { PATCH } from "../route";
 
 const CTX = { params: Promise.resolve({}) };

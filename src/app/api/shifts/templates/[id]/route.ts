@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { withRole } from "@/lib/with-role";
-import { db } from "@/lib/db";
-import { getManagedTemplate } from "@/lib/shift-auth";
+import { withRole } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
+import { getManagedTemplate } from "@/lib/shifts/auth";
 
 type Ctx = { params: Promise<{ id: string }> };
 

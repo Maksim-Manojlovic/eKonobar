@@ -2,17 +2,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   db: {
     shiftTemplate: { update: vi.fn(), delete: vi.fn() },
   },
 }));
-vi.mock("@/lib/shift-auth", () => ({ getManagedTemplate: vi.fn() }));
+vi.mock("@/lib/shifts/auth", () => ({ getManagedTemplate: vi.fn() }));
 
 import { getServerSession } from "next-auth";
-import { db } from "@/lib/db";
-import { getManagedTemplate } from "@/lib/shift-auth";
+import { db } from "@/lib/core/db";
+import { getManagedTemplate } from "@/lib/shifts/auth";
 import { PATCH, DELETE } from "../route";
 
 const OWNER_ID   = "owner-1";

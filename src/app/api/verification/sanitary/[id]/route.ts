@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { withRole } from "@/lib/with-role";
-import { dbRaw } from "@/lib/db";
-import { logAudit } from "@/lib/audit";
+import { withRole } from "@/lib/auth/with-role";
+import { dbRaw } from "@/lib/core/db";
+import { logAudit } from "@/lib/core/audit";
 
 // PATCH — admin approves or rejects a submission
 export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", async (req, ctx, session) => {

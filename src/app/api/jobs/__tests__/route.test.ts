@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   db: {
     jobPost:       { findMany: vi.fn(), create: vi.fn() },
     waiterPassport: { findUnique: vi.fn() },
@@ -12,7 +12,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import { getServerSession } from "next-auth";
-import { db } from "@/lib/db";
+import { db } from "@/lib/core/db";
 import { GET, POST } from "../route";
 
 const CTX = { params: Promise.resolve({}) };

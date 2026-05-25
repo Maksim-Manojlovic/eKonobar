@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/core/db", () => ({
   dbRaw: {
     passportPayment: { updateMany: vi.fn() },
   },
 }));
 
-import { dbRaw } from "@/lib/db";
+import { dbRaw } from "@/lib/core/db";
 import { GET } from "../route";
 
 function makeReq(orderNumber?: string) {

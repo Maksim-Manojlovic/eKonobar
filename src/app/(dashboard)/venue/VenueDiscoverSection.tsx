@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { OwnPost, IncomingApp, WaiterEntry, Venue } from "./venue-types";
-import { getInitials } from "@/lib/format-utils";
+import { getInitials } from "@/lib/formatting/utils";
 import { TierBadge, PassportTierBadge, ScorePill, DiscoverSkeleton, WaitersSkeleton } from "./venue-helpers";
 /* ── InviteModal ─────────────────────────────────────────────────────────── */
 

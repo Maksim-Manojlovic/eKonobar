@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { withRole } from "@/lib/with-role";
-import { db } from "@/lib/db";
-import { createPaymentSession } from "@/lib/monri";
+import { withRole } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
+import { createPaymentSession } from "@/lib/integrations/monri";
 import { PassportTier } from "@prisma/client";
 import crypto from "crypto";
 

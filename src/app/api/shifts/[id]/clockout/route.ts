@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { withRole } from "@/lib/with-role";
-import { db } from "@/lib/db";
-import { computeScheduledEnd } from "@/lib/shift-utils";
+import { withRole } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
+import { computeScheduledEnd } from "@/lib/shifts/utils";
 
 export const POST = withRole<{ params: Promise<{ id: string }> }>("WAITER", async (_req, ctx, session) => {
   const { id } = await ctx.params;

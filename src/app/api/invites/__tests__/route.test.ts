@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   db: {
     invite:  { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
     user:    { findFirst: vi.fn() },
@@ -11,11 +11,11 @@ vi.mock("@/lib/db", () => ({
     venue:   { findFirst: vi.fn() },
   },
 }));
-vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: vi.fn() }));
+vi.mock("@/lib/core/rate-limit", () => ({ checkRateLimit: vi.fn() }));
 
 import { getServerSession } from "next-auth";
-import { db } from "@/lib/db";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { db } from "@/lib/core/db";
+import { checkRateLimit } from "@/lib/core/rate-limit";
 import { GET, POST } from "../route";
 
 const OWNER_ID  = "owner-1";

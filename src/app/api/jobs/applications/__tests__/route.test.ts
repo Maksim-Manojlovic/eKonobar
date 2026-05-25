@@ -1,21 +1,21 @@
-﻿import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   db: {
     jobApplication: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn() },
     jobPost:        { findFirst: vi.fn() },
     waiterPassport: { findUnique: vi.fn(), update: vi.fn() },
   },
 }));
-vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: vi.fn() }));
-vi.mock("@/lib/notify", () => ({ notify: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/lib/core/rate-limit", () => ({ checkRateLimit: vi.fn() }));
+vi.mock("@/lib/notifications/notify", () => ({ notify: vi.fn().mockResolvedValue(undefined) }));
 
 import { getServerSession } from "next-auth";
-import { db } from "@/lib/db";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { db } from "@/lib/core/db";
+import { checkRateLimit } from "@/lib/core/rate-limit";
 import { GET, POST } from "../route";
 
 const WAITER_ID  = "waiter-1";

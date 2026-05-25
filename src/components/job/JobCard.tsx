@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ENGAGEMENT_LABELS } from "@/lib/display-maps";
+import { ENGAGEMENT_LABELS } from "@/lib/formatting/display-maps";
 
 const TIP_LABELS: Record<string, string> = {
   INDIVIDUAL:   "Lični bakšiš",

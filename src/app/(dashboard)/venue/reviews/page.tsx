@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { VERIFICATION_TIER_COLORS, formatDate } from "@/lib/display-maps";
+import { VERIFICATION_TIER_COLORS, formatDate } from "@/lib/formatting/display-maps";
 
 type Venue = { id: string; name: string };
 

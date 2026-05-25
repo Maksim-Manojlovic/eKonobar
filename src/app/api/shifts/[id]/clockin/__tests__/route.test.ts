@@ -2,22 +2,22 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   db: {
     shift:            { findUnique: vi.fn() },
     shiftAssignment:  { update: vi.fn() },
   },
 }));
-vi.mock("@/lib/notify", () => ({ notify: vi.fn().mockResolvedValue(undefined) }));
-vi.mock("@/lib/geofence", () => ({
+vi.mock("@/lib/notifications/notify", () => ({ notify: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/lib/geo/geofence", () => ({
   isInsideVenueRadius:    vi.fn(),
   parseGuestCoordinates:  vi.fn(),
 }));
 
 import { getServerSession } from "next-auth";
-import { db } from "@/lib/db";
-import { isInsideVenueRadius, parseGuestCoordinates } from "@/lib/geofence";
+import { db } from "@/lib/core/db";
+import { isInsideVenueRadius, parseGuestCoordinates } from "@/lib/geo/geofence";
 import { POST } from "../route";
 
 const SHIFT_ID  = "shift-1";

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { withRole } from "@/lib/with-role";
-import { db } from "@/lib/db";
-import { computeScheduledStart } from "@/lib/shift-utils";
-import { getManagedShift } from "@/lib/shift-auth";
+import { withRole } from "@/lib/auth/with-role";
+import { db } from "@/lib/core/db";
+import { computeScheduledStart } from "@/lib/shifts/utils";
+import { getManagedShift } from "@/lib/shifts/auth";
 
 type Ctx = { params: Promise<{ id: string }> };
 

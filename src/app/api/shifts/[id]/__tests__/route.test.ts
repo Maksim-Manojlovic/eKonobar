@@ -2,20 +2,20 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
-vi.mock("@/lib/db", () => ({
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+vi.mock("@/lib/core/db", () => ({
   db: {
     shift: { update: vi.fn(), delete: vi.fn() },
     user:  { findMany: vi.fn() },
   },
 }));
-vi.mock("@/lib/shift-auth", () => ({ getManagedShift: vi.fn() }));
-vi.mock("@/lib/shift-utils", () => ({ computeScheduledStart: vi.fn(() => new Date("2025-06-15T18:00:00Z")) }));
-vi.mock("@/lib/logger", () => ({ default: { error: vi.fn() } }));
+vi.mock("@/lib/shifts/auth", () => ({ getManagedShift: vi.fn() }));
+vi.mock("@/lib/shifts/utils", () => ({ computeScheduledStart: vi.fn(() => new Date("2025-06-15T18:00:00Z")) }));
+vi.mock("@/lib/core/logger", () => ({ default: { error: vi.fn() } }));
 
 import { getServerSession } from "next-auth";
-import { db } from "@/lib/db";
-import { getManagedShift } from "@/lib/shift-auth";
+import { db } from "@/lib/core/db";
+import { getManagedShift } from "@/lib/shifts/auth";
 import { PATCH, DELETE } from "../route";
 
 const OWNER_ID = "owner-1";

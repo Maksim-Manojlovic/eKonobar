@@ -1,6 +1,6 @@
 "use client";
 
-import { getInitials } from "@/lib/format-utils";
+import { getInitials } from "@/lib/formatting/utils";
 
 // ── Initials avatar ───────────────────────────────────────────────────────────
 
