@@ -12,6 +12,7 @@ vi.mock("@/lib/db", () => ({
 import { getServerSession } from "next-auth";
 import { db } from "@/lib/db";
 import { POST } from "../route";
+import { SUBSCRIPTION_DURATION_MS } from "@/lib/subscription-constants";
 
 const USER_ID = "waiter-1";
 
@@ -91,7 +92,7 @@ describe("POST /api/passport/subscribe", () => {
     const after = Date.now();
     const updateCall = vi.mocked(db.waiterPassport.update).mock.calls[0][0];
     const expiry = updateCall.data.subscriptionExpiresAt as Date;
-    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+    const thirtyDays = SUBSCRIPTION_DURATION_MS;
     expect(expiry.getTime()).toBeGreaterThanOrEqual(before + thirtyDays - 1000);
     expect(expiry.getTime()).toBeLessThanOrEqual(after  + thirtyDays + 1000);
   });
@@ -104,7 +105,7 @@ describe("POST /api/passport/subscribe", () => {
     await POST(makeReq({ tier: "PRO" }), {} as never);
     const updateCall = vi.mocked(db.waiterPassport.update).mock.calls[0][0];
     const expiry = updateCall.data.subscriptionExpiresAt as Date;
-    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+    const thirtyDays = SUBSCRIPTION_DURATION_MS;
     expect(Math.abs(expiry.getTime() - (FUTURE_EXPIRY.getTime() + thirtyDays))).toBeLessThan(1000);
   });
 
@@ -118,7 +119,7 @@ describe("POST /api/passport/subscribe", () => {
     const after = Date.now();
     const updateCall = vi.mocked(db.waiterPassport.update).mock.calls[0][0];
     const expiry = updateCall.data.subscriptionExpiresAt as Date;
-    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+    const thirtyDays = SUBSCRIPTION_DURATION_MS;
     expect(expiry.getTime()).toBeGreaterThanOrEqual(before + thirtyDays - 1000);
     expect(expiry.getTime()).toBeLessThanOrEqual(after  + thirtyDays + 1000);
   });

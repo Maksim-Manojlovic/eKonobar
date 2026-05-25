@@ -6,6 +6,7 @@ import { notify } from "@/lib/notify";
 import { isCronAuthorized } from "@/lib/cron-auth";
 import { PassportTier } from "@prisma/client";
 import logger from "@/lib/logger";
+import { SUBSCRIPTION_DURATION_MS } from "@/lib/subscription-constants";
 
 const TIER_AMOUNT_RSD: Record<Exclude<PassportTier, "FREE">, number> = {
   PRO:      29000,
@@ -68,7 +69,7 @@ async function run() {
     if (approved) {
       // Extend from current expiry to avoid date drift on late cron runs
       const base      = passport.subscriptionExpiresAt ?? now;
-      const newExpiry = new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const newExpiry = new Date(base.getTime() + SUBSCRIPTION_DURATION_MS);
 
       await dbRaw.$transaction([
         dbRaw.passportPayment.update({

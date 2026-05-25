@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbRaw } from "@/lib/db";
 import { verifyCallback, callbackApproved, type MonriCallbackPayload } from "@/lib/monri";
 import { fireSideEffects } from "@/lib/side-effects";
+import { SUBSCRIPTION_DURATION_MS } from "@/lib/subscription-constants";
 
 export async function POST(req: NextRequest) {
   let payload: MonriCallbackPayload;
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
   const now     = new Date();
   const base    = payment.user.waiterPassport?.subscriptionExpiresAt;
   const startFrom = base && base > now ? base : now;
-  const subscriptionExpiresAt = new Date(startFrom.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const subscriptionExpiresAt = new Date(startFrom.getTime() + SUBSCRIPTION_DURATION_MS);
 
   await dbRaw.$transaction([
     dbRaw.passportPayment.update({

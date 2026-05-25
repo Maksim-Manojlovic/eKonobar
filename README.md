@@ -269,6 +269,7 @@ src/
     sms.ts             # Infobip SMS sender
     monri.ts           # Monri payment gateway client
     passport-tier.ts   # getEffectiveTier, isPro, isProPlus, tierRank — canonical tier resolution
+    subscription-constants.ts  # SUBSCRIPTION_DURATION_MS (30d), RED_ALERT_DELAY_MS (30min)
     format-utils.ts    # getInitials, formatSalary — pure formatting, no project imports
     display-maps.ts    # VERIFICATION_TIER_COLORS, PASSPORT_TIER_COLORS, APPLICATION_STATUS_* etc.
     parse-body.ts      # parseBody / parseQuery — Zod-validated request parsing

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { withRole } from "@/lib/with-role";
 import { db } from "@/lib/db";
 import { PassportTier } from "@prisma/client";
+import { SUBSCRIPTION_DURATION_MS } from "@/lib/subscription-constants";
 
 const TIER_PRICES: Record<PassportTier, number> = {
   FREE: 0,
@@ -45,7 +46,7 @@ export const POST = withRole("WAITER", async (req, _ctx, session) => {
   const base = passport.subscriptionExpiresAt && passport.subscriptionExpiresAt > now
     ? passport.subscriptionExpiresAt
     : now;
-  const subscriptionExpiresAt = new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const subscriptionExpiresAt = new Date(base.getTime() + SUBSCRIPTION_DURATION_MS);
 
   const updated = await db.waiterPassport.update({
     where: { userId: session.user.id },

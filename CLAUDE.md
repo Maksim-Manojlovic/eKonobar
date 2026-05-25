@@ -104,7 +104,7 @@ Guest reviews use 150m radius (venue.reviewRadiusKm). Shift clock-in uses a stri
 }),
 ```
 
-`redAlertCreatedAfter = new Date(now - 30 * 60 * 1000)` for FREE, `undefined` for PRO/PRO_PLUS and unauthenticated users.
+`redAlertCreatedAfter = new Date(now - RED_ALERT_DELAY_MS)` (from `lib/subscription-constants.ts`) for FREE, `undefined` for PRO/PRO_PLUS and unauthenticated users.
 
 ### Coordinate jitter
 
