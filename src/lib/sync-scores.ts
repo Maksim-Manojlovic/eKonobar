@@ -6,28 +6,6 @@ import {
   calculatePassportScoreDimensions,
 } from "@/lib/trust-score";
 
-// ─── Review publish ───────────────────────────────────────────────────────────
-
-/**
- * Objavljuje sve PENDING recenzije čiji je pendingUntil prošao.
- * Poziva se iz cron job-a (npr. svakih 15 min).
- * Vraća broj objavljenih recenzija.
- */
-export async function publishDueReviews(): Promise<number> {
-  const now = new Date();
-  const result = await dbRaw.review.updateMany({
-    where: {
-      status: "PENDING",
-      pendingUntil: { lte: now },
-    },
-    data: {
-      status: "PUBLISHED",
-      publishedAt: now,
-    },
-  });
-  return result.count;
-}
-
 // ─── Venue trust score sync ───────────────────────────────────────────────────
 
 /**

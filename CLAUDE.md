@@ -498,10 +498,12 @@ Bayesian scoring in `lib/trust-score.ts`. Score is 0–100.
 
 `ID_VERIFIED` users get a ×1.2 weight multiplier on their reviews.
 
-Score sync flow (run via `lib/sync-scores.ts`):
-1. `publishDueReviews()` — moves PENDING reviews to PUBLISHED after the embargo window (2h for guest, 48h for others)
-2. `syncVenueTrustScore(venueId)` — recalculates venue score
-3. `syncPassportScore(waiterId)` — recalculates waiter passport score
+Score sync flow (run by the publish-reviews cron):
+1. `publishDueReviews()` from `lib/review-lifecycle.ts` — moves PENDING reviews to PUBLISHED after the embargo window (2h for guest, 48h for others)
+2. `syncVenueTrustScore(venueId)` from `lib/sync-scores.ts` — recalculates venue score
+3. `syncPassportScore(waiterId)` from `lib/sync-scores.ts` — recalculates waiter passport score
+
+`lib/review-lifecycle.ts` — review state machine (time-based status transitions). Import `publishDueReviews` from here, not from `sync-scores.ts`.
 
 The cron endpoint `POST /api/cron/publish-reviews` runs this flow on a schedule. Requires `Authorization: Bearer <CRON_SECRET>`.
 

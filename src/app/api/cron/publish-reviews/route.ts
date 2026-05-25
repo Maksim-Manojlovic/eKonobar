@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbRaw } from "@/lib/db";
-import { publishDueReviews, syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
+import { publishDueReviews } from "@/lib/review-lifecycle";
+import { syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
 import { isCronAuthorized } from "@/lib/cron-auth";
 import logger from "@/lib/logger";
 

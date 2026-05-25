@@ -8,14 +8,17 @@ vi.mock("@/lib/db", () => ({
     review:        { findMany: vi.fn() },
   },
 }));
+vi.mock("@/lib/review-lifecycle", () => ({
+  publishDueReviews: vi.fn(),
+}));
 vi.mock("@/lib/sync-scores", () => ({
-  publishDueReviews:  vi.fn(),
   syncVenueTrustScore: vi.fn().mockResolvedValue(undefined),
   syncPassportScore:   vi.fn().mockResolvedValue(undefined),
 }));
 
 import { dbRaw } from "@/lib/db";
-import { publishDueReviews, syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
+import { publishDueReviews } from "@/lib/review-lifecycle";
+import { syncVenueTrustScore, syncPassportScore } from "@/lib/sync-scores";
 import { GET, POST } from "../route";
 
 const SECRET = "test-cron-secret";
