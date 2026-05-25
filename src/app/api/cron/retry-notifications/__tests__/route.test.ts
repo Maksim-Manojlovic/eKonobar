@@ -3,13 +3,17 @@ import { NextRequest } from "next/server";
 
 vi.mock("@/lib/db", () => ({
   dbRaw: {
-    notification: { findMany: vi.fn(), update: vi.fn() },
+    notification: { findMany: vi.fn() },
+  },
+  db: {
+    notification: { update: vi.fn() },
+    pushSubscription: { delete: vi.fn() },
   },
 }));
 vi.mock("@/lib/whatsapp", () => ({ sendWhatsApp: vi.fn() }));
 vi.mock("@/lib/sms",       () => ({ sendSms:      vi.fn() }));
 
-import { dbRaw } from "@/lib/db";
+import { dbRaw, db } from "@/lib/db";
 import { sendWhatsApp } from "@/lib/whatsapp";
 import { sendSms }      from "@/lib/sms";
 import { GET, POST }    from "../route";
@@ -28,6 +32,7 @@ const BASE_NOTIF = {
   smsSent: false,
   smsRetries: 0,
   user: {
+    role: "WAITER",
     phone: "+381611234567",
     waOptIn: true,
     smsOptIn: true,
@@ -51,7 +56,7 @@ describe("GET /api/cron/retry-notifications", () => {
     vi.clearAllMocks();
     vi.stubEnv("CRON_SECRET", SECRET);
     vi.mocked(dbRaw.notification.findMany).mockResolvedValue([]);
-    vi.mocked(dbRaw.notification.update).mockResolvedValue(undefined as never);
+    vi.mocked(db.notification.update).mockResolvedValue(undefined as never);
     vi.mocked(sendWhatsApp).mockResolvedValue(undefined);
     vi.mocked(sendSms).mockResolvedValue(undefined);
   });
@@ -131,7 +136,7 @@ describe("GET /api/cron/retry-notifications", () => {
   it("marks waSent=true on success", async () => {
     vi.mocked(dbRaw.notification.findMany).mockResolvedValue([BASE_NOTIF] as never);
     await GET(makeReq());
-    expect(vi.mocked(dbRaw.notification.update)).toHaveBeenCalledWith(
+    expect(vi.mocked(db.notification.update)).toHaveBeenCalledWith(
       expect.objectContaining({ data: { waSent: true } }),
     );
   });
@@ -142,7 +147,7 @@ describe("POST /api/cron/retry-notifications", () => {
     vi.clearAllMocks();
     vi.stubEnv("CRON_SECRET", SECRET);
     vi.mocked(dbRaw.notification.findMany).mockResolvedValue([]);
-    vi.mocked(dbRaw.notification.update).mockResolvedValue(undefined as never);
+    vi.mocked(db.notification.update).mockResolvedValue(undefined as never);
   });
 
   it("authorized POST → 200", async () => {
