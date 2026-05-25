@@ -7,6 +7,7 @@ import Image from "next/image";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { NotificationsSection } from "@/components/ui/NotificationsSection";
 import { useDashboardTour } from "@/hooks/useDashboardTour";
+import { useDashboardNav } from "@/hooks/useDashboardNav";
 import DashboardShell, { type DashboardShellHandle } from "@/components/layout/DashboardShell";
 import type { Section, Venue, OwnPost, IncomingApp, WaiterEntry, VenueShift } from "./venue-types";
 import { SECTION_TITLES } from "./venue-constants";
@@ -222,14 +223,13 @@ const NAV_ITEMS: { key: Section; label: string; icon: React.ReactNode }[] = [
 
 export default function VenueDashboard() {
   const { data: session } = useSession();
-  const [section, setSection]           = useState<Section>("overview");
+  const { section, setSection, notifUnread, setNotifUnread, today } = useDashboardNav<Section>("overview");
   const [venue, setVenue]               = useState<Venue | null>(null);
   const [posts, setPosts]               = useState<OwnPost[]>([]);
   const [applications, setApplications] = useState<IncomingApp[]>([]);
   const [shifts, setShifts]             = useState<VenueShift[]>([]);
   const [loading, setLoading]           = useState(true);
   const [inviteTarget, setInviteTarget] = useState<WaiterEntry | null>(null);
-  const [notifUnread, setNotifUnread]   = useState(0);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const shellRef = useRef<DashboardShellHandle>(null);
@@ -322,8 +322,6 @@ export default function VenueDashboard() {
       .filter(a => a.status === "ACCEPTED")
       .map(a => [a.waiter.id, { id: a.waiter.id, name: a.waiter.name }])
   ).values()];
-  const today = new Date().toLocaleDateString("sr-Latn-RS", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
-
   const navContent = (closeMenu?: () => void, idPrefix = "tour") => (
     <>
       <nav className="flex-1 px-3 py-4 flex flex-col gap-1">

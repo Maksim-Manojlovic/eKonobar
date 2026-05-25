@@ -600,6 +600,25 @@ const { session, status } = useRequireRole("HEADHUNTER");
 
 Do **not** write `useEffect(() => { if (status === "unauthenticated") router.push... })` inline in pages — this pattern was removed from all 17 dashboard/protected pages and must not be reintroduced.
 
+### useDashboardNav (dashboard root pages)
+
+`src/hooks/useDashboardNav.ts` — bundles shared nav state for every dashboard root component. Generic over `<S>` so each dashboard keeps its own `Section` type.
+
+```typescript
+import { useDashboardNav } from "@/hooks/useDashboardNav";
+
+// In VenueDashboard / WaiterDashboard / any dashboard root:
+const { section, setSection, notifUnread, setNotifUnread, today } =
+  useDashboardNav<Section>("overview");
+```
+
+Returns:
+- `section` / `setSection` — active section state
+- `notifUnread` / `setNotifUnread` — unread notification count (fed into `NotificationBell.onUnreadChange`)
+- `today` — Serbian-locale date string passed to `DashboardShell.today`
+
+Do **not** inline `useState<Section>`, `useState(0)` for notifUnread, or the `toLocaleDateString("sr-Latn-RS", ...)` today computation in dashboard root pages — use this hook.
+
 ### withRole / withAuth
 
 `lib/with-role.ts` — wraps a route handler with session auth + role check. The handler receives the typed `Session` — no need to call `getServerSession` again.

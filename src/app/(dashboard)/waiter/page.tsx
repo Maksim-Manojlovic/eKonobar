@@ -6,6 +6,7 @@ import { signOut } from "next-auth/react";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { NotificationsSection } from "@/components/ui/NotificationsSection";
 import DashboardShell from "@/components/layout/DashboardShell";
+import { useDashboardNav } from "@/hooks/useDashboardNav";
 import type { Section, JobPost, MyApplication, WaiterShift, InviteItem, PassportData, ManagedShift } from "./waiter-types";
 import { SECTION_TITLES } from "./waiter-constants";
 import { getInitials } from "@/lib/format-utils";
@@ -21,7 +22,7 @@ import PassportSection from "./WaiterPassportSection";
 
 export default function WaiterDashboard() {
   const { data: session } = useSession();
-  const [section, setSection]           = useState<Section>("overview");
+  const { section, setSection, notifUnread, setNotifUnread, today } = useDashboardNav<Section>("overview");
   const [paymentToast, setPaymentToast] = useState<"success" | "cancelled" | null>(null);
 
   useEffect(() => {
@@ -42,7 +43,6 @@ export default function WaiterDashboard() {
   const [shifts, setShifts]             = useState<WaiterShift[]>([]);
   const [invites, setInvites]           = useState<InviteItem[]>([]);
   const [passport, setPassport]         = useState<PassportData | null>(null);
-  const [notifUnread, setNotifUnread]   = useState(0);
   const [managedVenue, setManagedVenue] = useState<{ id: string; name: string } | null>(null);
   const [managedShifts, setManagedShifts] = useState<ManagedShift[]>([]);
 
@@ -95,8 +95,6 @@ export default function WaiterDashboard() {
   const appliedJobIds = new Set(applications.map(a => a.jobPost.id));
   const alertCount    = jobs.filter(j => j.redAlert).length;
   const inviteCount   = invites.filter(i => i.status === "PENDING").length;
-  const today = new Date().toLocaleDateString("sr-Latn-RS", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
-
   const navContent = (closeMenu?: () => void) => (
     <>
       <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
