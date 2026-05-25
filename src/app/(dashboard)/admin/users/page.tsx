@@ -5,6 +5,7 @@ import Link from "next/link";
 import { PASSPORT_TIER_COLORS, ROLE_LABELS } from "@/lib/display-maps";
 import { timeAgo, Sk } from "../admin-helpers";
 import { useRequireRole } from "@/hooks/useRequireRole";
+import { getEffectiveTier } from "@/lib/passport-tier";
 
 type Passport = { passportTier: string; score: number; subscriptionExpiresAt: string | null };
 type User = {
@@ -127,10 +128,10 @@ export default function AdminUsersPage() {
               {users.map(u => {
                 const isDeleted = !!u.deletedAt;
                 const passport = u.waiterPassport;
-                const isProActive = passport?.subscriptionExpiresAt
-                  ? new Date(passport.subscriptionExpiresAt) > new Date()
-                  : false;
-                const tier = isProActive ? (passport?.passportTier ?? "FREE") : "FREE";
+                const tier = getEffectiveTier(passport ? {
+                  passportTier: passport.passportTier,
+                  subscriptionExpiresAt: passport.subscriptionExpiresAt ? new Date(passport.subscriptionExpiresAt) : null,
+                } : null);
 
                 return (
                   <div
