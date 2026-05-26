@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { VERIFICATION_TIER_COLORS, DIRECTION_LABELS, formatDate } from "@/lib/formatting/display-maps";
 import { useRequireRole } from "@/hooks/useRequireRole";
+import { Stars } from "@/components/ui/Stars";
 
 type Review = {
   id: string;
@@ -17,15 +18,6 @@ type Review = {
   venue: { id: string; name: string; municipality: string } | null;
   subject: { id: string; name: string | null } | null;
 };
-
-function Stars({ rating }: { rating: number }) {
-  const stars = Math.round(rating / 20);
-  return (
-    <span className="text-amber-400 text-sm">
-      {"★".repeat(stars)}{"☆".repeat(5 - stars)}
-    </span>
-  );
-}
 
 export default function AdminModerationPage() {
   const { status } = useRequireRole("ADMIN");

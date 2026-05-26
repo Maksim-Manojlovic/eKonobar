@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { Section, MarketData } from "./waiter-types";
+export { Stars } from "@/components/ui/Stars";
 
 /* ── Application status helper ───────────────────────────────────────────── */
 
@@ -21,10 +22,6 @@ export function StatusBadge({ status }: { status: string }) {
     PENDING: "Na čekanju", REJECTED: "Odbijeno", WITHDRAWN: "Povučena",
   };
   return <span className={`${cls} text-xs font-semibold px-2.5 py-0.5 rounded-full`}>{labels[status] ?? status}</span>;
-}
-
-export function Stars({ n }: { n: number }) {
-  return <span className="text-amber-400 text-sm">{"★".repeat(n)}{"☆".repeat(5 - n)}</span>;
 }
 
 export function Spinner() {

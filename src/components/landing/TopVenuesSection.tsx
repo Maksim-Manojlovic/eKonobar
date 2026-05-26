@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { VENUE_TYPE_LABELS } from "@/lib/formatting/display-maps";
 import { getInitials } from "@/lib/formatting/utils";
+import { Stars } from "@/components/ui/Stars";
 
 type ApiVenue = {
   id: string;
@@ -44,25 +45,6 @@ const FALLBACK = [
   { name: "Bar Central",   venueType: "BAR",         municipality: "Dorćol",      trustScore: 90 },
   { name: "Pekara Trpković",venueType: "CAFE",       municipality: "Više lokacija",trustScore: 92 },
 ] as const;
-
-function Stars({ rating }: { rating: number }) {
-  const full = Math.floor(rating);
-  const empty = 5 - full;
-  return (
-    <div className="flex items-center gap-0.5">
-      {Array.from({ length: full }).map((_, i) => (
-        <svg key={`f${i}`} width="12" height="12" viewBox="0 0 10 10" fill="#f97316">
-          <path d="M5 1L6.18 3.42L9 3.82L7 5.77L7.49 8.58L5 7.24L2.51 8.58L3 5.77L1 3.82L3.82 3.42L5 1Z" />
-        </svg>
-      ))}
-      {Array.from({ length: empty }).map((_, i) => (
-        <svg key={`e${i}`} width="12" height="12" viewBox="0 0 10 10" fill="#94a3b8">
-          <path d="M5 1L6.18 3.42L9 3.82L7 5.77L7.49 8.58L5 7.24L2.51 8.58L3 5.77L1 3.82L3.82 3.42L5 1Z" />
-        </svg>
-      ))}
-    </div>
-  );
-}
 
 function VenueCard({ venue, featured }: { venue: ApiVenue; featured: boolean; idx?: number }) {
   const gradient = VENUE_TYPE_GRADIENTS[venue.venueType] ?? VENUE_TYPE_GRADIENTS.OTHER;
@@ -116,7 +98,7 @@ function VenueCard({ venue, featured }: { venue: ApiVenue; featured: boolean; id
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Stars rating={rating} />
+            <Stars rating={venue.trustScore} />
             <span className="text-white font-bold text-sm">{rating}</span>
           </div>
           <span className={`text-xs font-semibold group-hover:translate-x-1 transition-transform inline-block ${applyColor}`}>

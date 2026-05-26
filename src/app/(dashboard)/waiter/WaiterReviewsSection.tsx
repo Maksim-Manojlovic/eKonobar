@@ -36,7 +36,6 @@ export function ReviewsSection() {
       ) : (
         <div className="flex flex-col gap-4">
           {reviews.map(r => {
-            const stars = Math.round(r.overallRating / 20);
             const date = r.publishedAt
               ? new Date(r.publishedAt).toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "short", year: "numeric" })
               : "";
@@ -50,7 +49,7 @@ export function ReviewsSection() {
                         {DIRECTION_LABELS[r.direction] ?? r.direction}
                       </span>
                     </div>
-                    <Stars n={stars} />
+                    <Stars rating={r.overallRating} />
                   </div>
                   <span className="text-xs text-neutral-400 flex-shrink-0">{date}</span>
                 </div>

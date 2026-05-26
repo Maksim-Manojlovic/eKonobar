@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { VERIFICATION_TIER_COLORS, formatDate } from "@/lib/formatting/display-maps";
+import { Stars } from "@/components/ui/Stars";
 
 type Venue = { id: string; name: string };
 
@@ -29,11 +30,6 @@ const DIM_LABELS = [
   { key: "ratingHygieneWork",  label: "Higijena" },
   { key: "ratingManagement",   label: "Menadžment" },
 ] as const;
-
-function Stars({ rating }: { rating: number }) {
-  const stars = Math.round(rating / 20);
-  return <span className="text-amber-400 text-sm">{"★".repeat(stars)}{"☆".repeat(5 - stars)}</span>;
-}
 
 import { useRequireRole } from "@/hooks/useRequireRole";
 export default function VenueReviewsPage() {
