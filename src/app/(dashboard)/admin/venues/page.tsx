@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { VENUE_TYPE_LABELS } from "@/lib/formatting/display-maps";
-import { timeAgo } from "../admin-helpers";
+import { timeAgo, Sk } from "../admin-helpers";
 import { useRequireRole } from "@/hooks/useRequireRole";
 
 type Owner = { id: string; name: string | null; email: string };
@@ -14,12 +14,6 @@ type Venue = {
   _count: { jobPosts: number; reviews: number };
 };
 
-
-const VENUE_TYPES = ["", "RESTAURANT", "CAFE", "BAR", "CATERING", "HOTEL", "EVENT"];
-
-function Sk({ className = "" }: { className?: string }) {
-  return <div className={`bg-white/8 rounded-xl animate-pulse ${className}`} />;
-}
 
 export default function AdminVenuesPage() {
   const { status } = useRequireRole("ADMIN");
@@ -94,7 +88,7 @@ export default function AdminVenuesPage() {
             className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500/50"
           >
             <option value="">Svi tipovi</option>
-            {VENUE_TYPES.filter(Boolean).map(t => (
+            {Object.keys(VENUE_TYPE_LABELS).map(t => (
               <option key={t} value={t}>{VENUE_TYPE_LABELS[t] ?? t}</option>
             ))}
           </select>
