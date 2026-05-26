@@ -22,6 +22,28 @@ const UPLOAD_CONFIGS = {
   },
 };
 
+// MIME types that must never be accepted even though some start with "image/".
+// SVG can embed <script> tags and executes JavaScript when opened in a browser.
+const BLOCKED_MIME = new Set([
+  "image/svg+xml",
+  "image/svg",
+  "text/html",
+  "text/xml",
+  "application/xml",
+  "application/xhtml+xml",
+]);
+
+/**
+ * Server-side magic-byte check for SVG regardless of the declared MIME type.
+ * Catches files where the client sends image/jpeg but the content is actually SVG.
+ */
+function hasSvgSignature(buf: Buffer): boolean {
+  // SVG always starts (possibly after a BOM or whitespace) with "<svg" or "<?xml"
+  // followed eventually by "<svg", or "<!DOCTYPE svg".
+  const head = buf.slice(0, 512).toString("utf8").replace(/\s+/g, " ").toLowerCase();
+  return head.includes("<svg") || head.includes("<!doctype svg");
+}
+
 export const POST = withAuth(async (req) => {
   const formData = await req.formData();
   const file = formData.get("file");
@@ -30,6 +52,13 @@ export const POST = withAuth(async (req) => {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "Fajl nije pronađen" }, { status: 400 });
   }
+
+  // 1. Explicit MIME blocklist — rejects SVG and XML variants regardless of startsWith check.
+  if (BLOCKED_MIME.has(file.type.toLowerCase())) {
+    return NextResponse.json({ error: "Ovaj format fajla nije dozvoljen" }, { status: 400 });
+  }
+
+  // 2. MIME category allowlist.
   const isSanitaryDoc = type === "sanitary-doc";
   const allowedMime   = isSanitaryDoc
     ? file.type.startsWith("image/") || file.type === "application/pdf"
@@ -40,14 +69,21 @@ export const POST = withAuth(async (req) => {
       { status: 400 },
     );
   }
+
+  // 3. Size check before reading into memory.
   if (file.size > MAX_BYTES) {
     return NextResponse.json({ error: "Maksimalna veličina fajla je 5MB" }, { status: 400 });
   }
 
-  const config = UPLOAD_CONFIGS[type as keyof typeof UPLOAD_CONFIGS] ?? UPLOAD_CONFIGS.avatar;
-
-  const bytes = await file.arrayBuffer();
+  const bytes  = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
+
+  // 4. Magic-byte SVG check — catches mislabeled files (e.g. Content-Type: image/jpeg, body: SVG).
+  if (hasSvgSignature(buffer)) {
+    return NextResponse.json({ error: "SVG fajlovi nisu dozvoljeni" }, { status: 400 });
+  }
+
+  const config  = UPLOAD_CONFIGS[type as keyof typeof UPLOAD_CONFIGS] ?? UPLOAD_CONFIGS.avatar;
   const dataUri = `data:${file.type};base64,${buffer.toString("base64")}`;
 
   try {
