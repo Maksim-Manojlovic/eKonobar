@@ -95,8 +95,13 @@ export const authOptions: NextAuthOptions = {
 
       // Revocation check — skip on initial sign-in (user is set) since the token
       // hasn't been issued yet and there's nothing to revoke.
+      // Pass token.role so ADMIN tokens use the shorter 5 s cache TTL.
       if (!user && token.id && typeof token.iat === "number") {
-        const revoked = await isTokenRevoked(token.id as string, token.iat);
+        const revoked = await isTokenRevoked(
+          token.id as string,
+          token.iat,
+          token.role as string | undefined,
+        );
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (revoked) return null as any; // NextAuth clears the cookie on null at runtime
       }
