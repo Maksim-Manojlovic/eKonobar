@@ -99,7 +99,10 @@ export type VenueReview = {
   subject: { name: string | null; image: string | null } | null;
   ratingAtmosphere: number | null;
   ratingOrganization: number | null;
+  ratingPay: number | null;
+  ratingTips: number | null;
   ratingHygieneWork: number | null;
+  ratingManagement: number | null;
   ratingFriendliness: number | null;
   ratingGuestSpeed: number | null;
   ratingAttentiveness: number | null;

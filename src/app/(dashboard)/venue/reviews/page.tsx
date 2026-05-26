@@ -2,41 +2,16 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRequireRole } from "@/hooks/useRequireRole";
 import { VERIFICATION_TIER_COLORS, formatDate } from "@/lib/formatting/display-maps";
 import { Stars } from "@/components/ui/Stars";
-
-type Venue = { id: string; name: string };
-
-type Review = {
-  id: string;
-  direction: string;
-  overallRating: number;
-  comment: string | null;
-  publishedAt: string | null;
-  author: { id: string; name: string | null; verificationTier: string };
-  ratingAtmosphere: number | null;
-  ratingOrganization: number | null;
-  ratingPay: number | null;
-  ratingTips: number | null;
-  ratingHygieneWork: number | null;
-  ratingManagement: number | null;
-};
-
-const DIM_LABELS = [
-  { key: "ratingAtmosphere",   label: "Atmosfera" },
-  { key: "ratingOrganization", label: "Organizacija" },
-  { key: "ratingPay",          label: "Plata" },
-  { key: "ratingTips",         label: "Napojnice" },
-  { key: "ratingHygieneWork",  label: "Higijena" },
-  { key: "ratingManagement",   label: "Menadžment" },
-] as const;
-
-import { useRequireRole } from "@/hooks/useRequireRole";
+import type { Venue, VenueReview } from "@/app/(dashboard)/venue/venue-types";
+import { VENUE_DIM_LABELS } from "@/app/(dashboard)/venue/venue-constants";
 export default function VenueReviewsPage() {
   const { status } = useRequireRole("VENUE_OWNER");
 
-  const [venues, setVenues]     = useState<Venue[]>([]);
-  const [reviews, setReviews]   = useState<Review[]>([]);
+  const [venues, setVenues]     = useState<Pick<Venue, "id" | "name">[]>([]);
+  const [reviews, setReviews]   = useState<VenueReview[]>([]);
   const [loading, setLoading]   = useState(true);
   const [activeVenue, setActiveVenue] = useState<string | null>(null);
 
@@ -108,10 +83,10 @@ export default function VenueReviewsPage() {
               <div key={r.id} className="dash-card p-5">
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${VERIFICATION_TIER_COLORS[r.author.verificationTier] ?? VERIFICATION_TIER_COLORS.UNVERIFIED}`}>
-                      {r.author.verificationTier.replace("_", " ")}
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${VERIFICATION_TIER_COLORS[r.author?.verificationTier ?? "UNVERIFIED"] ?? VERIFICATION_TIER_COLORS.UNVERIFIED}`}>
+                      {(r.author?.verificationTier ?? "UNVERIFIED").replace("_", " ")}
                     </span>
-                    <span className="text-sm font-semibold text-neutral-700">{r.author.name ?? "Konobar"}</span>
+                    <span className="text-sm font-semibold text-neutral-700">{r.author?.name ?? "Konobar"}</span>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <Stars rating={r.overallRating} />
@@ -125,7 +100,7 @@ export default function VenueReviewsPage() {
 
                 {/* Dimension bars */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {DIM_LABELS.map(({ key, label }) => {
+                  {VENUE_DIM_LABELS.map(({ key, label }) => {
                     const val = r[key];
                     if (val == null) return null;
                     return (
