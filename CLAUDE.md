@@ -613,6 +613,23 @@ Login page links to `/reset-password` ("Zaboravili ste lozinku?").
 - Body validation: use `parseBody` / `parseQuery` from `lib/auth/parse-body.ts` (see below).
 - Rate limiting: `checkRateLimit(userId, action, max)` from `lib/core/rate-limit.ts`
 
+### Middleware API auth layer
+
+`src/middleware.ts` protects ALL `/api/*` routes. Unauthenticated requests to any route **not** in `PUBLIC_API_PATTERNS` receive a `401 JSON` response before the route handler runs.
+
+**When adding a genuinely public route** (no session needed), add its pattern to `PUBLIC_API_PATTERNS` in `src/middleware.ts`. Current public patterns:
+- `/api/auth/*` — NextAuth + forgot/register/reset
+- `/api/cron/*` — Bearer-token cron jobs
+- `/api/reviews/guest` — guest review POST
+- `/api/reviews` — published review feed (GET)
+- `/api/venues/[id]/public` — public venue info
+- `/api/venues/[id]` — single venue GET (marketplace)
+- `/api/venues/geojson`, `/api/jobs/geojson` — map data
+- `/api/passport/public/*` — share-link passport
+- `/api/payments/monri/(callback|success|cancel)` — Monri webhook + redirects
+
+Route handlers still use `withRole`/`withAuth` as the primary guard — the middleware is defense-in-depth only.
+
 ### useRequireRole (client pages)
 
 `src/hooks/useRequireRole.ts` — guards a client page behind role-based auth. Use in every `"use client"` dashboard or protected page instead of a raw `useEffect` redirect.
