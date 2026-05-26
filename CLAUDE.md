@@ -563,7 +563,7 @@ NextAuth is configured with `PrismaAdapter(dbRaw)` + JWT strategy. Adapter persi
 - Updates `User.role` in DB.
 
 **JWT callback (lib/auth/config.ts):**
-- `trigger === "update"` with `session.role` → patches token in place (no re-auth needed)
+- `trigger === "update"` with `session.role` → re-fetches role from DB and writes DB value to token (never trusts client-supplied role — privilege escalation guard). No re-auth needed.
 - OAuth first sign-in: `account.provider !== "credentials"` → fetches role/verificationTier/tourCompleted from DB (adapter only returns basic fields)
 - Credentials first sign-in: `authorize()` already returns all fields
 

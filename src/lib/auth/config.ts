@@ -79,9 +79,16 @@ export const authOptions: NextAuthOptions = {
     },
 
     async jwt({ token, user, account, trigger, session }) {
-      // Client-side session.update({ role, ... }) — patch token fields in place
+      // Client-side session.update({ role, ... })
+      // Re-fetch role from DB — never trust the client-supplied value (privilege escalation guard).
       if (trigger === "update" && session) {
-        if (session.role)                        token.role          = session.role;
+        if (session.role) {
+          const dbUser = await dbRaw.user.findUnique({
+            where:  { id: token.id as string },
+            select: { role: true },
+          });
+          if (dbUser?.role) token.role = dbUser.role;
+        }
         if (session.tourCompleted !== undefined) token.tourCompleted = session.tourCompleted;
         return token;
       }
