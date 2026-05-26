@@ -560,6 +560,7 @@ NextAuth is configured with `PrismaAdapter(dbRaw)` + JWT strategy. Adapter persi
 
 **`PATCH /api/auth/set-role` { role }**
 - Auth required. Accepts `WAITER | VENUE_OWNER | HEADHUNTER` only (no ADMIN escalation).
+- **One-time guard:** only succeeds for users still in onboarding state — `role === "WAITER"` (OAuth default) AND no `WaiterPassport` yet. Any established user (non-WAITER role, or WAITER with a passport) receives 403. Prevents role re-assignment after onboarding.
 - Updates `User.role` in DB.
 
 **JWT callback (lib/auth/config.ts):**
