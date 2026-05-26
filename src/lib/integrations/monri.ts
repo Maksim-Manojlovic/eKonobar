@@ -122,12 +122,15 @@ export async function createPaymentSession(
 
 export function verifyCallback(payload: MonriCallbackPayload): boolean {
   if (!MERCHANT_KEY) return false;
-  const expected = callbackDigest(
-    payload.approval_code,
-    payload.order_number,
-    payload.amount,
+  const expected = Buffer.from(
+    callbackDigest(payload.approval_code, payload.order_number, payload.amount),
+    "hex",
   );
-  return expected === payload.digest;
+  // Guard: if received digest is missing or wrong length, reject immediately.
+  // timingSafeEqual requires equal-length buffers.
+  const received = Buffer.from(payload.digest ?? "", "hex");
+  if (expected.length !== received.length || expected.length === 0) return false;
+  return crypto.timingSafeEqual(expected, received);
 }
 
 export function callbackApproved(payload: MonriCallbackPayload): boolean {

@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { describe, it, expect, vi } from "vitest";
 import { verifyCallback, callbackApproved } from "../monri";
 
@@ -69,5 +70,34 @@ describe("verifyCallback", () => {
       digest: "wrong-digest",
     });
     expect(result).toBe(false);
+  });
+
+  it("returns true for correct digest (timing-safe path)", async () => {
+    // MERCHANT_KEY is a module-level constant captured at import time.
+    // Must resetModules + dynamic-import after stubbing env so the new value is picked up.
+    const merchantKey = "test-merchant-key";
+    vi.stubEnv("MONRI_MERCHANT_KEY", merchantKey);
+    vi.resetModules();
+    const { verifyCallback: verify } = await import("../monri");
+
+    const approvalCode = "ABC123";
+    const orderNumber  = "EK-deadbeef";
+    const amount       = "29000";
+    // Reproduce callbackDigest: SHA512(merchantKey + approvalCode + orderNumber + amount)
+    const correctDigest = crypto
+      .createHash("sha512")
+      .update(`${merchantKey}${approvalCode}${orderNumber}${amount}`)
+      .digest("hex");
+
+    const result = verify({
+      approval_code: approvalCode,
+      amount,
+      currency: "RSD",
+      order_number: orderNumber,
+      response_code: "0000",
+      status: "approved",
+      digest: correctDigest,
+    });
+    expect(result).toBe(true);
   });
 });
