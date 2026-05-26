@@ -260,7 +260,7 @@ model Venue {
   latitude    Float
   longitude   Float
   reviewRadiusKm  Float   @default(0.15)  // 150m default za geofencing
-  geofenceEnabled Boolean @default(false) // venue owner opt-in; false = no location check required
+  geofenceEnabled Boolean @default(true)  // secure default: require geofence; owners may opt out
 
   // Cenovni raspon (RSD/h)
   priceRangeMin Float?

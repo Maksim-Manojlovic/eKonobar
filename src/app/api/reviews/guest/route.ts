@@ -89,6 +89,29 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Verify waiter is linked to this venue before accepting a GUEST_TO_WAITER review.
+  // Prevents an attacker from fabricating reviews by supplying arbitrary subjectId + venueId pairs.
+  // A waiter is considered linked if they have an EngagementRecord or an ACCEPTED/COMPLETED
+  // JobApplication at a post belonging to this venue.
+  if (direction === "GUEST_TO_WAITER" && subjectId) {
+    const linked = await db.user.findFirst({
+      where: {
+        id: subjectId,
+        OR: [
+          { engagementRecords: { some: { venueId } } },
+          { applications: { some: { jobPost: { venueId }, status: { in: ["ACCEPTED", "COMPLETED"] } } } },
+        ],
+      },
+      select: { id: true },
+    });
+    if (!linked) {
+      return NextResponse.json(
+        { error: "Konobar nije povezan sa ovim lokalom" },
+        { status: 403 },
+      );
+    }
+  }
+
   const geolocationHash = coords ? createGeolocationHash(coords.lat, coords.lon) : undefined;
   const pendingUntil = new Date(Date.now() + 2 * 60 * 60 * 1000);
 

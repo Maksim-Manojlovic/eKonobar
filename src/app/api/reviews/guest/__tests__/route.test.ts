@@ -5,6 +5,7 @@ vi.mock("@/lib/core/db", () => ({
   db: {
     venue:  { findUnique: vi.fn() },
     review: { create: vi.fn() },
+    user:   { findFirst: vi.fn() },
   },
 }));
 vi.mock("@/lib/notifications/side-effects", () => ({ fireSideEffects: vi.fn() }));
@@ -57,6 +58,8 @@ describe("POST /api/reviews/guest", () => {
     vi.mocked(rateLimit).mockResolvedValue(true);
     vi.mocked(db.venue.findUnique).mockResolvedValue(BASE_VENUE as never);
     vi.mocked(db.review.create).mockResolvedValue({ id: "review-1" } as never);
+    // Default: waiter is linked to the venue (happy path for most tests)
+    vi.mocked(db.user.findFirst).mockResolvedValue({ id: WAITER_ID } as never);
     vi.mocked(parseGuestCoordinates).mockReturnValue(null);
   });
 
@@ -154,6 +157,15 @@ describe("POST /api/reviews/guest", () => {
     expect(fireSideEffects).toHaveBeenCalledWith(
       expect.objectContaining({ syncVenueId: VENUE_ID }),
     );
+  });
+
+  it("returns 403 when waiter is not linked to the venue", async () => {
+    vi.mocked(db.user.findFirst).mockResolvedValue(null);
+    const res = await POST(makeReq(WAITER_BODY));
+    expect(res.status).toBe(403);
+    const d = await res.json();
+    expect(d.error).toMatch(/nije povezan/i);
+    expect(db.review.create).not.toHaveBeenCalled();
   });
 
   it("returns 400 when guestHandle exceeds 50 chars", async () => {
