@@ -2,15 +2,19 @@ import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { fireSideEffects } from "@/lib/notifications/side-effects";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const SwapResolvePatchSchema = z.object({
+  action: z.enum(["ACCEPTED", "REJECTED"]),
+});
 
 // PATCH — owner or head waiter approves or rejects a swap request
 export const PATCH = withRole<{ params: Promise<{ swapId: string }> }>(["VENUE_OWNER", "WAITER"], async (req, ctx, session) => {
   const { swapId } = await ctx.params;
-  const { action } = await req.json(); // "ACCEPTED" | "REJECTED"
-
-  if (action !== "ACCEPTED" && action !== "REJECTED") {
-    return NextResponse.json({ error: "action must be ACCEPTED or REJECTED" }, { status: 400 });
-  }
+  const parsed = await parseBody(SwapResolvePatchSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { action } = parsed.data;
 
   const swapReq = await db.shiftSwapRequest.findUnique({
     where: { id: swapId },

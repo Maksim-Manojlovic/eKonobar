@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { withOptionalAuth, withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const JobPatchSchema = z.object({
+  status: z.enum(["ACTIVE", "PAUSED"]),
+});
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -49,13 +55,11 @@ export const GET = withOptionalAuth<Ctx>(async (_req, ctx, session) => {
 
 export const PATCH = withRole<Ctx>("VENUE_OWNER", async (req, ctx, session) => {
   const { id } = await ctx.params;
-  const body = await req.json();
-  const { status } = body as { status?: string };
+  const parsed = await parseBody(JobPatchSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { status } = parsed.data;
 
   const ALLOWED: Record<string, string> = { ACTIVE: "PAUSED", PAUSED: "ACTIVE" };
-  if (!status || !ALLOWED[status]) {
-    return NextResponse.json({ error: "status must be ACTIVE or PAUSED" }, { status: 400 });
-  }
 
   const post = await db.jobPost.findUnique({
     where: { id },

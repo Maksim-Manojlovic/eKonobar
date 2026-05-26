@@ -2,15 +2,19 @@ import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { computeScheduledStart } from "@/lib/shifts/utils";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const GenerateSchema = z.object({
+  fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "fromDate must be YYYY-MM-DD"),
+  toDate:   z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "toDate must be YYYY-MM-DD"),
+});
 
 export const POST = withRole<{ params: Promise<{ id: string }> }>(["VENUE_OWNER", "WAITER"], async (req, ctx, session) => {
   const { id } = await ctx.params;
-  const body = await req.json();
-  const { fromDate, toDate } = body; // "YYYY-MM-DD"
-
-  if (!fromDate || !toDate) {
-    return NextResponse.json({ error: "fromDate and toDate required" }, { status: 400 });
-  }
+  const parsed = await parseBody(GenerateSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { fromDate, toDate } = parsed.data;
 
   const venueFilter = session.user.role === "VENUE_OWNER"
     ? { venue: { ownerId: session.user.id } }

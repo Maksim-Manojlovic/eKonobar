@@ -3,6 +3,25 @@ import { withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { computeScheduledStart } from "@/lib/shifts/utils";
 import { getManagedShift } from "@/lib/shifts/auth";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+import { ShiftStatus } from "@prisma/client";
+
+const ShiftPatchSchema = z.object({
+  title:         z.string().optional(),
+  date:          z.string().optional(),
+  startTime:     z.string().optional(),
+  endTime:       z.string().optional(),
+  role:          z.string().nullish(),
+  pay:           z.number().nullish(),
+  waiterIds:     z.array(z.string()).optional(),
+  notes:         z.string().nullish(),
+  requiredCount: z.number().int().positive().optional(),
+  tipEstimate:   z.number().nullish(),
+  briefingNote:  z.string().nullish(),
+  swapLocked:    z.boolean().optional(),
+  status:        z.nativeEnum(ShiftStatus).optional(),
+});
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -11,11 +30,12 @@ export const PATCH = withRole<Ctx>(["VENUE_OWNER", "WAITER"], async (req, ctx, s
   const existing = await getManagedShift(id, session.user.id, session.user.role);
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const body = await req.json();
+  const parsed = await parseBody(ShiftPatchSchema, req);
+  if (!parsed.ok) return parsed.response;
   const {
     title, date, startTime, endTime, role, pay, waiterIds, notes,
     requiredCount, tipEstimate, briefingNote, swapLocked, status,
-  } = body;
+  } = parsed.data;
 
   const ids: string[] = waiterIds !== undefined
     ? (Array.isArray(waiterIds) ? waiterIds : [])
@@ -50,9 +70,9 @@ export const PATCH = withRole<Ctx>(["VENUE_OWNER", "WAITER"], async (req, ctx, s
       ...(endTime !== undefined && { endTime }),
       ...(scheduledStart && { scheduledStart }),
       role: role !== undefined ? (role || null) : undefined,
-      pay: pay !== undefined ? (pay ? Math.round(Number(pay)) : null) : undefined,
-      ...(requiredCount !== undefined && { requiredCount: Math.max(1, Number(requiredCount)) }),
-      tipEstimate: tipEstimate !== undefined ? (tipEstimate ? Number(tipEstimate) : null) : undefined,
+      pay: pay !== undefined ? (pay != null ? Math.round(pay) : null) : undefined,
+      ...(requiredCount !== undefined && { requiredCount: Math.max(1, requiredCount) }),
+      tipEstimate: tipEstimate !== undefined ? (tipEstimate ?? null) : undefined,
       briefingNote: briefingNote !== undefined ? (briefingNote || null) : undefined,
       notes: notes !== undefined ? (notes || null) : undefined,
       ...(swapLocked !== undefined && { swapLocked: Boolean(swapLocked) }),

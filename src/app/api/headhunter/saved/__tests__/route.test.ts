@@ -139,7 +139,7 @@ describe("POST /api/headhunter/saved", () => {
     const res = await POST(makeReq({}, "POST"), CTX);
     expect(res.status).toBe(400);
     const d = await res.json();
-    expect(d.error).toMatch(/waiterId/i);
+    expect(d.error.fieldErrors).toHaveProperty("waiterId");
   });
 
   it("returns 404 when waiter user not found", async () => {

@@ -4,6 +4,12 @@ import { db } from "@/lib/core/db";
 import { dbRaw } from "@/lib/core/db";
 import { ApplicationStatus } from "@prisma/client";
 import { fireSideEffects } from "@/lib/notifications/side-effects";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const ApplicationPatchSchema = z.object({
+  status: z.nativeEnum(ApplicationStatus),
+});
 
 // Valid transitions per role
 const VENUE_TRANSITIONS: Partial<Record<ApplicationStatus, ApplicationStatus[]>> = {
@@ -19,12 +25,9 @@ const WAITER_TRANSITIONS: Partial<Record<ApplicationStatus, ApplicationStatus[]>
 
 export const PATCH = withAuth<{ params: Promise<{ id: string }> }>(async (req, ctx, session) => {
   const { id } = await ctx.params;
-  const body = await req.json();
-  const { status } = body as { status: ApplicationStatus };
-
-  if (!status || !Object.values(ApplicationStatus).includes(status)) {
-    return NextResponse.json({ error: "Invalid status" }, { status: 400 });
-  }
+  const parsed = await parseBody(ApplicationPatchSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { status } = parsed.data;
 
   const application = await db.jobApplication.findUnique({
     where: { id },

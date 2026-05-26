@@ -3,6 +3,14 @@ import { withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { fireSideEffects } from "@/lib/notifications/side-effects";
 import { isInsideVenueRadius, parseGuestCoordinates } from "@/lib/geo/geofence";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const ClockInSchema = z.object({
+  method:    z.enum(["GPS", "QR"]).optional(),
+  latitude:  z.number().optional(),
+  longitude: z.number().optional(),
+});
 
 const WINDOW_BEFORE_MS  = 15 * 60 * 1000;  // 15 min early
 const WINDOW_AFTER_MS   = 60 * 60 * 1000;  // 60 min late
@@ -11,8 +19,9 @@ const GRACE_RADIUS_KM   = 0.15;            // 150m — GPS_GRACE, silent auto-ap
 
 export const POST = withRole<{ params: Promise<{ id: string }> }>("WAITER", async (req, { params }, session) => {
   const { id } = await params;
-  const body = await req.json();
-  const { latitude, longitude, method } = body;
+  const parsed = await parseBody(ClockInSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { latitude, longitude, method } = parsed.data;
 
   const shift = await db.shift.findUnique({
     where: { id },
@@ -42,7 +51,7 @@ export const POST = withRole<{ params: Promise<{ id: string }> }>("WAITER", asyn
     }
   }
 
-  const inputMethod = String(method ?? "").toUpperCase() === "QR" ? "QR" : "GPS";
+  const inputMethod = method === "QR" ? "QR" : "GPS";
   const waiterName = session.user.name ?? "Konobar";
 
   if (inputMethod === "GPS") {

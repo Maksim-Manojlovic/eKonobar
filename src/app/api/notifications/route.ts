@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const NotificationPatchSchema = z.object({
+  ids: z.array(z.string()).optional(),
+});
 
 export const GET = withAuth(async (_req, _ctx, session) => {
   const [notifications, unreadCount] = await Promise.all([
@@ -18,8 +24,9 @@ export const GET = withAuth(async (_req, _ctx, session) => {
 });
 
 export const PATCH = withAuth(async (req, _ctx, session) => {
-  const body = await req.json().catch(() => ({}));
-  const ids: string[] | undefined = (body as { ids?: string[] }).ids;
+  const parsed = await parseBody(NotificationPatchSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { ids } = parsed.data;
 
   if (ids && ids.length > 0) {
     await db.notification.updateMany({

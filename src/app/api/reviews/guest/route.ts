@@ -4,6 +4,29 @@ import { fireSideEffects } from "@/lib/notifications/side-effects";
 import { isInsideVenueRadius, createGeolocationHash, parseGuestCoordinates } from "@/lib/geo/geofence";
 import { rateLimit } from "@/lib/core/rate-limit";
 import { clampRating } from "@/lib/formatting/utils";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const RatingDim = z.number().nullish(); // clampRating() enforces 0-100 at write time
+
+const GuestReviewSchema = z.object({
+  venueId:         z.string().min(1),
+  direction:       z.enum(["GUEST_TO_WAITER", "GUEST_TO_VENUE"]).default("GUEST_TO_WAITER"),
+  subjectId:       z.string().optional(),
+  guestHandle:     z.string().max(50).nullish(),
+  overallRating:   z.number().min(0).max(100),
+  comment:         z.string().max(1000).nullish(),
+  guestLatitude:   z.number().optional(),
+  guestLongitude:  z.number().optional(),
+  // GUEST_TO_WAITER
+  ratingFriendliness:  RatingDim,
+  ratingGuestSpeed:    RatingDim,
+  ratingAttentiveness: RatingDim,
+  // GUEST_TO_VENUE
+  ratingAtmosphere:   RatingDim,
+  ratingOrganization: RatingDim,
+  ratingHygieneWork:  RatingDim,
+});
 
 export async function POST(req: NextRequest) {
   // IP-based rate limit: 3 guest reviews per hour per IP
@@ -16,41 +39,27 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const body = await req.json();
+  const parsed = await parseBody(GuestReviewSchema, req);
+  if (!parsed.ok) return parsed.response;
   const {
     venueId,
-    direction = "GUEST_TO_WAITER",
+    direction,
     subjectId,
     guestHandle,
-    overallRating,
+    overallRating: rating,
     comment,
     guestLatitude,
     guestLongitude,
-    // GUEST_TO_WAITER fields
     ratingFriendliness,
     ratingGuestSpeed,
     ratingAttentiveness,
-    // GUEST_TO_VENUE fields
     ratingAtmosphere,
     ratingOrganization,
     ratingHygieneWork,
-  } = body;
-
-  if (!venueId) {
-    return NextResponse.json({ error: "venueId required" }, { status: 400 });
-  }
-
-  if (direction !== "GUEST_TO_WAITER" && direction !== "GUEST_TO_VENUE") {
-    return NextResponse.json({ error: "Invalid direction" }, { status: 400 });
-  }
+  } = parsed.data;
 
   if (direction === "GUEST_TO_WAITER" && !subjectId) {
     return NextResponse.json({ error: "subjectId required for GUEST_TO_WAITER" }, { status: 400 });
-  }
-
-  const rating = Number(overallRating);
-  if (isNaN(rating) || rating < 0 || rating > 100) {
-    return NextResponse.json({ error: "overallRating must be 0-100" }, { status: 400 });
   }
 
   const venue = await db.venue.findUnique({
@@ -86,12 +95,12 @@ export async function POST(req: NextRequest) {
     const review = await db.review.create({
       data: {
         authorId:        null,
-        guestHandle:     guestHandle ? String(guestHandle).slice(0, 50) : null,
+        guestHandle:     guestHandle ?? null,
         direction:       "GUEST_TO_VENUE",
         subjectId:       null,
         venueId,
         overallRating:   rating,
-        comment:         comment ? String(comment).slice(0, 1000) : null,
+        comment:         comment ?? null,
         weight:          0.7, // 3 of 6 venue dimensions — lower weight prevents unequal Bayesian pull vs full waiter reviews
         pendingUntil,
         guestLatitude:   coords?.lat ?? null,
@@ -121,12 +130,12 @@ export async function POST(req: NextRequest) {
   const review = await db.review.create({
     data: {
       authorId:     null,
-      guestHandle:  guestHandle ? String(guestHandle).slice(0, 50) : null,
+      guestHandle:  guestHandle ?? null,
       direction:    "GUEST_TO_WAITER",
       subjectId,
       venueId,
       overallRating: rating,
-      comment:       comment ? String(comment).slice(0, 1000) : null,
+      comment:       comment ?? null,
       weight:        1.0,
       pendingUntil,
       guestLatitude:  coords?.lat ?? null,

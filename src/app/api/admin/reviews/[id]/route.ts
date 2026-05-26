@@ -3,14 +3,18 @@ import { withRole } from "@/lib/auth/with-role";
 import { dbRaw } from "@/lib/core/db";
 import { fireSideEffects } from "@/lib/notifications/side-effects";
 import { logAudit } from "@/lib/core/audit";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const AdminReviewPatchSchema = z.object({
+  action: z.enum(["publish", "remove"]),
+});
 
 export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", async (req, ctx, session) => {
   const { id } = await ctx.params;
-  const { action } = await req.json(); // "publish" | "remove"
-
-  if (action !== "publish" && action !== "remove") {
-    return NextResponse.json({ error: "action must be publish or remove" }, { status: 400 });
-  }
+  const parsed = await parseBody(AdminReviewPatchSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { action } = parsed.data;
 
   const review = await dbRaw.review.findUnique({ where: { id } });
   if (!review) return NextResponse.json({ error: "Not found" }, { status: 404 });

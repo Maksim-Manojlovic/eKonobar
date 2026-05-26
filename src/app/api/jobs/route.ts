@@ -4,6 +4,24 @@ import { db } from "@/lib/core/db";
 import { EngagementType, TipSystem } from "@prisma/client";
 import { getEffectiveTier } from "@/lib/passport/tier";
 import { RED_ALERT_DELAY_MS } from "@/lib/passport/constants";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const JobPostSchema = z.object({
+  venueId:             z.string().min(1),
+  title:               z.string().min(1),
+  description:         z.string().min(1),
+  engagementType:      z.nativeEnum(EngagementType),
+  tipSystem:           z.nativeEnum(TipSystem),
+  salaryMin:           z.number().min(0).nullish(),
+  salaryMax:           z.number().min(0).nullish(),
+  sanitaryRequired:    z.boolean().optional(),
+  redAlert:            z.boolean().optional(),
+  redAlertNote:        z.string().nullish(),
+  startDate:           z.string().nullish(),
+  endDate:             z.string().nullish(),
+  applicationDeadline: z.string().nullish(),
+});
 
 export const GET = withOptionalAuth(async (req, _ctx, session) => {
   const { searchParams } = new URL(req.url);
@@ -75,23 +93,13 @@ export const GET = withOptionalAuth(async (req, _ctx, session) => {
 });
 
 export const POST = withRole("VENUE_OWNER", async (req, _ctx, session) => {
-  const body = await req.json();
+  const parsed = await parseBody(JobPostSchema, req);
+  if (!parsed.ok) return parsed.response;
   const {
     venueId, title, description, engagementType, tipSystem,
     salaryMin, salaryMax, sanitaryRequired, redAlert, redAlertNote,
     startDate, endDate, applicationDeadline,
-  } = body;
-
-  if (!venueId || !title || !description || !engagementType || !tipSystem) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-  }
-
-  if (!Object.values(EngagementType).includes(engagementType)) {
-    return NextResponse.json({ error: "Invalid engagementType" }, { status: 400 });
-  }
-  if (!Object.values(TipSystem).includes(tipSystem)) {
-    return NextResponse.json({ error: "Invalid tipSystem" }, { status: 400 });
-  }
+  } = parsed.data;
 
   // Verify the venue belongs to this owner
   const venue = await db.venue.findFirst({ where: { id: venueId, ownerId: session.user.id } });
@@ -105,8 +113,8 @@ export const POST = withRole("VENUE_OWNER", async (req, _ctx, session) => {
       description,
       engagementType,
       tipSystem,
-      salaryMin: salaryMin ? Number(salaryMin) : undefined,
-      salaryMax: salaryMax ? Number(salaryMax) : undefined,
+      salaryMin:  salaryMin  ?? undefined,
+      salaryMax:  salaryMax  ?? undefined,
       sanitaryRequired: sanitaryRequired ?? false,
       redAlert: redAlert ?? false,
       redAlertNote: redAlertNote ?? undefined,

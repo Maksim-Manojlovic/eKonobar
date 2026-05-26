@@ -4,6 +4,13 @@ import { db } from "@/lib/core/db";
 import { checkRateLimit } from "@/lib/core/rate-limit";
 import { fireSideEffects } from "@/lib/notifications/side-effects";
 import type { Session } from "next-auth";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const ApplicationPostSchema = z.object({
+  jobPostId: z.string().min(1),
+  coverNote: z.string().max(1000).nullish(),
+});
 
 // ── GET ───────────────────────────────────────────────────────────────────────
 
@@ -58,12 +65,9 @@ export const POST = withRole("WAITER", async (req, _ctx, session) => {
     return NextResponse.json({ error: "Previše prijava. Pokušaj ponovo za sat vremena." }, { status: 429 });
   }
 
-  const body = await req.json();
-  const { jobPostId, coverNote } = body;
-
-  if (!jobPostId) {
-    return NextResponse.json({ error: "jobPostId is required" }, { status: 400 });
-  }
+  const parsed = await parseBody(ApplicationPostSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { jobPostId, coverNote } = parsed.data;
 
   const post = await db.jobPost.findFirst({
     where: { id: jobPostId, status: "ACTIVE" },

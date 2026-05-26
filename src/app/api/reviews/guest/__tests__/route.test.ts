@@ -156,11 +156,11 @@ describe("POST /api/reviews/guest", () => {
     );
   });
 
-  it("stores guestHandle trimmed to 50 chars max", async () => {
+  it("returns 400 when guestHandle exceeds 50 chars", async () => {
     const longHandle = "A".repeat(60);
-    await POST(makeReq({ ...WAITER_BODY, guestHandle: longHandle }));
-    const created = vi.mocked(db.review.create).mock.calls[0][0].data;
-    expect(created.guestHandle).toHaveLength(50);
+    const res = await POST(makeReq({ ...WAITER_BODY, guestHandle: longHandle }));
+    expect(res.status).toBe(400);
+    expect(db.review.create).not.toHaveBeenCalled();
   });
 
   it("geofence passes: records coords and hash", async () => {

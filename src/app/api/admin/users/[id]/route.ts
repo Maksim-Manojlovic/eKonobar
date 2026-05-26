@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { dbRaw } from "@/lib/core/db";
 import { logAudit } from "@/lib/core/audit";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const AdminUserPatchSchema = z.object({
+  role:   z.enum(["WAITER", "VENUE_OWNER", "HEADHUNTER", "ADMIN"]).optional(),
+  action: z.enum(["delete", "restore"]).optional(),
+});
 
 export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", async (req, ctx, session) => {
   const { id } = await ctx.params;
@@ -11,20 +18,15 @@ export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", asyn
     return NextResponse.json({ error: "Cannot modify own account" }, { status: 400 });
   }
 
-  const body = await req.json();
+  const parsed = await parseBody(AdminUserPatchSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { role, action } = parsed.data;
+
   const data: Record<string, unknown> = {};
 
-  if (body.role && ["WAITER", "VENUE_OWNER", "HEADHUNTER", "ADMIN"].includes(body.role)) {
-    data.role = body.role;
-  }
-
-  if (body.action === "delete") {
-    data.deletedAt = new Date();
-  }
-
-  if (body.action === "restore") {
-    data.deletedAt = null;
-  }
+  if (role) data.role = role;
+  if (action === "delete")  data.deletedAt = new Date();
+  if (action === "restore") data.deletedAt = null;
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
@@ -49,7 +51,7 @@ export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", asyn
 
   const auditAction = data.role !== undefined
     ? "USER_ROLE_CHANGED"
-    : body.action === "delete"
+    : action === "delete"
     ? "USER_DELETED"
     : "USER_RESTORED";
   logAudit(session.user.id, auditAction, id, "User",

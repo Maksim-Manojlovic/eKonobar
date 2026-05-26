@@ -2,6 +2,22 @@ import { NextResponse } from "next/server";
 import { withOptionalAuth, withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { VenueType } from "@prisma/client";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const VenueCreateSchema = z.object({
+  name:         z.string().min(1),
+  address:      z.string().min(1),
+  municipality: z.string().min(1),
+  venueType:    z.nativeEnum(VenueType),
+  latitude:     z.number(),
+  longitude:    z.number(),
+  capacity:     z.number().int().positive().nullish(),
+  description:  z.string().nullish(),
+  phone:        z.string().nullish(),
+  website:      z.string().nullish(),
+  instagram:    z.string().nullish(),
+});
 
 export const GET = withOptionalAuth(async (_req, _ctx, session) => {
   if (session?.user.role === "VENUE_OWNER") {
@@ -30,16 +46,9 @@ export const GET = withOptionalAuth(async (_req, _ctx, session) => {
 });
 
 export const POST = withRole("VENUE_OWNER", async (req, _ctx, session) => {
-  const body = await req.json();
-  const { name, address, municipality, venueType, latitude, longitude, capacity, description, phone, website, instagram } = body;
-
-  if (!name || !address || !municipality || !venueType || latitude == null || longitude == null) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-  }
-
-  if (!Object.values(VenueType).includes(venueType)) {
-    return NextResponse.json({ error: "Invalid venueType" }, { status: 400 });
-  }
+  const parsed = await parseBody(VenueCreateSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { name, address, municipality, venueType, latitude, longitude, capacity, description, phone, website, instagram } = parsed.data;
 
   const venue = await db.venue.create({
     data: {
@@ -48,13 +57,13 @@ export const POST = withRole("VENUE_OWNER", async (req, _ctx, session) => {
       address,
       municipality,
       venueType,
-      latitude: Number(latitude),
-      longitude: Number(longitude),
-      capacity: capacity ? Number(capacity) : undefined,
+      latitude,
+      longitude,
+      capacity:    capacity    ?? undefined,
       description: description ?? undefined,
-      phone: phone ?? undefined,
-      website: website ?? undefined,
-      instagram: instagram ?? undefined,
+      phone:       phone       ?? undefined,
+      website:     website     ?? undefined,
+      instagram:   instagram   ?? undefined,
     },
   });
 

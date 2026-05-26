@@ -3,6 +3,13 @@ import { withAuth, withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { dbRaw } from "@/lib/core/db";
 import type { Session } from "next-auth";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const SanitarySubmitSchema = z.object({
+  fileUrl:    z.string().url(),
+  expiryDate: z.string().nullish(),
+});
 
 // ── GET ───────────────────────────────────────────────────────────────────────
 // ADMIN  → all PENDING submissions ordered by uploadedAt asc
@@ -39,11 +46,9 @@ async function getWaiterStatus(session: Session) {
 // WAITER submits (or re-submits) their sanitary book URL
 
 export const POST = withRole("WAITER", async (req, _ctx, session) => {
-  const { fileUrl, expiryDate } = await req.json();
-
-  if (!fileUrl || typeof fileUrl !== "string") {
-    return NextResponse.json({ error: "fileUrl required" }, { status: 400 });
-  }
+  const parsed = await parseBody(SanitarySubmitSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { fileUrl, expiryDate } = parsed.data;
 
   const book = await db.sanitaryBook.upsert({
     where: { userId: session.user.id },

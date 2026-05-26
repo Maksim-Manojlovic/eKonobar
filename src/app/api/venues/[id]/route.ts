@@ -1,6 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const VenuePatchSchema = z.object({
+  images:        z.array(z.string()).max(8).optional(),
+  logo:          z.string().nullish(),
+  phone:         z.string().nullish(),
+  website:       z.string().nullish(),
+  instagram:     z.string().nullish(),
+  description:   z.string().nullish(),
+  capacity:      z.number().int().positive().nullish(),
+  priceRangeMin: z.number().min(0).nullish(),
+  priceRangeMax: z.number().min(0).nullish(),
+  geofenceEnabled: z.boolean().optional(),
+  isActive:      z.boolean().optional(),
+});
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -88,30 +104,9 @@ export async function GET(
 // PATCH — venue owner only
 export const PATCH = withRole<Ctx>("VENUE_OWNER", async (req, ctx, session) => {
   const { id } = await ctx.params;
-  const body = await req.json();
-  const { images, logo, phone, website, instagram, description, capacity, priceRangeMin, priceRangeMax, geofenceEnabled, isActive } =
-    body as {
-      images?: string[];
-      logo?: string | null;
-      phone?: string | null;
-      website?: string | null;
-      instagram?: string | null;
-      description?: string | null;
-      capacity?: number | null;
-      priceRangeMin?: number | null;
-      priceRangeMax?: number | null;
-      geofenceEnabled?: boolean;
-      isActive?: boolean;
-    };
-
-  if (images !== undefined) {
-    if (!Array.isArray(images)) {
-      return NextResponse.json({ error: "images must be an array" }, { status: 400 });
-    }
-    if (images.length > 8) {
-      return NextResponse.json({ error: "Maksimalno 8 slika" }, { status: 400 });
-    }
-  }
+  const parsed = await parseBody(VenuePatchSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { images, logo, phone, website, instagram, description, capacity, priceRangeMin, priceRangeMax, geofenceEnabled, isActive } = parsed.data;
 
   if (website) {
     try {
@@ -142,11 +137,11 @@ export const PATCH = withRole<Ctx>("VENUE_OWNER", async (req, ctx, session) => {
       ...(website !== undefined && { website: website || null }),
       ...(instagram !== undefined && { instagram: instagram || null }),
       ...(description !== undefined && { description: description || null }),
-      ...(capacity !== undefined && { capacity: capacity != null ? Number(capacity) : null }),
-      ...(priceRangeMin !== undefined && { priceRangeMin: priceRangeMin != null ? Number(priceRangeMin) : null }),
-      ...(priceRangeMax !== undefined && { priceRangeMax: priceRangeMax != null ? Number(priceRangeMax) : null }),
-      ...(geofenceEnabled !== undefined && { geofenceEnabled: Boolean(geofenceEnabled) }),
-      ...(isActive !== undefined && { isActive: Boolean(isActive) }),
+      ...(capacity !== undefined && { capacity: capacity ?? null }),
+      ...(priceRangeMin !== undefined && { priceRangeMin: priceRangeMin ?? null }),
+      ...(priceRangeMax !== undefined && { priceRangeMax: priceRangeMax ?? null }),
+      ...(geofenceEnabled !== undefined && { geofenceEnabled }),
+      ...(isActive !== undefined && { isActive }),
     },
   });
 

@@ -3,6 +3,12 @@ import { withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { PassportTier } from "@prisma/client";
 import { SUBSCRIPTION_DURATION_MS } from "@/lib/passport/constants";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const SubscribeSchema = z.object({
+  tier: z.nativeEnum(PassportTier),
+});
 
 const TIER_PRICES: Record<PassportTier, number> = {
   FREE: 0,
@@ -17,12 +23,9 @@ const TIER_RANK: Record<PassportTier, number> = {
 };
 
 export const POST = withRole("WAITER", async (req, _ctx, session) => {
-  const body = await req.json();
-  const { tier } = body as { tier: PassportTier };
-
-  if (!tier || !Object.values(PassportTier).includes(tier)) {
-    return NextResponse.json({ error: "Invalid tier" }, { status: 400 });
-  }
+  const parsed = await parseBody(SubscribeSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { tier } = parsed.data;
 
   const passport = await db.waiterPassport.findUnique({
     where: { userId: session.user.id },

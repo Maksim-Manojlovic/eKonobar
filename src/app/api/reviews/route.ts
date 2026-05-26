@@ -10,6 +10,38 @@ import { checkRateLimit } from "@/lib/core/rate-limit";
 import { fireSideEffects } from "@/lib/notifications/side-effects";
 import { clampRating } from "@/lib/formatting/utils";
 import { ReviewDirection } from "@prisma/client";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const RatingDim = z.number().nullish(); // clampRating() enforces 0-100 at write time
+
+const ReviewPostSchema = z.object({
+  direction:               z.nativeEnum(ReviewDirection),
+  venueId:                 z.string().optional(),
+  subjectId:               z.string().optional(),
+  overallRating:           z.number().min(0).max(100),
+  comment:                 z.string().nullish(),
+  guestLatitude:           z.number().optional(),
+  guestLongitude:          z.number().optional(),
+  // WAITER_TO_VENUE
+  ratingAtmosphere:        RatingDim,
+  ratingOrganization:      RatingDim,
+  ratingPay:               RatingDim,
+  ratingTips:              RatingDim,
+  ratingHygieneWork:       RatingDim,
+  ratingManagement:        RatingDim,
+  // VENUE_TO_WAITER
+  ratingPunctuality:       RatingDim,
+  ratingSkill:             RatingDim,
+  ratingGuestCommunication: RatingDim,
+  ratingPersonalHygiene:   RatingDim,
+  ratingTeamwork:          RatingDim,
+  ratingSpeed:             RatingDim,
+  // GUEST_TO_WAITER
+  ratingFriendliness:      RatingDim,
+  ratingGuestSpeed:        RatingDim,
+  ratingAttentiveness:     RatingDim,
+});
 
 // GET — public, no auth needed
 export async function GET(req: NextRequest) {
@@ -70,38 +102,32 @@ export const POST = withAuth(async (req, _ctx, session) => {
     return NextResponse.json({ error: "Previše recenzija. Pokušaj ponovo za sat vremena." }, { status: 429 });
   }
 
-  const body = await req.json();
+  const parsed = await parseBody(ReviewPostSchema, req);
+  if (!parsed.ok) return parsed.response;
   const {
     direction,
     venueId,
     subjectId,
-    overallRating,
+    overallRating: rating,
     comment,
     guestLatitude,
     guestLongitude,
-    // WAITER_TO_VENUE
     ratingAtmosphere,
     ratingOrganization,
     ratingPay,
     ratingTips,
     ratingHygieneWork,
     ratingManagement,
-    // VENUE_TO_WAITER
     ratingPunctuality,
     ratingSkill,
     ratingGuestCommunication,
     ratingPersonalHygiene,
     ratingTeamwork,
     ratingSpeed,
-    // GUEST_TO_WAITER
     ratingFriendliness,
     ratingGuestSpeed,
     ratingAttentiveness,
-  } = body;
-
-  if (!direction || !Object.values(ReviewDirection).includes(direction)) {
-    return NextResponse.json({ error: "Invalid direction" }, { status: 400 });
-  }
+  } = parsed.data;
 
   // Role validation
   if (direction === "WAITER_TO_VENUE" && session.user.role !== "WAITER") {
@@ -117,12 +143,6 @@ export const POST = withAuth(async (req, _ctx, session) => {
   }
   if ((direction === "VENUE_TO_WAITER" || direction === "GUEST_TO_WAITER") && !subjectId) {
     return NextResponse.json({ error: "subjectId required" }, { status: 400 });
-  }
-
-  // Validate overall rating (API accepts 0-100; client converts 1-5 stars × 20)
-  const rating = Number(overallRating);
-  if (isNaN(rating) || rating < 0 || rating > 100) {
-    return NextResponse.json({ error: "overallRating must be 0-100" }, { status: 400 });
   }
 
   // Resolve venue owner for WAITER_TO_VENUE notification (single query, before review create)

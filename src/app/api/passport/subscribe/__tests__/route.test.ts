@@ -61,7 +61,7 @@ describe("POST /api/passport/subscribe", () => {
     const res = await POST(makeReq({ tier: "DIAMOND" }), {} as never);
     expect(res.status).toBe(400);
     const d = await res.json();
-    expect(d.error).toMatch(/invalid tier/i);
+    expect(d.error.fieldErrors).toHaveProperty("tier");
   });
 
   it("returns 404 when passport not found", async () => {

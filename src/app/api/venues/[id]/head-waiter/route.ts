@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const HeadWaiterSchema = z.object({
+  waiterId: z.string().min(1),
+});
 
 type Ctx = { params: Promise<{ id: string }> };
 
 // PUT — venue owner appoints a head waiter
 export const PUT = withRole<Ctx>("VENUE_OWNER", async (req, ctx, session) => {
   const { id: venueId } = await ctx.params;
-  const { waiterId } = await req.json();
-  if (!waiterId) return NextResponse.json({ error: "waiterId required" }, { status: 400 });
+  const parsed = await parseBody(HeadWaiterSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { waiterId } = parsed.data;
 
   const venue = await db.venue.findFirst({ where: { id: venueId, ownerId: session.user.id } });
   if (!venue) return NextResponse.json({ error: "Lokal nije pronađen" }, { status: 404 });

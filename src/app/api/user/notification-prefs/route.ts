@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const NotifPrefsPatchSchema = z.object({
+  phone:    z.string().max(20).nullish(),
+  smsOptIn: z.boolean().optional(),
+  waOptIn:  z.boolean().optional(),
+});
 
 export const GET = withAuth(async (_req, _ctx, session) => {
   const user = await db.user.findUnique({
@@ -12,15 +20,18 @@ export const GET = withAuth(async (_req, _ctx, session) => {
 });
 
 export const PATCH = withAuth(async (req, _ctx, session) => {
-  const body = await req.json();
+  const parsed = await parseBody(NotifPrefsPatchSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
+
   const data: { phone?: string | null; smsOptIn?: boolean; waOptIn?: boolean } = {};
 
   if ("phone" in body) {
-    const p = typeof body.phone === "string" ? body.phone.trim().slice(0, 20) : null;
+    const p = body.phone?.trim() ?? null;
     data.phone = p || null;
   }
-  if (typeof body.smsOptIn === "boolean") data.smsOptIn = body.smsOptIn;
-  if (typeof body.waOptIn  === "boolean") data.waOptIn  = body.waOptIn;
+  if (body.smsOptIn !== undefined) data.smsOptIn = body.smsOptIn;
+  if (body.waOptIn  !== undefined) data.waOptIn  = body.waOptIn;
 
   const user = await db.user.update({
     where: { id: session.user.id },

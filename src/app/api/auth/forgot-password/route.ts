@@ -4,20 +4,24 @@ import { randomBytes }  from "crypto";
 import { dbRaw }        from "@/lib/core/db";
 import { sendPasswordResetEmail } from "@/lib/integrations/email";
 import { rateLimit } from "@/lib/core/rate-limit";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const ForgotSchema = z.object({
+  email: z.string().email(),
+});
 
 export async function POST(req: Request) {
-  const { email } = await req.json();
-  if (!email || typeof email !== "string") {
-    return NextResponse.json({ error: "Email je obavezan." }, { status: 400 });
-  }
-
   const ip = req.headers.get("x-forwarded-for") ?? "unknown";
   const allowed = await rateLimit(`forgot:${ip}`, 3, 15 * 60 * 1000);
   if (!allowed) {
     return NextResponse.json({ ok: true }); // silent — same 200 to prevent enumeration
   }
 
-  const normalized = email.toLowerCase().trim();
+  const parsed = await parseBody(ForgotSchema, req);
+  if (!parsed.ok) return parsed.response; // 400 — invalid email format is client error, not enumeration risk
+
+  const normalized = parsed.data.email.toLowerCase().trim();
 
   // Always return 200 — never reveal if email exists (enumeration prevention)
   const user = await (dbRaw as any).user.findUnique({

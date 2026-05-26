@@ -3,6 +3,14 @@ import { withAuth, withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { checkRateLimit } from "@/lib/core/rate-limit";
 import type { Session } from "next-auth";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const InvitePostSchema = z.object({
+  waiterId:  z.string().min(1),
+  jobPostId: z.string().optional(),
+  message:   z.string().max(500).nullish(),
+});
 
 // ── GET ───────────────────────────────────────────────────────────────────────
 
@@ -48,12 +56,9 @@ export const POST = withRole("VENUE_OWNER", async (req, _ctx, session) => {
     return NextResponse.json({ error: "Previše pozivnica. Pokušaj ponovo za sat vremena." }, { status: 429 });
   }
 
-  const body = await req.json();
-  const { waiterId, jobPostId, message } = body;
-
-  if (!waiterId) {
-    return NextResponse.json({ error: "waiterId required" }, { status: 400 });
-  }
+  const parsed = await parseBody(InvitePostSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { waiterId, jobPostId, message } = parsed.data;
 
   const waiter = await db.user.findFirst({ where: { id: waiterId, role: "WAITER" } });
   if (!waiter) return NextResponse.json({ error: "Waiter not found" }, { status: 404 });

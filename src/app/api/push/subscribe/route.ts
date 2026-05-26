@@ -1,12 +1,25 @@
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const PushSubscribeSchema = z.object({
+  endpoint: z.string().url(),
+  keys: z.object({
+    p256dh: z.string().min(1),
+    auth:   z.string().min(1),
+  }),
+});
+
+const PushUnsubscribeSchema = z.object({
+  endpoint: z.string().min(1),
+});
 
 export const POST = withAuth(async (req, _ctx, session) => {
-  const { endpoint, keys } = await req.json();
-  if (!endpoint || !keys?.p256dh || !keys?.auth) {
-    return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
-  }
+  const parsed = await parseBody(PushSubscribeSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { endpoint, keys } = parsed.data;
 
   await db.pushSubscription.upsert({
     where: { endpoint },
@@ -18,8 +31,9 @@ export const POST = withAuth(async (req, _ctx, session) => {
 });
 
 export const DELETE = withAuth(async (req, _ctx, session) => {
-  const { endpoint } = await req.json();
-  if (!endpoint) return NextResponse.json({ error: "endpoint required" }, { status: 400 });
+  const parsed = await parseBody(PushUnsubscribeSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { endpoint } = parsed.data;
 
   await db.pushSubscription.deleteMany({
     where: { endpoint, userId: session.user.id },

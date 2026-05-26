@@ -2,13 +2,18 @@ import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { fireSideEffects } from "@/lib/notifications/side-effects";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const ApproveClockInSchema = z.object({
+  action: z.enum(["approve", "reject"]),
+});
 
 export const PATCH = withRole<{ params: Promise<{ id: string }> }>("VENUE_OWNER", async (req, ctx, session) => {
   const { id } = await ctx.params;
-  const { action } = await req.json(); // "approve" | "reject"
-  if (action !== "approve" && action !== "reject") {
-    return NextResponse.json({ error: "action mora biti 'approve' ili 'reject'" }, { status: 400 });
-  }
+  const parsed = await parseBody(ApproveClockInSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { action } = parsed.data;
 
   const assignment = await db.shiftAssignment.findUnique({
     where: { id },

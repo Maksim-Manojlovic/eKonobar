@@ -99,16 +99,14 @@ describe("PATCH /api/user/notification-prefs", () => {
     expect(call.data.phone).toBeNull();
   });
 
-  it("non-string phone → stored as null", async () => {
-    await PATCH(makePatchReq({ phone: 12345 }), CTX);
-    const call = vi.mocked(db.user.update).mock.calls[0][0] as { data: { phone: null } };
-    expect(call.data.phone).toBeNull();
+  it("non-string phone → returns 400", async () => {
+    const res = await PATCH(makePatchReq({ phone: 12345 }), CTX);
+    expect(res.status).toBe(400);
   });
 
-  it("non-boolean smsOptIn ignored", async () => {
-    await PATCH(makePatchReq({ smsOptIn: "yes" }), CTX);
-    const call = vi.mocked(db.user.update).mock.calls[0][0] as { data: Record<string, unknown> };
-    expect(call.data.smsOptIn).toBeUndefined();
+  it("non-boolean smsOptIn → returns 400", async () => {
+    const res = await PATCH(makePatchReq({ smsOptIn: "yes" }), CTX);
+    expect(res.status).toBe(400);
   });
 
   it("partial update: only provided keys sent to DB", async () => {

@@ -2,15 +2,20 @@ import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { dbRaw } from "@/lib/core/db";
 import { logAudit } from "@/lib/core/audit";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const SanitaryReviewSchema = z.object({
+  action:       z.enum(["approve", "reject"]),
+  rejectReason: z.string().nullish(),
+});
 
 // PATCH — admin approves or rejects a submission
 export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", async (req, ctx, session) => {
   const { id } = await ctx.params;
-  const { action, rejectReason } = await req.json(); // action: "approve" | "reject"
-
-  if (action !== "approve" && action !== "reject") {
-    return NextResponse.json({ error: "action must be approve or reject" }, { status: 400 });
-  }
+  const parsed = await parseBody(SanitaryReviewSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { action, rejectReason } = parsed.data;
 
   const book = await dbRaw.sanitaryBook.findUnique({ where: { id } });
   if (!book) return NextResponse.json({ error: "Not found" }, { status: 404 });

@@ -2,14 +2,18 @@ import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { fireSideEffects } from "@/lib/notifications/side-effects";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const SwapSchema = z.object({
+  toWaiterId: z.string().min(1),
+});
 
 export const POST = withRole<{ params: Promise<{ id: string }> }>("WAITER", async (req, ctx, session) => {
   const { id } = await ctx.params;
-  const { toWaiterId } = await req.json();
-
-  if (!toWaiterId) {
-    return NextResponse.json({ error: "toWaiterId required" }, { status: 400 });
-  }
+  const parsed = await parseBody(SwapSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { toWaiterId } = parsed.data;
 
   const shift = await db.shift.findUnique({
     where: { id },

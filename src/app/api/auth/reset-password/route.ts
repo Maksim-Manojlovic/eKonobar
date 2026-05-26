@@ -2,19 +2,18 @@
 import { NextResponse } from "next/server";
 import { hash }         from "bcryptjs";
 import { dbRaw }        from "@/lib/core/db";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const ResetSchema = z.object({
+  token:    z.string().min(1),
+  password: z.string().min(8, "Lozinka mora imati najmanje 8 karaktera"),
+});
 
 export async function POST(req: Request) {
-  const { token, password } = await req.json();
-
-  if (!token || typeof token !== "string") {
-    return NextResponse.json({ error: "Token je obavezan." }, { status: 400 });
-  }
-  if (!password || typeof password !== "string" || password.length < 8) {
-    return NextResponse.json(
-      { error: "Lozinka mora imati najmanje 8 karaktera." },
-      { status: 400 },
-    );
-  }
+  const parsed = await parseBody(ResetSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { token, password } = parsed.data;
 
   const record = await (dbRaw as any).passwordResetToken.findUnique({
     where: { token },

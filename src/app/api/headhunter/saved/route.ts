@@ -1,6 +1,17 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const SavedPostSchema = z.object({
+  waiterId: z.string().min(1),
+  notes:    z.string().nullish(),
+});
+
+const SavedDeleteSchema = z.object({
+  waiterId: z.string().min(1),
+});
 
 export const GET = withRole("HEADHUNTER", async (_req, _ctx, session) => {
   const saved = await db.savedProfile.findMany({
@@ -39,8 +50,9 @@ export const GET = withRole("HEADHUNTER", async (_req, _ctx, session) => {
 });
 
 export const POST = withRole("HEADHUNTER", async (req, _ctx, session) => {
-  const { waiterId, notes } = await req.json();
-  if (!waiterId) return NextResponse.json({ error: "waiterId required" }, { status: 400 });
+  const parsed = await parseBody(SavedPostSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { waiterId, notes } = parsed.data;
 
   const waiter = await db.user.findFirst({ where: { id: waiterId, role: "WAITER" } });
   if (!waiter) return NextResponse.json({ error: "Waiter not found" }, { status: 404 });
@@ -55,8 +67,9 @@ export const POST = withRole("HEADHUNTER", async (req, _ctx, session) => {
 });
 
 export const DELETE = withRole("HEADHUNTER", async (req, _ctx, session) => {
-  const { waiterId } = await req.json();
-  if (!waiterId) return NextResponse.json({ error: "waiterId required" }, { status: 400 });
+  const parsed = await parseBody(SavedDeleteSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { waiterId } = parsed.data;
 
   await db.savedProfile.deleteMany({
     where: { headhunterId: session.user.id, savedWaiterId: waiterId },

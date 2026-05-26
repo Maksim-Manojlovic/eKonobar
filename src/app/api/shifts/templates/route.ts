@@ -1,6 +1,21 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const TemplateCreateSchema = z.object({
+  venueId:       z.string().min(1),
+  name:          z.string().min(1),
+  dayOfWeek:     z.number().int().min(0).max(6).optional(),
+  weekdaysOnly:  z.boolean().optional(),
+  metadata:      z.unknown().optional(),
+  startTime:     z.string().min(1),
+  endTime:       z.string().min(1),
+  requiredCount: z.number().int().positive().optional(),
+  role:          z.string().nullish(),
+  pay:           z.number().min(0).nullish(),
+});
 
 export const GET = withRole(["VENUE_OWNER", "WAITER"], async (_req, _ctx, session) => {
   const venueFilter = session.user.role === "VENUE_OWNER"
@@ -17,12 +32,10 @@ export const GET = withRole(["VENUE_OWNER", "WAITER"], async (_req, _ctx, sessio
 });
 
 export const POST = withRole(["VENUE_OWNER", "WAITER"], async (req, _ctx, session) => {
-  const body = await req.json();
-  const { venueId, name, dayOfWeek, weekdaysOnly, metadata, startTime, endTime, requiredCount, role, pay } = body;
+  const parsed = await parseBody(TemplateCreateSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { venueId, name, dayOfWeek, weekdaysOnly, metadata, startTime, endTime, requiredCount, role, pay } = parsed.data;
 
-  if (!venueId || !name || !startTime || !endTime) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-  }
   if (!weekdaysOnly && (dayOfWeek === undefined || dayOfWeek < 0 || dayOfWeek > 6)) {
     return NextResponse.json({ error: "dayOfWeek must be 0–6 when weekdaysOnly is false" }, { status: 400 });
   }
@@ -38,14 +51,14 @@ export const POST = withRole(["VENUE_OWNER", "WAITER"], async (req, _ctx, sessio
     data: {
       venueId,
       name,
-      dayOfWeek: weekdaysOnly ? null : Number(dayOfWeek),
-      weekdaysOnly: Boolean(weekdaysOnly),
+      dayOfWeek: weekdaysOnly ? null : (dayOfWeek ?? null),
+      weekdaysOnly: weekdaysOnly ?? false,
       metadata: metadata ?? undefined,
       startTime,
       endTime,
-      requiredCount: requiredCount ? Math.max(1, Number(requiredCount)) : 1,
+      requiredCount: requiredCount ? Math.max(1, requiredCount) : 1,
       role: role || undefined,
-      pay: pay ? Math.round(Number(pay)) : undefined,
+      pay: pay != null ? Math.round(pay) : undefined,
     },
   });
 

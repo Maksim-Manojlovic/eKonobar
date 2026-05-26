@@ -3,6 +3,24 @@ import { withAuth, withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { computeScheduledStart } from "@/lib/shifts/utils";
 import type { Session } from "next-auth";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const ShiftCreateSchema = z.object({
+  venueId:       z.string().min(1),
+  title:         z.string().min(1),
+  date:          z.string().min(1),
+  startTime:     z.string().min(1),
+  endTime:       z.string().min(1),
+  role:          z.string().nullish(),
+  pay:           z.number().min(0).nullish(),
+  waiterIds:     z.array(z.string()).optional(),
+  notes:         z.string().nullish(),
+  requiredCount: z.number().int().positive().optional(),
+  tipEstimate:   z.number().min(0).nullish(),
+  briefingNote:  z.string().nullish(),
+  swapLocked:    z.boolean().optional(),
+});
 
 const ASSIGNMENT_SELECT = {
   id: true,
@@ -127,16 +145,13 @@ async function getWaiterShifts(req: NextRequest, session: Session) {
 // ── POST ──────────────────────────────────────────────────────────────────────
 
 export const POST = withRole(["VENUE_OWNER", "WAITER"], async (req, _ctx, session) => {
-  const body = await req.json();
+  const parsed = await parseBody(ShiftCreateSchema, req);
+  if (!parsed.ok) return parsed.response;
   const {
     venueId, title, date, startTime, endTime,
     role, pay, waiterIds, notes,
     requiredCount, tipEstimate, briefingNote, swapLocked,
-  } = body;
-
-  if (!venueId || !title || !date || !startTime || !endTime) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-  }
+  } = parsed.data;
 
   const venueFilter = session.user.role === "VENUE_OWNER"
     ? { id: venueId, ownerId: session.user.id }
@@ -153,7 +168,7 @@ export const POST = withRole(["VENUE_OWNER", "WAITER"], async (req, _ctx, sessio
     }
   }
 
-  const rc = requiredCount ? Math.max(1, Number(requiredCount)) : 1;
+  const rc = requiredCount ? Math.max(1, requiredCount) : 1;
   const scheduledStart = computeScheduledStart(date, startTime);
   const status = ids.length >= rc ? "ASSIGNED" : "OPEN";
 
@@ -167,11 +182,11 @@ export const POST = withRole(["VENUE_OWNER", "WAITER"], async (req, _ctx, sessio
       scheduledStart,
       role: role || undefined,
       requiredCount: rc,
-      tipEstimate: tipEstimate ? Number(tipEstimate) : undefined,
-      pay: pay ? Math.round(Number(pay)) : undefined,
+      tipEstimate: tipEstimate ?? undefined,
+      pay: pay != null ? Math.round(pay) : undefined,
       briefingNote: briefingNote || undefined,
       notes: notes || undefined,
-      swapLocked: Boolean(swapLocked),
+      swapLocked: swapLocked ?? false,
       status,
       assignments: ids.length
         ? { create: ids.map((waiterId: string) => ({ waiterId })) }

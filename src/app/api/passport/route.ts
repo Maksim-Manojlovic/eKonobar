@@ -1,6 +1,19 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
+import { parseBody } from "@/lib/auth/parse-body";
+import { z } from "zod";
+
+const PassportPutSchema = z.object({
+  bio:                  z.string().nullish(),
+  skills:               z.array(z.string()).optional(),
+  languages:            z.array(z.string()).optional(),
+  yearsExperience:      z.number().min(0).optional(),
+  currentlyAvailable:   z.boolean().optional(),
+  profilePhoto:         z.string().nullish(),
+  galleryPhotos:        z.array(z.string()).optional(),
+  venueTypePreferences: z.array(z.string()).optional(),
+});
 
 export const GET = withRole("WAITER", async (_req, _ctx, session) => {
   const [passport, recentReviews] = await Promise.all([
@@ -37,8 +50,9 @@ export const GET = withRole("WAITER", async (_req, _ctx, session) => {
 });
 
 export const PUT = withRole("WAITER", async (req, _ctx, session) => {
-  const body = await req.json();
-  const { bio, skills, languages, yearsExperience, currentlyAvailable, profilePhoto, galleryPhotos, venueTypePreferences } = body;
+  const parsed = await parseBody(PassportPutSchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { bio, skills, languages, yearsExperience, currentlyAvailable, profilePhoto, galleryPhotos, venueTypePreferences } = parsed.data;
 
   const existing = await db.waiterPassport.findUnique({
     where: { userId: session.user.id },
