@@ -62,8 +62,10 @@ describe("encryptToken / decryptToken", () => {
 
     const encrypted = encryptToken("real-token");
     const [iv, tag, ct] = encrypted.split(":");
-    // Flip last char of ciphertext
-    const tampered = `${iv}:${tag}:${ct.slice(0, -1)}f`;
+    // Flip last hex char — guaranteed different value (0↔f conditional swap)
+    const lastChar  = ct.slice(-1);
+    const flipped   = lastChar === "f" ? "0" : "f";
+    const tampered  = `${iv}:${tag}:${ct.slice(0, -1)}${flipped}`;
     expect(() => decryptToken(tampered)).toThrow();
   });
 });

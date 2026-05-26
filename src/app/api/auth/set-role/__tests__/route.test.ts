@@ -4,7 +4,7 @@ vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
 vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
 vi.mock("@/lib/core/db", () => ({
   db: {
-    user: { update: vi.fn() },
+    user: { findUnique: vi.fn(), update: vi.fn() },
   },
 }));
 
@@ -37,6 +37,10 @@ describe("PATCH /api/auth/set-role", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSession();
+    // Simulate a new OAuth user: role=WAITER, no passport yet — passes the one-time guard
+    vi.mocked(db.user.findUnique).mockResolvedValue(
+      { role: "WAITER", waiterPassport: null } as never,
+    );
     vi.mocked(db.user.update).mockResolvedValue({ id: USER_ID } as never);
   });
 

@@ -12,14 +12,18 @@
  * unidentified traffic into one rate-limit bucket — conservative but safe.
  */
 
-const TRUST_PROXY = process.env.TRUST_PROXY === "1";
+// Read at call time (not module-init) so vi.stubEnv("TRUST_PROXY", "1") works in tests
+// and so runtime env changes (e.g., hot-reload, serverless cold-start sequencing) are respected.
+function isTrustProxy(): boolean {
+  return process.env.TRUST_PROXY === "1";
+}
 
 /**
  * For Next.js route handlers (NextRequest or standard Request).
  * NextRequest exposes `.ip` on Vercel / edge runtimes.
  */
 export function getClientIp(req: Request): string {
-  if (TRUST_PROXY) {
+  if (isTrustProxy()) {
     const xff = req.headers.get("x-forwarded-for");
     if (xff) return xff.split(",")[0].trim();
   }
@@ -35,7 +39,7 @@ export function getClientIp(req: Request): string {
 export function getClientIpFromHeaders(
   headers: Record<string, string | string[] | undefined> | undefined,
 ): string {
-  if (TRUST_PROXY && headers) {
+  if (isTrustProxy() && headers) {
     const raw = headers["x-forwarded-for"];
     const xff = Array.isArray(raw) ? raw[0] : raw;
     if (xff) return xff.split(",")[0].trim();

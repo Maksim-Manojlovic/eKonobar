@@ -105,8 +105,10 @@ describe("POST /api/auth/forgot-password", () => {
     expect(res.status).toBe(200);
   });
 
-  it("rate limit key uses x-forwarded-for IP", async () => {
+  it("rate limit key uses x-forwarded-for IP when TRUST_PROXY=1", async () => {
+    vi.stubEnv("TRUST_PROXY", "1");
     await POST(makeReq({ email: "user@test.com" }, "10.0.0.5"));
     expect(vi.mocked(rateLimit)).toHaveBeenCalledWith("forgot:10.0.0.5", 3, 15 * 60 * 1000);
+    vi.unstubAllEnvs();
   });
 });
