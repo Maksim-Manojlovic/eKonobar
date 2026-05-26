@@ -7,6 +7,7 @@ import { isCronAuthorized } from "@/lib/auth/cron-auth";
 import { PassportTier } from "@prisma/client";
 import logger from "@/lib/core/logger";
 import { SUBSCRIPTION_DURATION_MS } from "@/lib/passport/constants";
+import { decryptToken } from "@/lib/core/encryption";
 
 const TIER_AMOUNT_RSD: Record<Exclude<PassportTier, "FREE">, number> = {
   PRO:      29000,
@@ -58,7 +59,7 @@ async function run() {
     });
 
     const { approved, approvalCode } = await chargeStoredCard({
-      panToken:         passport.monriPanToken!,
+      panToken:         decryptToken(passport.monriPanToken!),
       orderNumber,
       amountMinorUnits: amount,
       currency:         "RSD",

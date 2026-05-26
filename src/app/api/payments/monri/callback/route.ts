@@ -3,6 +3,7 @@ import { dbRaw } from "@/lib/core/db";
 import { verifyCallback, callbackApproved, type MonriCallbackPayload } from "@/lib/integrations/monri";
 import { fireSideEffects } from "@/lib/notifications/side-effects";
 import { SUBSCRIPTION_DURATION_MS } from "@/lib/passport/constants";
+import { encryptToken } from "@/lib/core/encryption";
 
 export async function POST(req: NextRequest) {
   let payload: MonriCallbackPayload;
@@ -63,13 +64,17 @@ export async function POST(req: NextRequest) {
   const startFrom = base && base > now ? base : now;
   const subscriptionExpiresAt = new Date(startFrom.getTime() + SUBSCRIPTION_DURATION_MS);
 
+  // Encrypt pan_token before storing — AES-256-GCM, key from MONRI_TOKEN_ENCRYPTION_KEY.
+  // No-op when key is not set (dev/test environments).
+  const encryptedPanToken = payload.pan_token ? encryptToken(payload.pan_token) : null;
+
   await dbRaw.$transaction([
     dbRaw.passportPayment.update({
       where: { orderNumber: payload.order_number },
       data: {
-        status:           "SUCCESS",
+        status:            "SUCCESS",
         monriApprovalCode: payload.approval_code,
-        monriPanToken:    payload.pan_token ?? null,
+        monriPanToken:     encryptedPanToken,
       },
     }),
     dbRaw.waiterPassport.update({
@@ -78,7 +83,7 @@ export async function POST(req: NextRequest) {
         passportTier:         payment.tier,
         subscriptionExpiresAt,
         tierRank:             payment.tier === "PRO_PLUS" ? 2 : payment.tier === "PRO" ? 1 : 0,
-        ...(payload.pan_token && { monriPanToken: payload.pan_token }),
+        ...(encryptedPanToken && { monriPanToken: encryptedPanToken }),
       },
     }),
   ]);
