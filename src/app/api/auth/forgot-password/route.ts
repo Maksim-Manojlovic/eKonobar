@@ -4,6 +4,7 @@ import { randomBytes }  from "crypto";
 import { dbRaw }        from "@/lib/core/db";
 import { sendPasswordResetEmail } from "@/lib/integrations/email";
 import { rateLimit } from "@/lib/core/rate-limit";
+import { getClientIp } from "@/lib/core/ip";
 import { parseBody } from "@/lib/auth/parse-body";
 import { z } from "zod";
 
@@ -12,7 +13,7 @@ const ForgotSchema = z.object({
 });
 
 export async function POST(req: Request) {
-  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+  const ip = getClientIp(req);
   const allowed = await rateLimit(`forgot:${ip}`, 3, 15 * 60 * 1000);
   if (!allowed) {
     return NextResponse.json({ ok: true }); // silent — same 200 to prevent enumeration

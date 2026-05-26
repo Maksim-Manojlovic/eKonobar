@@ -14,6 +14,7 @@ import {
   buildSessionUser,
 } from "./helpers";
 import { isTokenRevoked } from "./revocation";
+import { getClientIpFromHeaders } from "@/lib/core/ip";
 
 // ── authOptions ───────────────────────────────────────────────────────────────
 
@@ -52,8 +53,7 @@ export const authOptions: NextAuthOptions = {
 
         const email = credentials.email.toLowerCase();
 
-        const rawIp = req?.headers?.["x-forwarded-for"];
-        const ip = (Array.isArray(rawIp) ? rawIp[0] : rawIp?.split(",")[0])?.trim() ?? "unknown";
+        const ip = getClientIpFromHeaders(req?.headers);
 
         await checkLoginRateLimit(ip, email); // throws on limit exceeded
 

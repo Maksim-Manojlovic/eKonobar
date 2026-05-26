@@ -136,6 +136,8 @@ Guest review route uses `rateLimit(`guest_review:${ip}`, 3, 3_600_000)` — 3 pe
 
 Forgot-password route uses `rateLimit(`forgot:${ip}`, 3, 15 * 60 * 1000)` — 3 per 15 min per IP (silent 200).
 
+**IP extraction:** All IP-based rate limits use `getClientIp(req)` / `getClientIpFromHeaders(headers)` from `lib/core/ip.ts` — never read `X-Forwarded-For` directly. `X-Forwarded-For` is only trusted when `TRUST_PROXY=1` is set (production, behind a known proxy). Without it, `req.ip` is used (Vercel/edge), falling back to `"unknown"`. Set `TRUST_PROXY=1` in production when behind nginx, Railway, fly.io, etc.
+
 ### Image uploads
 
 All image uploads go through `POST /api/upload` (multipart form-data). It validates MIME type (image/* only) and size (max 5 MB), then uploads to Cloudinary. The `type` field selects the preset:

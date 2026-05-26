@@ -3,6 +3,7 @@ import { db } from "@/lib/core/db";
 import { fireSideEffects } from "@/lib/notifications/side-effects";
 import { isInsideVenueRadius, createGeolocationHash, parseGuestCoordinates } from "@/lib/geo/geofence";
 import { rateLimit } from "@/lib/core/rate-limit";
+import { getClientIp } from "@/lib/core/ip";
 import { clampRating } from "@/lib/formatting/utils";
 import { parseBody } from "@/lib/auth/parse-body";
 import { z } from "zod";
@@ -30,7 +31,7 @@ const GuestReviewSchema = z.object({
 
 export async function POST(req: NextRequest) {
   // IP-based rate limit: 3 guest reviews per hour per IP
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const ip = getClientIp(req);
   const allowed = await rateLimit(`guest_review:${ip}`, 3, 60 * 60 * 1000);
   if (!allowed) {
     return NextResponse.json(
