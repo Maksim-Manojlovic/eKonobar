@@ -6,42 +6,39 @@ on:
   pull_request:
     branches: [main]
 
+# Cancel any in-progress run for the same branch/PR when a new push arrives.
+# Saves CI minutes on rapid pushes; does not cancel the base-branch run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  NODE_VERSION: "20"
+
+# ── Jobs ─────────────────────────────────────────────────────────────────────
+
 jobs:
-  ci:
-    name: Lint / Typecheck / Test
+
+  # ── Stage 1: Static analysis — no DB, parallel with unit ─────────────────
+  static:
+    name: Typecheck & Lint
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: ci
-          POSTGRES_PASSWORD: ci
-          POSTGRES_DB: ekonobar_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     env:
+      # Dummy URL — prisma generate reads schema only, never connects
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ekonobar_test
-      NEXTAUTH_SECRET: ci-secret-not-used-in-tests
+      NEXTAUTH_SECRET: ci-secret-for-types-only
       NEXTAUTH_URL: http://localhost:3000
       NEXT_PUBLIC_APP_URL: http://localhost:3000
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - name: Install dependencies
@@ -50,28 +47,53 @@ jobs:
       - name: Generate Prisma client
         run: npm run db:generate
 
-      - name: Apply migrations
-        run: npx prisma migrate deploy
-
       - name: Typecheck
         run: npx tsc --noEmit
 
       - name: Lint
         run: npm run lint
 
-      - name: Test
-        run: npm test
-
-  e2e:
-    name: E2E Tests
+  # ── Stage 1 (parallel): Unit tests — no DB ────────────────────────────────
+  unit:
+    name: Unit Tests
     runs-on: ubuntu-latest
-    needs: ci
+    permissions:
+      contents: read
+
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ekonobar_test
+      NEXTAUTH_SECRET: ci-secret-for-unit-tests
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+  # ── Stage 2: Integration tests — real PostgreSQL ──────────────────────────
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [static, unit]
     permissions:
       contents: read
 
     services:
       postgres:
-        image: postgres:15
+        image: postgres:15-alpine
         env:
           POSTGRES_USER: ci
           POSTGRES_PASSWORD: ci
@@ -80,25 +102,88 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
 
     env:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ekonobar_test
-      NEXTAUTH_SECRET: ci-secret-not-used-in-tests
+      DATABASE_POOL_SIZE: "1"
+      NEXTAUTH_SECRET: ci-secret-for-integration-tests
       NEXTAUTH_URL: http://localhost:3000
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      E2E_VENUE_ID: seed-venue-1
+      CRON_SECRET: ci-cron-secret
+      # AES-256-GCM key — 64 hex chars; no-op when unset, set here to test
+      # the encrypted path without real Monri credentials
+      MONRI_TOKEN_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000001"
+      MONRI_ENV: test
+      MONRI_MERCHANT_KEY: ci-merchant-key
+      MONRI_AUTHENTICITY_TOKEN: ci-auth-token
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Apply migrations to test DB
+        run: npx prisma migrate deploy
+
+      - name: Validate schema not drifted
+        # Fails if schema.prisma and applied migrations diverge
+        run: npx prisma migrate status
+
+      - name: Run integration tests
+        run: npm run test:integration
+
+  # ── Stage 3: E2E — full stack, seeded DB ─────────────────────────────────
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [integration]
+    permissions:
+      contents: read
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ekonobar_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ekonobar_test
+      NEXTAUTH_SECRET: ci-secret-for-e2e
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      CRON_SECRET: ci-cron-secret
+      E2E_VENUE_ID: seed-venue-1
+      # Placeholder — build needs this var referenced in next.config but
+      # VAPID keys are not exercised in E2E specs
+      NEXT_PUBLIC_VAPID_KEY: "placeholder-for-build"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - name: Install dependencies
@@ -116,6 +201,9 @@ jobs:
       - name: Seed database
         run: npm run db:seed
 
+      - name: Build Next.js app
+        run: npm run build
+
       - name: Run E2E tests
         run: npx playwright test
 
@@ -126,3 +214,27 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  # ── Gate: single required check for branch protection ────────────────────
+  # Set this job (not the individual jobs) as the required status check
+  # in GitHub → Settings → Branches → Branch protection rules.
+  # This way adding new jobs never requires updating branch protection.
+  ci-complete:
+    name: CI Complete
+    runs-on: ubuntu-latest
+    needs: [static, unit, integration, e2e]
+    if: always()
+    steps:
+      - name: Check all jobs passed
+        run: |
+          results='${{ toJSON(needs) }}'
+          echo "$results"
+          if echo "$results" | grep -q '"result": "failure"'; then
+            echo "One or more jobs failed"
+            exit 1
+          fi
+          if echo "$results" | grep -q '"result": "cancelled"'; then
+            echo "One or more jobs cancelled"
+            exit 1
+          fi
+          echo "All jobs passed"
