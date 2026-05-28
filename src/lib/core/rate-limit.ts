@@ -50,13 +50,17 @@ export async function checkRateLimit(
 ): Promise<boolean> {
   const windowStart = new Date(Math.floor(Date.now() / windowMs) * windowMs);
 
-  const rows = await dbRaw.$queryRaw<[{ count: bigint }]>`
-    INSERT INTO "RateLimit" ("userId", action, "windowStart", count)
-    VALUES (${userId}, ${action}, ${windowStart}, 1)
-    ON CONFLICT ("userId", action, "windowStart")
-    DO UPDATE SET count = "RateLimit".count + 1
-    RETURNING count
-  `;
+  // Prisma upsert maps to INSERT ... ON CONFLICT DO UPDATE in PostgreSQL —
+  // fully atomic, no TOCTOU. Using Prisma client (not $queryRaw) so that
+  // Prisma generates the `id` (cuid) for the INSERT path. The raw SQL
+  // approach was missing `id` and would throw a not-null violation on first
+  // insert because @default(cuid()) is application-side only.
+  const record = await dbRaw.rateLimit.upsert({
+    where:  { userId_action_windowStart: { userId, action, windowStart } },
+    create: { userId, action, windowStart, count: 1 },
+    update: { count: { increment: 1 } },
+    select: { count: true },
+  });
 
-  return Number(rows[0].count) <= max;
+  return record.count <= max;
 }

@@ -56,7 +56,7 @@ export async function seedUser(overrides: {
 } = {}): Promise<string> {
   const user = await dbRaw.user.create({
     data: {
-      email: overrides.email ?? `test-${Date.now()}@integration.local`,
+      email: overrides.email ?? `test-${crypto.randomUUID()}@integration.local`,
       name:  overrides.name  ?? "Integration Test User",
       role:  overrides.role  ?? "WAITER",
     },

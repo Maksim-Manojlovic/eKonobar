@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/core/db", () => ({
   dbRaw: {
-    $queryRaw:      vi.fn(),
-    anonRateLimit:  { deleteMany: vi.fn() },
+    $queryRaw:    vi.fn(),
+    anonRateLimit: { deleteMany: vi.fn() },
+    rateLimit:    { upsert: vi.fn() },
   },
 }));
 
@@ -57,26 +58,32 @@ describe("checkRateLimit (post-auth)", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("count <= max -> true (allowed)", async () => {
-    vi.mocked(raw.$queryRaw).mockResolvedValue([{ count: BigInt(5) }]);
+    vi.mocked(raw.rateLimit.upsert).mockResolvedValue({ count: 5 });
     const result = await checkRateLimit("u-1", "post_review", 5);
     expect(result).toBe(true);
   });
 
   it("count > max -> false (blocked)", async () => {
-    vi.mocked(raw.$queryRaw).mockResolvedValue([{ count: BigInt(6) }]);
+    vi.mocked(raw.rateLimit.upsert).mockResolvedValue({ count: 6 });
     const result = await checkRateLimit("u-1", "post_review", 5);
     expect(result).toBe(false);
   });
 
-  it("uses $queryRaw", async () => {
-    vi.mocked(raw.$queryRaw).mockResolvedValue([{ count: BigInt(1) }]);
+  it("uses rateLimit.upsert (not $queryRaw)", async () => {
+    vi.mocked(raw.rateLimit.upsert).mockResolvedValue({ count: 1 });
     await checkRateLimit("u-1", "apply_job", 10);
-    expect(vi.mocked(raw.$queryRaw)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(raw.rateLimit.upsert)).toHaveBeenCalledTimes(1);
   });
 
   it("defaults to 1-hour window", async () => {
-    vi.mocked(raw.$queryRaw).mockResolvedValue([{ count: BigInt(1) }]);
+    vi.mocked(raw.rateLimit.upsert).mockResolvedValue({ count: 1 });
     await checkRateLimit("u-1", "post_review", 5); // no 4th arg
-    expect(vi.mocked(raw.$queryRaw)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(raw.rateLimit.upsert)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          userId_action_windowStart: expect.objectContaining({ userId: "u-1" }),
+        }),
+      }),
+    );
   });
 });

@@ -40,10 +40,11 @@ export default defineConfig({
           include: ["src/**/*.integration.test.ts"],
           exclude: ["node_modules/**"],
           globalSetup: ["src/tests/integration/setup.ts"],
-          // forks pool: each test file runs in its own process for full DB isolation
-          // maxWorkers caps concurrency to avoid exhausting the Prisma connection pool
+          // forks pool: each test file runs in its own process for full DB isolation.
+          // maxWorkers: 1 forces sequential file execution so resetDb() in one file
+          // cannot truncate tables while another file's beforeEach is seeding data.
           pool: "forks",
-          maxWorkers: 4,
+          maxWorkers: 1,
           testTimeout: 15_000,
         },
       },
