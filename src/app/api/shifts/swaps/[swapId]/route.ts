@@ -46,9 +46,15 @@ export const PATCH = withRole<{ params: Promise<{ swapId: string }> }>(["VENUE_O
       return NextResponse.json({ error: "Konobar je već na ovoj smeni" }, { status: 409 });
     }
 
+    // Transfer the existing assignment to toWaiter instead of delete+create.
+    // delete+create fails with FK violation: ShiftSwapRequest.fromAssignmentId
+    // has ON DELETE RESTRICT and still references the assignment during the
+    // transaction. Updating waiterId in-place avoids the constraint entirely.
     await db.$transaction([
-      db.shiftAssignment.delete({ where: { id: swapReq.fromAssignmentId } }),
-      db.shiftAssignment.create({ data: { shiftId, waiterId: toWaiterId } }),
+      db.shiftAssignment.update({
+        where: { id: swapReq.fromAssignmentId },
+        data:  { waiterId: toWaiterId },
+      }),
       db.shiftSwapRequest.update({
         where: { id: swapId },
         data: { status: "ACCEPTED", resolvedAt: new Date() },

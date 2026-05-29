@@ -6,7 +6,7 @@ vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
 vi.mock("@/lib/core/db", () => ({
   db: {
     shiftSwapRequest: { findUnique: vi.fn(), update: vi.fn() },
-    shiftAssignment:  { delete: vi.fn(), create: vi.fn() },
+    shiftAssignment:  { update: vi.fn() },
     shift:            { update: vi.fn() },
     $transaction:     vi.fn(),
   },
@@ -61,8 +61,7 @@ describe("PATCH /api/shifts/swaps/[swapId]", () => {
     mockSession();
     vi.mocked(db.shiftSwapRequest.findUnique).mockResolvedValue(BASE_SWAP as never);
     vi.mocked(db.shiftSwapRequest.update).mockResolvedValue({} as never);
-    vi.mocked(db.shiftAssignment.delete).mockResolvedValue({} as never);
-    vi.mocked(db.shiftAssignment.create).mockResolvedValue({ id: "assign-new" } as never);
+    vi.mocked(db.shiftAssignment.update).mockResolvedValue({} as never);
     vi.mocked(db.shift.update).mockResolvedValue({} as never);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(db.$transaction).mockImplementation((ops: any) => Promise.all(ops));
@@ -127,15 +126,18 @@ describe("PATCH /api/shifts/swaps/[swapId]", () => {
     expect(res.status).toBe(409);
   });
 
-  it("ACCEPTED: runs 4-op transaction and notifies both waiters", async () => {
+  it("ACCEPTED: runs 3-op transaction (update waiterId) and notifies both waiters", async () => {
     const res = await PATCH(makeReq({ action: "ACCEPTED" }), makeCtx());
     expect(res.status).toBe(200);
     const d = await res.json();
     expect(d.ok).toBe(true);
 
     expect(db.$transaction).toHaveBeenCalled();
-    expect(db.shiftAssignment.delete).toHaveBeenCalledWith({ where: { id: "assign-from" } });
-    expect(db.shiftAssignment.create).toHaveBeenCalledWith({ data: { shiftId: SHIFT_ID, waiterId: TO_WAITER } });
+    // assignment updated in-place (not delete+create) to avoid FK violation
+    expect(db.shiftAssignment.update).toHaveBeenCalledWith({
+      where: { id: "assign-from" },
+      data:  { waiterId: TO_WAITER },
+    });
 
     await new Promise((r) => setTimeout(r, 0));
     const notifyCalls = vi.mocked(notify).mock.calls.map(c => c[0]);
@@ -147,7 +149,7 @@ describe("PATCH /api/shifts/swaps/[swapId]", () => {
     const res = await PATCH(makeReq({ action: "REJECTED" }), makeCtx());
     expect(res.status).toBe(200);
 
-    expect(db.shiftAssignment.delete).not.toHaveBeenCalled();
+    expect(db.shiftAssignment.update).not.toHaveBeenCalled();
 
     await new Promise((r) => setTimeout(r, 0));
     const notifyCalls = vi.mocked(notify).mock.calls.map(c => c[0]);

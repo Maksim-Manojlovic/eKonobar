@@ -38,7 +38,7 @@ async function createScaffold(opts: { expired?: boolean; used?: boolean } = {}) 
     ? new Date(Date.now() - 3_600_000) // 1h ago
     : new Date(Date.now() + 3_600_000); // 1h from now
 
-  await (dbRaw as any).passwordResetToken.create({
+  await dbRaw.passwordResetToken.create({
     data: {
       userId,
       token:     VALID_TOKEN,
@@ -104,7 +104,7 @@ describe("POST /api/auth/reset-password — integration", () => {
     expect(await compare(NEW_PASSWORD, user!.hashedPassword!)).toBe(true);
 
     // token.usedAt set (other side of $transaction)
-    const tokenRow = await (dbRaw as any).passwordResetToken.findUnique({
+    const tokenRow = await dbRaw.passwordResetToken.findUnique({
       where: { token: VALID_TOKEN },
     });
     expect(tokenRow.usedAt).not.toBeNull();
@@ -117,7 +117,7 @@ describe("POST /api/auth/reset-password — integration", () => {
     // Both sides visible in DB simultaneously — confirms $transaction committed
     const [user, tokenRow] = await Promise.all([
       dbRaw.user.findUnique({ where: { id: userId } }),
-      (dbRaw as any).passwordResetToken.findUnique({ where: { token: VALID_TOKEN } }),
+      dbRaw.passwordResetToken.findUnique({ where: { token: VALID_TOKEN } }),
     ]);
     const passwordChanged = user!.hashedPassword !== "old-hash-placeholder";
     const tokenUsed       = tokenRow.usedAt !== null;

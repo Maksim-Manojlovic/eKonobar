@@ -13,7 +13,7 @@ vi.mock("@/lib/integrations/email", () => ({
 }));
 
 import { resetDb, seedUser } from "@/tests/integration/db-reset";
-import { db, dbRaw } from "@/lib/core/db";
+import { dbRaw } from "@/lib/core/db";
 import { dispatchWhatsApp, dispatchSms } from "@/lib/notifications/dispatch";
 import { notify } from "../notify";
 
