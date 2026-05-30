@@ -9,8 +9,32 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
+const DBRAW_REQUIRED_GLOBS = [
+  "src/app/api/admin/**",
+  "src/app/api/payments/monri/callback/**",
+  "src/lib/scoring/sync.ts",
+  "src/lib/core/rate-limit.ts",
+];
+
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    files: DBRAW_REQUIRED_GLOBS,
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/lib/core/db",
+              importNames: ["db"],
+              message: "Admin/payment/scoring routes must use dbRaw (soft-delete filter bypassed). Import dbRaw instead.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
 
 export default eslintConfig;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
-import { db } from "@/lib/core/db";
+import { dbRaw } from "@/lib/core/db";
 import { VenueType } from "@prisma/client";
 
 const PAGE_SIZE = 25;
@@ -28,7 +28,7 @@ export const GET = withRole("ADMIN", async (req) => {
   };
 
   const [venues, total] = await Promise.all([
-    db.venue.findMany({
+    dbRaw.venue.findMany({
       where,
       select: {
         id:           true,
@@ -47,7 +47,7 @@ export const GET = withRole("ADMIN", async (req) => {
       skip:  (page - 1) * PAGE_SIZE,
       take:  PAGE_SIZE,
     }),
-    db.venue.count({ where }),
+    dbRaw.venue.count({ where }),
   ]);
 
   return NextResponse.json({
