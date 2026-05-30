@@ -122,8 +122,10 @@ App runs at [http://localhost:3000](http://localhost:3000).
 | `npm run dev` | Start dev server |
 | `npm run build` | Production build |
 | `npm run lint` | Run ESLint |
-| `npm test` | Run unit tests |
-| `npm run test:watch` | Run tests in watch mode |
+| `npm test` | Run all tests (unit + integration — requires `DATABASE_URL`) |
+| `npm run test:unit` | Run unit tests only (no DB required) |
+| `npm run test:integration` | Run integration tests (requires real PostgreSQL) |
+| `npm run test:watch` | Run unit tests in watch mode |
 | `npm run db:generate` | Regenerate Prisma client after schema changes |
 | `npm run db:push` | Push schema changes to DB (no migration file) |
 | `npm run db:migrate` | Create and apply a named migration |

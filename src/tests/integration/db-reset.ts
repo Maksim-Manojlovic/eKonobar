@@ -46,6 +46,55 @@ export async function resetDb(): Promise<void> {
 }
 
 /**
+ * Seed a minimal Venue row. Returns the created venue's id.
+ */
+export async function seedVenue(
+  ownerId: string,
+  overrides: Partial<{
+    name:            string;
+    geofenceEnabled: boolean;
+    reviewRadiusKm:  number;
+    latitude:        number;
+    longitude:       number;
+  }> = {},
+): Promise<string> {
+  const venue = await dbRaw.venue.create({
+    data: {
+      ownerId,
+      name:            overrides.name            ?? "Test Venue",
+      address:         "Test Address",
+      municipality:    "Beograd",
+      venueType:       "RESTAURANT",
+      latitude:        overrides.latitude         ?? 44.8176,
+      longitude:       overrides.longitude        ?? 20.4569,
+      reviewRadiusKm:  overrides.reviewRadiusKm   ?? 0.15,
+      geofenceEnabled: overrides.geofenceEnabled  ?? false,
+    },
+  });
+  return venue.id;
+}
+
+/**
+ * Seed a WaiterPassport row for a WAITER user. Returns the passport's id.
+ */
+export async function seedPassport(
+  userId: string,
+  overrides: Partial<{
+    passportTier:          "FREE" | "PRO" | "PRO_PLUS";
+    subscriptionExpiresAt: Date | null;
+  }> = {},
+): Promise<string> {
+  const passport = await dbRaw.waiterPassport.create({
+    data: {
+      userId,
+      passportTier:          overrides.passportTier          ?? "FREE",
+      subscriptionExpiresAt: overrides.subscriptionExpiresAt ?? null,
+    },
+  });
+  return passport.id;
+}
+
+/**
  * Seed a minimal User row for integration tests that need an authenticated actor.
  * Returns the created user's id.
  */

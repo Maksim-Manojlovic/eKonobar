@@ -15,8 +15,10 @@ npm run db:generate      # regenerate Prisma client after schema changes
 npm run db:migrate       # create named migration
 npm run db:seed          # seed demo data
 npm run db:studio        # Prisma Studio GUI
-npm test                 # run unit tests (Vitest)
-npm run test:watch       # run tests in watch mode
+npm test                 # run all tests — unit + integration (requires DATABASE_URL)
+npm run test:unit        # unit tests only (no DB required)
+npm run test:integration # integration tests only (requires real PostgreSQL)
+npm run test:watch       # run unit tests in watch mode
 ```
 
 ## ESLint
@@ -25,12 +27,11 @@ Config is in `eslint.config.mjs` (ESLint 9 flat config). Run with `npm run lint`
 
 ## Tests
 
-Two patterns in use:
+Three patterns in use:
 
 - **Pure function tests** (co-located `__tests__/` in each `src/lib/` subdirectory) — no mocking; test trust-score and geofence helpers directly.
-- **Route handler tests** (`src/app/api/reviews/[id]/__tests__/`) — use `vi.mock()` to mock `next-auth`, `@/lib/core/db`, and `@/lib/scoring/sync`; call the exported handler function directly; assert on `Response.status` and mock call args.
-
-When adding route handler tests, mock at the module level with `vi.mock(...)` before imports, use `vi.clearAllMocks()` in `beforeEach`, and flush fire-and-forget promises with `await new Promise(r => setTimeout(r, 0))`.
+- **Route handler unit tests** (`*.test.ts`) — mock `next-auth`, `@/lib/core/db`, and `@/lib/notifications/side-effects`; call the exported handler directly; assert on `Response.status` and mock call args. Mock at module level with `vi.mock(...)` before imports, `vi.clearAllMocks()` in `beforeEach`. Routes that use `notify` directly (not `fireSideEffects`) still need `await new Promise(r => setTimeout(r, 0))` to flush fire-and-forget calls.
+- **Integration tests** (`*.integration.test.ts`) — real PostgreSQL, no DB mocking. Use `resetDb()` in `beforeEach`. Mock only: `next-auth` + `@/lib/auth/config` (session), `@/lib/notifications/side-effects` (fire-and-forget), and pure crypto helpers already covered by unit tests. Seed helpers: `seedUser`, `seedVenue`, `seedPassport` from `@/tests/integration/db-reset`. Route handlers typed as `(req, ctx)` — always pass a second arg: `const CTX = { params: Promise.resolve({}) }` for non-dynamic routes, or `{ params: Promise.resolve({ id }) }` for `[id]` routes.
 
 ## Critical Patterns
 
@@ -818,7 +819,7 @@ POST /api/shifts/[id]/swap  { toWaiterId }
 
 PATCH /api/shifts/swaps/[swapId]  { action: "ACCEPTED" | "REJECTED" }
   VENUE_OWNER only.
-  ACCEPTED → atomic: delete fromAssignment, create toWaiter assignment, status → ASSIGNED
+  ACCEPTED → atomic: update fromAssignment.waiterId = toWaiterId (in-place transfer, not delete+create — delete would violate the ON DELETE RESTRICT FK on ShiftSwapRequest.fromAssignmentId), swap status → ACCEPTED, shift status → ASSIGNED
   REJECTED → status → ASSIGNED, notifies from-waiter
 ```
 
