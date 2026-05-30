@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { unstable_cache } from "next/cache";
 import { withRole } from "@/lib/auth/with-role";
 import { dbRaw } from "@/lib/core/db";
+import { redis } from "@/lib/core/redis";
 
 async function fetchStats() {
   const now = new Date();
@@ -91,9 +91,30 @@ async function fetchStats() {
   };
 }
 
-// Cache for 60 seconds — admin stats don't need to be real-time to the second,
-// and 13 parallel DB queries on every page load is expensive at scale.
-const getCachedStats = unstable_cache(fetchStats, ["admin-stats"], { revalidate: 60 });
+type StatsPayload = Awaited<ReturnType<typeof fetchStats>>;
+
+const STATS_CACHE_KEY = "cache:admin:stats";
+const STATS_CACHE_TTL = 60; // seconds — same as the previous unstable_cache revalidate
+
+async function getCachedStats(): Promise<StatsPayload> {
+  if (redis) {
+    try {
+      const cached = await redis.get(STATS_CACHE_KEY);
+      if (cached) return JSON.parse(cached) as StatsPayload;
+    } catch {
+      // Redis error — fall through to direct DB query.
+    }
+  }
+
+  const stats = await fetchStats();
+
+  if (redis) {
+    // Fire-and-forget cache write — failure is non-fatal.
+    redis.set(STATS_CACHE_KEY, JSON.stringify(stats), "EX", STATS_CACHE_TTL).catch(() => {});
+  }
+
+  return stats;
+}
 
 export const GET = withRole("ADMIN", async () => {
   const stats = await getCachedStats();

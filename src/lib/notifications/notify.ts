@@ -1,5 +1,6 @@
 import { NotificationType, Prisma } from "@prisma/client";
 import { db } from "@/lib/core/db";
+import { redis } from "@/lib/core/redis";
 import { sendNotificationEmail } from "@/lib/integrations/email";
 import {
   isPro          as isPassportPro,
@@ -52,6 +53,9 @@ export async function notify(
   const notification = await db.notification.create({
     data: { userId, type, title, body, link: link ?? null },
   });
+
+  // Bust the notification list cache so the next poll reflects the new item.
+  if (redis) redis.del(`notif:cache:${userId}`).catch(() => {});
 
   // Tier gating: waiterPassport is always fetched in the user query above.
   // Non-WAITER roles bypass tier gating and receive all opted-in channels.

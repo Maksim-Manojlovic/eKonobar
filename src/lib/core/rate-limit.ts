@@ -1,21 +1,34 @@
 import { dbRaw } from "@/lib/core/db";
+import { redis } from "@/lib/core/redis";
 
 // ── Anonymous / pre-auth limiter ──────────────────────────────────────────────
 //
-// Backed by AnonRateLimit table — no User FK, works across all instances.
+// Redis path  (REDIS_URL set): atomic INCR + PEXPIRE — O(1), no DB write per
+//   request, no table growth under attack traffic.
+// DB fallback (no Redis):      AnonRateLimit table, ON CONFLICT DO UPDATE —
+//   identical behaviour, used in tests and environments without Redis.
+//
 // Key format: "<action>:<value>"  e.g. "login:ip:1.2.3.4", "forgot:1.2.3.4"
-// Uses the same hour-bucket strategy as checkRateLimit below.
 
 export async function rateLimit(
   key: string,
   max: number,
   windowMs: number,
 ): Promise<boolean> {
-  const windowStart = new Date(Math.floor(Date.now() / windowMs) * windowMs);
+  if (redis) {
+    try {
+      const windowBucket = Math.floor(Date.now() / windowMs);
+      const redisKey     = `rl:${key}:${windowBucket}`;
+      const count        = await redis.incr(redisKey);
+      // Set TTL only on the first increment — avoids resetting expiry on every hit.
+      if (count === 1) await redis.pexpire(redisKey, windowMs + 10_000);
+      return count <= max;
+    } catch {
+      // Transient Redis error — fall through to DB so requests aren't blocked.
+    }
+  }
 
-  // Atomic upsert: increment first, then check — no TOCTOU race between concurrent requests.
-  // Counter keeps incrementing past max (rejected requests still count), which is intentional:
-  // it makes the limit slightly more aggressive under burst, never more permissive.
+  const windowStart = new Date(Math.floor(Date.now() / windowMs) * windowMs);
   const rows = await dbRaw.$queryRaw<[{ count: bigint }]>`
     INSERT INTO "AnonRateLimit" (key, "windowStart", count)
     VALUES (${key}, ${windowStart}, 1)
@@ -23,19 +36,30 @@ export async function rateLimit(
     DO UPDATE SET count = "AnonRateLimit".count + 1
     RETURNING count
   `;
-
   return Number(rows[0].count) <= max;
 }
 
 export async function resetRateLimit(key: string): Promise<void> {
+  if (redis) {
+    try {
+      // SCAN-based delete — avoids KEYS blocking the server under large keyspaces.
+      let cursor = "0";
+      do {
+        const [next, keys] = await redis.scan(cursor, "MATCH", `rl:${key}:*`, "COUNT", 100);
+        cursor = next;
+        if (keys.length > 0) await redis.del(...keys as [string, ...string[]]);
+      } while (cursor !== "0");
+    } catch {
+      // Fall through to DB delete.
+    }
+  }
   await dbRaw.anonRateLimit.deleteMany({ where: { key } });
 }
 
 // ── DB-backed limiter (post-auth write actions) ───────────────────────────────
 //
-// Limits are per user+action per time window.
-// windowMs is bucketed (floored), so all requests in the same bucket share
-// a counter. Default window: 1 hour.
+// Redis path  (REDIS_URL set): same INCR + PEXPIRE, key scoped to userId+action.
+// DB fallback (no Redis):      RateLimit table upsert.
 //
 // Actions used in this app:
 //   "post_review"  — max 5  per hour
@@ -48,19 +72,24 @@ export async function checkRateLimit(
   max: number,
   windowMs: number = 60 * 60 * 1000,
 ): Promise<boolean> {
-  const windowStart = new Date(Math.floor(Date.now() / windowMs) * windowMs);
+  if (redis) {
+    try {
+      const windowBucket = Math.floor(Date.now() / windowMs);
+      const redisKey     = `rl:auth:${userId}:${action}:${windowBucket}`;
+      const count        = await redis.incr(redisKey);
+      if (count === 1) await redis.pexpire(redisKey, windowMs + 10_000);
+      return count <= max;
+    } catch {
+      // Transient Redis error — fall through to DB.
+    }
+  }
 
-  // Prisma upsert maps to INSERT ... ON CONFLICT DO UPDATE in PostgreSQL —
-  // fully atomic, no TOCTOU. Using Prisma client (not $queryRaw) so that
-  // Prisma generates the `id` (cuid) for the INSERT path. The raw SQL
-  // approach was missing `id` and would throw a not-null violation on first
-  // insert because @default(cuid()) is application-side only.
+  const windowStart = new Date(Math.floor(Date.now() / windowMs) * windowMs);
   const record = await dbRaw.rateLimit.upsert({
     where:  { userId_action_windowStart: { userId, action, windowStart } },
     create: { userId, action, windowStart, count: 1 },
     update: { count: { increment: 1 } },
     select: { count: true },
   });
-
   return record.count <= max;
 }

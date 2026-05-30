@@ -8,6 +8,7 @@ import { PassportTier } from "@prisma/client";
 import logger from "@/lib/core/logger";
 import { SUBSCRIPTION_DURATION_MS } from "@/lib/passport/constants";
 import { decryptToken } from "@/lib/core/encryption";
+import { redis } from "@/lib/core/redis";
 
 const TIER_AMOUNT_RSD: Record<Exclude<PassportTier, "FREE">, number> = {
   PRO:      29000,
@@ -15,6 +16,16 @@ const TIER_AMOUNT_RSD: Record<Exclude<PassportTier, "FREE">, number> = {
 };
 
 async function run() {
+  // Cron-level lock: prevents two concurrent cron triggers (e.g. dual GET+POST or late re-fire)
+  // from charging the same users twice within the same 5-minute window.
+  if (redis) {
+    const cronLock = await redis.set("cron:renew-subscriptions:running", "1", "EX", 300, "NX").catch(() => null);
+    if (cronLock === null) {
+      // Another instance is already running — skip silently.
+      return { checked: 0, renewed: 0, failed: 0, skipped: "already running" };
+    }
+  }
+
   const now         = new Date();
   const windowStart = new Date(now.getTime() - 60 * 60 * 1000);       // 1h grace past expiry
   const windowEnd   = new Date(now.getTime() + 25 * 60 * 60 * 1000);  // 25h ahead — daily cron window
@@ -38,6 +49,15 @@ async function run() {
   let failed  = 0;
 
   for (const passport of expiring) {
+    // Per-user Redis lock: atomic guard against concurrent cron runs charging the same user.
+    // The 2h DB dedup check below is the fallback when Redis is unavailable.
+    if (redis) {
+      const userLock = await redis
+        .set(`renewal:lock:${passport.userId}`, "1", "EX", 3600, "NX")
+        .catch(() => null);
+      if (userLock === null) continue; // another instance is handling this user
+    }
+
     // Dedup: skip if a payment attempt was already made in the last 2h for this user
     const recent = await dbRaw.passportPayment.findFirst({
       where: {
