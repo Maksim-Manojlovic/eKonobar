@@ -1,36 +1,28 @@
 import { dbRaw } from "@/lib/core/db";
+import { redis } from "@/lib/core/redis";
 
-// ── In-process token revocation cache ────────────────────────────────────────
-// Avoids a DB hit on every getServerSession() call.
+// ── In-process fallback cache ─────────────────────────────────────────────────
+//
+// Used when Redis is not configured (unit tests, local dev without Redis).
+// When Redis IS available, this Map is never consulted — Redis is the shared
+// cache across all instances, which fixes the cross-process staleness problem.
 //
 // TTL is role-stratified:
 //   ADMIN  →  5 s  (near-immediate propagation after admin demotion / ban)
 //   others → 60 s  (previous behaviour, preserves DB hit rate for most users)
-//
-// The cache stores the result but TTL is evaluated at read time based on the
-// caller-supplied role, so the same Map entry serves both TTLs correctly.
-// Eviction uses the longer TTL (60 s) to avoid churn; 5 s admin entries linger
-// in the Map but are never served stale — they trigger a fresh DB fetch instead.
-//
-// Isolated here so the cache lifecycle can be unit-tested without importing
-// the full NextAuth config object (authOptions).
 
-const _revCache = new Map<string, { revokedAt: number | null; cachedAt: number }>();
+const _fallbackCache = new Map<string, { revokedAt: number | null; cachedAt: number }>();
 
-/** Standard cache TTL — applies to all non-ADMIN roles. */
 export const REV_CACHE_TTL_MS       = 60_000;
-/** Short cache TTL for ADMIN tokens — limits the exploitation window after demotion. */
 export const REV_CACHE_TTL_ADMIN_MS =  5_000;
 
 const REV_CACHE_MAX = 5_000;
 
-function evictRevCache(now: number): void {
-  for (const [key, entry] of _revCache) {
-    if (now - entry.cachedAt >= REV_CACHE_TTL_MS) _revCache.delete(key);
+function evictFallbackCache(now: number): void {
+  for (const [key, entry] of _fallbackCache) {
+    if (now - entry.cachedAt >= REV_CACHE_TTL_MS) _fallbackCache.delete(key);
   }
-  // Hard cap — if stale eviction wasn't enough, clear everything so the next
-  // request cycle starts fresh rather than serving a perpetually-bloated map.
-  if (_revCache.size > REV_CACHE_MAX) _revCache.clear();
+  if (_fallbackCache.size > REV_CACHE_MAX) _fallbackCache.clear();
 }
 
 /**
@@ -44,9 +36,42 @@ export async function isTokenRevoked(
   tokenIat: number,
   role?: string,
 ): Promise<boolean> {
-  const now        = Date.now();
-  const ttl        = role === "ADMIN" ? REV_CACHE_TTL_ADMIN_MS : REV_CACHE_TTL_MS;
-  const cached     = _revCache.get(userId);
+  const ttl    = role === "ADMIN" ? REV_CACHE_TTL_ADMIN_MS : REV_CACHE_TTL_MS;
+  const ttlSec = ttl / 1000;
+  const key    = `token:rev:${userId}`;
+
+  // ── Redis path — shared across all instances ─────────────────────────────
+  if (redis) {
+    try {
+      const cached = await redis.get(key);
+      if (cached !== null) {
+        // "none" means the DB confirmed no revocation exists for this user.
+        if (cached === "none") return false;
+        return tokenIat < Number(cached);
+      }
+    } catch {
+      // Transient Redis error — fall through to DB (no in-process cache used
+      // when Redis is configured, to avoid serving a stale local copy).
+    }
+
+    const row = await dbRaw.tokenRevocation.findUnique({
+      where:  { userId },
+      select: { revokedAt: true },
+    });
+
+    const revokedAtSec = row ? row.revokedAt.getTime() / 1000 : null;
+
+    // Fire-and-forget cache write — failure is non-fatal.
+    redis
+      .set(key, revokedAtSec === null ? "none" : String(revokedAtSec), "EX", ttlSec)
+      .catch(() => {});
+
+    return row !== null && tokenIat < revokedAtSec!;
+  }
+
+  // ── In-process fallback path — no Redis (unit tests / dev) ───────────────
+  const now    = Date.now();
+  const cached = _fallbackCache.get(userId);
 
   if (cached && now - cached.cachedAt < ttl) {
     return cached.revokedAt !== null && tokenIat < cached.revokedAt;
@@ -57,16 +82,18 @@ export async function isTokenRevoked(
     select: { revokedAt: true },
   });
 
-  _revCache.set(userId, {
+  _fallbackCache.set(userId, {
     revokedAt: row ? row.revokedAt.getTime() / 1000 : null,
     cachedAt:  now,
   });
-  evictRevCache(now);
+  evictFallbackCache(now);
 
   return row !== null && tokenIat < row.revokedAt.getTime() / 1000;
 }
 
-/** Exposed for tests only — clears the cache between test cases. */
+/** Exposed for tests only — clears the in-process fallback cache. */
 export function _clearRevCacheForTests(): void {
-  _revCache.clear();
+  _fallbackCache.clear();
+  // Integration tests against a real Redis should call redis.flushdb() in their
+  // own setup; this function intentionally stays synchronous and Map-only.
 }
