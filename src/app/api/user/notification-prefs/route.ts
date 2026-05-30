@@ -3,6 +3,7 @@ import { withAuth } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { parseBody } from "@/lib/auth/parse-body";
 import { z } from "zod";
+import { bustNotifyPrefsCache } from "@/lib/notifications/notify";
 
 const NotifPrefsPatchSchema = z.object({
   phone:    z.string().max(20).nullish(),
@@ -39,5 +40,6 @@ export const PATCH = withAuth(async (req, _ctx, session) => {
     select: { phone: true, smsOptIn: true, waOptIn: true },
   });
 
+  bustNotifyPrefsCache(session.user.id);
   return NextResponse.json(user);
 });

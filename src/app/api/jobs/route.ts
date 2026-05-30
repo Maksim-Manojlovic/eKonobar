@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { withOptionalAuth, withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { EngagementType, TipSystem } from "@prisma/client";
-import { getEffectiveTier } from "@/lib/passport/tier";
+import { getEffectiveTierCached } from "@/lib/passport/tier-cache";
 import { RED_ALERT_DELAY_MS } from "@/lib/passport/constants";
 import { parseBody } from "@/lib/auth/parse-body";
 import { z } from "zod";
@@ -48,15 +48,9 @@ export const GET = withOptionalAuth(async (req, _ctx, session) => {
   // FREE tier waiters only see Red Alert posts older than 30 minutes.
   let redAlertCreatedAfter: Date | undefined;
   if (session?.user.role === "WAITER") {
-    const passport = await db.waiterPassport.findUnique({
-      where: { userId: session.user.id },
-      select: { passportTier: true, subscriptionExpiresAt: true },
-    });
-    const now = new Date();
-    const isFree = getEffectiveTier(passport) === "FREE";
-    if (isFree) {
-      // FREE: hide Red Alert posts created in last 30 minutes
-      redAlertCreatedAfter = new Date(now.getTime() - RED_ALERT_DELAY_MS);
+    const tier = await getEffectiveTierCached(session.user.id);
+    if (tier === "FREE") {
+      redAlertCreatedAfter = new Date(Date.now() - RED_ALERT_DELAY_MS);
     }
   }
 

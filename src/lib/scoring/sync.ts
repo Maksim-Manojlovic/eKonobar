@@ -1,4 +1,5 @@
 import { dbRaw } from "@/lib/core/db";
+import { redis } from "@/lib/core/redis";
 import {
   calculateVenueTrustScore,
   calculateVenueScoreDimensions,
@@ -119,6 +120,10 @@ export async function syncPassportScore(waiterId: string): Promise<void> {
   if (passport.totalEngagements >= 50) earned.add("hospitality_pro");
   if (score >= 98) earned.add("platinum");
   const badges = Array.from(earned);
+
+  // Bump the waiter search cache generation — all cached search result pages
+  // are now stale and will be re-fetched on next query (old keys expire via TTL).
+  if (redis) redis.incr("waiter:search:gen").catch(() => {});
 
   await dbRaw.$transaction([
     dbRaw.waiterPassport.update({

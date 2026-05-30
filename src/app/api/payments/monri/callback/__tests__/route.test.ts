@@ -18,6 +18,10 @@ vi.mock("@/lib/integrations/monri", () => ({
 }));
 vi.mock("@/lib/notifications/notify", () => ({
   notify: vi.fn().mockResolvedValue(undefined),
+  bustNotifyPrefsCache: vi.fn(),
+}));
+vi.mock("@/lib/passport/tier-cache", () => ({
+  bustTierCache: vi.fn(),
 }));
 
 import { dbRaw } from "@/lib/core/db";

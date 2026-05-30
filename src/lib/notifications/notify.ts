@@ -12,6 +12,71 @@ import {
   dispatchSms,
 } from "@/lib/notifications/dispatch";
 
+// ── User dispatch prefs cache ─────────────────────────────────────────────────
+//
+// Caches the full user payload needed for notify() dispatch decisions — role,
+// contact info, push subscriptions, and passport tier — to avoid a multi-join
+// DB read on every notification send.
+//
+// Push subscriptions are included in the cache. Stale endpoints (browser cleared
+// or expired) are auto-cleaned by dispatchPush when it receives a 410 response.
+//
+// Busted by: notification-prefs PATCH, push subscribe/unsubscribe, tier changes.
+
+const DISPATCH_PREFS_TTL = 300; // seconds
+
+type DispatchUser = Awaited<ReturnType<typeof fetchDispatchUser>>;
+
+async function fetchDispatchUser(userId: string) {
+  return db.user.findUnique({
+    where: { id: userId },
+    select: {
+      role:     true,
+      email:    true,
+      phone:    true,
+      smsOptIn: true,
+      waOptIn:  true,
+      pushSubscriptions: { select: { id: true, endpoint: true, p256dh: true, auth: true } },
+      waiterPassport: { select: { passportTier: true, subscriptionExpiresAt: true } },
+    },
+  });
+}
+
+async function getCachedDispatchUser(userId: string): Promise<DispatchUser> {
+  const key = `notif:dispatch:prefs:${userId}`;
+
+  if (redis) {
+    try {
+      const cached = await redis.get(key);
+      if (cached !== null) {
+        const parsed = JSON.parse(cached);
+        // Reconstruct the Date field that JSON serialization turns into a string.
+        if (parsed?.waiterPassport?.subscriptionExpiresAt) {
+          parsed.waiterPassport.subscriptionExpiresAt =
+            new Date(parsed.waiterPassport.subscriptionExpiresAt);
+        }
+        return parsed as DispatchUser;
+      }
+    } catch {
+      // Redis error — fall through to DB.
+    }
+  }
+
+  const user = await fetchDispatchUser(userId);
+
+  if (user && redis) {
+    redis.set(key, JSON.stringify(user), "EX", DISPATCH_PREFS_TTL).catch(() => {});
+  }
+
+  return user;
+}
+
+/** Call after any change to a user's notification-relevant fields. */
+export function bustNotifyPrefsCache(userId: string): void {
+  if (!redis) return;
+  redis.del(`notif:dispatch:prefs:${userId}`).catch(() => {});
+}
+
 // ── Coordinator ───────────────────────────────────────────────────────────────
 
 /**
@@ -34,18 +99,7 @@ export async function notify(
   body: string,
   link?: string,
 ): Promise<void> {
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: {
-      role:     true,
-      email:    true,
-      phone:    true,
-      smsOptIn: true,
-      waOptIn:  true,
-      pushSubscriptions: { select: { id: true, endpoint: true, p256dh: true, auth: true } },
-      waiterPassport: { select: { passportTier: true, subscriptionExpiresAt: true } },
-    },
-  });
+  const user = await getCachedDispatchUser(userId);
 
   // db already filters deletedAt; null means soft-deleted or missing
   if (!user) return;

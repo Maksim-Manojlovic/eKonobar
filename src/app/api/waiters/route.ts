@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
+import { redis } from "@/lib/core/redis";
 import { VerificationTier } from "@prisma/client";
+import crypto from "crypto";
 
 export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async (req, _ctx) => {
   const { searchParams } = new URL(req.url);
@@ -40,6 +42,25 @@ export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async (req, _ctx) => 
     ...(Object.keys(passportFilter).length > 0 && { waiterPassport: passportFilter }),
   };
 
+  // Cache keyed by generation (bumped on any passport score sync) + filter hash.
+  // Generation versioning avoids expensive pattern-based cache invalidation.
+  let cacheKey: string | null = null;
+  if (redis) {
+    try {
+      const gen          = (await redis.get("waiter:search:gen")) ?? "0";
+      const filterHash   = crypto
+        .createHash("sha256")
+        .update(new URLSearchParams([...searchParams.entries()].sort()).toString())
+        .digest("hex")
+        .slice(0, 16);
+      cacheKey = `search:waiters:${gen}:${filterHash}`;
+      const cached = await redis.get(cacheKey);
+      if (cached) return NextResponse.json(JSON.parse(cached));
+    } catch {
+      cacheKey = null;
+    }
+  }
+
   const [total, waiters] = await Promise.all([
     db.user.count({ where }),
     db.user.findMany({
@@ -77,10 +98,11 @@ export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async (req, _ctx) => 
     }),
   ]);
 
-  return NextResponse.json({
-    waiters,
-    total,
-    page,
-    pages: Math.ceil(total / limit),
-  });
+  const result = { waiters, total, page, pages: Math.ceil(total / limit) };
+
+  if (redis && cacheKey) {
+    redis.set(cacheKey, JSON.stringify(result), "EX", 120).catch(() => {});
+  }
+
+  return NextResponse.json(result);
 });

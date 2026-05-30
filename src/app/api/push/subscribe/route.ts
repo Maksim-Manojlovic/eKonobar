@@ -3,6 +3,7 @@ import { withAuth } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { parseBody } from "@/lib/auth/parse-body";
 import { z } from "zod";
+import { bustNotifyPrefsCache } from "@/lib/notifications/notify";
 
 const PushSubscribeSchema = z.object({
   endpoint: z.string().url(),
@@ -27,6 +28,7 @@ export const POST = withAuth(async (req, _ctx, session) => {
     update: { userId: session.user.id, p256dh: keys.p256dh, auth: keys.auth },
   });
 
+  bustNotifyPrefsCache(session.user.id);
   return NextResponse.json({ ok: true });
 });
 
@@ -39,5 +41,6 @@ export const DELETE = withAuth(async (req, _ctx, session) => {
     where: { endpoint, userId: session.user.id },
   });
 
+  bustNotifyPrefsCache(session.user.id);
   return NextResponse.json({ ok: true });
 });

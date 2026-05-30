@@ -5,6 +5,8 @@ import { PassportTier } from "@prisma/client";
 import { SUBSCRIPTION_DURATION_MS } from "@/lib/passport/constants";
 import { parseBody } from "@/lib/auth/parse-body";
 import { z } from "zod";
+import { bustTierCache } from "@/lib/passport/tier-cache";
+import { bustNotifyPrefsCache } from "@/lib/notifications/notify";
 
 const SubscribeSchema = z.object({
   tier: z.nativeEnum(PassportTier),
@@ -41,6 +43,8 @@ export const POST = withRole("WAITER", async (req, _ctx, session) => {
       where: { userId: session.user.id },
       data: { passportTier: "FREE", subscriptionExpiresAt: null, tierRank: 0 },
     });
+    bustTierCache(session.user.id);
+    bustNotifyPrefsCache(session.user.id);
     return NextResponse.json({ tier: "FREE", message: "Pretplata otkazana" });
   }
 
@@ -56,6 +60,9 @@ export const POST = withRole("WAITER", async (req, _ctx, session) => {
     data: { passportTier: tier, subscriptionExpiresAt, tierRank: TIER_RANK[tier] },
     select: { passportTier: true, subscriptionExpiresAt: true },
   });
+
+  bustTierCache(session.user.id);
+  bustNotifyPrefsCache(session.user.id);
 
   return NextResponse.json({
     tier: updated.passportTier,

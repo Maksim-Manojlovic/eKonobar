@@ -3,6 +3,8 @@ import { dbRaw } from "@/lib/core/db";
 import { verifyCallback, callbackApproved, type MonriCallbackPayload } from "@/lib/integrations/monri";
 import { fireSideEffects } from "@/lib/notifications/side-effects";
 import { SUBSCRIPTION_DURATION_MS } from "@/lib/passport/constants";
+import { bustTierCache } from "@/lib/passport/tier-cache";
+import { bustNotifyPrefsCache } from "@/lib/notifications/notify";
 import { encryptToken } from "@/lib/core/encryption";
 
 export async function POST(req: NextRequest) {
@@ -87,6 +89,9 @@ export async function POST(req: NextRequest) {
       },
     }),
   ]);
+
+  bustTierCache(payment.userId);
+  bustNotifyPrefsCache(payment.userId);
 
   fireSideEffects({
     notifications: [{
