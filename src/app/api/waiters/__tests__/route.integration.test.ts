@@ -13,6 +13,7 @@ import { resetDb, seedUser } from "@/tests/integration/db-reset";
 import { dbRaw } from "@/lib/core/db";
 import { GET } from "../route";
 
+const CTX = { params: Promise.resolve({}) };
 const FUTURE = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
 function makeReq(qs = "") {
@@ -85,7 +86,7 @@ describe("GET /api/waiters — integration", () => {
     const pro     = await createWaiter({ name: "Pro",     score: 50, tierRank: 1, passportTier: "PRO",     subscriptionExpiresAt: FUTURE });
     const proPlus = await createWaiter({ name: "ProPlus", score: 30, tierRank: 2, passportTier: "PRO_PLUS", subscriptionExpiresAt: FUTURE });
 
-    const res = await GET(makeReq());
+    const res = await GET(makeReq(), CTX);
     const { waiters } = await res.json();
 
     const ids = waiters.map((w: { id: string }) => w.id);
@@ -98,7 +99,7 @@ describe("GET /api/waiters — integration", () => {
     const high = await createWaiter({ name: "High", score: 80, tierRank: 0 });
     const mid  = await createWaiter({ name: "Mid",  score: 55, tierRank: 0 });
 
-    const { waiters } = await (await GET(makeReq())).json();
+    const { waiters } = await (await GET(makeReq(), CTX)).json();
     const ids = waiters.map((w: { id: string }) => w.id);
     expect(ids.indexOf(high)).toBeLessThan(ids.indexOf(mid));
     expect(ids.indexOf(mid)).toBeLessThan(ids.indexOf(low));
@@ -110,7 +111,7 @@ describe("GET /api/waiters — integration", () => {
     const avail    = await createWaiter({ name: "Available", available: true });
     const notAvail = await createWaiter({ name: "Busy",      available: false });
 
-    const { waiters } = await (await GET(makeReq("available=true"))).json();
+    const { waiters } = await (await GET(makeReq("available=true"), CTX)).json();
     const ids = waiters.map((w: { id: string }) => w.id);
     expect(ids).toContain(avail);
     expect(ids).not.toContain(notAvail);
@@ -120,7 +121,7 @@ describe("GET /api/waiters — integration", () => {
     const above = await createWaiter({ name: "Above", score: 80 });
     const below = await createWaiter({ name: "Below", score: 60 });
 
-    const { waiters } = await (await GET(makeReq("minScore=70"))).json();
+    const { waiters } = await (await GET(makeReq("minScore=70"), CTX)).json();
     const ids = waiters.map((w: { id: string }) => w.id);
     expect(ids).toContain(above);
     expect(ids).not.toContain(below);
@@ -130,7 +131,7 @@ describe("GET /api/waiters — integration", () => {
     const withBook    = await createWaiter({ name: "Has Book",  sanitaryBookValid: true });
     const withoutBook = await createWaiter({ name: "No Book",   sanitaryBookValid: false });
 
-    const { waiters } = await (await GET(makeReq("sanitaryBook=true"))).json();
+    const { waiters } = await (await GET(makeReq("sanitaryBook=true"), CTX)).json();
     const ids = waiters.map((w: { id: string }) => w.id);
     expect(ids).toContain(withBook);
     expect(ids).not.toContain(withoutBook);
@@ -140,7 +141,7 @@ describe("GET /api/waiters — integration", () => {
     const barman  = await createWaiter({ name: "Barman",  skills: ["cocktail", "wine"] });
     const regular = await createWaiter({ name: "Regular", skills: ["coffee"] });
 
-    const { waiters } = await (await GET(makeReq("skills=cocktail"))).json();
+    const { waiters } = await (await GET(makeReq("skills=cocktail"), CTX)).json();
     const ids = waiters.map((w: { id: string }) => w.id);
     expect(ids).toContain(barman);
     expect(ids).not.toContain(regular);
@@ -150,7 +151,7 @@ describe("GET /api/waiters — integration", () => {
     const marko = await createWaiter({ name: "Marko Petrović" });
     await createWaiter({ name: "Nikola Jovanović" });
 
-    const { waiters } = await (await GET(makeReq("search=marko"))).json();
+    const { waiters } = await (await GET(makeReq("search=marko"), CTX)).json();
     const ids = waiters.map((w: { id: string }) => w.id);
     expect(ids).toContain(marko);
     expect(ids).toHaveLength(1);
@@ -160,7 +161,7 @@ describe("GET /api/waiters — integration", () => {
     const idVerified = await createWaiter({ verificationTier: "ID_VERIFIED" });
     await createWaiter({ verificationTier: "UNVERIFIED" });
 
-    const { waiters } = await (await GET(makeReq("verificationTier=ID_VERIFIED"))).json();
+    const { waiters } = await (await GET(makeReq("verificationTier=ID_VERIFIED"), CTX)).json();
     const ids = waiters.map((w: { id: string }) => w.id);
     expect(ids).toContain(idVerified);
     expect(ids).toHaveLength(1);
@@ -172,7 +173,7 @@ describe("GET /api/waiters — integration", () => {
     const live    = await createWaiter({ name: "Live" });
     const deleted = await createWaiter({ name: "Deleted", deletedAt: new Date() });
 
-    const { waiters } = await (await GET(makeReq())).json();
+    const { waiters } = await (await GET(makeReq(), CTX)).json();
     const ids = waiters.map((w: { id: string }) => w.id);
     expect(ids).toContain(live);
     expect(ids).not.toContain(deleted);
@@ -183,7 +184,7 @@ describe("GET /api/waiters — integration", () => {
   it("pagination: limit and total correct", async () => {
     for (let i = 0; i < 5; i++) await createWaiter({ name: `W${i}` });
 
-    const res = await GET(makeReq("limit=2&page=1"));
+    const res = await GET(makeReq("limit=2&page=1"), CTX);
     const body = await res.json();
     expect(body.waiters).toHaveLength(2);
     expect(body.total).toBe(5);
@@ -194,8 +195,8 @@ describe("GET /api/waiters — integration", () => {
   it("page 2 returns next set", async () => {
     for (let i = 0; i < 5; i++) await createWaiter({ name: `W${i}`, score: 100 - i * 10 });
 
-    const p1 = await (await GET(makeReq("limit=3&page=1"))).json();
-    const p2 = await (await GET(makeReq("limit=3&page=2"))).json();
+    const p1 = await (await GET(makeReq("limit=3&page=1"), CTX)).json();
+    const p2 = await (await GET(makeReq("limit=3&page=2"), CTX)).json();
 
     const p1ids = p1.waiters.map((w: { id: string }) => w.id);
     const p2ids = p2.waiters.map((w: { id: string }) => w.id);

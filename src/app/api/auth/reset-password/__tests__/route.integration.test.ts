@@ -107,7 +107,7 @@ describe("POST /api/auth/reset-password — integration", () => {
     const tokenRow = await dbRaw.passwordResetToken.findUnique({
       where: { token: VALID_TOKEN },
     });
-    expect(tokenRow.usedAt).not.toBeNull();
+    expect(tokenRow!.usedAt).not.toBeNull();
   });
 
   it("$transaction atomic: usedAt and hashedPassword committed in same write", async () => {
@@ -120,7 +120,7 @@ describe("POST /api/auth/reset-password — integration", () => {
       dbRaw.passwordResetToken.findUnique({ where: { token: VALID_TOKEN } }),
     ]);
     const passwordChanged = user!.hashedPassword !== "old-hash-placeholder";
-    const tokenUsed       = tokenRow.usedAt !== null;
+    const tokenUsed       = tokenRow!.usedAt !== null;
     // Both must be true — neither can be half-committed
     expect(passwordChanged).toBe(true);
     expect(tokenUsed).toBe(true);

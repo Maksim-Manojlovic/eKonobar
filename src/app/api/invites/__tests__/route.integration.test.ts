@@ -16,6 +16,8 @@ import { resetDb, seedUser } from "@/tests/integration/db-reset";
 import { dbRaw } from "@/lib/core/db";
 import { POST, GET } from "../route";
 
+const CTX = { params: Promise.resolve({}) };
+
 function makePost(body: object) {
   return new NextRequest("http://localhost/api/invites", {
     method:  "POST",
@@ -72,7 +74,7 @@ describe("POST /api/invites — integration", () => {
     const { ownerId, waiterId } = await createScaffold();
     mockOwner(ownerId);
 
-    const res = await POST(makePost({ waiterId }));
+    const res = await POST(makePost({ waiterId }), CTX);
     expect(res.status).toBe(201);
 
     const invite = await dbRaw.invite.findFirst({ where: { senderId: ownerId, recipientId: waiterId } });
@@ -85,7 +87,7 @@ describe("POST /api/invites — integration", () => {
     const { ownerId, waiterId } = await createScaffold();
     mockOwner(ownerId);
 
-    await POST(makePost({ waiterId }));
+    await POST(makePost({ waiterId }), CTX);
 
     const invite = await dbRaw.invite.findFirst({ where: { senderId: ownerId, recipientId: waiterId } });
     const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
@@ -99,8 +101,8 @@ describe("POST /api/invites — integration", () => {
     const { ownerId, waiterId } = await createScaffold();
     mockOwner(ownerId);
 
-    await POST(makePost({ waiterId }));               // first — creates
-    const res = await POST(makePost({ waiterId }));   // second — duplicate
+    await POST(makePost({ waiterId }), CTX);               // first — creates
+    const res = await POST(makePost({ waiterId }), CTX);   // second — duplicate
     expect(res.status).toBe(409);
 
     // Only one invite in DB
@@ -123,7 +125,7 @@ describe("POST /api/invites — integration", () => {
     });
 
     mockOwner(ownerId);
-    const res = await POST(makePost({ waiterId }));
+    const res = await POST(makePost({ waiterId }), CTX);
     expect(res.status).toBe(201); // new PENDING invite allowed
 
     const rows = await dbRaw.invite.findMany({ where: { senderId: ownerId, recipientId: waiterId } });
@@ -140,11 +142,11 @@ describe("POST /api/invites — integration", () => {
     // Owner 1 invites waiter
     const { ownerId } = await createScaffold();
     mockOwner(ownerId);
-    await POST(makePost({ waiterId }));
+    await POST(makePost({ waiterId }), CTX);
 
     // Owner 2 invites same waiter — different sender, should be allowed
     mockOwner(owner2Id);
-    const res = await POST(makePost({ waiterId }));
+    const res = await POST(makePost({ waiterId }), CTX);
     expect(res.status).toBe(201);
   });
 
@@ -153,7 +155,7 @@ describe("POST /api/invites — integration", () => {
   it("nonexistent waiter → 404", async () => {
     const { ownerId } = await createScaffold();
     mockOwner(ownerId);
-    const res = await POST(makePost({ waiterId: "ghost-id" }));
+    const res = await POST(makePost({ waiterId: "ghost-id" }), CTX);
     expect(res.status).toBe(404);
   });
 
@@ -164,11 +166,11 @@ describe("POST /api/invites — integration", () => {
     // 20 invites to 20 different waiters (limit = 20/hour)
     for (let i = 0; i < 20; i++) {
       const wId = await seedUser({ role: "WAITER" });
-      await POST(makePost({ waiterId: wId }));
+      await POST(makePost({ waiterId: wId }), CTX);
     }
 
     const extraWaiter = await seedUser({ role: "WAITER" });
-    const res = await POST(makePost({ waiterId: extraWaiter }));
+    const res = await POST(makePost({ waiterId: extraWaiter }), CTX);
     expect(res.status).toBe(429);
   });
 });
@@ -187,7 +189,7 @@ describe("GET /api/invites — integration", () => {
     });
     mockOwner(ownerId);
 
-    const res = await GET(makeGet());
+    const res = await GET(makeGet(), CTX);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toHaveLength(1);
@@ -207,7 +209,7 @@ describe("GET /api/invites — integration", () => {
     });
     mockWaiter(waiterId);
 
-    const res = await GET(makeGet());
+    const res = await GET(makeGet(), CTX);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toHaveLength(1);

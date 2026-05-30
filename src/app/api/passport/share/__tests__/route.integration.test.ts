@@ -13,6 +13,8 @@ import { getServerSession } from "next-auth";
 import { POST } from "../route";
 import { GET } from "../../public/[shareToken]/route";
 
+const CTX = { params: Promise.resolve({}) };
+
 function mockWaiter(id: string) {
   vi.mocked(getServerSession).mockResolvedValue({
     user: { id, role: "WAITER" },
@@ -42,7 +44,7 @@ describe("POST /api/passport/share — integration", () => {
     await dbRaw.waiterPassport.create({ data: { userId } });
     mockWaiter(userId);
 
-    const res = await POST(makePost());
+    const res = await POST(makePost(), CTX);
     expect(res.status).toBe(200);
     const { shareToken, shareTokenExpiry } = await res.json();
 
@@ -67,7 +69,7 @@ describe("POST /api/passport/share — integration", () => {
     // No passport created
     mockWaiter(userId);
 
-    const res = await POST(makePost());
+    const res = await POST(makePost(), CTX);
     expect(res.status).toBe(200);
 
     const passport = await dbRaw.waiterPassport.findUnique({ where: { userId } });
@@ -80,8 +82,8 @@ describe("POST /api/passport/share — integration", () => {
     await dbRaw.waiterPassport.create({ data: { userId } });
     mockWaiter(userId);
 
-    const { shareToken: token1 } = await (await POST(makePost())).json();
-    const { shareToken: token2 } = await (await POST(makePost())).json();
+    const { shareToken: token1 } = await (await POST(makePost(), CTX)).json();
+    const { shareToken: token2 } = await (await POST(makePost(), CTX)).json();
 
     expect(token2).not.toBe(token1); // new token each call
     // DB has only one passport row with token2
