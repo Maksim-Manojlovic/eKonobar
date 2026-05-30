@@ -153,6 +153,16 @@ describe("POST /api/shifts/templates", () => {
     expect(res.status).toBe(201);
   });
 
+  it("weekdaysOnly=true with dayOfWeek=null → 201 (preset payload)", async () => {
+    const res = await POST(makePostReq({ ...VALID_BODY, weekdaysOnly: true, dayOfWeek: null }), CTX);
+    expect(res.status).toBe(201);
+  });
+
+  it("weekdaysOnly=false with dayOfWeek=null → 400", async () => {
+    const res = await POST(makePostReq({ ...VALID_BODY, weekdaysOnly: false, dayOfWeek: null }), CTX);
+    expect(res.status).toBe(400);
+  });
+
   it("venue not found → 404", async () => {
     vi.mocked(db.venue.findFirst).mockResolvedValue(null);
     const res = await POST(makePostReq(VALID_BODY), CTX);

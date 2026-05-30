@@ -7,7 +7,7 @@ import { z } from "zod";
 const TemplateCreateSchema = z.object({
   venueId:       z.string().min(1),
   name:          z.string().min(1),
-  dayOfWeek:     z.number().int().min(0).max(6).optional(),
+  dayOfWeek:     z.number().int().min(0).max(6).nullish(),
   weekdaysOnly:  z.boolean().optional(),
   metadata:      z.unknown().optional(),
   startTime:     z.string().min(1),
@@ -36,7 +36,7 @@ export const POST = withRole(["VENUE_OWNER", "WAITER"], async (req, _ctx, sessio
   if (!parsed.ok) return parsed.response;
   const { venueId, name, dayOfWeek, weekdaysOnly, metadata, startTime, endTime, requiredCount, role, pay } = parsed.data;
 
-  if (!weekdaysOnly && (dayOfWeek === undefined || dayOfWeek < 0 || dayOfWeek > 6)) {
+  if (!weekdaysOnly && (dayOfWeek == null || dayOfWeek < 0 || dayOfWeek > 6)) {
     return NextResponse.json({ error: "dayOfWeek must be 0–6 when weekdaysOnly is false" }, { status: 400 });
   }
 
