@@ -117,27 +117,10 @@ export function ShiftModal({ shift, date, venue, waiters, onSave, onDelete, onCl
                 className="auth-input" />
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Uloga</label>
-              <input type="text" value={form.role} onChange={e => set("role", e.target.value)}
-                placeholder="Konobar" className="auth-input" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Broj ljudi</label>
-              <input type="number" min={1} max={20} value={form.requiredCount} onChange={e => set("requiredCount", e.target.value)}
-                className="auth-input" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Naknada (RSD)</label>
-              <input type="number" min={0} value={form.pay} onChange={e => set("pay", e.target.value)}
-                placeholder="3 000" className="auth-input" />
-            </div>
-          </div>
           <div>
-            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Očekivani bakšiš (RSD) — prikazuje se u tržištu</label>
-            <input type="number" min={0} value={form.tipEstimate} onChange={e => set("tipEstimate", e.target.value)}
-              placeholder="npr. 2 000" className="auth-input" />
+            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Broj ljudi</label>
+            <input type="number" min={1} max={20} value={form.requiredCount} onChange={e => set("requiredCount", e.target.value)}
+              className="auth-input" />
           </div>
           <div>
             <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Briefing za smenu</label>
@@ -162,11 +145,6 @@ export function ShiftModal({ shift, date, venue, waiters, onSave, onDelete, onCl
                 ))}
               </div>
             )}
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Interna napomena</label>
-            <textarea value={form.notes} onChange={e => set("notes", e.target.value)}
-              rows={2} className="auth-input resize-none" />
           </div>
           <div className="flex items-center justify-between py-1">
             <div>
@@ -295,19 +273,9 @@ export function TemplateModal({ template, venueId, onSave, onClose }: {
               <input type="time" required value={form.endTime} onChange={e => set("endTime", e.target.value)} className="auth-input" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Broj ljudi</label>
-              <input type="number" min={1} max={20} value={form.requiredCount} onChange={e => set("requiredCount", e.target.value)} className="auth-input" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Naknada (RSD)</label>
-              <input type="number" min={0} value={form.pay} onChange={e => set("pay", e.target.value)} placeholder="Po dogovoru" className="auth-input" />
-            </div>
-          </div>
           <div>
-            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Uloga</label>
-            <input type="text" value={form.role} onChange={e => set("role", e.target.value)} placeholder="npr. Konobar" className="auth-input" />
+            <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Broj ljudi</label>
+            <input type="number" min={1} max={20} value={form.requiredCount} onChange={e => set("requiredCount", e.target.value)} className="auth-input" />
           </div>
           {error && <div className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</div>}
           <button type="submit" disabled={saving} className="btn-dash-orange py-2.5 disabled:opacity-60">

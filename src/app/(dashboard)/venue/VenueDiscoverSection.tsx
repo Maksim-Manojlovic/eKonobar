@@ -108,7 +108,6 @@ export function DiscoverSection({ onInvite }: { posts: OwnPost[]; onInvite: (w: 
 
   return (
     <>
-      <h2 className="font-black text-white">Pronađi konobara</h2>
       <div className="flex flex-wrap gap-2">
         <button onClick={() => setFilterAvailable(p => !p)}
           className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${filterAvailable ? "bg-green-500 text-white border-green-500" : "bg-white text-neutral-600 border-neutral-200 hover:border-green-400"}`}>
@@ -187,7 +186,6 @@ export function WaitersSection({ applications, loading, onInvite, venue }: { app
   );
   return (
     <>
-      <h2 className="font-black text-white">Konobari koji su se prijavili</h2>
       {unique.length === 0
         ? <div className="dash-card p-10 text-center text-neutral-400 text-sm">Još nema prijava</div>
         : <div className="grid gap-3 sm:grid-cols-2">

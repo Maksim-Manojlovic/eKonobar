@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { Section, AppFilter, OwnPost, IncomingApp, Venue } from "./venue-types";
+import type { Section, AppFilter, OwnPost, IncomingApp, Venue, WaiterEntry } from "./venue-types";
+import { WaitersSection, DiscoverSection } from "./VenueDiscoverSection";
 import { getInitials, formatSalary } from "@/lib/formatting/utils";
 import { formatDate } from "@/lib/formatting/display-maps";
 import { ENGAGEMENT_LABELS } from "@/lib/formatting/display-maps";
@@ -25,8 +26,7 @@ export function PostsSection({ posts, loading, onNavigate, onStatusChange }: {
   if (loading) return <PostsSkeleton />;
   return (
     <>
-      <div className="flex items-center justify-between">
-        <h2 className="font-black text-white">Moji oglasi</h2>
+      <div className="flex items-center justify-end">
         <button onClick={() => onNavigate("new-post")} className="btn-dash-orange px-4 py-2">+ Novi oglas</button>
       </div>
       {posts.length === 0
@@ -66,7 +66,7 @@ export function PostsSection({ posts, loading, onNavigate, onStatusChange }: {
   );
 }
 
-/* ── Section: New Post ───────────────────────────────────────────────────── */
+/* ── Section: New Post ──────────────────────────────────────────────────── */
 
 export function NewPostSection({ venue, onSuccess, onBack }: {
   venue: Venue | null;
@@ -257,7 +257,6 @@ export function ApplicationsSection({ applications, loading, onStatusChange }: {
 
   return (
     <>
-      <h2 className="font-black text-white">Prijave konobara</h2>
       <div className="bg-neutral-100 rounded-xl p-1 flex gap-1 flex-wrap">
         {tabs.map(t => (
           <button key={t.key} onClick={() => setFilter(t.key)}
@@ -317,6 +316,65 @@ export function ApplicationsSection({ applications, loading, onStatusChange }: {
           </div>
       }
     </>
+  );
+}
+
+/* ── Hub: Zapošljavanje ──────────────────────────────────────────────────── */
+
+const HUB_TABS: { key: Section; label: string }[] = [
+  { key: "posts",        label: "Oglasi" },
+  { key: "applications", label: "Prijave" },
+  { key: "waiters",      label: "Konobari" },
+  { key: "discover",     label: "Pronađi" },
+];
+
+export function JobsHub({ section, posts, applications, loading, onNavigate, onPostStatusChange, onAppStatusChange, onInvite, onNewPostSuccess, venue }: {
+  section: Section;
+  posts: OwnPost[];
+  applications: IncomingApp[];
+  loading: boolean;
+  onNavigate: (s: Section) => void;
+  onPostStatusChange: (id: string, status: "ACTIVE" | "PAUSED") => Promise<void>;
+  onAppStatusChange: (id: string, status: string) => Promise<void>;
+  onInvite: (w: WaiterEntry) => void;
+  onNewPostSuccess: () => void;
+  venue: Venue | null;
+}) {
+  const pendingCount = applications.filter(a => a.status === "PENDING").length;
+
+  if (section === "new-post") {
+    return <NewPostSection venue={venue} onSuccess={onNewPostSuccess} onBack={() => onNavigate("posts")} />;
+  }
+
+  const activeTab = HUB_TABS.find(t => t.key === section)?.key ?? "posts";
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="bg-white/5 rounded-xl p-1 flex gap-1">
+        {HUB_TABS.map(t => (
+          <button key={t.key} onClick={() => onNavigate(t.key)}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              activeTab === t.key
+                ? "bg-orange-500 text-white shadow-sm"
+                : "text-white/50 hover:text-white/80 hover:bg-white/5"
+            }`}>
+            {t.label}
+            {t.key === "applications" && pendingCount > 0 && (
+              <span className={`text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center ${
+                activeTab === "applications" ? "bg-white text-orange-500" : "bg-orange-500 text-white"
+              }`}>
+                {pendingCount}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "posts"        && <PostsSection posts={posts} loading={loading} onNavigate={onNavigate} onStatusChange={onPostStatusChange} />}
+      {activeTab === "applications" && <ApplicationsSection applications={applications} loading={loading} onStatusChange={onAppStatusChange} />}
+      {activeTab === "waiters"      && <WaitersSection applications={applications} loading={loading} onInvite={onInvite} venue={venue} />}
+      {activeTab === "discover"     && <DiscoverSection posts={posts} onInvite={onInvite} />}
+    </div>
   );
 }
 
