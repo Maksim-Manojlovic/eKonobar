@@ -21,6 +21,53 @@ npm run test:integration # integration tests only (requires real PostgreSQL)
 npm run test:watch       # run unit tests in watch mode
 ```
 
+## Redis
+
+Optional in development (all features degrade gracefully when `REDIS_URL` is not set). Required in production for distributed locks and cross-instance caches.
+
+**Local dev:** `docker compose up redis` (service defined in `docker-compose.yml`), then add `REDIS_URL=redis://localhost:6379` to `.env`.
+
+### Client
+
+`lib/core/redis.ts` — exports `redis: Redis | null`. Always `null` when `REDIS_URL` is unset. All Redis-dependent code guards on `if (redis)` and falls back to the DB path. This means unit tests work without Redis configured.
+
+`lib/core/redis-lock.ts` — `acquireLock(key, ttlMs)` / `releaseLock(key, token)`. Returns a discriminated `LockResult` (`acquired: true | false`). On `reason: "contended"` → return 409. On `reason: "unavailable"` → fail-open with `logger.warn` (lock is a correctness layer, not availability layer — shift claim is the exception).
+
+### Cache key taxonomy
+
+| Prefix | Module | TTL | Busted by |
+|---|---|---|---|
+| `token:rev:{userId}` | `lib/auth/revocation.ts` | 5s (ADMIN) / 60s | next request after TTL |
+| `rl:{key}:{bucket}` | `lib/core/rate-limit.ts` | `windowMs + 10s` | TTL only |
+| `rl:auth:{userId}:{action}:{bucket}` | `lib/core/rate-limit.ts` | `windowMs + 10s` | TTL only |
+| `notif:cache:{userId}` | `api/notifications/route.ts` | 60s | `notify()`, mark-read PATCH |
+| `notif:dispatch:prefs:{userId}` | `lib/notifications/notify.ts` | 300s | notification-prefs PATCH, push subscribe/unsubscribe, tier change |
+| `cache:admin:stats` | `api/admin/stats/route.ts` | 60s | TTL only |
+| `passport:tier:{userId}` | `lib/passport/tier-cache.ts` | min(time-to-expiry, 3600s) | `bustTierCache()` — Monri callback, subscribe route |
+| `waiter:search:gen` | `api/waiters/route.ts` | no TTL (counter) | `INCR` after every `syncPassportScore` |
+| `search:waiters:{gen}:{hash}` | `api/waiters/route.ts` | 120s | counter change (old keys expire via TTL) |
+| `shift:claim:lock:{shiftId}` | `api/shifts/[id]/claim/route.ts` | 5s | `releaseLock` in `finally` |
+| `cron:renew-subscriptions:running` | `api/cron/renew-subscriptions` | 300s | TTL only |
+| `renewal:lock:{userId}` | `api/cron/renew-subscriptions` | 3600s | TTL only |
+
+### Cache bust functions
+
+- `bustTierCache(userId)` — `lib/passport/tier-cache.ts`
+- `bustNotifyPrefsCache(userId)` — `lib/notifications/notify.ts`
+
+Call both when a user's passport tier changes (payment, cancellation). Call `bustNotifyPrefsCache` alone when contact preferences or push subscriptions change.
+
+### Testing Redis paths
+
+Unit tests mock `@/lib/core/redis` with a fake client:
+
+```typescript
+const mockRedis = { get: vi.fn(), set: vi.fn(), del: vi.fn(), incr: vi.fn() };
+vi.mock("@/lib/core/redis", () => ({ redis: mockRedis }));
+```
+
+Tests for the no-Redis fallback path do not mock `@/lib/core/redis` — the module returns `null` naturally when `REDIS_URL` is unset, so the DB mock path activates automatically.
+
 ## ESLint
 
 Config is in `eslint.config.mjs` (ESLint 9 flat config). Run with `npm run lint`. The CI job runs lint before tests — fix all errors before committing.

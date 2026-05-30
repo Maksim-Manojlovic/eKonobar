@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { dbRaw } from "@/lib/core/db";
+import { redis } from "@/lib/core/redis";
 
 export const GET = withRole("ADMIN", async () => {
   const now = new Date();
@@ -16,6 +17,7 @@ export const GET = withRole("ADMIN", async () => {
     softDeletedUsers,
     rateLimitEntries,
     pendingClockIns,
+    redisHealth,
   ] = await Promise.all([
     dbRaw.review.count({
       where: { status: "PENDING", authorId: null, createdAt: { lt: guestEmbargo } },
@@ -39,6 +41,18 @@ export const GET = withRole("ADMIN", async () => {
     dbRaw.user.count({ where: { deletedAt: { not: null } } }),
     dbRaw.rateLimit.count(),
     dbRaw.shiftAssignment.count({ where: { pendingClockIn: true } }),
+    // Redis connectivity check — null when REDIS_URL is not configured.
+    redis
+      ? (async () => {
+          const t0 = Date.now();
+          try {
+            await redis.ping();
+            return { connected: true, latencyMs: Date.now() - t0 };
+          } catch {
+            return { connected: false, latencyMs: null };
+          }
+        })()
+      : Promise.resolve(null),
   ]);
 
   return NextResponse.json({
@@ -60,5 +74,6 @@ export const GET = withRole("ADMIN", async () => {
       rateLimitEntries: rateLimitEntries,
       pendingClockIns:  pendingClockIns,
     },
+    redis: redisHealth,
   });
 });
