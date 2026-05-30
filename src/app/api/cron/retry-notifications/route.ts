@@ -18,10 +18,17 @@ async function run() {
   const pending = await dbRaw.notification.findMany({
     where: {
       createdAt: { gte: since },
-      user: { deletedAt: null },
       OR: [
-        { waSent: false,  waRetries:  { lt: MAX_RETRIES } },
-        { smsSent: false, smsRetries: { lt: MAX_RETRIES } },
+        {
+          waSent: false,
+          waRetries: { lt: MAX_RETRIES },
+          user: { deletedAt: null, waOptIn: true, phone: { not: null } },
+        },
+        {
+          smsSent: false,
+          smsRetries: { lt: MAX_RETRIES },
+          user: { deletedAt: null, smsOptIn: true, phone: { not: null } },
+        },
       ],
     },
     select: {
