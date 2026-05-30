@@ -46,6 +46,8 @@ Optional in development (all features degrade gracefully when `REDIS_URL` is not
 | `passport:tier:{userId}` | `lib/passport/tier-cache.ts` | min(time-to-expiry, 3600s) | `bustTierCache()` — Monri callback, subscribe route |
 | `waiter:search:gen` | `api/waiters/route.ts` | no TTL (counter) | `INCR` after every `syncPassportScore` |
 | `search:waiters:{gen}:{hash}` | `api/waiters/route.ts` | 120s | counter change (old keys expire via TTL) |
+| `score:sync:waiter:{waiterId}` | `lib/notifications/side-effects.ts` | 5s | TTL only — cooldown guard, prevents concurrent re-syncs |
+| `score:sync:venue:{venueId}` | `lib/notifications/side-effects.ts` | 5s | TTL only — cooldown guard, prevents concurrent re-syncs |
 | `shift:claim:lock:{shiftId}` | `api/shifts/[id]/claim/route.ts` | 5s | `releaseLock` in `finally` |
 | `cron:renew-subscriptions:running` | `api/cron/renew-subscriptions` | 300s | TTL only |
 | `renewal:lock:{userId}` | `api/cron/renew-subscriptions` | 3600s | TTL only |
