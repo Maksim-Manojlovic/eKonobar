@@ -18,7 +18,6 @@ env:
 # ── Jobs ─────────────────────────────────────────────────────────────────────
 
 jobs:
-
   # ── Stage 1: Static analysis — no DB, parallel with unit ─────────────────
   static:
     name: Typecheck & Lint
@@ -115,7 +114,8 @@ jobs:
       CRON_SECRET: ci-cron-secret
       # AES-256-GCM key — 64 hex chars; no-op when unset, set here to test
       # the encrypted path without real Monri credentials
-      MONRI_TOKEN_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000001"
+      MONRI_TOKEN_ENCRYPTION_KEY: ${{ secrets.CI_MONRI_TOKEN_ENCRYPTION_KEY }}
+
       MONRI_ENV: test
       MONRI_MERCHANT_KEY: ci-merchant-key
       MONRI_AUTHENTICITY_TOKEN: ci-auth-token
