@@ -258,17 +258,19 @@ function HeadWaiterPanel({ venue, waiters, onRefresh }: {
 }) {
   const [busy, setBusy]         = useState(false);
   const [selectId, setSelectId] = useState("");
+  const [editing, setEditing]   = useState(false);
 
-  async function appoint() {
-    if (!selectId) return;
+  async function appoint(waiterId: string) {
+    if (!waiterId) return;
     setBusy(true);
     await fetch(`/api/venues/${venue.id}/head-waiter`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ waiterId: selectId }),
+      body: JSON.stringify({ waiterId }),
     });
     setBusy(false);
     setSelectId("");
+    setEditing(false);
     onRefresh();
   }
 
@@ -278,6 +280,8 @@ function HeadWaiterPanel({ venue, waiters, onRefresh }: {
     setBusy(false);
     onRefresh();
   }
+
+  const availableWaiters = waiters.filter(w => w.id !== venue.headWaiter?.id);
 
   return (
     <div className="dash-card p-4 flex items-center gap-4 flex-wrap">
@@ -297,12 +301,46 @@ function HeadWaiterPanel({ venue, waiters, onRefresh }: {
       </div>
 
       {venue.headWaiter ? (
-        <button
-          onClick={remove}
-          disabled={busy}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 border border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50">
-          Ukloni
-        </button>
+        editing ? (
+          <div className="flex items-center gap-2">
+            <select
+              value={selectId}
+              onChange={e => setSelectId(e.target.value)}
+              className="auth-input py-1.5 text-xs w-44">
+              <option value="">Izaberi novog šefa…</option>
+              {availableWaiters.map(w => (
+                <option key={w.id} value={w.id}>{w.name ?? w.id}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => appoint(selectId)}
+              disabled={!selectId || busy}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-40">
+              Potvrdi
+            </button>
+            <button
+              onClick={() => { setEditing(false); setSelectId(""); }}
+              disabled={busy}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-neutral-500 border border-neutral-200 hover:bg-neutral-50 transition-colors disabled:opacity-50">
+              Otkaži
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setEditing(true)}
+              disabled={busy}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-orange-600 border border-orange-200 hover:bg-orange-50 transition-colors disabled:opacity-50">
+              Izmeni
+            </button>
+            <button
+              onClick={remove}
+              disabled={busy}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 border border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50">
+              Ukloni
+            </button>
+          </div>
+        )
       ) : (
         <div className="flex items-center gap-2">
           <select
@@ -315,7 +353,7 @@ function HeadWaiterPanel({ venue, waiters, onRefresh }: {
             ))}
           </select>
           <button
-            onClick={appoint}
+            onClick={() => appoint(selectId)}
             disabled={!selectId || busy}
             className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-40">
             Postavi
