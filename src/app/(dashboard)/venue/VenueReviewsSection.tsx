@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { useReviewModeration } from "@/hooks/useReviewModeration";
-import type { Venue, VenueReview } from "./venue-types";
+import type { Venue, VenueReview, Section } from "./venue-types";
 import { formatDate } from "@/lib/formatting/display-maps";
 import { ReviewsSkeleton } from "./venue-helpers";
 
@@ -74,8 +74,6 @@ export function ReviewsSection({ venue }: { venue: Venue | null }) {
 
   return (
     <>
-      <h2 className="font-black text-white">Recenzije</h2>
-
       <div className="dash-card p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-neutral-900 text-sm">Recenzije konobara o lokalu</h3>
@@ -144,12 +142,9 @@ export function QrReviewSection({ venue }: { venue: Venue | null }) {
 
   if (!venue) {
     return (
-      <>
-        <h2 className="font-black text-white">QR Recenzije</h2>
-        <div className="dash-card p-10 text-center text-neutral-400 text-sm">
-          Prvo kreirajte profil lokala da biste generisali QR kod.
-        </div>
-      </>
+      <div className="dash-card p-10 text-center text-neutral-400 text-sm">
+        Prvo kreirajte profil lokala da biste generisali QR kod.
+      </div>
     );
   }
 
@@ -311,5 +306,39 @@ export function QrReviewSection({ venue }: { venue: Venue | null }) {
         )}
       </div>
     </>
+  );
+}
+
+/* ── Hub: Recenzije ──────────────────────────────────────────────────────── */
+
+const REVIEW_TABS: { key: Section; label: string }[] = [
+  { key: "reviews",    label: "Recenzije" },
+  { key: "qr-review",  label: "QR Recenzije" },
+];
+
+export function ReviewsHub({ section, venue, onNavigate }: {
+  section: Section;
+  venue: Venue | null;
+  onNavigate: (s: Section) => void;
+}) {
+  const activeTab = REVIEW_TABS.find(t => t.key === section)?.key ?? "reviews";
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="bg-white/5 rounded-xl p-1 flex gap-1">
+        {REVIEW_TABS.map(t => (
+          <button key={t.key} onClick={() => onNavigate(t.key)}
+            className={`flex-1 flex items-center justify-center px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              activeTab === t.key
+                ? "bg-orange-500 text-white shadow-sm"
+                : "text-white/50 hover:text-white/80 hover:bg-white/5"
+            }`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {activeTab === "reviews"   && <ReviewsSection venue={venue} />}
+      {activeTab === "qr-review" && <QrReviewSection venue={venue} />}
+    </div>
   );
 }

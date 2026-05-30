@@ -111,7 +111,7 @@ const DashboardShell = forwardRef<DashboardShellHandle, DashboardShellProps>(
         <aside
           id={sidebarId}
           className="dark-sidebar hidden md:flex flex-col w-60 min-h-screen sticky top-0 h-screen overflow-y-auto"
-          style={{ ...SIDEBAR_STYLE, position: "relative", zIndex: 2 }}
+          style={{ ...SIDEBAR_STYLE, zIndex: 2 }}
         >
           <div className="px-5 py-5 border-b border-white/10">
             <Logo />

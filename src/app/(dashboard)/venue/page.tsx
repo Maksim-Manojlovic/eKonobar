@@ -18,7 +18,7 @@ import ProfileSection from "./ProfileSection";
 import VenueSmeneSection from "./VenueSmeneSection";
 import { JobsHub } from "./VenueJobsSection";
 import { InviteModal } from "./VenueDiscoverSection";
-import { ReviewsSection, QrReviewSection } from "./VenueReviewsSection";
+import { ReviewsHub } from "./VenueReviewsSection";
 
 /* ── Section: Overview ───────────────────────────────────────────────────── */
 
@@ -206,15 +206,18 @@ function OverviewSection({ venue, posts, applications, loading, onNavigate, geof
 
 /* ── Nav ─────────────────────────────────────────────────────────────────── */
 
-const HUB_SECTIONS = new Set<Section>(["posts", "new-post", "applications", "waiters", "discover"]);
+const HUB_SECTIONS    = new Set<Section>(["posts", "new-post", "applications", "waiters", "discover"]);
+const REVIEW_SECTIONS = new Set<Section>(["reviews", "qr-review"]);
 
 const NAV_ITEMS: { key: Section; label: string; icon: React.ReactNode }[] = [
-  { key: "overview",     label: "Pregled",         icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg> },
-  { key: "posts",        label: "Zapošljavanje",   icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> },
-  { key: "smene",        label: "Smene",           icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg> },
-  { key: "reviews",      label: "Recenzije",       icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg> },
-  { key: "qr-review",   label: "QR Recenzije",    icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3z"/><path d="M17 17h4"/><path d="M17 21v-4"/><path d="M21 14v3"/></svg> },
-  { key: "profile",      label: "Profil lokala",   icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg> },
+  { key: "overview", label: "Pregled",       icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg> },
+  { key: "posts",    label: "Zapošljavanje", icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> },
+  { key: "smene",    label: "Smene",         icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg> },
+  { key: "reviews",  label: "Recenzije",     icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg> },
+];
+
+const BOTTOM_NAV_ITEMS: { key: Section; label: string; icon: React.ReactNode }[] = [
+  { key: "profile",       label: "Profil lokala", icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg> },
   { key: "notifications", label: "Obaveštenja",   icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> },
 ];
 
@@ -328,17 +331,32 @@ export default function VenueDashboard() {
           <button key={item.key}
             id={`${idPrefix}-nav-${item.key}`}
             onClick={() => { setSection(item.key); closeMenu?.(); }}
-            className={`nav-item ${section === item.key || (item.key === "posts" && HUB_SECTIONS.has(section)) ? "active" : ""}`}>
+            className={`nav-item ${
+              section === item.key ||
+              (item.key === "posts"   && HUB_SECTIONS.has(section)) ||
+              (item.key === "reviews" && REVIEW_SECTIONS.has(section))
+                ? "active" : ""
+            }`}>
             {item.icon}{item.label}
             {item.key === "posts" && pendingCount > 0 && (
               <span className="ml-auto bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{pendingCount}</span>
             )}
+          </button>
+        ))}
+      </nav>
+      <div className="px-3 pt-2 pb-1 flex flex-col gap-1 border-t border-white/10">
+        {BOTTOM_NAV_ITEMS.map(item => (
+          <button key={item.key}
+            id={`${idPrefix}-nav-${item.key}`}
+            onClick={() => { setSection(item.key); closeMenu?.(); }}
+            className={`nav-item ${section === item.key ? "active" : ""}`}>
+            {item.icon}{item.label}
             {item.key === "notifications" && notifUnread > 0 && (
               <span className="ml-auto bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{notifUnread > 9 ? "9+" : notifUnread}</span>
             )}
           </button>
         ))}
-      </nav>
+      </div>
       <div className="px-3 py-4 border-t border-white/10">
         <div className="flex items-center gap-3 px-2 mb-3">
           {venue?.logo ? (
@@ -427,8 +445,7 @@ export default function VenueDashboard() {
         {section === "overview"      && <OverviewSection venue={venue} posts={posts} applications={applications} loading={loading} onNavigate={setSection} geofenceEnabled={geofenceEnabled} geofenceSaving={geofenceSaving} onGeofenceToggle={toggleGeofence} onStartTour={handleStartTour} />}
         {HUB_SECTIONS.has(section)   && <JobsHub section={section} posts={posts} applications={applications} loading={loading} onNavigate={setSection} onPostStatusChange={handlePostStatusChange} onAppStatusChange={handleStatusChange} onInvite={setInviteTarget} onNewPostSuccess={() => { fetchData(); setSection("posts"); }} venue={venue} />}
         {section === "smene"         && <VenueSmeneSection venue={venue} shifts={shifts} loading={loading} acceptedWaiters={acceptedWaiters} onRefresh={fetchData} />}
-        {section === "reviews"       && <ReviewsSection venue={venue} />}
-        {section === "qr-review"     && <QrReviewSection venue={venue} />}
+        {REVIEW_SECTIONS.has(section) && <ReviewsHub section={section} venue={venue} onNavigate={setSection} />}
         {section === "profile"       && <ProfileSection venue={venue} loading={loading} onVenueCreated={fetchData} geofenceEnabled={geofenceEnabled} geofenceSaving={geofenceSaving} onGeofenceToggle={toggleGeofence} onIsActiveToggle={(newIsActive) => setVenue(v => v ? { ...v, isActive: newIsActive } : v)} />}
         {section === "notifications" && <NotificationsSection />}
       </DashboardShell>
