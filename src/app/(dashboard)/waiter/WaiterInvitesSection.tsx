@@ -29,7 +29,6 @@ export function InvitesSection({ invites, loading, onRespond }: {
 
   return (
     <>
-      <h2 className="font-black text-white">Pozivnice</h2>
       {pending.length === 0 && past.length === 0 && (
         <div className="dash-card p-10 text-center text-neutral-400 text-sm">Nema pozivnica</div>
       )}

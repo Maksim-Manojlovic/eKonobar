@@ -29,7 +29,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["cloudinary"],
+  serverExternalPackages: ["cloudinary", "pino", "thread-stream", "sonic-boom", "pino-pretty"],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**.mapbox.com" },

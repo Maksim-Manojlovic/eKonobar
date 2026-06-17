@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { JobPost, MyApplication, AppFilter } from "./waiter-types";
+import type { JobPost, MyApplication, AppFilter, InviteItem, Section } from "./waiter-types";
+import { InvitesSection } from "./WaiterInvitesSection";
 import { ENGAGEMENT_LABELS, formatDate } from "@/lib/formatting/display-maps";
 import { formatSalary } from "@/lib/formatting/utils";
 import { AlertsSkeleton, JobsSkeleton, WaiterApplicationsSkeleton, ApplyButton, StatusBadge, appStatusKey } from "./waiter-helpers";
@@ -16,16 +17,6 @@ export function AlertsSection({ jobs, loading, onApply, applying, appliedJobIds 
   const alerts = jobs.filter(j => j.redAlert);
   return (
     <>
-      <div className="flex items-center gap-2">
-        <div className="relative w-4 h-4">
-          <span className="pulse-ring w-4 h-4" /><span className="pulse-ring-2 w-4 h-4" />
-          <span className="relative w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center z-10">
-            <span className="w-2 h-2 rounded-full bg-white" />
-          </span>
-        </div>
-        <h2 className="font-black text-white text-sm uppercase tracking-wider">Red Alert — Hitni Angažmani</h2>
-      </div>
-      <p className="text-xs text-neutral-400 -mt-3">Ovi angažmani zahtevaju brzu odluku.</p>
       {alerts.length === 0
         ? <div className="dash-card p-10 text-center text-neutral-400 text-sm">Nema hitnih angažmana trenutno</div>
         : <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -55,7 +46,6 @@ export function JobsSection({ jobs, loading, onApply, applying, appliedJobIds }:
   if (loading) return <JobsSkeleton />;
   return (
     <>
-      <h2 className="font-black text-white">Dostupni poslovi</h2>
       {jobs.length === 0
         ? <div className="dash-card p-10 text-center text-neutral-400 text-sm">Nema dostupnih oglasa</div>
         : <div className="flex flex-col gap-3">
@@ -100,7 +90,6 @@ export function ApplicationsSection({ applications, loading }: { applications: M
   ];
   return (
     <>
-      <h2 className="font-black text-white">Moje prijave</h2>
       <div className="bg-neutral-100 rounded-xl p-1 flex gap-1 w-fit">
         {tabs.map(t => (
           <button key={t.key} onClick={() => setFilter(t.key)}
@@ -125,5 +114,62 @@ export function ApplicationsSection({ applications, loading }: { applications: M
           </div>
       }
     </>
+  );
+}
+
+/* ── Hub: Poslovi ────────────────────────────────────────────────────────── */
+
+const POSLOVI_TABS: { key: Section; label: string }[] = [
+  { key: "alerts",       label: "Red Alert" },
+  { key: "jobs",         label: "Oglasi" },
+  { key: "applications", label: "Prijave" },
+  { key: "invites",      label: "Pozivnice" },
+];
+
+export function PosloviHub({ section, jobs, applications, invites, loading, onApply, applying, appliedJobIds, onRespond, onNavigate }: {
+  section: Section;
+  jobs: JobPost[];
+  applications: MyApplication[];
+  invites: InviteItem[];
+  loading: boolean;
+  onApply: (id: string) => Promise<void>;
+  applying: string | null;
+  appliedJobIds: Set<string>;
+  onRespond: (id: string, status: "ACCEPTED" | "DECLINED") => Promise<void>;
+  onNavigate: (s: Section) => void;
+}) {
+  const alertCount  = jobs.filter(j => j.redAlert).length;
+  const inviteCount = invites.filter(i => i.status === "PENDING").length;
+  const activeTab   = POSLOVI_TABS.find(t => t.key === section)?.key ?? "jobs";
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="bg-white/5 rounded-xl p-1 flex gap-1">
+        {POSLOVI_TABS.map(t => (
+          <button key={t.key} onClick={() => onNavigate(t.key)}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              activeTab === t.key
+                ? "bg-orange-500 text-white shadow-sm"
+                : "text-white/50 hover:text-white/80 hover:bg-white/5"
+            }`}>
+            {t.label}
+            {t.key === "alerts" && alertCount > 0 && (
+              <span className={`text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center ${
+                activeTab === "alerts" ? "bg-white text-orange-500" : "bg-orange-500 text-white"
+              }`}>{alertCount}</span>
+            )}
+            {t.key === "invites" && inviteCount > 0 && (
+              <span className={`text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center ${
+                activeTab === "invites" ? "bg-white text-orange-500" : "bg-orange-500 text-white"
+              }`}>{inviteCount}</span>
+            )}
+          </button>
+        ))}
+      </div>
+      {activeTab === "alerts"       && <AlertsSection jobs={jobs} loading={loading} onApply={onApply} applying={applying} appliedJobIds={appliedJobIds} />}
+      {activeTab === "jobs"         && <JobsSection jobs={jobs} loading={loading} onApply={onApply} applying={applying} appliedJobIds={appliedJobIds} />}
+      {activeTab === "applications" && <ApplicationsSection applications={applications} loading={loading} />}
+      {activeTab === "invites"      && <InvitesSection invites={invites} loading={loading} onRespond={onRespond} />}
+    </div>
   );
 }
