@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { redis } from "@/lib/core/redis";
+import logger from "@/lib/core/logger";
 import { VerificationTier } from "@prisma/client";
 import crypto from "crypto";
 
@@ -101,7 +102,7 @@ export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async (req, _ctx) => 
   const result = { waiters, total, page, pages: Math.ceil(total / limit) };
 
   if (redis && cacheKey) {
-    redis.set(cacheKey, JSON.stringify(result), "EX", 120).catch(() => {});
+    redis.set(cacheKey, JSON.stringify(result), "EX", 120).catch((err) => logger.warn({ err }, "waiters search: redis cache write failed"));
   }
 
   return NextResponse.json(result);

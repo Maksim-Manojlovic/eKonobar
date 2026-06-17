@@ -11,7 +11,7 @@ Graph-based code quality audit. Findings sourced from Graphify graph (`graphify-
 | CQ-F | Critical | Stale Graphify graph poisons graph-based audits | [FIXED] |
 | CQ-G | Important | God-components: state-heavy dashboard sections | [OPEN] |
 | CQ-H | Important | No data-fetching abstraction (root cause of CQ-G) | [OPEN] |
-| CQ-I | Important | Silent error swallowing in API routes + components | [OPEN] |
+| CQ-I | Important | Silent error swallowing in API routes + components | [FIXED] |
 | CQ-J | Nice-to-have | console.* in lib modules vs logging convention | [FIXED] |
 | CQ-K | Important | i18n speculative generality / YAGNI | [OPEN] |
 
@@ -48,15 +48,24 @@ Fix: add thin `useApi<T>(url)` hook returning `{ data, error, isLoading, mutate 
   replace inline fetch+state. Cuts WaiterPassportSection ~26 → ~5 useState.
 Nodes: all dashboard section components; cf. `useDashboardNav()` (nav state already abstracted).
 
-### CQ-I — Silent error swallowing in API routes + components  [OPEN]
+### CQ-I — Silent error swallowing in API routes + components  [FIXED]
 Severity: Important
-Problem: empty `catch {}` / `.catch(() => {})` across ~9 files incl. data-path routes
-  (`api/jobs/applications`, `api/waiters`, `api/notifications`, `api/admin/stats`).
-  Swallowed exceptions hide failures, return success-shaped responses with stale/empty data.
-Fix: split best-effort (cache bust → `logger.warn`) vs load-bearing (DB read → `logger.error`
-  + propagate). No bare `catch {}`. Audit each site individually.
+Problem: bare `.catch(() => {})` across 10 sites. Classified on inspection:
+  SERVER (6, fixed → logged):
+  - `api/payments/monri/cancel:12` — payment PENDING→CANCELLED write → `logger.error`
+  - `api/waiters:104` — redis cache write → `logger.warn`
+  - `api/notifications:40` — redis cache write → `logger.warn`
+  - `api/notifications:64` — redis cache bust → `logger.warn`
+  - `api/admin/stats:113` — redis cache write → `logger.warn`
+  - `api/jobs/applications:125` — red-alert metric update → `logger.warn`
+  CLIENT (4, left as-is — genuinely cosmetic best-effort, out of scope):
+  - `WaiterSmeneSection:107` (30s background poll), `WaiterPassportSection:50` (push-state
+    check), `VenueReviewsSection:160` (clipboard copy), `waiter-helpers:248` (hook fetch).
+Fix: server sites now log via pino (warn=best-effort, error=load-bearing). ESLint clean.
+  CLAUDE.md Logging section gained an explicit rule forbidding bare server-side catches.
 Nodes: `api/jobs/applications`, `api/waiters`, `api/notifications`, `api/admin/stats`,
   `api/payments/monri/cancel`.
+Resolved: 2026-06-18.
 
 ### CQ-J — console.* in lib modules vs logging convention  [FIXED]
 Severity: Nice-to-have

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { dbRaw } from "@/lib/core/db";
 import { redis } from "@/lib/core/redis";
+import logger from "@/lib/core/logger";
 
 async function fetchStats() {
   const now = new Date();
@@ -110,7 +111,7 @@ async function getCachedStats(): Promise<StatsPayload> {
 
   if (redis) {
     // Fire-and-forget cache write — failure is non-fatal.
-    redis.set(STATS_CACHE_KEY, JSON.stringify(stats), "EX", STATS_CACHE_TTL).catch(() => {});
+    redis.set(STATS_CACHE_KEY, JSON.stringify(stats), "EX", STATS_CACHE_TTL).catch((err) => logger.warn({ err }, "admin stats: redis cache write failed"));
   }
 
   return stats;

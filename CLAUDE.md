@@ -325,6 +325,8 @@ Use `logger` in lib modules and in cron/admin route fire-and-forget callbacks. T
 someAsyncOp().catch(err => logger.error({ err, contextId }, "op failed in route-name"));
 ```
 
+Never swallow a server-side fire-and-forget with bare `.catch(() => {})`. Always log: `logger.warn` for best-effort ops where failure is non-fatal (Redis cache writes/busts, metric counters), `logger.error` for load-bearing ops where a silent failure leaves bad state (e.g. a payment status update). Bare empty catches are acceptable only for genuinely cosmetic client-side UX (clipboard copy, background poll refresh).
+
 `console.error` is acceptable only in truly ephemeral callbacks where the context is obvious (e.g. simple client-side fetch handlers). Do **not** use `console.error` in lib modules or cron routes — pino outputs structured JSON in production; `console.error` bypasses it and produces unstructured stderr with no request context. This applies to boot-time code too: `lib/core/env.ts` env-var validation warnings go through `logger.warn`, not `console.warn` (`logger.ts` imports only `pino`, so importing it at module-load is cycle-free).
 
 ### Shift utilities

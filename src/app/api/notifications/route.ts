@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { redis } from "@/lib/core/redis";
+import logger from "@/lib/core/logger";
 import { parseBody } from "@/lib/auth/parse-body";
 import { z } from "zod";
 
@@ -37,7 +38,7 @@ export const GET = withAuth(async (_req, _ctx, session) => {
   if (redis) {
     // 60 s TTL — client polls every 30 s, so most polls hit the cache.
     // Cache is busted immediately on new notification (notify.ts) or mark-read.
-    redis.set(cacheKey, JSON.stringify(payload), "EX", 60).catch(() => {});
+    redis.set(cacheKey, JSON.stringify(payload), "EX", 60).catch((err) => logger.warn({ err }, "notifications: redis cache write failed"));
   }
 
   return NextResponse.json(payload);
@@ -61,7 +62,7 @@ export const PATCH = withAuth(async (req, _ctx, session) => {
   }
 
   // Bust cache so the next GET reflects updated read state.
-  if (redis) redis.del(`notif:cache:${session.user.id}`).catch(() => {});
+  if (redis) redis.del(`notif:cache:${session.user.id}`).catch((err) => logger.warn({ err }, "notifications: redis cache bust failed"));
 
   return NextResponse.json({ ok: true });
 });

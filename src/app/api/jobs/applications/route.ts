@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { withAuth, withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
+import logger from "@/lib/core/logger";
 import { checkRateLimit } from "@/lib/core/rate-limit";
 import { fireSideEffects } from "@/lib/notifications/side-effects";
 import type { Session } from "next-auth";
@@ -122,7 +123,7 @@ export const POST = withRole("WAITER", async (req, _ctx, session) => {
         where: { userId: session.user.id },
         data: { avgRedAlertResponseMinutes: newAvg, redAlertResponseCount: newCount },
       });
-    }).catch(() => {});
+    }).catch((err) => logger.warn({ err }, "jobs/applications: red-alert response metric update failed"));
   }
 
   return NextResponse.json(application, { status: 201 });
