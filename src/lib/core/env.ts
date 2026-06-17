@@ -1,3 +1,5 @@
+import logger from "@/lib/core/logger";
+
 const isProd = process.env.NODE_ENV === "production";
 
 function required(name: string): string {
@@ -10,7 +12,7 @@ function warnIfMissing(...names: string[]): void {
   if (!isProd) return;
   for (const name of names) {
     if (!process.env[name]) {
-      console.warn(`[env] WARNING: ${name} is not set — related feature will be disabled`);
+      logger.warn(`[env] ${name} is not set — related feature will be disabled`);
     }
   }
 }
