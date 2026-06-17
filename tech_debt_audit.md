@@ -10,10 +10,10 @@ Graph-based code quality audit. Findings sourced from Graphify graph (`graphify-
 |----|----------|-------|--------|
 | CQ-F | Critical | Stale Graphify graph poisons graph-based audits | [FIXED] |
 | CQ-G | Important | God-components: state-heavy dashboard sections | [OPEN] |
-| CQ-H | Important | No data-fetching abstraction (root cause of CQ-G) | [OPEN] |
+| CQ-H | Important | No data-fetching abstraction (root cause of CQ-G) | [FIXED] |
 | CQ-I | Important | Silent error swallowing in API routes + components | [FIXED] |
 | CQ-J | Nice-to-have | console.* in lib modules vs logging convention | [FIXED] |
-| CQ-K | Important | i18n speculative generality / YAGNI | [OPEN] |
+| CQ-K | Important | i18n speculative generality / YAGNI | [DEFERRED] |
 
 ---
 
@@ -40,13 +40,17 @@ Fix: useReducer per concern; extract sub-panels; move fetch lifecycles into cust
   (depends on CQ-H landing first).
 Nodes: `WaiterPassportSection()`, `VenueSmeneSection()`, `WaiterSmeneSection()`.
 
-### CQ-H — No data-fetching abstraction (root cause of CQ-G)  [OPEN]
+### CQ-H — No data-fetching abstraction (root cause of CQ-G)  [FIXED]
 Severity: Important
 Problem: no SWR/react-query/custom hook in deps; every section reimplements the
   loading/error/data useState triplet + manual fetch + manual refetch.
-Fix: add thin `useApi<T>(url)` hook returning `{ data, error, isLoading, mutate }`;
-  replace inline fetch+state. Cuts WaiterPassportSection ~26 → ~5 useState.
-Nodes: all dashboard section components; cf. `useDashboardNav()` (nav state already abstracted).
+Fix: added `src/hooks/useApi.ts` — `useApi<T>(url, { enabled?, refreshMs? })` returning
+  `{ data, error, isLoading, mutate }`. Unmount-safe, supports conditional fetch + silent
+  polling. Migrated `MarketInsights` (waiter-helpers.tsx) as proof — dropped a useState +
+  useEffect + bare catch. 4 unit tests (renderHook/happy-dom) pass. Documented in CLAUDE.md.
+Follow-up: CQ-G migrates the heavy section components onto this hook.
+Nodes: `useApi()` (new), `MarketInsights()` (migrated); cf. `useDashboardNav()`.
+Resolved: 2026-06-18.
 
 ### CQ-I — Silent error swallowing in API routes + components  [FIXED]
 Severity: Important
@@ -79,10 +83,10 @@ Fix: `env.ts` console.warn → `logger.warn` (logger imports only pino, no circu
 Nodes: `lib/core/env.ts` (real); `notify()`, `lib/core/encryption.ts` (false positives).
 Resolved: 2026-06-18.
 
-### CQ-K — i18n speculative generality / YAGNI  [OPEN]
+### CQ-K — i18n speculative generality / YAGNI  [DEFERRED]
 Severity: Important
 Problem: full sr|en|ru translation stack (`lib/i18n/index.ts` 372 LOC + provider + 3 flag
   comps), but only the preloader page consumes it. Build-ahead-of-need maintenance weight.
-Fix: product decision — (a) commit to rollout (wire dashboards), or (b) shrink `index.ts`
-  to preloader keys + delete unused namespaces. Needs owner input before code change.
+Decision (2026-06-18, owner): DEFER — keep the infra, ticket a future rollout to wire
+  dashboards. No code change now. Revisit when i18n rollout is scheduled.
 Nodes: `translations`, `Lang`, `TranslationNamespace`, `FlagSwitcher()`, `LanguageProvider()`.

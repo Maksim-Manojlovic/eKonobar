@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useApi } from "@/hooks/useApi";
 import type { Section, MarketData } from "./waiter-types";
 export { Stars } from "@/components/ui/Stars";
 
@@ -239,14 +239,7 @@ export function ApplyButton({ jobId, applied, applying, onApply }: {
 /* ── Market Insights ─────────────────────────────────────────────────────── */
 
 export function MarketInsights() {
-  const [data, setData] = useState<MarketData | null>(null);
-
-  useEffect(() => {
-    fetch("/api/insights/market")
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setData(d); })
-      .catch(() => {});
-  }, []);
+  const { data } = useApi<MarketData>("/api/insights/market");
 
   if (!data) return null;
 

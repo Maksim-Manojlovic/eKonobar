@@ -721,6 +721,23 @@ Returns:
 
 Do **not** inline `useState<Section>`, `useState(0)` for notifUnread, or the `toLocaleDateString("sr-Latn-RS", ...)` today computation in dashboard root pages — use this hook.
 
+### useApi (client data fetching)
+
+`src/hooks/useApi.ts` — shared GET data-fetching hook. Replaces the hand-rolled `useState(data)` + `useState(loading)` + `useEffect(fetch)` + `.catch(() => {})` triplet duplicated across section components. Encapsulates loading/error state, unmount-safety, and the silent background-poll pattern.
+
+```typescript
+import { useApi } from "@/hooks/useApi";
+
+const { data, isLoading, error, mutate } = useApi<MarketData>("/api/insights/market");
+
+// Conditional + polling (e.g. only fetch on active tab, refresh every 30s silently):
+const { data: open } = useApi<OpenShift[]>("/api/shifts?view=open", { enabled: tab === "open", refreshMs: 30_000 });
+```
+
+Returns `{ data, error, isLoading, mutate }`. `mutate()` refetches (shows loading) and returns a promise. Options: `enabled` (skip while false, default true), `refreshMs` (silent poll interval — no `isLoading` toggle on poll ticks).
+
+Do **not** hand-roll `useState` + `useEffect(fetch)` for a GET in new section components — use this hook. State-heavy section components (`WaiterPassportSection`, `VenueSmeneSection`, `WaiterSmeneSection`) are being migrated onto it to shed their large `useState` counts.
+
 ### withRole / withAuth
 
 `lib/auth/with-role.ts` — wraps a route handler with session auth + role check. The handler receives the typed `Session` — no need to call `getServerSession` again.
