@@ -878,6 +878,8 @@ POST /api/shifts/[id]/claim
   → notifies venue owner
 ```
 
+**`GET /api/shifts?view=manage`** (head-waiter management view) returns `200 { venue: null, shifts: [] }` for a waiter who heads no venue — **not** `403`. Managing nothing is not "forbidden", and the waiter dashboard fetches this on every load; a 403 there just spams logs/Sentry (CQ-L). Keep the empty-200 shape; clients guard on `m?.venue`.
+
 ### Swap flow
 
 ```
@@ -1099,6 +1101,8 @@ npx web-push generate-vapid-keys
 # VAPID_PRIVATE_KEY=...
 # NEXT_PUBLIC_VAPID_KEY=...  ← same as VAPID_PUBLIC_KEY, browser-exposed
 ```
+
+**CSP requirement:** the web-push service worker (`/sw.js`) is a same-origin worker, so the `next.config.ts` CSP `worker-src` directive **must include `'self'`** (`worker-src 'self' blob:` — `blob:` is for Mapbox GL). Dropping `'self'` silently blocks SW registration and kills push entirely (the `togglePush` failure is swallowed). This regressed once (CQ-M) — do not remove `'self'`.
 
 ### WhatsApp templates
 

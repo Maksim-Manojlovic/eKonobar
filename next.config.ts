@@ -8,8 +8,8 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: *.mapbox.com *.cloudinary.com",
   "connect-src 'self' https://api.mapbox.com https://events.mapbox.com https://*.tiles.mapbox.com wss://*.mapbox.com https://*.ingest.sentry.io",
-  // Mapbox GL spawns Web Workers via blob URLs
-  "worker-src blob:",
+  // Mapbox GL spawns Web Workers via blob URLs; 'self' allows the web-push service worker (/sw.js)
+  "worker-src 'self' blob:",
   "font-src 'self' data:",
   "frame-ancestors 'none'",
   "object-src 'none'",

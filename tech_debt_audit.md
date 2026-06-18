@@ -14,6 +14,8 @@ Graph-based code quality audit. Findings sourced from Graphify graph (`graphify-
 | CQ-I | Important | Silent error swallowing in API routes + components | [FIXED] |
 | CQ-J | Nice-to-have | console.* in lib modules vs logging convention | [FIXED] |
 | CQ-K | Important | i18n speculative generality / YAGNI | [DEFERRED] |
+| CQ-L | Nice-to-have | Waiter dashboard spams 403 on /api/shifts?view=manage | [FIXED] |
+| CQ-M | Important | CSP worker-src blocks service worker → push dead | [FIXED] |
 
 ---
 
@@ -114,3 +116,39 @@ Problem: full sr|en|ru translation stack (`lib/i18n/index.ts` 372 LOC + provider
 Decision (2026-06-18, owner): DEFER — keep the infra, ticket a future rollout to wire
   dashboards. No code change now. Revisit when i18n rollout is scheduled.
 Nodes: `translations`, `Lang`, `TranslationNamespace`, `FlagSwitcher()`, `LanguageProvider()`.
+
+### CQ-L — Waiter dashboard spams 403 on /api/shifts?view=manage  [OPEN]
+Severity: Nice-to-have
+Found: 2026-06-18 during runtime smoke-test of CQ-G (verify run, not a regression — pre-existing).
+Problem: `waiter/page.tsx` `fetchData()` unconditionally fetches `/api/shifts?view=manage`
+  for EVERY waiter on every dashboard load + refresh. Only head-waiters are authorized, so
+  non-head-waiters get `403` each time (observed repeatedly in dev log). Functionally harmless
+  — `if (manageRes.ok)` guards the result — but it pollutes network/logs and trips error
+  monitors (Sentry) with expected 403s.
+Fix options: (a) make `GET /api/shifts?view=manage` return `200 { venue: null }` for
+  non-head-waiters instead of `403` (a waiter managing nothing is not "forbidden"); or
+  (b) gate the call behind known head-waiter status. (a) is cleaner — semantic fix, kills the noise.
+Fix applied (2026-06-18): option (a) — `getWaiterShifts` view=manage branch now returns
+  `200 { venue: null, shifts: [] }` when the waiter heads no venue. Client guard
+  (`if (m?.venue)`) already handled the empty shape. No test asserted the 403. tsc+ESLint clean.
+  Verified in running app: `GET /api/shifts?view=manage 200` (was 403).
+Nodes: `waiter/page.tsx` (`fetchData`), `GET /api/shifts` (`getWaiterShifts` / view=manage branch).
+
+### CQ-M — CSP worker-src blocks service worker → web push dead  [OPEN]
+Severity: Important
+Found: 2026-06-18 during runtime smoke-test of CQ-G (pre-existing; surfaced because
+  `useNotifPrefs` now owns the push-subscribe toggle).
+Problem: `next.config.ts` CSP sets `worker-src blob:` (for Mapbox GL's blob workers) but omits
+  `'self'`. The web-push service worker at `/sw.js` is a same-origin script, so registration is
+  blocked: `Creating a worker from '.../sw.js' violates ... worker-src blob:`. Result: the push
+  toggle can never subscribe — web push notifications are effectively non-functional in all
+  environments using this CSP. The failure is swallowed (`useNotifPrefs` togglePush catch), so
+  it's silent to users.
+Fix: `"worker-src 'self' blob:"` in `next.config.ts` CSP — allows both `/sw.js` and Mapbox blob
+  workers. Verify push subscribe works after (re-run the passport push toggle).
+Fix applied (2026-06-18): CSP now `worker-src 'self' blob:`. Verified in running app — live
+  response header shows the new value, `/sw.js` registers (`active-or-installing`), and the
+  prior `worker-src` console violation is gone (0 occurrences, was 2). Note: completing an
+  actual push *subscribe* additionally needs `NEXT_PUBLIC_VAPID_KEY` set + a real push service
+  (not exercisable headless) — the CSP block that prevented SW registration is resolved.
+Nodes: `next.config.ts` (`CSP`), `useNotifPrefs()` (`togglePush`), `/sw.js`.

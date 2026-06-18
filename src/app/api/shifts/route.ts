@@ -79,7 +79,9 @@ async function getWaiterShifts(req: NextRequest, session: Session) {
       where: { headWaiterId: session.user.id },
       select: { id: true, name: true },
     });
-    if (!managedVenue) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // A waiter who manages no venue isn't "forbidden" — they just manage nothing.
+    // Return an empty 200 so the dashboard doesn't fire a 403 on every load (CQ-L).
+    if (!managedVenue) return NextResponse.json({ venue: null, shifts: [] });
 
     const shifts = await db.shift.findMany({
       where: { venueId: managedVenue.id },
