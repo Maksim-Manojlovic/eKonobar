@@ -378,6 +378,7 @@ Each dashboard is split across several co-located files. Do not put shared helpe
 - `waiter-constants.ts` — runtime display constants: `TIER_BADGE`, `NEXT_TIER`, `DIRECTION_LABELS`, `BADGE_META`, `BADGE_PROGRESS` (named progress functions + map), `VENUE_TYPE_OPTIONS`, `SCORE_DIMS`, `SECTION_TITLES`. Imports types from `waiter-types.ts`.
 - `waiter-helpers.tsx` — shared UI: `StatusBadge`, `ShiftStatusBadge`, `Sk`, and all `*Skeleton` loaders
 - Section components: `WaiterOverviewSection`, `WaiterJobsSection`, `WaiterSmeneSection`, `WaiterPassportSection`, `WaiterInvitesSection`, `WaiterReviewsSection`
+- `useNotifPrefs.ts` — co-located hook owning the notification-preferences concern (phone / WhatsApp / SMS opt-in + web-push subscribe toggle + their load/save). Extracted out of `WaiterPassportSection` to shrink its state surface (CQ-G). Section components with many self-contained concerns should extract them into co-located hooks like this rather than accumulating `useState` in the component body.
 
 **Admin dashboard** (`src/app/(dashboard)/admin/`):
 - `admin-types.ts` — `PlatformStats`, `ActivityEvent`, `HealthData`, `LeaderboardData`, and all other admin-scoped types

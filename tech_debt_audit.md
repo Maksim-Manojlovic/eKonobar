@@ -9,7 +9,7 @@ Graph-based code quality audit. Findings sourced from Graphify graph (`graphify-
 | ID | Severity | Title | Status |
 |----|----------|-------|--------|
 | CQ-F | Critical | Stale Graphify graph poisons graph-based audits | [FIXED] |
-| CQ-G | Important | God-components: state-heavy dashboard sections | [OPEN] |
+| CQ-G | Important | God-components: state-heavy dashboard sections | [PARTIALLY FIXED] |
 | CQ-H | Important | No data-fetching abstraction (root cause of CQ-G) | [FIXED] |
 | CQ-I | Important | Silent error swallowing in API routes + components | [FIXED] |
 | CQ-J | Nice-to-have | console.* in lib modules vs logging convention | [FIXED] |
@@ -29,16 +29,24 @@ Follow-up: enforce `graphify update .` in pre-commit / CI so it cannot drift aga
 Nodes: `db`(#1,#2), `dbRaw`(#3,#5), Community 7, Community 102.
 Resolved: 2026-06-18 — graph refreshed this session.
 
-### CQ-G — God-components: state-heavy dashboard sections  [OPEN]
+### CQ-G — God-components: state-heavy dashboard sections  [PARTIALLY FIXED]
 Severity: Important
 Problem: section components hoard local state + inline fetching:
   - `WaiterPassportSection.tsx` — 26 useState, 12 fetch, 3 useEffect (701 LOC)
   - `VenueSmeneSection.tsx` — 17 useState, 7 fetch (706 LOC)
   - `WaiterSmeneSection.tsx` — 15 useState, 8 fetch (625 LOC)
   Single component owns many responsibilities (SRP break); near-impossible to unit-test.
-Fix: useReducer per concern; extract sub-panels; move fetch lifecycles into custom hooks
-  (depends on CQ-H landing first).
-Nodes: `WaiterPassportSection()`, `VenueSmeneSection()`, `WaiterSmeneSection()`.
+Progress (2026-06-18):
+  - WaiterPassportSection: extracted the notification-prefs concern (7 useState + togglePush
+    + saveNotifPrefs + push-check effect + its GET) into co-located `useNotifPrefs.ts`.
+    useState 26 → 19; one endpoint dropped from the load Promise.all. tsc + ESLint clean.
+    ⚠ NOT yet verified in the running app — needs manual smoke test of the passport
+    notification toggles (push/WhatsApp/SMS save) before relying on it.
+Remaining:
+  - WaiterPassportSection: group profile-edit fields + sanitary book into reducers/hooks.
+  - VenueSmeneSection, WaiterSmeneSection: same treatment (migrate GETs to useApi, extract
+    concerns). One component per commit.
+Nodes: `WaiterPassportSection()`, `useNotifPrefs()` (new), `VenueSmeneSection()`, `WaiterSmeneSection()`.
 
 ### CQ-H — No data-fetching abstraction (root cause of CQ-G)  [FIXED]
 Severity: Important

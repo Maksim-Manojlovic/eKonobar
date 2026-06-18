@@ -5,6 +5,7 @@ import ImageUpload from "@/components/ui/ImageUpload";
 import TagInput from "@/components/ui/TagInput";
 import type { PassportData, PassportSubscription } from "./waiter-types";
 import { BADGE_META, BADGE_PROGRESS, VENUE_TYPE_OPTIONS, SCORE_DIMS } from "./waiter-constants";
+import { useNotifPrefs } from "./useNotifPrefs";
 
 
 /* ── Section: Passport ───────────────────────────────────────────────────── */
@@ -32,32 +33,15 @@ export default function PassportSection({ userName }: { userName: string }) {
   const [sanSubmitting, setSanSubmitting] = useState(false);
   const [sanSubmitted, setSanSubmitted]   = useState(false);
 
-  // Notification prefs
-  const [notifPhone, setNotifPhone]     = useState("");
-  const [notifWa, setNotifWa]           = useState(false);
-  const [notifSms, setNotifSms]         = useState(false);
-  const [notifSaving, setNotifSaving]   = useState(false);
-  const [notifSaved, setNotifSaved]     = useState(false);
-  const [pushEnabled, setPushEnabled]   = useState(false);
-  const [pushLoading, setPushLoading]   = useState(false);
-
-  useEffect(() => {
-    // Check existing push subscription
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").then(async (reg) => {
-        const sub = await reg.pushManager.getSubscription();
-        setPushEnabled(!!sub);
-      }).catch(() => {});
-    }
-  }, []);
+  // Notification prefs (phone / WhatsApp / SMS / web-push) live in their own hook.
+  const notif = useNotifPrefs();
 
   useEffect(() => {
     Promise.all([
       fetch("/api/passport").then(r => r.json()),
       fetch("/api/passport/subscription").then(r => r.json()),
-      fetch("/api/user/notification-prefs").then(r => r.json()),
       fetch("/api/verification/sanitary").then(r => r.ok ? r.json() : null),
-    ]).then(([passportData, subData, notifData, sanData]) => {
+    ]).then(([passportData, subData, sanData]) => {
       if (passportData?.id) {
         setPassport(passportData);
         setBio(passportData.bio ?? "");
@@ -69,55 +53,10 @@ export default function PassportSection({ userName }: { userName: string }) {
         setGalleryPhotos(passportData.galleryPhotos ?? []);
       }
       if (subData?.tier) setSubscription(subData);
-      if (notifData && !notifData.error) {
-        setNotifPhone(notifData.phone ?? "");
-        setNotifWa(notifData.waOptIn ?? false);
-        setNotifSms(notifData.smsOptIn ?? false);
-      }
       if (sanData) setSanBook(sanData);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
-
-  async function togglePush() {
-    if (!("serviceWorker" in navigator)) return;
-    setPushLoading(true);
-    try {
-      const reg = await navigator.serviceWorker.register("/sw.js");
-      const existing = await reg.pushManager.getSubscription();
-      if (existing) {
-        await existing.unsubscribe();
-        await fetch("/api/push/subscribe", {
-          method: "DELETE", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endpoint: existing.endpoint }),
-        });
-        setPushEnabled(false);
-      } else {
-        const sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: process.env.NEXT_PUBLIC_VAPID_KEY,
-        });
-        const { endpoint, keys } = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
-        await fetch("/api/push/subscribe", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endpoint, keys }),
-        });
-        setPushEnabled(true);
-      }
-    } catch { /* push not supported or permission denied */ }
-    setPushLoading(false);
-  }
-
-  async function saveNotifPrefs() {
-    setNotifSaving(true);
-    const res = await fetch("/api/user/notification-prefs", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone: notifPhone || null, waOptIn: notifWa, smsOptIn: notifSms }),
-    });
-    if (res.ok) { setNotifSaved(true); setTimeout(() => setNotifSaved(false), 2500); }
-    setNotifSaving(false);
-  }
 
   async function handleSubscribe(tier: "PRO" | "PRO_PLUS") {
     setSubscribing(true);
@@ -624,11 +563,11 @@ export default function PassportSection({ userName }: { userName: string }) {
             <div className="text-xs text-neutral-400 mt-0.5">Obaveštenja u browseru — besplatno za sve</div>
           </div>
           <button
-            onClick={togglePush}
-            disabled={pushLoading}
-            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 disabled:opacity-50 ${pushEnabled ? "bg-green-500" : "bg-neutral-200"}`}
+            onClick={notif.togglePush}
+            disabled={notif.pushLoading}
+            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 disabled:opacity-50 ${notif.pushEnabled ? "bg-green-500" : "bg-neutral-200"}`}
           >
-            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${pushEnabled ? "translate-x-5" : ""}`} />
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${notif.pushEnabled ? "translate-x-5" : ""}`} />
           </button>
         </div>
 
@@ -640,8 +579,8 @@ export default function PassportSection({ userName }: { userName: string }) {
             Broj telefona
           </label>
           <input
-            value={notifPhone}
-            onChange={e => setNotifPhone(e.target.value)}
+            value={notif.phone}
+            onChange={e => notif.setPhone(e.target.value)}
             placeholder="+381 6x xxx xxxx"
             maxLength={20}
             className="auth-input"
@@ -661,11 +600,11 @@ export default function PassportSection({ userName }: { userName: string }) {
             </div>
           </div>
           <button
-            onClick={() => setNotifWa(v => !v)}
+            onClick={() => notif.setWa(v => !v)}
             disabled={subscription?.tier !== "PRO" && subscription?.tier !== "PRO_PLUS"}
-            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 disabled:opacity-40 ${notifWa ? "bg-green-500" : "bg-neutral-200"}`}
+            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 disabled:opacity-40 ${notif.wa ? "bg-green-500" : "bg-neutral-200"}`}
           >
-            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${notifWa ? "translate-x-5" : ""}`} />
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${notif.wa ? "translate-x-5" : ""}`} />
           </button>
         </div>
 
@@ -681,19 +620,19 @@ export default function PassportSection({ userName }: { userName: string }) {
             </div>
           </div>
           <button
-            onClick={() => setNotifSms(v => !v)}
+            onClick={() => notif.setSms(v => !v)}
             disabled={subscription?.tier !== "PRO_PLUS"}
-            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 disabled:opacity-40 ${notifSms ? "bg-green-500" : "bg-neutral-200"}`}
+            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 disabled:opacity-40 ${notif.sms ? "bg-green-500" : "bg-neutral-200"}`}
           >
-            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${notifSms ? "translate-x-5" : ""}`} />
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${notif.sms ? "translate-x-5" : ""}`} />
           </button>
         </div>
 
         <div className="flex items-center gap-3 pt-1">
-          <button onClick={saveNotifPrefs} disabled={notifSaving} className="btn-dash-orange px-5 py-2 text-sm disabled:opacity-50">
-            {notifSaving ? "Čuvanje..." : "Sačuvaj"}
+          <button onClick={notif.save} disabled={notif.saving} className="btn-dash-orange px-5 py-2 text-sm disabled:opacity-50">
+            {notif.saving ? "Čuvanje..." : "Sačuvaj"}
           </button>
-          {notifSaved && <span className="text-sm font-semibold text-green-600">✓ Sačuvano</span>}
+          {notif.saved && <span className="text-sm font-semibold text-green-600">✓ Sačuvano</span>}
         </div>
       </div>
     </>
