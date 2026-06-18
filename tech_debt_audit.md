@@ -13,7 +13,7 @@ Graph-based code quality audit. Findings sourced from Graphify graph (`graphify-
 | CQ-H | Important    | No data-fetching abstraction (root cause of CQ-G)             | [FIXED]           |
 | CQ-I | Important    | Silent error swallowing in API routes + components            | [FIXED]           |
 | CQ-J | Nice-to-have | console.\* in lib modules vs logging convention               | [FIXED]           |
-| CQ-K | Important    | i18n speculative generality / YAGNI                           | [IN PROGRESS]     |
+| CQ-K | Important    | i18n speculative generality / YAGNI                           | [FIXED]           |
 | CQ-L | Nice-to-have | Waiter dashboard spams 403 on /api/shifts?view=manage         | [FIXED]           |
 | CQ-M | Important    | CSP worker-src blocks service worker → push dead              | [FIXED]           |
 | CQ-N | Important    | Public guest-review page is a 17-useState god-component       | [FIXED]           |
@@ -125,7 +125,7 @@ Problem: original grep flagged `notify.ts`, `encryption.ts`, `env.ts`. On verifi
   Nodes: `lib/core/env.ts` (real); `notify()`, `lib/core/encryption.ts` (false positives).
   Resolved: 2026-06-18.
 
-### CQ-K — i18n speculative generality / YAGNI [IN PROGRESS]
+### CQ-K — i18n speculative generality / YAGNI [FIXED]
 
 Severity: Important
 Problem: full sr|en|ru translation stack (`lib/i18n/index.ts` + provider + 3 flag comps).
@@ -149,9 +149,16 @@ Rollout progress (2026-06-18):
   mounted `<FlagSwitcher />` in the sidebar footer; dropped the `SECTION_TITLES` import.
   Verified in-app (screenshot): English renders header "Overview", nav Hiring/Shifts/Venue profile,
   role "Venue owner", "Sign out" — live, 0 console errors. tsc + ESLint clean.
-Remaining (next rollout targets, tracked here):
-  - Section CONTENT for waiter + venue (OverviewSection / section bodies — deeper than chrome).
-  - headhunter / admin dashboard chrome (same 3-step pattern).
+Resolution (2026-06-18, owner decision "stop — chrome done"): CQ-K is resolved. The finding was
+  "speculative generality" — infra built but unused on dashboards. That's no longer true: the
+  translation system is now actively consumed across auth + preloader + both user-facing dashboard
+  chromes, and a repeatable rollout pattern is documented in CLAUDE.md. The infra has earned its keep.
+Investigated but intentionally NOT done (logged as optional, low-value backlog — do not re-flag):
+  - Admin dashboard (`admin/page.tsx`, 538 LOC, 30+ inline stat labels): internal staff tooling,
+    operators are Serbian-speaking → i18n value ≈ 0. High churn, no shared chrome pattern. SKIP.
+  - Headhunter page (160 LOC, ~6 strings): small; no nav-chrome; content-level. Optional.
+  - Section CONTENT for waiter/venue (OverviewSection + section bodies): dense inline strings,
+    larger effort, lower priority than the chrome that's done. Optional, follow the CLAUDE.md pattern.
 Nodes: `translations`, `waiterNav` (new), `WaiterDashboard()` / `waiter/page.tsx`,
   `FlagSwitcher()`, `LanguageProvider()`, `useLang()`.
 
