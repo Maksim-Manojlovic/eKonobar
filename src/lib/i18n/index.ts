@@ -125,6 +125,11 @@ export const translations = {
       errMatch:        "Lozinke se ne poklapaju.",
       errLength:       "Lozinka mora imati najmanje 8 karaktera.",
     },
+    waiterNav: {
+      overview: "Pregled", alerts: "Red Alert", jobs: "Poslovi", applications: "Prijave",
+      shifts: "Smene", invites: "Pozivnice", reviews: "Recenzije", passport: "Passport",
+      manage: "Upravljanje", notifications: "Obaveštenja",
+    },
   },
 
   en: {
@@ -245,6 +250,11 @@ export const translations = {
       errMatch:        "Passwords do not match.",
       errLength:       "Password must be at least 8 characters.",
     },
+    waiterNav: {
+      overview: "Overview", alerts: "Red Alert", jobs: "Jobs", applications: "Applications",
+      shifts: "Shifts", invites: "Invites", reviews: "Reviews", passport: "Passport",
+      manage: "Manage", notifications: "Notifications",
+    },
   },
 
   ru: {
@@ -364,6 +374,11 @@ export const translations = {
       errGeneric:      "Ошибка. Попробуйте снова.",
       errMatch:        "Пароли не совпадают.",
       errLength:       "Пароль должен содержать не менее 8 символов.",
+    },
+    waiterNav: {
+      overview: "Обзор", alerts: "Red Alert", jobs: "Работа", applications: "Заявки",
+      shifts: "Смены", invites: "Приглашения", reviews: "Отзывы", passport: "Паспорт",
+      manage: "Управление", notifications: "Уведомления",
     },
   },
 } as const;

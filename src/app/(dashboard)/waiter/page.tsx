@@ -16,6 +16,8 @@ import { PosloviHub } from "./WaiterJobsSection";
 import { ReviewsSection } from "./WaiterReviewsSection";
 import { ShiftsSection, HeadWaiterSmeneSection } from "./WaiterSmeneSection";
 import PassportSection from "./WaiterPassportSection";
+import { useLang } from "@/components/providers/LanguageProvider";
+import { FlagSwitcher } from "@/components/ui/FlagSwitcher";
 
 /* ── Nav constants ───────────────────────────────────────────────────────── */
 
@@ -38,6 +40,7 @@ const BOTTOM_NAV_ITEMS: { key: Section; label: string; icon: React.ReactNode }[]
 export default function WaiterDashboard() {
   const { data: session } = useSession();
   const { section, setSection, notifUnread, setNotifUnread, today } = useDashboardNav<Section>("overview");
+  const { t } = useLang();
   const [paymentToast, setPaymentToast] = useState<"success" | "cancelled" | null>(null);
 
   useEffect(() => {
@@ -119,7 +122,7 @@ export default function WaiterDashboard() {
           <button key={item.key}
             onClick={() => { setSection(item.key); closeMenu?.(); }}
             className={`nav-item ${section === item.key || (item.key === "jobs" && JOBS_SECTIONS.has(section)) ? "active" : ""}`}>
-            {item.icon}{item.label}
+            {item.icon}{t("waiterNav", item.key)}
             {item.key === "jobs" && totalBadge > 0 && (
               <span className="ml-auto bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{totalBadge > 9 ? "9+" : totalBadge}</span>
             )}
@@ -143,7 +146,7 @@ export default function WaiterDashboard() {
           <button key={item.key}
             onClick={() => { setSection(item.key); closeMenu?.(); }}
             className={`nav-item ${section === item.key ? "active" : ""}`}>
-            {item.icon}{item.label}
+            {item.icon}{t("waiterNav", item.key)}
             {item.key === "notifications" && notifUnread > 0 && (
               <span className="ml-auto bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{notifUnread > 9 ? "9+" : notifUnread}</span>
             )}
@@ -151,6 +154,9 @@ export default function WaiterDashboard() {
         ))}
       </div>
       <div className="px-3 py-4 border-t border-white/10">
+        <div className="px-2 mb-3">
+          <FlagSwitcher />
+        </div>
         <div className="flex items-center gap-3 px-2 mb-3">
           <div className="w-8 h-8 rounded-full bg-orange-900/40 flex items-center justify-center text-orange-300 font-bold text-sm flex-shrink-0 border border-orange-500/30">{initials}</div>
           <div className="min-w-0">

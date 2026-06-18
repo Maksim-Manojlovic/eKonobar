@@ -476,7 +476,14 @@ Lightweight React Context — no next-intl, no route restructuring.
 - `src/components/providers/LanguageProvider.tsx` — `useState<Lang>("sr")`, reads/writes `ek_lang` to `localStorage`, type-safe `t(namespace, key)` helper
 - `src/components/ui/FlagSwitcher.tsx` — three inline SVG flag buttons (Serbia, UK, Russia); active = orange ring + scale-110. Use emoji flags nowhere — they don't render on Windows 10.
 
-Currently only the preloader page (`/`) is translated. Add new keys to `src/lib/i18n/index.ts` under the relevant namespace.
+Translated so far: the preloader (`/`), the auth flow (`login`, `register`, `resetPassword` namespaces), and the **waiter dashboard nav** (`waiterNav` namespace — CQ-K rollout scaffold). Add new keys to `src/lib/i18n/index.ts` under the relevant namespace.
+
+**Rollout pattern (follow this to translate a new surface):**
+1. Add a namespace to all three langs (`sr`/`en`/`ru`) in `src/lib/i18n/index.ts`. `TranslationNamespace` is derived from `translations.sr`, so the new namespace + its keys are type-checked automatically.
+2. In the client component, `const { t } = useLang()` and render `t("namespace", "key")`. For dynamic keys driven by a union type (e.g. nav `item.key: Section`), give the namespace a key for every union member so `t(ns, item.key)` type-checks — see `waiterNav` (keyed by all `Section` values).
+3. Drop `<FlagSwitcher />` somewhere on the surface if it isn't already reachable (the waiter dashboard puts it in the sidebar footer).
+
+Not yet translated (next rollout targets): `SECTION_TITLES`, sign-out / role labels, and the venue/headhunter/admin dashboards. `LanguageProvider` is mounted globally in `app/layout.tsx`, so `useLang()` works in any client component.
 
 ## Public Landing Pages
 

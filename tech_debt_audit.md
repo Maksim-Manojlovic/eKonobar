@@ -13,7 +13,7 @@ Graph-based code quality audit. Findings sourced from Graphify graph (`graphify-
 | CQ-H | Important    | No data-fetching abstraction (root cause of CQ-G)             | [FIXED]           |
 | CQ-I | Important    | Silent error swallowing in API routes + components            | [FIXED]           |
 | CQ-J | Nice-to-have | console.\* in lib modules vs logging convention               | [FIXED]           |
-| CQ-K | Important    | i18n speculative generality / YAGNI                           | [DEFERRED]        |
+| CQ-K | Important    | i18n speculative generality / YAGNI                           | [IN PROGRESS]     |
 | CQ-L | Nice-to-have | Waiter dashboard spams 403 on /api/shifts?view=manage         | [FIXED]           |
 | CQ-M | Important    | CSP worker-src blocks service worker → push dead              | [FIXED]           |
 | CQ-N | Important    | Public guest-review page is a 17-useState god-component       | [FIXED]           |
@@ -125,14 +125,25 @@ Problem: original grep flagged `notify.ts`, `encryption.ts`, `env.ts`. On verifi
   Nodes: `lib/core/env.ts` (real); `notify()`, `lib/core/encryption.ts` (false positives).
   Resolved: 2026-06-18.
 
-### CQ-K — i18n speculative generality / YAGNI [DEFERRED]
+### CQ-K — i18n speculative generality / YAGNI [IN PROGRESS]
 
 Severity: Important
-Problem: full sr|en|ru translation stack (`lib/i18n/index.ts` 372 LOC + provider + 3 flag
-comps), but only the preloader page consumes it. Build-ahead-of-need maintenance weight.
-Decision (2026-06-18, owner): DEFER — keep the infra, ticket a future rollout to wire
-dashboards. No code change now. Revisit when i18n rollout is scheduled.
-Nodes: `translations`, `Lang`, `TranslationNamespace`, `FlagSwitcher()`, `LanguageProvider()`.
+Problem: full sr|en|ru translation stack (`lib/i18n/index.ts` + provider + 3 flag comps).
+  Original claim "only preloader consumes it" was partly stale — the auth flow (login/register/
+  resetPassword) was already wired; dashboards were not. Build-ahead-of-need on the dashboards.
+Decision history: first DEFERRED (keep + ticket), then owner chose START ROLLOUT (scaffold).
+Rollout progress (2026-06-18): wired the **waiter dashboard nav** as the pattern —
+  - Added a `waiterNav` namespace (all 3 langs), keyed by every `Section` value so
+    `t("waiterNav", item.key)` type-checks against the dynamic nav key.
+  - `waiter/page.tsx` now renders nav labels via `useLang().t(...)` and mounts `<FlagSwitcher />`
+    in the sidebar footer.
+  Verified in running app: nav renders Serbian by default; clicking the English flag flips
+  Poslovi→Jobs, Smene→Shifts live (Serbian labels gone), 0 console errors. tsc + ESLint clean.
+  Documented the repeatable rollout pattern in CLAUDE.md (i18n section).
+Remaining (next rollout targets, tracked here): `SECTION_TITLES`, sign-out/role labels, and the
+  venue / headhunter / admin dashboards. Each follows the documented 3-step pattern.
+Nodes: `translations`, `waiterNav` (new), `WaiterDashboard()` / `waiter/page.tsx`,
+  `FlagSwitcher()`, `LanguageProvider()`, `useLang()`.
 
 ### CQ-L — Waiter dashboard spams 403 on /api/shifts?view=manage [OPEN]
 
