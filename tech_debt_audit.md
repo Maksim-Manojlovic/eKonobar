@@ -9,7 +9,7 @@ Graph-based code quality audit. Findings sourced from Graphify graph (`graphify-
 | ID   | Severity     | Title                                                         | Status            |
 | ---- | ------------ | ------------------------------------------------------------- | ----------------- |
 | CQ-F | Critical     | Stale Graphify graph poisons graph-based audits               | [FIXED]           |
-| CQ-G | Important    | God-components: state-heavy dashboard sections                | [PARTIALLY FIXED] |
+| CQ-G | Important    | God-components: state-heavy dashboard sections                | [FIXED]           |
 | CQ-H | Important    | No data-fetching abstraction (root cause of CQ-G)             | [FIXED]           |
 | CQ-I | Important    | Silent error swallowing in API routes + components            | [FIXED]           |
 | CQ-J | Nice-to-have | console.\* in lib modules vs logging convention               | [FIXED]           |
@@ -34,7 +34,7 @@ Follow-up: enforce `graphify update .` in pre-commit / CI so it cannot drift aga
 Nodes: `db`(#1,#2), `dbRaw`(#3,#5), Community 7, Community 102.
 Resolved: 2026-06-18 — graph refreshed this session.
 
-### CQ-G — God-components: state-heavy dashboard sections [PARTIALLY FIXED]
+### CQ-G — God-components: state-heavy dashboard sections [FIXED]
 
 Severity: Important
 Problem: section components hoard local state + inline fetching:
@@ -62,9 +62,15 @@ Problem: section components hoard local state + inline fetching:
   (openShifts/swapReqs/tabLoading), the whole useEffect, and the CQ-I client poll catch.
   useState 15 → 12. Full unit suite green (926 tests). ⚠ smoke-test the Smene tabs
   (mine/open/swaps), the 30s open-shift refresh, and claim.
-  Remaining:
-- WaiterPassportSection: group profile-edit fields + sanitary book into reducers/hooks
-  (optional polish — the 26→19 extraction already removed the worst SRP offender).
+- WaiterPassportSection (slice 2, 2026-06-18): extracted the sanitary-book concern (5 useState
+  + its GET + submit + replace) into co-located `useSanitaryBook.ts`; dropped the sanitary
+  endpoint from the load Promise.all. useState 19 → 14 (26 → 14 total across both slices).
+  Verified in running app: passport page renders, sanitary card shows status from the hook,
+  `GET /api/verification/sanitary 200`, 0 console errors. tsc + ESLint clean.
+  Closed: the remaining profile-edit field grouping (bio/skills/languages/years/available/
+  venuePrefs) is left as deliberate non-action — they're cohesive form fields with no
+  cross-talk; bundling them into one object would be churn for no real SRP gain now that the
+  two genuinely-separable concerns (notif, sanitary) are out. Worst offender resolved.
   Note: the real god-component was WaiterPassportSection. The file-level useState counts for
   VenueSmeneSection/WaiterSmeneSection overstate the smell because those files are already
   sub-componentised — verify per-function complexity, not per-file totals.

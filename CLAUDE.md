@@ -379,6 +379,7 @@ Each dashboard is split across several co-located files. Do not put shared helpe
 - `waiter-helpers.tsx` — shared UI: `StatusBadge`, `ShiftStatusBadge`, `Sk`, and all `*Skeleton` loaders
 - Section components: `WaiterOverviewSection`, `WaiterJobsSection`, `WaiterSmeneSection`, `WaiterPassportSection`, `WaiterInvitesSection`, `WaiterReviewsSection`
 - `useNotifPrefs.ts` — co-located hook owning the notification-preferences concern (phone / WhatsApp / SMS opt-in + web-push subscribe toggle + their load/save). Extracted out of `WaiterPassportSection` to shrink its state surface (CQ-G). Section components with many self-contained concerns should extract them into co-located hooks like this rather than accumulating `useState` in the component body.
+- `useSanitaryBook.ts` — co-located hook owning the sanitary-book verification concern (current record load + upload/expiry draft + submit + replace). Also extracted from `WaiterPassportSection` (CQ-G). Together with `useNotifPrefs` this cut the component from 26 → 14 `useState`.
 
 **Admin dashboard** (`src/app/(dashboard)/admin/`):
 - `admin-types.ts` — `PlatformStats`, `ActivityEvent`, `HealthData`, `LeaderboardData`, and all other admin-scoped types

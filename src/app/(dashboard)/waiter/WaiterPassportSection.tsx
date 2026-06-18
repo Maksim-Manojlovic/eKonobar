@@ -6,6 +6,7 @@ import TagInput from "@/components/ui/TagInput";
 import type { PassportData, PassportSubscription } from "./waiter-types";
 import { BADGE_META, BADGE_PROGRESS, VENUE_TYPE_OPTIONS, SCORE_DIMS } from "./waiter-constants";
 import { useNotifPrefs } from "./useNotifPrefs";
+import { useSanitaryBook } from "./useSanitaryBook";
 
 
 /* ── Section: Passport ───────────────────────────────────────────────────── */
@@ -26,22 +27,15 @@ export default function PassportSection({ userName }: { userName: string }) {
   const [venueTypePreferences, setVenuePrefs]     = useState<string[]>([]);
   const [galleryPhotos, setGalleryPhotos]         = useState<string[]>([]);
 
-  // Sanitary book
-  const [sanBook, setSanBook]       = useState<{ status: string; fileUrl: string; rejectReason?: string | null; expiryDate?: string | null } | null>(null);
-  const [sanFileUrl, setSanFileUrl] = useState<string | null>(null);
-  const [sanExpiry, setSanExpiry]   = useState("");
-  const [sanSubmitting, setSanSubmitting] = useState(false);
-  const [sanSubmitted, setSanSubmitted]   = useState(false);
-
-  // Notification prefs (phone / WhatsApp / SMS / web-push) live in their own hook.
+  // Self-contained concerns live in their own hooks (CQ-G god-component split).
   const notif = useNotifPrefs();
+  const san   = useSanitaryBook();
 
   useEffect(() => {
     Promise.all([
       fetch("/api/passport").then(r => r.json()),
       fetch("/api/passport/subscription").then(r => r.json()),
-      fetch("/api/verification/sanitary").then(r => r.ok ? r.json() : null),
-    ]).then(([passportData, subData, sanData]) => {
+    ]).then(([passportData, subData]) => {
       if (passportData?.id) {
         setPassport(passportData);
         setBio(passportData.bio ?? "");
@@ -53,7 +47,6 @@ export default function PassportSection({ userName }: { userName: string }) {
         setGalleryPhotos(passportData.galleryPhotos ?? []);
       }
       if (subData?.tier) setSubscription(subData);
-      if (sanData) setSanBook(sanData);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -412,77 +405,61 @@ export default function PassportSection({ userName }: { userName: string }) {
             <h3 className="font-bold text-neutral-900">Sanitarna knjižica</h3>
             <p className="text-xs text-neutral-400 mt-0.5">Priložite fotografiju sanitarne knjižice — admin proverava u roku od 24h.</p>
           </div>
-          {sanBook && (
+          {san.book && (
             <span className={`text-xs font-black px-2.5 py-1 rounded-full flex-shrink-0 ${
-              sanBook.status === "APPROVED" ? "bg-green-100 text-green-700" :
-              sanBook.status === "REJECTED" ? "bg-red-100 text-red-600" :
+              san.book.status === "APPROVED" ? "bg-green-100 text-green-700" :
+              san.book.status === "REJECTED" ? "bg-red-100 text-red-600" :
               "bg-amber-100 text-amber-700"
             }`}>
-              {sanBook.status === "APPROVED" ? "✓ Odobrena" : sanBook.status === "REJECTED" ? "✗ Odbijena" : "Na čekanju"}
+              {san.book.status === "APPROVED" ? "✓ Odobrena" : san.book.status === "REJECTED" ? "✗ Odbijena" : "Na čekanju"}
             </span>
           )}
         </div>
 
-        {sanBook?.status === "REJECTED" && sanBook.rejectReason && (
+        {san.book?.status === "REJECTED" && san.book.rejectReason && (
           <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5">
-            Razlog odbijanja: {sanBook.rejectReason}
+            Razlog odbijanja: {san.book.rejectReason}
           </p>
         )}
 
-        {sanBook?.status === "APPROVED" && !sanFileUrl && (
+        {san.book?.status === "APPROVED" && !san.fileUrl && (
           <p className="text-sm text-green-700 font-medium">Sanitarna knjižica je verifikovana. ✓</p>
         )}
 
-        {sanBook?.status !== "APPROVED" && (
+        {san.book?.status !== "APPROVED" && (
           <>
             <ImageUpload
-              current={sanFileUrl ?? undefined}
+              current={san.fileUrl ?? undefined}
               uploadType="sanitary-doc"
               shape="rect"
               label="Fotografija ili PDF sanitarne knjižice"
-              onUpload={async (url) => { setSanFileUrl(url); }}
+              onUpload={async (url) => { san.setFileUrl(url); }}
             />
             <div>
               <label className="text-xs font-semibold text-neutral-600 mb-1.5 block">Datum isteka (opciono)</label>
               <input
                 type="date"
-                value={sanExpiry}
-                onChange={e => setSanExpiry(e.target.value)}
+                value={san.expiry}
+                onChange={e => san.setExpiry(e.target.value)}
                 className="auth-input w-auto"
               />
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={async () => {
-                  if (!sanFileUrl) return;
-                  setSanSubmitting(true);
-                  const res = await fetch("/api/verification/sanitary", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ fileUrl: sanFileUrl, expiryDate: sanExpiry || undefined }),
-                  });
-                  if (res.ok) {
-                    const data = await res.json();
-                    setSanBook(data);
-                    setSanFileUrl(null);
-                    setSanSubmitted(true);
-                    setTimeout(() => setSanSubmitted(false), 3000);
-                  }
-                  setSanSubmitting(false);
-                }}
-                disabled={!sanFileUrl || sanSubmitting}
+                onClick={san.submit}
+                disabled={!san.fileUrl || san.submitting}
                 className="btn-dash-orange px-5 py-2 text-sm disabled:opacity-50"
               >
-                {sanSubmitting ? "Šaljem..." : "Pošalji na verifikaciju"}
+                {san.submitting ? "Šaljem..." : "Pošalji na verifikaciju"}
               </button>
-              {sanSubmitted && <span className="text-sm font-semibold text-green-600">✓ Poslato</span>}
+              {san.submitted && <span className="text-sm font-semibold text-green-600">✓ Poslato</span>}
             </div>
           </>
         )}
 
-        {sanBook?.status === "APPROVED" && (
+        {san.book?.status === "APPROVED" && (
           <button
-            onClick={() => setSanBook(prev => prev ? { ...prev, status: "REPLACE" } : null)}
+            onClick={san.startReplace}
             className="text-xs text-neutral-400 hover:text-orange-500 transition-colors self-start"
           >
             Zameni knjižicu →
