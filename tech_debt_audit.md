@@ -18,6 +18,11 @@ Graph-based code quality audit. Findings sourced from Graphify graph (`graphify-
 | CQ-M | Important    | CSP worker-src blocks service worker → push dead              | [FIXED]           |
 | CQ-N | Important    | Public guest-review page is a 17-useState god-component       | [FIXED]           |
 | CQ-O | Nice-to-have | admin/page + ProfileSection still hand-roll fetch (no useApi) | [FIXED]           |
+| TEL-A | Important   | Error boundaries never report to Sentry; no global-error.tsx  | [FIXED]           |
+| TEL-B | Critical    | No request correlation ID; pino logs uncorrelated with traces | [FIXED]           |
+| TEL-C | Important   | Logger has no request-scoped context binding                  | [FIXED]           |
+| TEL-D | Important   | No Prisma / DB-tier span instrumentation                      | [FIXED]           |
+| TEL-E | Nice-to-have| Golden-signals / saturation coverage incomplete              | [FIXED]           |
 
 ---
 
@@ -269,3 +274,89 @@ Verified in running app: logged in as admin, /admin fully rendered; the migrated
 Lesson (again): trust per-function complexity, not per-file `fetch`/useState counts — writes and
   prop-sync inflate the raw grep numbers.
 Nodes: `AdminDashboard()` / `admin/page.tsx`, `ProfileSection()` (false positive).
+
+---
+
+## Telemetry Audit — 2026-06-18 (Production Observability run)
+
+Graph-lens audit of the telemetry / exception / logging layer. Context correction:
+the originating prompt assumed a greenfield observability stack, but the repo ALREADY
+had `@sentry/nextjs ^10.53.1`, `instrumentation.ts`, 3× `sentry.*.config.ts`, 3 error
+boundaries, pino JSON logging, and CI source-map upload. So this was a GAP audit, not a
+build-from-zero. No prior RentCheck/PropertyPage/authOptions findings exist here (see
+header note line 5) — these are net-new IDs starting at TEL-A.
+
+### TEL-A — Error boundaries never report to Sentry [FIXED]
+
+Severity: Important
+Found: 2026-06-18 telemetry audit.
+Problem: all 3 React error boundaries only `console.error(error)` — zero
+`Sentry.captureException` anywhere in `src/`. `src/app/error.tsx` rendered `<html><body>`
+(the global-error contract) while no `global-error.tsx` existed → root-layout crashes
+unboundaried + unreported.
+Fix applied (2026-06-18):
+  - Added `src/app/global-error.tsx` (owns html/body, `Sentry.captureException`).
+  - Rewrote `src/app/error.tsx` to drop the wrong html/body wrapper + capture to Sentry.
+  - `(dashboard)/error.tsx` + `(public)/error.tsx`: `console.error` → `Sentry.captureException`.
+  tsc + ESLint clean; 926 unit tests green.
+  ⚠ NOT yet runtime-verified: actual Sentry event ingestion needs a live DSN (throw a
+  synthetic error per boundary in staging and confirm the event lands with mapped frames).
+Nodes: `src/app/error.tsx`, `global-error.tsx` (new), `(dashboard)/error.tsx`, `(public)/error.tsx`.
+
+### TEL-B — No request correlation ID; logs uncorrelated with traces [FIXED]
+
+Severity: Critical
+Found: 2026-06-18 telemetry audit.
+Problem: `src/middleware.ts` stamped no `trace_id`; pino lines and Sentry traces shared no ID.
+No `AsyncLocalStorage` request context existed.
+Fix applied (2026-06-18):
+  - New `src/lib/core/request-context.ts` — ALS-backed `RequestContext` + `runWithRequestContext`.
+  - `src/middleware.ts` generates/honours `x-request-id` on every inbound request, forwards it
+    via request headers and echoes it on the response (401/redirect/passthrough all carry it).
+  - `withRole`/`withAuth`/`withOptionalAuth` open an ALS scope (`runScoped`) reading the header
+    (UUID fallback for tests), binding traceId/userId/route/method, echoing traceId on the response.
+  Verified (live): unit-test log output now auto-carries `traceId`/`userId`/`route`/`method`
+  (shift-claim warn). tsc + ESLint clean; 926 tests green.
+  ⚠ Edge runtime has no ALS — context opens on the Node side (auth wrappers) by design.
+Nodes: `src/middleware.ts`, `lib/core/request-context.ts` (new), `lib/auth/with-role.ts` (`runScoped`).
+
+### TEL-C — Logger has no request-scoped context binding [FIXED]
+
+Severity: Important
+Found: 2026-06-18 telemetry audit.
+Problem: bare pino singleton; context fields appended ad-hoc per call site.
+Fix applied (2026-06-18): `lib/core/logger.ts` pino `mixin()` reads `getRequestContext()` and
+  injects `traceId`/`userId`/`route`/`method` into every line (empty outside a request scope).
+  Verified live in test output (see TEL-B). tsc + ESLint clean.
+Nodes: `lib/core/logger.ts`, `lib/core/request-context.ts`.
+
+### TEL-D — No Prisma / DB-tier span instrumentation [FIXED]
+
+Severity: Important
+Found: 2026-06-18 telemetry audit.
+Problem: `tracesSampleRate` set but no Prisma spans → DB latency invisible.
+Fix applied (2026-06-18): added `Sentry.prismaIntegration({ prismaInstrumentation: new
+  PrismaInstrumentation() })` to `sentry.server.config.ts`; added `@prisma/instrumentation@7.6.0`
+  as an explicit dep (was transitive). NOTE: Prisma 6.7 emits OTel query spans GA — the
+  `previewFeatures=["tracing"]` flag is deprecated/unnecessary (Prisma warned on generate), so
+  no schema change or client regen was needed.
+  tsc + ESLint clean; 926 tests green.
+  ⚠ NOT yet runtime-verified: confirm a sampled staging transaction contains ≥1 `db.prisma` span.
+Nodes: `sentry.server.config.ts`, `prisma/schema.prisma` (comment only), `db`/`dbRaw`.
+
+### TEL-E — Golden-signals / saturation coverage incomplete [FIXED]
+
+Severity: Nice-to-have
+Found: 2026-06-18 telemetry audit.
+Problem: only cron monitors covered; no profiling, fixed sample rate, no pool-saturation metric,
+no loud DSN guard.
+Fix applied (2026-06-18):
+  - `sentry.server.config.ts`: `tracesSampler` (keeps parent-sampled + errored/slow at 100%,
+    else 0.1 prod) + `profilesSampleRate`.
+  - `GET /api/admin/health`: added `db` block — live `SELECT 1` ping latency (portable saturation
+    proxy) + configured `poolSize` + defensive `$metrics` busy/open gauges + `saturation` ratio
+    (gauges null unless the Prisma `metrics` preview is later enabled — no regen forced here).
+  - `lib/core/env.ts`: prod boot guard — `logger.error` when either Sentry DSN is missing
+    (non-fatal; telemetry is optional infra, must not brick boot).
+  tsc + ESLint clean; 926 tests green.
+Nodes: `sentry.server.config.ts`, `src/app/api/admin/health/route.ts`, `lib/core/env.ts`.

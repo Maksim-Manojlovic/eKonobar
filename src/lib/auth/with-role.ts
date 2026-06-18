@@ -2,10 +2,34 @@ import { getServerSession, type Session } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth/config";
 import logger from "@/lib/core/logger";
+import { REQUEST_ID_HEADER, runWithRequestContext } from "@/lib/core/request-context";
 import type { Role } from "@prisma/client";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type RouteCtx = { params: Promise<any> };
+
+/**
+ * Opens an AsyncLocalStorage request scope around the handler so the pino logger
+ * stamps traceId/userId/route on every line. traceId is the x-request-id the
+ * middleware set (falls back to a fresh UUID if the wrapper runs without it,
+ * e.g. in unit tests). Echoes the traceId on the response header.
+ */
+function runScoped(
+  req: NextRequest,
+  session: Session | null,
+  run: () => Promise<Response>,
+): Promise<Response> {
+  const traceId = req.headers.get(REQUEST_ID_HEADER) ?? crypto.randomUUID();
+  const route = req.nextUrl?.pathname ?? req.url;
+  return runWithRequestContext(
+    { traceId, userId: session?.user?.id, route, method: req.method },
+    async () => {
+      const res = await run();
+      res.headers.set(REQUEST_ID_HEADER, traceId);
+      return res;
+    },
+  );
+}
 
 type AuthedHandler<C extends RouteCtx = RouteCtx> = (
   req: NextRequest,
@@ -35,21 +59,23 @@ export function withRole<C extends RouteCtx = RouteCtx>(
   return async (req: NextRequest, ctx: C): Promise<Response> => {
     const session = await getServerSession(authOptions);
 
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    return runScoped(req, session, async () => {
+      if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
 
-    const allowed = Array.isArray(roles) ? roles : [roles];
-    if (!allowed.includes(session.user.role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+      const allowed = Array.isArray(roles) ? roles : [roles];
+      if (!allowed.includes(session.user.role)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
 
-    try {
-      return await handler(req, ctx, session);
-    } catch (err) {
-      logger.error({ err }, `${req.method} ${req.nextUrl?.pathname ?? req.url}`);
-      return NextResponse.json({ error: "Internal error" }, { status: 500 });
-    }
+      try {
+        return await handler(req, ctx, session);
+      } catch (err) {
+        logger.error({ err }, `${req.method} ${req.nextUrl?.pathname ?? req.url}`);
+        return NextResponse.json({ error: "Internal error" }, { status: 500 });
+      }
+    });
   };
 }
 
@@ -61,16 +87,18 @@ export function withAuth<C extends RouteCtx = RouteCtx>(handler: AuthedHandler<C
   return async (req: NextRequest, ctx: C): Promise<Response> => {
     const session = await getServerSession(authOptions);
 
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    return runScoped(req, session, async () => {
+      if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
 
-    try {
-      return await handler(req, ctx, session);
-    } catch (err) {
-      logger.error({ err }, `${req.method} ${req.nextUrl?.pathname ?? req.url}`);
-      return NextResponse.json({ error: "Internal error" }, { status: 500 });
-    }
+      try {
+        return await handler(req, ctx, session);
+      } catch (err) {
+        logger.error({ err }, `${req.method} ${req.nextUrl?.pathname ?? req.url}`);
+        return NextResponse.json({ error: "Internal error" }, { status: 500 });
+      }
+    });
   };
 }
 
@@ -82,11 +110,13 @@ export function withAuth<C extends RouteCtx = RouteCtx>(handler: AuthedHandler<C
 export function withOptionalAuth<C extends RouteCtx = RouteCtx>(handler: OptionalAuthHandler<C>) {
   return async (req: NextRequest, ctx: C): Promise<Response> => {
     const session = await getServerSession(authOptions);
-    try {
-      return await handler(req, ctx, session ?? null);
-    } catch (err) {
-      logger.error({ err }, `${req.method} ${req.nextUrl?.pathname ?? req.url}`);
-      return NextResponse.json({ error: "Internal error" }, { status: 500 });
-    }
+    return runScoped(req, session, async () => {
+      try {
+        return await handler(req, ctx, session ?? null);
+      } catch (err) {
+        logger.error({ err }, `${req.method} ${req.nextUrl?.pathname ?? req.url}`);
+        return NextResponse.json({ error: "Internal error" }, { status: 500 });
+      }
+    });
   };
 }

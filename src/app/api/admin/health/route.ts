@@ -18,6 +18,7 @@ export const GET = withRole("ADMIN", async () => {
     rateLimitEntries,
     pendingClockIns,
     redisHealth,
+    dbHealth,
   ] = await Promise.all([
     dbRaw.review.count({
       where: { status: "PENDING", authorId: null, createdAt: { lt: guestEmbargo } },
@@ -53,6 +54,39 @@ export const GET = withRole("ADMIN", async () => {
           }
         })()
       : Promise.resolve(null),
+    // DB saturation (Golden Signal: Saturation). Live round-trip latency is the
+    // portable proxy — it climbs once the Prisma pool is exhausted and requests
+    // queue on pool_timeout. If the metrics preview is enabled, surface the real
+    // busy/open gauges too (defensive: $metrics is absent without that feature).
+    (async () => {
+      const t0 = Date.now();
+      let pingMs: number | null = null;
+      try {
+        await dbRaw.$queryRaw`SELECT 1`;
+        pingMs = Date.now() - t0;
+      } catch {
+        /* pingMs stays null → probe failed */
+      }
+      const poolSize = Number(process.env.DATABASE_POOL_SIZE ?? 3);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const metricsApi = (dbRaw as any).$metrics;
+      let connectionsOpen: number | null = null;
+      let connectionsBusy: number | null = null;
+      if (metricsApi?.json) {
+        try {
+          const m = await metricsApi.json();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const gauge = (key: string) => m.gauges?.find((g: any) => g.key === key)?.value ?? null;
+          connectionsOpen = gauge("prisma_pool_connections_open");
+          connectionsBusy = gauge("prisma_pool_connections_busy");
+        } catch {
+          /* metrics unavailable — leave nulls */
+        }
+      }
+      const saturation =
+        connectionsBusy !== null && poolSize > 0 ? connectionsBusy / poolSize : null;
+      return { pingMs, poolSize, connectionsOpen, connectionsBusy, saturation };
+    })(),
   ]);
 
   return NextResponse.json({
@@ -75,5 +109,6 @@ export const GET = withRole("ADMIN", async () => {
       pendingClockIns:  pendingClockIns,
     },
     redis: redisHealth,
+    db: dbHealth,
   });
 });

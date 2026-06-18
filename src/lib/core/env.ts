@@ -37,3 +37,13 @@ warnIfMissing(
   "VAPID_PRIVATE_KEY",
   "NEXT_PUBLIC_VAPID_KEY",
 );
+
+// ── Telemetry guard ───────────────────────────────────────────────────────
+// Sentry no-ops silently when its DSN is unset (Sentry.init with dsn=undefined),
+// which would leave production with zero error/trace capture and no obvious
+// signal. Flag it loudly in prod — non-fatal, since telemetry is optional infra.
+if (isProd && (!process.env.SENTRY_DSN || !process.env.NEXT_PUBLIC_SENTRY_DSN)) {
+  logger.error(
+    "[env] Sentry DSN missing (SENTRY_DSN / NEXT_PUBLIC_SENTRY_DSN) — error & trace capture is DISABLED in production",
+  );
+}
