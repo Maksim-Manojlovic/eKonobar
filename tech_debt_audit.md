@@ -132,16 +132,21 @@ Problem: full sr|en|ru translation stack (`lib/i18n/index.ts` + provider + 3 fla
   Original claim "only preloader consumes it" was partly stale — the auth flow (login/register/
   resetPassword) was already wired; dashboards were not. Build-ahead-of-need on the dashboards.
 Decision history: first DEFERRED (keep + ticket), then owner chose START ROLLOUT (scaffold).
-Rollout progress (2026-06-18): wired the **waiter dashboard nav** as the pattern —
-  - Added a `waiterNav` namespace (all 3 langs), keyed by every `Section` value so
-    `t("waiterNav", item.key)` type-checks against the dynamic nav key.
-  - `waiter/page.tsx` now renders nav labels via `useLang().t(...)` and mounts `<FlagSwitcher />`
-    in the sidebar footer.
-  Verified in running app: nav renders Serbian by default; clicking the English flag flips
-  Poslovi→Jobs, Smene→Shifts live (Serbian labels gone), 0 console errors. tsc + ESLint clean.
-  Documented the repeatable rollout pattern in CLAUDE.md (i18n section).
-Remaining (next rollout targets, tracked here): `SECTION_TITLES`, sign-out/role labels, and the
-  venue / headhunter / admin dashboards. Each follows the documented 3-step pattern.
+Rollout progress (2026-06-18):
+  Waiter dashboard CHROME fully translated:
+  - `waiterNav` namespace (nav labels), keyed by every `Section` value so `t("waiterNav", item.key)`
+    type-checks the dynamic nav key.
+  - `waiterTitles` namespace → header `sectionTitle` now `t("waiterTitles", section)`
+    (dropped the `SECTION_TITLES` import).
+  - `waiterUi` namespace → sign-out, role label, head-waiter nav label + badge.
+  - `<FlagSwitcher />` mounted in the sidebar footer.
+  Verified in running app (screenshot): switching to English renders header "Overview", nav
+  Overview/Jobs/Shifts/Reviews/Passport/Notifications, "Sign out", role "Waiter" — all live,
+  0 console errors. tsc + ESLint clean. Repeatable 3-step pattern documented in CLAUDE.md.
+Remaining (next rollout targets, tracked here):
+  - Waiter SECTION CONTENT (OverviewSection / section bodies — deeper than chrome).
+  - venue / headhunter / admin dashboard chrome (same pattern; venue Section has 11 values).
+  Each follows the documented 3-step pattern.
 Nodes: `translations`, `waiterNav` (new), `WaiterDashboard()` / `waiter/page.tsx`,
   `FlagSwitcher()`, `LanguageProvider()`, `useLang()`.
 

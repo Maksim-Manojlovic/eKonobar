@@ -9,7 +9,6 @@ import { NotificationsSection } from "@/components/ui/NotificationsSection";
 import DashboardShell from "@/components/layout/DashboardShell";
 import { useDashboardNav } from "@/hooks/useDashboardNav";
 import type { Section, JobPost, MyApplication, WaiterShift, InviteItem, PassportData, ManagedShift } from "./waiter-types";
-import { SECTION_TITLES } from "./waiter-constants";
 import { getInitials } from "@/lib/formatting/utils";
 import { OverviewSection } from "./WaiterOverviewSection";
 import { PosloviHub } from "./WaiterJobsSection";
@@ -136,8 +135,8 @@ export default function WaiterDashboard() {
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
               <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
-            Šef konobara
-            <span className="ml-auto text-[9px] bg-orange-500/20 text-orange-300 font-bold px-1.5 py-0.5 rounded-full border border-orange-500/30">ŠEFOV</span>
+            {t("waiterUi", "headWaiter")}
+            <span className="ml-auto text-[9px] bg-orange-500/20 text-orange-300 font-bold px-1.5 py-0.5 rounded-full border border-orange-500/30">{t("waiterUi", "headWaiterBadge")}</span>
           </button>
         )}
       </nav>
@@ -161,14 +160,14 @@ export default function WaiterDashboard() {
           <div className="w-8 h-8 rounded-full bg-orange-900/40 flex items-center justify-center text-orange-300 font-bold text-sm flex-shrink-0 border border-orange-500/30">{initials}</div>
           <div className="min-w-0">
             <div className="text-sm font-bold text-white truncate">{userName}</div>
-            <div className="text-[11px] text-white/40 truncate">Konobar</div>
+            <div className="text-[11px] text-white/40 truncate">{t("waiterUi", "role")}</div>
           </div>
         </div>
         <button onClick={() => signOut({ callbackUrl: "/" })} className="nav-item text-red-400/80 hover:bg-red-900/20 hover:text-red-300 w-full">
           <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
           </svg>
-          Odjavi se
+          {t("waiterUi", "signOut")}
         </button>
       </div>
     </>
@@ -188,7 +187,7 @@ export default function WaiterDashboard() {
       )}
 
       <DashboardShell
-        sectionTitle={SECTION_TITLES[section]}
+        sectionTitle={t("waiterTitles", section)}
         today={today}
         navContent={navContent}
         topRight={

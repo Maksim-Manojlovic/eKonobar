@@ -130,6 +130,15 @@ export const translations = {
       shifts: "Smene", invites: "Pozivnice", reviews: "Recenzije", passport: "Passport",
       manage: "Upravljanje", notifications: "Obaveštenja",
     },
+    waiterTitles: {
+      overview: "Pregled", alerts: "Red Alert", jobs: "Dostupni poslovi",
+      applications: "Moje prijave", shifts: "Smene", invites: "Pozivnice",
+      reviews: "Recenzije", passport: "Waiter Passport™", manage: "Šef konobara",
+      notifications: "Obaveštenja",
+    },
+    waiterUi: {
+      signOut: "Odjavi se", role: "Konobar", headWaiter: "Šef konobara", headWaiterBadge: "ŠEFOV",
+    },
   },
 
   en: {
@@ -255,6 +264,15 @@ export const translations = {
       shifts: "Shifts", invites: "Invites", reviews: "Reviews", passport: "Passport",
       manage: "Manage", notifications: "Notifications",
     },
+    waiterTitles: {
+      overview: "Overview", alerts: "Red Alert", jobs: "Available jobs",
+      applications: "My applications", shifts: "Shifts", invites: "Invites",
+      reviews: "Reviews", passport: "Waiter Passport™", manage: "Head Waiter",
+      notifications: "Notifications",
+    },
+    waiterUi: {
+      signOut: "Sign out", role: "Waiter", headWaiter: "Head Waiter", headWaiterBadge: "HEAD",
+    },
   },
 
   ru: {
@@ -379,6 +397,15 @@ export const translations = {
       overview: "Обзор", alerts: "Red Alert", jobs: "Работа", applications: "Заявки",
       shifts: "Смены", invites: "Приглашения", reviews: "Отзывы", passport: "Паспорт",
       manage: "Управление", notifications: "Уведомления",
+    },
+    waiterTitles: {
+      overview: "Обзор", alerts: "Red Alert", jobs: "Доступные вакансии",
+      applications: "Мои заявки", shifts: "Смены", invites: "Приглашения",
+      reviews: "Отзывы", passport: "Waiter Passport™", manage: "Старший официант",
+      notifications: "Уведомления",
+    },
+    waiterUi: {
+      signOut: "Выйти", role: "Официант", headWaiter: "Старший официант", headWaiterBadge: "ШЕФ",
     },
   },
 } as const;
