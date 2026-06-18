@@ -52,6 +52,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Observability guard
+        # Static telemetry invariants (TEL-A..E, CQ-M) — fails if error boundaries
+        # stop reporting to Sentry, the trace-id stamp is dropped, the CSP strands
+        # the service worker, etc. No Sentry credentials needed.
+        run: npm run check:observability
+
   # ── Stage 1 (parallel): Unit tests — no DB ────────────────────────────────
   unit:
     name: Unit Tests
