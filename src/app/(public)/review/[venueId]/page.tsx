@@ -12,6 +12,19 @@ type Waiter = { id: string; name?: string | null; image?: string | null };
 type Coords = { lat: number; lon: number };
 type Step = "loading" | "error404" | "choose" | "venue" | "waiter" | "both-venue" | "both-waiter" | "success";
 
+type ReviewForm = {
+  guestHandle: string;
+  venueAtmo: number; venueOrg: number; venueHyg: number; venueComment: string;
+  waiterId: string;
+  wFriendly: number; wSpeed: number; wAttn: number; waiterComment: string;
+};
+const INITIAL_FORM: ReviewForm = {
+  guestHandle: "",
+  venueAtmo: 0, venueOrg: 0, venueHyg: 0, venueComment: "",
+  waiterId: "",
+  wFriendly: 0, wSpeed: 0, wAttn: 0, waiterComment: "",
+};
+
 function toApi(stars: number) { return Math.round((stars / 5) * 100); }
 
 function StarPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
@@ -60,17 +73,10 @@ export default function GuestReviewPage() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Shared form state
-  const [guestHandle, setGuestHandle]     = useState("");
-  const [venueAtmo, setVenueAtmo]         = useState(0);
-  const [venueOrg, setVenueOrg]           = useState(0);
-  const [venueHyg, setVenueHyg]           = useState(0);
-  const [venueComment, setVenueComment]   = useState("");
-  const [waiterId, setWaiterId]           = useState("");
-  const [wFriendly, setWFriendly]         = useState(0);
-  const [wSpeed, setWSpeed]               = useState(0);
-  const [wAttn, setWAttn]                 = useState(0);
-  const [waiterComment, setWaiterComment] = useState("");
+  // Single form object — ratings/comments/handle/waiterId were 10 scattered useState (CQ-N).
+  const [form, setForm] = useState<ReviewForm>(INITIAL_FORM);
+  const setField = <K extends keyof ReviewForm>(key: K, value: ReviewForm[K]) =>
+    setForm((f) => ({ ...f, [key]: value }));
 
   useEffect(() => {
     fetch(`/api/venues/${venueId}/public`)
@@ -104,7 +110,7 @@ export default function GuestReviewPage() {
       body: JSON.stringify({
         ...body,
         venueId,
-        guestHandle: guestHandle.trim() || undefined,
+        guestHandle: form.guestHandle.trim() || undefined,
         ...(coords ? { guestLatitude: coords.lat, guestLongitude: coords.lon } : {}),
       }),
     });
@@ -113,6 +119,7 @@ export default function GuestReviewPage() {
   }
 
   async function submitVenue(nextStep: "success" | "both-waiter") {
+    const { venueAtmo, venueOrg, venueHyg, venueComment } = form;
     if (!venueAtmo || !venueOrg || !venueHyg) { setApiError("Ocenite sve kategorije"); return; }
     const avg = toApi(Math.round((venueAtmo + venueOrg + venueHyg) / 3));
     setSubmitting(true); setApiError(null);
@@ -134,6 +141,7 @@ export default function GuestReviewPage() {
   }
 
   async function submitWaiter() {
+    const { waiterId, wFriendly, wSpeed, wAttn, waiterComment } = form;
     if (!waiterId) { setApiError("Izaberite konobara"); return; }
     if (!wFriendly || !wSpeed || !wAttn) { setApiError("Ocenite sve kategorije"); return; }
     const avg = toApi(Math.round((wFriendly + wSpeed + wAttn) / 3));
@@ -209,8 +217,8 @@ export default function GuestReviewPage() {
         <div className={card}>
           <label className={label}>Vaše ime (opciono)</label>
           <input
-            value={guestHandle}
-            onChange={(e) => setGuestHandle(e.target.value)}
+            value={form.guestHandle}
+            onChange={(e) => setField("guestHandle", e.target.value)}
             placeholder="Npr. Marko S. ili ostavi prazno"
             maxLength={50}
             className={input}
@@ -258,21 +266,21 @@ export default function GuestReviewPage() {
             <div className="flex flex-col gap-5">
               <div>
                 <label className={label}>Atmosfera</label>
-                <StarPicker value={venueAtmo} onChange={setVenueAtmo} />
+                <StarPicker value={form.venueAtmo} onChange={(v) => setField("venueAtmo", v)} />
               </div>
               <div>
                 <label className={label}>Organizacija</label>
-                <StarPicker value={venueOrg} onChange={setVenueOrg} />
+                <StarPicker value={form.venueOrg} onChange={(v) => setField("venueOrg", v)} />
               </div>
               <div>
                 <label className={label}>Higijena</label>
-                <StarPicker value={venueHyg} onChange={setVenueHyg} />
+                <StarPicker value={form.venueHyg} onChange={(v) => setField("venueHyg", v)} />
               </div>
               <div>
                 <label className={label}>Komentar (opciono)</label>
                 <textarea
-                  value={venueComment}
-                  onChange={(e) => setVenueComment(e.target.value)}
+                  value={form.venueComment}
+                  onChange={(e) => setField("venueComment", e.target.value)}
                   placeholder="Šta vam se dopalo ili nije dopalo?"
                   maxLength={1000}
                   rows={3}
@@ -320,9 +328,9 @@ export default function GuestReviewPage() {
                     <button
                       key={w.id}
                       type="button"
-                      onClick={() => setWaiterId(w.id)}
+                      onClick={() => setField("waiterId", w.id)}
                       className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all ${
-                        waiterId === w.id
+                        form.waiterId === w.id
                           ? "border-orange-400 bg-orange-50"
                           : "border-neutral-200 hover:border-orange-200"
                       }`}
@@ -336,21 +344,21 @@ export default function GuestReviewPage() {
 
               <div>
                 <label className={label}>Ljubaznost</label>
-                <StarPicker value={wFriendly} onChange={setWFriendly} />
+                <StarPicker value={form.wFriendly} onChange={(v) => setField("wFriendly", v)} />
               </div>
               <div>
                 <label className={label}>Brzina usluge</label>
-                <StarPicker value={wSpeed} onChange={setWSpeed} />
+                <StarPicker value={form.wSpeed} onChange={(v) => setField("wSpeed", v)} />
               </div>
               <div>
                 <label className={label}>Pažljivost</label>
-                <StarPicker value={wAttn} onChange={setWAttn} />
+                <StarPicker value={form.wAttn} onChange={(v) => setField("wAttn", v)} />
               </div>
               <div>
                 <label className={label}>Komentar (opciono)</label>
                 <textarea
-                  value={waiterComment}
-                  onChange={(e) => setWaiterComment(e.target.value)}
+                  value={form.waiterComment}
+                  onChange={(e) => setField("waiterComment", e.target.value)}
                   placeholder="Šta vam se dopalo ili nije dopalo?"
                   maxLength={1000}
                   rows={3}
