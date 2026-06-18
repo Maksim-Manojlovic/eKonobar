@@ -42,11 +42,27 @@ Progress (2026-06-18):
     useState 26 → 19; one endpoint dropped from the load Promise.all. tsc + ESLint clean.
     ⚠ NOT yet verified in the running app — needs manual smoke test of the passport
     notification toggles (push/WhatsApp/SMS save) before relying on it.
+  - VenueSmeneSection: on inspection this was a PARTIAL FALSE POSITIVE — the file-level
+    "17 useState" is already split across 4 cohesive sub-components (`ShiftTemplateTab` 7,
+    `HeadWaiterPanel` 3, `PendingClockInRow` 1, main 5), not one god-body. Not a real SRP
+    violation like WaiterPassportSection's 26-in-one-function. Applied the one genuine
+    improvement: migrated `ShiftTemplateTab`'s GET to `useApi` (mutate covers the
+    refetch-after-mutation calls). useState 17 → 15. tsc + ESLint clean.
+    ⚠ NOT yet verified in app — smoke-test templates tab (list/create/delete/quick-apply/generate).
+  - WaiterSmeneSection: also already sub-componentised (`ClockInButton` + main `ShiftsSection`).
+    Migrated the tab-driven fetch effect (open-shifts 30s poll + swap requests) to two
+    `useApi` calls with `{ enabled: tab === ..., refreshMs }`. Removed 3 useState
+    (openShifts/swapReqs/tabLoading), the whole useEffect, and the CQ-I client poll catch.
+    useState 15 → 12. Full unit suite green (926 tests). ⚠ smoke-test the Smene tabs
+    (mine/open/swaps), the 30s open-shift refresh, and claim.
 Remaining:
-  - WaiterPassportSection: group profile-edit fields + sanitary book into reducers/hooks.
-  - VenueSmeneSection, WaiterSmeneSection: same treatment (migrate GETs to useApi, extract
-    concerns). One component per commit.
-Nodes: `WaiterPassportSection()`, `useNotifPrefs()` (new), `VenueSmeneSection()`, `WaiterSmeneSection()`.
+  - WaiterPassportSection: group profile-edit fields + sanitary book into reducers/hooks
+    (optional polish — the 26→19 extraction already removed the worst SRP offender).
+Note: the real god-component was WaiterPassportSection. The file-level useState counts for
+  VenueSmeneSection/WaiterSmeneSection overstate the smell because those files are already
+  sub-componentised — verify per-function complexity, not per-file totals.
+Nodes: `WaiterPassportSection()`, `useNotifPrefs()` (new), `ShiftTemplateTab()` (migrated),
+  `VenueSmeneSection()`, `WaiterSmeneSection()`.
 
 ### CQ-H — No data-fetching abstraction (root cause of CQ-G)  [FIXED]
 Severity: Important

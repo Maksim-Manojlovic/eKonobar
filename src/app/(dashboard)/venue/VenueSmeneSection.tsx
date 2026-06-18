@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useApi } from "@/hooks/useApi";
 import type { Venue, VenueShift, ShiftTemplate, TemplateMeta } from "./venue-types";
 import { DAYS_SR, MONTHS_SR } from "@/lib/i18n/constants";
 import { getInitials } from "@/lib/formatting/utils";
@@ -27,23 +28,15 @@ const QUICK_APPLY_PRESETS: Array<{
 ];
 
 function ShiftTemplateTab({ venue, onShiftsChanged }: { venue: Venue; onShiftsChanged: () => void }) {
-  const [templates, setTemplates]   = useState<ShiftTemplate[]>([]);
-  const [loading, setLoading]       = useState(true);
+  const { data: templatesData, isLoading: loading, mutate: fetchTemplates } =
+    useApi<ShiftTemplate[]>("/api/shifts/templates");
+  const templates = templatesData ?? [];
+
   const [creating, setCreating]     = useState(false);
   const [editing, setEditing]       = useState<ShiftTemplate | null>(null);
   const [generating, setGenerating] = useState<ShiftTemplate | null>(null);
   const [deleting, setDeleting]     = useState<string | null>(null);
   const [applying, setApplying]     = useState<string | null>(null);
-
-  const fetchTemplates = () => {
-    setLoading(true);
-    fetch("/api/shifts/templates")
-      .then(r => r.ok ? r.json() : [])
-      .then(setTemplates)
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => { fetchTemplates(); }, []);
 
   async function handleDelete(id: string) {
     setDeleting(id);

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useApi } from "@/hooks/useApi";
 import type { WaiterShift, OpenShift, SwapRequest, ManagedShift } from "./waiter-types";
 import { DAYS_SR, MONTHS_SR } from "@/lib/i18n/constants";
 import { Spinner, WaiterShiftsSkeleton } from "./waiter-helpers";
@@ -92,27 +93,17 @@ export function ShiftsSection({ shifts, loading, onRefresh }: { shifts: WaiterSh
   const [tab, setTab]           = useState<ShiftsTab>("mine");
   const [current, setCurrent]   = useState(new Date(now.getFullYear(), now.getMonth(), 1));
   const [selected, setSelected] = useState<WaiterShift | null>(null);
-  const [openShifts, setOpenShifts]   = useState<OpenShift[]>([]);
-  const [swapReqs, setSwapReqs]       = useState<SwapRequest[]>([]);
-  const [tabLoading, setTabLoading]   = useState(false);
   const [claiming, setClaiming]       = useState<string | null>(null);
 
-  useEffect(() => {
-    if (tab === "open") {
-      // Initial load with spinner
-      setTabLoading(true);
-      fetch("/api/shifts?view=open").then(r => r.ok ? r.json() : []).then(setOpenShifts).finally(() => setTabLoading(false));
-      // Silent 30s auto-refresh — no spinner on subsequent polls
-      const id = setInterval(() => {
-        fetch("/api/shifts?view=open").then(r => r.ok ? r.json() : []).then(setOpenShifts).catch(() => {});
-      }, 30_000);
-      return () => clearInterval(id);
-    }
-    if (tab === "swaps") {
-      setTabLoading(true);
-      fetch("/api/shifts?view=swaps").then(r => r.ok ? r.json() : []).then(setSwapReqs).finally(() => setTabLoading(false));
-    }
-  }, [tab]);
+  // Tab data: open-shift marketplace (silent 30s poll) + swap requests, fetched only
+  // while their tab is active. useApi owns loading/poll/unmount-safety (CQ-G/CQ-H).
+  const { data: openData, isLoading: openLoading } =
+    useApi<OpenShift[]>("/api/shifts?view=open", { enabled: tab === "open", refreshMs: 30_000 });
+  const { data: swapData, isLoading: swapLoading } =
+    useApi<SwapRequest[]>("/api/shifts?view=swaps", { enabled: tab === "swaps" });
+  const openShifts = openData ?? [];
+  const swapReqs   = swapData ?? [];
+  const tabLoading = (tab === "open" && openLoading) || (tab === "swaps" && swapLoading);
 
   async function handleClaim(shiftId: string) {
     setClaiming(shiftId);
