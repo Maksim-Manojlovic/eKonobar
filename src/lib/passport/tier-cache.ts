@@ -1,5 +1,6 @@
 import { redis } from "@/lib/core/redis";
 import { db } from "@/lib/core/db";
+import logger from "@/lib/core/logger";
 import { getEffectiveTier } from "@/lib/passport/tier";
 
 const CACHE_PREFIX = "passport:tier:";
@@ -38,7 +39,9 @@ export async function getEffectiveTierCached(userId: string): Promise<string> {
     const ttlSec = expiry && expiry > new Date()
       ? Math.min(3600, Math.max(60, Math.floor((expiry.getTime() - Date.now()) / 1000)))
       : 300;
-    redis.set(key, tier, "EX", ttlSec).catch(() => {});
+    redis
+      .set(key, tier, "EX", ttlSec)
+      .catch((err) => logger.warn({ err, userId }, "tier-cache: write failed"));
   }
 
   return tier;
@@ -47,5 +50,7 @@ export async function getEffectiveTierCached(userId: string): Promise<string> {
 /** Call after any tier or subscription change for this user. */
 export function bustTierCache(userId: string): void {
   if (!redis) return;
-  redis.del(`${CACHE_PREFIX}${userId}`).catch(() => {});
+  redis
+    .del(`${CACHE_PREFIX}${userId}`)
+    .catch((err) => logger.warn({ err, userId }, "tier-cache: bust failed"));
 }

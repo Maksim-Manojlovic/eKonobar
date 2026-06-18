@@ -1,6 +1,7 @@
 import { NotificationType, Prisma } from "@prisma/client";
 import { db } from "@/lib/core/db";
 import { redis } from "@/lib/core/redis";
+import logger from "@/lib/core/logger";
 import { sendNotificationEmail } from "@/lib/integrations/email";
 import {
   isPro          as isPassportPro,
@@ -65,7 +66,9 @@ async function getCachedDispatchUser(userId: string): Promise<DispatchUser> {
   const user = await fetchDispatchUser(userId);
 
   if (user && redis) {
-    redis.set(key, JSON.stringify(user), "EX", DISPATCH_PREFS_TTL).catch(() => {});
+    redis
+      .set(key, JSON.stringify(user), "EX", DISPATCH_PREFS_TTL)
+      .catch((err) => logger.warn({ err, userId }, "notify: dispatch-prefs cache write failed"));
   }
 
   return user;
@@ -74,7 +77,9 @@ async function getCachedDispatchUser(userId: string): Promise<DispatchUser> {
 /** Call after any change to a user's notification-relevant fields. */
 export function bustNotifyPrefsCache(userId: string): void {
   if (!redis) return;
-  redis.del(`notif:dispatch:prefs:${userId}`).catch(() => {});
+  redis
+    .del(`notif:dispatch:prefs:${userId}`)
+    .catch((err) => logger.warn({ err, userId }, "notify: dispatch-prefs cache bust failed"));
 }
 
 // ── Coordinator ───────────────────────────────────────────────────────────────
@@ -109,7 +114,11 @@ export async function notify(
   });
 
   // Bust the notification list cache so the next poll reflects the new item.
-  if (redis) redis.del(`notif:cache:${userId}`).catch(() => {});
+  if (redis) {
+    redis
+      .del(`notif:cache:${userId}`)
+      .catch((err) => logger.warn({ err, userId }, "notify: notif-list cache bust failed"));
+  }
 
   // Tier gating: waiterPassport is always fetched in the user query above.
   // Non-WAITER roles bypass tier gating and receive all opted-in channels.
@@ -157,6 +166,9 @@ export async function notify(
   const anyDelivered  = pushAttempted || shouldWA || smsDelivered;
 
   if (!anyDelivered && user.email) {
-    sendNotificationEmail({ toEmail: user.email, title, body, link }).catch(() => {});
+    // Last-resort channel — if this also fails the user gets nothing, so surface it.
+    sendNotificationEmail({ toEmail: user.email, title, body, link }).catch((err) =>
+      logger.warn({ err, userId, type }, "notify: email fallback send failed"),
+    );
   }
 }

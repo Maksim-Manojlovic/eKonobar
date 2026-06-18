@@ -1,5 +1,6 @@
 import { dbRaw } from "@/lib/core/db";
 import { redis } from "@/lib/core/redis";
+import logger from "@/lib/core/logger";
 import {
   calculateVenueTrustScore,
   calculateVenueScoreDimensions,
@@ -123,7 +124,11 @@ export async function syncPassportScore(waiterId: string): Promise<void> {
 
   // Bump the waiter search cache generation — all cached search result pages
   // are now stale and will be re-fetched on next query (old keys expire via TTL).
-  if (redis) redis.incr("waiter:search:gen").catch(() => {});
+  if (redis) {
+    redis
+      .incr("waiter:search:gen")
+      .catch((err) => logger.warn({ err }, "sync: waiter-search cache-gen bump failed"));
+  }
 
   await dbRaw.$transaction([
     dbRaw.waiterPassport.update({

@@ -1,5 +1,6 @@
 import { dbRaw } from "@/lib/core/db";
 import { redis } from "@/lib/core/redis";
+import logger from "@/lib/core/logger";
 
 // ── In-process fallback cache ─────────────────────────────────────────────────
 //
@@ -64,7 +65,7 @@ export async function isTokenRevoked(
     // Fire-and-forget cache write — failure is non-fatal.
     redis
       .set(key, revokedAtSec === null ? "none" : String(revokedAtSec), "EX", ttlSec)
-      .catch(() => {});
+      .catch((err) => logger.warn({ err, userId }, "revocation: cache write failed"));
 
     return row !== null && tokenIat < revokedAtSec!;
   }
