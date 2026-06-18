@@ -55,6 +55,9 @@ export default withSentryConfig(nextConfig, {
   silent:          !process.env.CI,
   widenClientFileUpload: true,
   sourcemaps: { deleteSourcemapsAfterUpload: true },
-  disableLogger:   true,
-  automaticVercelMonitors: true,
+  webpack: {
+    // Migrated from the deprecated top-level disableLogger / automaticVercelMonitors flags.
+    treeshake: { removeDebugLogging: true },
+    automaticVercelMonitors: true,
+  },
 });
