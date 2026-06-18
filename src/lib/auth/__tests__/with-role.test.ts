@@ -6,6 +6,7 @@ vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
 import { getServerSession } from "next-auth";
 import { NextRequest } from "next/server";
 import { withRole, withAuth } from "../with-role";
+import { getRequestContext, REQUEST_ID_HEADER } from "@/lib/core/request-context";
 
 const CTX = { params: Promise.resolve({}) };
 
@@ -17,8 +18,8 @@ function mockNoSession() {
   vi.mocked(getServerSession).mockResolvedValue(null);
 }
 
-function makeReq() {
-  return new NextRequest("http://localhost/api/test");
+function makeReq(headers?: Record<string, string>) {
+  return new NextRequest("http://localhost/api/test", headers ? { headers } : undefined);
 }
 
 describe("withRole", () => {
@@ -91,5 +92,63 @@ describe("withAuth", () => {
     const res = await wrapped(makeReq(), CTX);
     expect(res.status).toBe(401);
     expect(handler).not.toHaveBeenCalled();
+  });
+});
+
+describe("trace propagation (TEL-B/TEL-C)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("echoes the incoming x-request-id on the response", async () => {
+    mockSession("ADMIN");
+    const wrapped = withRole("ADMIN", async () => new Response("ok"));
+    const res = await wrapped(makeReq({ [REQUEST_ID_HEADER]: "trace-abc" }), CTX);
+    expect(res.headers.get(REQUEST_ID_HEADER)).toBe("trace-abc");
+  });
+
+  it("generates a fallback trace id when the header is absent", async () => {
+    mockSession("ADMIN");
+    const wrapped = withRole("ADMIN", async () => new Response("ok"));
+    const res = await wrapped(makeReq(), CTX);
+    const id = res.headers.get(REQUEST_ID_HEADER);
+    expect(id).toMatch(/^[0-9a-f-]{36}$/i);
+  });
+
+  it("binds traceId/userId/route/method into the request context the handler runs in", async () => {
+    mockSession("WAITER", "waiter-9");
+    let seen: ReturnType<typeof getRequestContext>;
+    const wrapped = withRole("WAITER", async () => {
+      seen = getRequestContext();
+      return new Response("ok");
+    });
+    await wrapped(makeReq({ [REQUEST_ID_HEADER]: "trace-xyz" }), CTX);
+    expect(seen).toEqual({
+      traceId: "trace-xyz",
+      userId: "waiter-9",
+      route: "/api/test",
+      method: "GET",
+    });
+  });
+
+  it("echoes the trace id even on a 403", async () => {
+    mockSession("WAITER");
+    const wrapped = withRole("ADMIN", async () => new Response("ok"));
+    const res = await wrapped(makeReq({ [REQUEST_ID_HEADER]: "trace-403" }), CTX);
+    expect(res.status).toBe(403);
+    expect(res.headers.get(REQUEST_ID_HEADER)).toBe("trace-403");
+  });
+
+  it("echoes the trace id even on a 401", async () => {
+    mockNoSession();
+    const wrapped = withAuth(async () => new Response("ok"));
+    const res = await wrapped(makeReq({ [REQUEST_ID_HEADER]: "trace-401" }), CTX);
+    expect(res.status).toBe(401);
+    expect(res.headers.get(REQUEST_ID_HEADER)).toBe("trace-401");
+  });
+
+  it("leaves no request context after the wrapper returns", async () => {
+    mockSession("ADMIN");
+    const wrapped = withRole("ADMIN", async () => new Response("ok"));
+    await wrapped(makeReq(), CTX);
+    expect(getRequestContext()).toBeUndefined();
   });
 });
