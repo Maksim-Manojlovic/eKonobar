@@ -6,19 +6,24 @@ import type { PlatformStats, ActionStats, ActivityEvent, LeaderboardData, Health
 import { EVENT_ICONS, EVENT_COLORS, NAV } from "./admin-types";
 import { DashboardSkeleton, BigStat, MiniStat, SectionCard, timeAgo } from "./admin-helpers";
 import { useRequireRole } from "@/hooks/useRequireRole";
+import { useApi } from "@/hooks/useApi";
 
 export default function AdminDashboard() {
   const { status } = useRequireRole("ADMIN");
   const spotlightRef = useRef<HTMLDivElement>(null);
-  const [platform, setPlatform]     = useState<PlatformStats | null>(null);
-  const [actions, setActions]       = useState<ActionStats | null>(null);
-  const [activity, setActivity]     = useState<ActivityEvent[]>([]);
-  const [actLoading, setActLoading] = useState(true);
-  const [health, setHealth]           = useState<HealthData | null>(null);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardData | null>(null);
+  const [platform, setPlatform] = useState<PlatformStats | null>(null);
+  const [actions, setActions]   = useState<ActionStats | null>(null);
+
+  // Single-GET panels go through useApi; the counts row aggregates 4 endpoints below.
+  const authed = status === "authenticated";
+  const { data: activityData, isLoading: actLoading } =
+    useApi<ActivityEvent[]>("/api/admin/activity", { enabled: authed });
+  const activity = activityData ?? [];
+  const { data: health }      = useApi<HealthData>("/api/admin/health", { enabled: authed });
+  const { data: leaderboard } = useApi<LeaderboardData>("/api/admin/leaderboard", { enabled: authed });
 
   useEffect(() => {
-    if (status !== "authenticated") return;
+    if (!authed) return;
     Promise.all([
       fetch("/api/admin/stats").then(r => r.ok ? r.json() : null),
       fetch("/api/verification/sanitary").then(r => r.ok ? r.json() : []),
@@ -33,20 +38,7 @@ export default function AdminDashboard() {
         venues:               stats?.venues ?? 0,
       });
     }).catch(() => setActions({ pendingVerifications: 0, disputedReviews: 0, zones: 0, venues: 0 }));
-
-    fetch("/api/admin/activity")
-      .then(r => r.ok ? r.json() : [])
-      .then(d => setActivity(Array.isArray(d) ? d : []))
-      .finally(() => setActLoading(false));
-
-    fetch("/api/admin/health")
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setHealth(d); });
-
-    fetch("/api/admin/leaderboard")
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setLeaderboard(d); });
-  }, [status]);
+  }, [authed]);
 
   if (status === "loading" || !actions) return <DashboardSkeleton />;
 

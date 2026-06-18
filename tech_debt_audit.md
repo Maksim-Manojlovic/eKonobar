@@ -17,7 +17,7 @@ Graph-based code quality audit. Findings sourced from Graphify graph (`graphify-
 | CQ-L | Nice-to-have | Waiter dashboard spams 403 on /api/shifts?view=manage         | [FIXED]           |
 | CQ-M | Important    | CSP worker-src blocks service worker → push dead              | [FIXED]           |
 | CQ-N | Important    | Public guest-review page is a 17-useState god-component       | [FIXED]           |
-| CQ-O | Nice-to-have | admin/page + ProfileSection still hand-roll fetch (no useApi) | [OPEN]            |
+| CQ-O | Nice-to-have | admin/page + ProfileSection still hand-roll fetch (no useApi) | [FIXED]           |
 
 ---
 
@@ -213,7 +213,7 @@ Verified in running app: drove the venue-review flow with spoofed geolocation at
   returned **200**. Screenshot confirmed all fields bound/rendered from the `form` object. 0 console errors.
 Nodes: `GuestReviewPage()` / `src/app/(public)/review/[venueId]/page.tsx`, `ReviewForm`, `Step`, `StarPicker()`.
 
-### CQ-O — admin/page + ProfileSection bypass useApi [OPEN]
+### CQ-O — admin/page + ProfileSection bypass useApi [FIXED]
 
 Severity: Nice-to-have
 Found: 2026-06-18 fresh-audit re-run.
@@ -221,4 +221,17 @@ Problem: now that `useApi` exists (CQ-H), two more components still hand-roll fe
 `admin/page.tsx` (7 inline `fetch`, 7 useState) and `venue/ProfileSection.tsx` (5 fetch, 11
 useState, 4 useEffect). Same triplet `useApi` was built to remove — consistency debt, not a bug.
 Recommended: migrate their GETs to `useApi` (admin dashboard parallel loads are the clearest win).
-Nodes: `AdminDashboard()` / `admin/page.tsx`, `ProfileSection()` / `venue/ProfileSection.tsx`.
+Fix applied (2026-06-18):
+  - admin/page.tsx: migrated the 3 standalone single-GET fetches (activity / health / leaderboard)
+    to `useApi` with `{ enabled: status === "authenticated" }`. useState 7 → 3. Left the 4-endpoint
+    aggregation (Promise.all → derived `actions` counts) as-is — that's a genuine multi-source
+    pattern that doesn't map 1:1 to `useApi`, and forcing it would add code.
+  - ProfileSection.tsx: PARTIAL FALSE POSITIVE — its 5 `fetch` are all POST/PATCH writes (upload,
+    venue update) and its useEffects sync local state from the `venue` PROP; it has no hand-rolled
+    GET. `useApi` (GET-only) doesn't apply. The 11 useState are legit local UI state. No change.
+Verified in running app: logged in as admin, /admin fully rendered; the migrated
+  activity / health / leaderboard panels all populate (`GET /api/admin/{activity,health,leaderboard}`
+  each returned 200), 0 console errors. tsc + ESLint clean.
+Lesson (again): trust per-function complexity, not per-file `fetch`/useState counts — writes and
+  prop-sync inflate the raw grep numbers.
+Nodes: `AdminDashboard()` / `admin/page.tsx`, `ProfileSection()` (false positive).
