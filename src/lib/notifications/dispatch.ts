@@ -9,6 +9,7 @@
  */
 
 import { db } from "@/lib/core/db";
+import { withSpan } from "@/lib/core/observability";
 import { sendPush } from "@/lib/integrations/webpush";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { sendSms } from "@/lib/integrations/sms";
@@ -34,18 +35,24 @@ export async function dispatchPush(
 ): Promise<boolean> {
   if (subs.length === 0) return false;
 
-  const results = await Promise.allSettled(
-    subs.map(sub =>
-      sendPush(sub, payload).catch(async (err: { statusCode?: number }) => {
-        if (err.statusCode === 410 || err.statusCode === 404) {
-          await db.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {});
-        }
-        throw err;
-      }),
-    ),
+  return withSpan(
+    { name: "notification.push", op: "notification.dispatch", attributes: { channel: "push", subs: subs.length } },
+    async (span) => {
+      const results = await Promise.allSettled(
+        subs.map(sub =>
+          sendPush(sub, payload).catch(async (err: { statusCode?: number }) => {
+            if (err.statusCode === 410 || err.statusCode === 404) {
+              await db.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {});
+            }
+            throw err;
+          }),
+        ),
+      );
+      const delivered = results.some(r => r.status === "fulfilled");
+      span.setAttribute("delivered", delivered);
+      return delivered;
+    },
   );
-
-  return results.some(r => r.status === "fulfilled");
 }
 
 /**
@@ -57,12 +64,19 @@ export async function dispatchWhatsApp(
   title: string,
   body: string,
 ): Promise<boolean> {
-  try {
-    await sendWhatsApp(phone, title, body);
-    return true;
-  } catch {
-    return false;
-  }
+  return withSpan(
+    { name: "notification.whatsapp", op: "notification.dispatch", attributes: { channel: "whatsapp" } },
+    async (span) => {
+      try {
+        await sendWhatsApp(phone, title, body);
+        span.setAttribute("delivered", true);
+        return true;
+      } catch {
+        span.setAttribute("delivered", false);
+        return false;
+      }
+    },
+  );
 }
 
 /**
@@ -75,10 +89,17 @@ export async function dispatchSms(
   body: string,
   link?: string,
 ): Promise<boolean> {
-  try {
-    await sendSms(phone, buildSmsText(title, body, link));
-    return true;
-  } catch {
-    return false;
-  }
+  return withSpan(
+    { name: "notification.sms", op: "notification.dispatch", attributes: { channel: "sms" } },
+    async (span) => {
+      try {
+        await sendSms(phone, buildSmsText(title, body, link));
+        span.setAttribute("delivered", true);
+        return true;
+      } catch {
+        span.setAttribute("delivered", false);
+        return false;
+      }
+    },
+  );
 }

@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { withSpan } from "@/lib/core/observability";
 
 const MONRI_BASE_URL = process.env.MONRI_ENV === "production"
   ? "https://ipg.monri.com"
@@ -92,14 +93,21 @@ export async function createPaymentSession(
     },
   };
 
-  const res = await fetch(`${MONRI_BASE_URL}/v2/payment/new`, {
-    method:  "POST",
-    headers: {
-      "Content-Type":  "application/json",
-      Authorization:   `WP3-v2 ${MERCHANT_KEY}`,
+  const res = await withSpan(
+    { name: "monri.createPaymentSession", op: "http.client", attributes: { orderNumber, currency } },
+    async (span) => {
+      const r = await fetch(`${MONRI_BASE_URL}/v2/payment/new`, {
+        method:  "POST",
+        headers: {
+          "Content-Type":  "application/json",
+          Authorization:   `WP3-v2 ${MERCHANT_KEY}`,
+        },
+        body: JSON.stringify(body),
+      });
+      span.setAttribute("http.response.status_code", r.status);
+      return r;
     },
-    body: JSON.stringify(body),
-  });
+  );
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -174,14 +182,21 @@ export async function chargeStoredCard(
     },
   };
 
-  const res = await fetch(`${MONRI_BASE_URL}/v2/payment/new`, {
-    method:  "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization:  `WP3-v2 ${MERCHANT_KEY}`,
+  const res = await withSpan(
+    { name: "monri.chargeStoredCard", op: "http.client", attributes: { orderNumber, currency } },
+    async (span) => {
+      const r = await fetch(`${MONRI_BASE_URL}/v2/payment/new`, {
+        method:  "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization:  `WP3-v2 ${MERCHANT_KEY}`,
+        },
+        body: JSON.stringify(body),
+      });
+      span.setAttribute("http.response.status_code", r.status);
+      return r;
     },
-    body: JSON.stringify(body),
-  });
+  );
 
   if (!res.ok) {
     return { approved: false };
