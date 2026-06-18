@@ -143,10 +143,15 @@ Rollout progress (2026-06-18):
   Verified in running app (screenshot): switching to English renders header "Overview", nav
   Overview/Jobs/Shifts/Reviews/Passport/Notifications, "Sign out", role "Waiter" — all live,
   0 console errors. tsc + ESLint clean. Repeatable 3-step pattern documented in CLAUDE.md.
+  Venue dashboard CHROME fully translated (2026-06-18): added `venueNav`/`venueTitles`/`venueUi`
+  namespaces (keyed by all 11 venue `Section` values); wired nav labels, header `sectionTitle`,
+  sidebar + profile-menu sign-out, the menu "Notifikacije" item, and role label via `t(...)`;
+  mounted `<FlagSwitcher />` in the sidebar footer; dropped the `SECTION_TITLES` import.
+  Verified in-app (screenshot): English renders header "Overview", nav Hiring/Shifts/Venue profile,
+  role "Venue owner", "Sign out" — live, 0 console errors. tsc + ESLint clean.
 Remaining (next rollout targets, tracked here):
-  - Waiter SECTION CONTENT (OverviewSection / section bodies — deeper than chrome).
-  - venue / headhunter / admin dashboard chrome (same pattern; venue Section has 11 values).
-  Each follows the documented 3-step pattern.
+  - Section CONTENT for waiter + venue (OverviewSection / section bodies — deeper than chrome).
+  - headhunter / admin dashboard chrome (same 3-step pattern).
 Nodes: `translations`, `waiterNav` (new), `WaiterDashboard()` / `waiter/page.tsx`,
   `FlagSwitcher()`, `LanguageProvider()`, `useLang()`.
 
