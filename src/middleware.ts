@@ -28,21 +28,36 @@ export default withAuth(
     const { token } = req.nextauth;
     const { pathname } = req.nextUrl;
 
+    // ── Correlation ID ────────────────────────────────────────────────────────
+    // Stamp an immutable trace_id on every inbound request (honour an upstream
+    // x-request-id if a proxy already set one). Forwarded to the Node handler via
+    // request headers so the auth wrappers can open an AsyncLocalStorage scope,
+    // and echoed on the response so clients/log aggregators can correlate.
+    const traceId = req.headers.get("x-request-id") ?? crypto.randomUUID();
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-request-id", traceId);
+    const withTrace = (res: NextResponse): NextResponse => {
+      res.headers.set("x-request-id", traceId);
+      return res;
+    };
+    const passThrough = () =>
+      withTrace(NextResponse.next({ request: { headers: requestHeaders } }));
+
     // ── API routes ──────────────────────────────────────────────────────────
     // Public routes pass through; all others return 401 JSON when no session.
     // Individual route handlers still enforce withRole/withAuth as the primary
     // guard — this middleware is a defense-in-depth catch for forgotten wrappers.
     if (pathname.startsWith("/api/")) {
       if (!isPublicApiRoute(pathname) && !token) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        return withTrace(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
       }
-      return NextResponse.next();
+      return passThrough();
     }
 
     // ── Page routes ─────────────────────────────────────────────────────────
     // Admin routes — only ADMIN role
     if (pathname.startsWith("/admin") && token?.role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/login", req.url));
+      return withTrace(NextResponse.redirect(new URL("/login", req.url)));
     }
 
     // Venue dashboard — only VENUE_OWNER
@@ -51,7 +66,7 @@ export default withAuth(
       token?.role !== "VENUE_OWNER" &&
       token?.role !== "ADMIN"
     ) {
-      return NextResponse.redirect(new URL("/login", req.url));
+      return withTrace(NextResponse.redirect(new URL("/login", req.url)));
     }
 
     // Headhunter dashboard — only HEADHUNTER
@@ -60,10 +75,10 @@ export default withAuth(
       token?.role !== "HEADHUNTER" &&
       token?.role !== "ADMIN"
     ) {
-      return NextResponse.redirect(new URL("/login", req.url));
+      return withTrace(NextResponse.redirect(new URL("/login", req.url)));
     }
 
-    return NextResponse.next();
+    return passThrough();
   },
   {
     callbacks: {

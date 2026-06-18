@@ -3,6 +3,9 @@
 // Generisano prema arhitekturnom dokumentu v1.0
 
 generator client {
+  // Prisma 6.7 emits OpenTelemetry query spans out of the box (tracing is GA —
+  // no preview flag needed). Consumed by Sentry.prismaIntegration() in
+  // sentry.server.config.ts so DB latency is attributable in distributed traces.
   provider = "prisma-client-js"
 }
 
