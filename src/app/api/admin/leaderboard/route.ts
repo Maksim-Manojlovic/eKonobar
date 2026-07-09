@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { dbRaw } from "@/lib/core/db";
+import { getEffectiveTier } from "@/lib/passport/tier";
 
 export const GET = withRole("ADMIN", async () => {
   const now = new Date();
@@ -59,7 +60,7 @@ export const GET = withRole("ADMIN", async () => {
       verificationTier: w.user.verificationTier,
       score: Math.round(w.score),
       passportTier: w.passportTier,
-      isActive: w.subscriptionExpiresAt ? w.subscriptionExpiresAt > now : false,
+      isActive: getEffectiveTier(w) !== "FREE",
       reviewCount: w.reviewCount,
       totalEngagements: w.totalEngagements,
     })),

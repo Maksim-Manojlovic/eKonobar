@@ -9,6 +9,7 @@
  */
 
 import { db } from "@/lib/core/db";
+import logger from "@/lib/core/logger";
 import { withSpan } from "@/lib/core/observability";
 import { sendPush } from "@/lib/integrations/webpush";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
@@ -42,7 +43,8 @@ export async function dispatchPush(
         subs.map(sub =>
           sendPush(sub, payload).catch(async (err: { statusCode?: number }) => {
             if (err.statusCode === 410 || err.statusCode === 404) {
-              await db.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {});
+              await db.pushSubscription.delete({ where: { id: sub.id } })
+                .catch(delErr => logger.warn({ err: delErr, subId: sub.id }, "expired push-sub cleanup failed"));
             }
             throw err;
           }),
