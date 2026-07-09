@@ -20,27 +20,48 @@ const TIP_SYSTEMS = [
   { value: "NO_TIPS",      label: "Bez napojnica" },
 ];
 
+/** Grouped form state (CQ-N pattern) — one source of truth for all editable fields. */
+type JobPostForm = {
+  venueId: string;
+  title: string;
+  description: string;
+  engagementType: string;
+  tipSystem: string;
+  tipDescription: string;
+  salaryMin: string;
+  salaryMax: string;
+  sanitaryRequired: boolean;
+  redAlert: boolean;
+  redAlertNote: string;
+};
+
+const INITIAL_FORM: JobPostForm = {
+  venueId: "",
+  title: "",
+  description: "",
+  engagementType: "FULL_TIME",
+  tipSystem: "INDIVIDUAL",
+  tipDescription: "",
+  salaryMin: "",
+  salaryMax: "",
+  sanitaryRequired: false,
+  redAlert: false,
+  redAlertNote: "",
+};
+
 import { useRequireRole } from "@/hooks/useRequireRole";
 export default function NewJobPostPage() {
   const { status } = useRequireRole("VENUE_OWNER");
   const router = useRouter();
 
-  const [venues, setVenues]     = useState<Venue[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [saving, setSaving]     = useState(false);
-  const [error, setError]       = useState<string | null>(null);
+  const [venues, setVenues]   = useState<Venue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving]   = useState(false);
+  const [error, setError]     = useState<string | null>(null);
 
-  const [venueId, setVenueId]           = useState("");
-  const [title, setTitle]               = useState("");
-  const [description, setDescription]   = useState("");
-  const [engagementType, setEngType]    = useState("FULL_TIME");
-  const [tipSystem, setTipSystem]       = useState("INDIVIDUAL");
-  const [tipDescription, setTipDesc]    = useState("");
-  const [salaryMin, setSalaryMin]       = useState("");
-  const [salaryMax, setSalaryMax]       = useState("");
-  const [sanitaryRequired, setSanitary] = useState(false);
-  const [redAlert, setRedAlert]         = useState(false);
-  const [redAlertNote, setAlertNote]    = useState("");
+  const [form, setForm] = useState<JobPostForm>(INITIAL_FORM);
+  const setField = <K extends keyof JobPostForm>(k: K, v: JobPostForm[K]) =>
+    setForm((f) => ({ ...f, [k]: v }));
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -49,7 +70,7 @@ export default function NewJobPostPage() {
       .then(d => {
         if (Array.isArray(d) && d.length > 0) {
           setVenues(d);
-          setVenueId(d[0].id);
+          setField("venueId", d[0].id);
         }
         setLoading(false);
       });
@@ -57,7 +78,7 @@ export default function NewJobPostPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!venueId || !title || !description) {
+    if (!form.venueId || !form.title || !form.description) {
       setError("Lokal, naslov i opis su obavezni.");
       return;
     }
@@ -68,17 +89,17 @@ export default function NewJobPostPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          venueId,
-          title,
-          description,
-          engagementType,
-          tipSystem,
-          tipDescription: tipDescription || null,
-          salaryMin: salaryMin ? Number(salaryMin) : null,
-          salaryMax: salaryMax ? Number(salaryMax) : null,
-          sanitaryRequired,
-          redAlert,
-          redAlertNote: redAlert ? (redAlertNote || null) : null,
+          venueId: form.venueId,
+          title: form.title,
+          description: form.description,
+          engagementType: form.engagementType,
+          tipSystem: form.tipSystem,
+          tipDescription: form.tipDescription || null,
+          salaryMin: form.salaryMin ? Number(form.salaryMin) : null,
+          salaryMax: form.salaryMax ? Number(form.salaryMax) : null,
+          sanitaryRequired: form.sanitaryRequired,
+          redAlert: form.redAlert,
+          redAlertNote: form.redAlert ? (form.redAlertNote || null) : null,
         }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Greška");
@@ -112,7 +133,7 @@ export default function NewJobPostPage() {
           {venues.length > 1 && (
             <div>
               <label className="text-xs font-bold text-neutral-500 uppercase tracking-wide mb-1 block">Lokal *</label>
-              <select value={venueId} onChange={e => setVenueId(e.target.value)} className="auth-input bg-white">
+              <select value={form.venueId} onChange={e => setField("venueId", e.target.value)} className="auth-input bg-white">
                 {venues.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
               </select>
             </div>
@@ -120,34 +141,34 @@ export default function NewJobPostPage() {
 
           <div>
             <label className="text-xs font-bold text-neutral-500 uppercase tracking-wide mb-1 block">Naslov oglasa *</label>
-            <input value={title} onChange={e => setTitle(e.target.value)} className="auth-input" placeholder="npr. Senior Konobar" required />
+            <input value={form.title} onChange={e => setField("title", e.target.value)} className="auth-input" placeholder="npr. Senior Konobar" required />
           </div>
 
           <div>
             <label className="text-xs font-bold text-neutral-500 uppercase tracking-wide mb-1 block">Opis *</label>
-            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4}
+            <textarea value={form.description} onChange={e => setField("description", e.target.value)} rows={4}
               className="auth-input resize-none" placeholder="Opis posla, zahtevi, radni uslovi..." required />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-bold text-neutral-500 uppercase tracking-wide mb-1 block">Tip angažmana</label>
-              <select value={engagementType} onChange={e => setEngType(e.target.value)} className="auth-input bg-white">
+              <select value={form.engagementType} onChange={e => setField("engagementType", e.target.value)} className="auth-input bg-white">
                 {ENGAGEMENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
             <div>
               <label className="text-xs font-bold text-neutral-500 uppercase tracking-wide mb-1 block">Sistem napojnica</label>
-              <select value={tipSystem} onChange={e => setTipSystem(e.target.value)} className="auth-input bg-white">
+              <select value={form.tipSystem} onChange={e => setField("tipSystem", e.target.value)} className="auth-input bg-white">
                 {TIP_SYSTEMS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
           </div>
 
-          {tipSystem !== "NO_TIPS" && (
+          {form.tipSystem !== "NO_TIPS" && (
             <div>
               <label className="text-xs font-bold text-neutral-500 uppercase tracking-wide mb-1 block">Opis napojnica</label>
-              <input value={tipDescription} onChange={e => setTipDesc(e.target.value)} className="auth-input"
+              <input value={form.tipDescription} onChange={e => setField("tipDescription", e.target.value)} className="auth-input"
                 placeholder="npr. Prosečno 20-30% od računa..." />
             </div>
           )}
@@ -155,15 +176,15 @@ export default function NewJobPostPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-bold text-neutral-500 uppercase tracking-wide mb-1 block">
-                Plata od (RSD/{engagementType === "FULL_TIME" ? "mes" : "sm"})
+                Plata od (RSD/{form.engagementType === "FULL_TIME" ? "mes" : "sm"})
               </label>
-              <input value={salaryMin} onChange={e => setSalaryMin(e.target.value)} type="number" min="0" className="auth-input" placeholder="npr. 80000" />
+              <input value={form.salaryMin} onChange={e => setField("salaryMin", e.target.value)} type="number" min="0" className="auth-input" placeholder="npr. 80000" />
             </div>
             <div>
               <label className="text-xs font-bold text-neutral-500 uppercase tracking-wide mb-1 block">
-                Plata do (RSD/{engagementType === "FULL_TIME" ? "mes" : "sm"})
+                Plata do (RSD/{form.engagementType === "FULL_TIME" ? "mes" : "sm"})
               </label>
-              <input value={salaryMax} onChange={e => setSalaryMax(e.target.value)} type="number" min="0" className="auth-input" placeholder="npr. 100000" />
+              <input value={form.salaryMax} onChange={e => setField("salaryMax", e.target.value)} type="number" min="0" className="auth-input" placeholder="npr. 100000" />
             </div>
           </div>
 
@@ -174,9 +195,9 @@ export default function NewJobPostPage() {
                 <p className="text-sm font-semibold text-neutral-700">Sanitarna knjižica obavezna</p>
                 <p className="text-xs text-neutral-400">Konobar mora imati validnu sanitarnu knjižicu</p>
               </div>
-              <button type="button" onClick={() => setSanitary(p => !p)}
-                className={`relative w-11 h-6 rounded-full transition-colors ${sanitaryRequired ? "bg-green-500" : "bg-neutral-200"}`}>
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${sanitaryRequired ? "translate-x-5" : ""}`} />
+              <button type="button" onClick={() => setField("sanitaryRequired", !form.sanitaryRequired)}
+                className={`relative w-11 h-6 rounded-full transition-colors ${form.sanitaryRequired ? "bg-green-500" : "bg-neutral-200"}`}>
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.sanitaryRequired ? "translate-x-5" : ""}`} />
               </button>
             </div>
 
@@ -188,17 +209,17 @@ export default function NewJobPostPage() {
                 </p>
                 <p className="text-xs text-neutral-400">Oglas se prikazuje kao prioritetan</p>
               </div>
-              <button type="button" onClick={() => setRedAlert(p => !p)}
-                className={`relative w-11 h-6 rounded-full transition-colors ${redAlert ? "bg-orange-500" : "bg-neutral-200"}`}>
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${redAlert ? "translate-x-5" : ""}`} />
+              <button type="button" onClick={() => setField("redAlert", !form.redAlert)}
+                className={`relative w-11 h-6 rounded-full transition-colors ${form.redAlert ? "bg-orange-500" : "bg-neutral-200"}`}>
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.redAlert ? "translate-x-5" : ""}`} />
               </button>
             </div>
           </div>
 
-          {redAlert && (
+          {form.redAlert && (
             <div>
               <label className="text-xs font-bold text-neutral-500 uppercase tracking-wide mb-1 block">Napomena za Red Alert</label>
-              <input value={redAlertNote} onChange={e => setAlertNote(e.target.value)} className="auth-input"
+              <input value={form.redAlertNote} onChange={e => setField("redAlertNote", e.target.value)} className="auth-input"
                 placeholder="npr. Potreban odmah ovog vikenda!" />
             </div>
           )}
