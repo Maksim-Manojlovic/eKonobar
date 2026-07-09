@@ -398,6 +398,8 @@ Each dashboard is split across several co-located files. Do not put shared helpe
 
 **Fire-and-forget side effects:** Use `fireSideEffects()` from `lib/notifications/side-effects.ts` instead of calling `notify()` and score-sync functions directly. Keeps route handlers clean and makes tests trivial to write (mock the whole module as `vi.fn()`).
 
+**Grouped form state:** A form/filter component with many fields must hold them in **one** typed object + a `setField(k, v)` updater — never one `useState` per field (that scatters state, invites desync, and resists validation). Pattern: `ReviewForm` (guest review, CQ-N), `JobPostForm` (`jobs/new`, CQ-Q), `WaiterFilters` (`useWaiterSearch`, CQ-P), the grouped `form` object in `VenueSmeneModals`. Keep genuine control state (loading/saving/error) as separate `useState`.
+
 ### Dark dashboard theme
 
 The venue-owner, waiter, headhunter, and admin dashboards all share the same dark visual theme (`src/app/(dashboard)/venue/page.tsx`, `waiter/page.tsx`, `headhunter/page.tsx`, `admin/page.tsx`, `admin/users/page.tsx`):
@@ -746,6 +748,31 @@ const { data: open } = useApi<OpenShift[]>("/api/shifts?view=open", { enabled: t
 Returns `{ data, error, isLoading, mutate }`. `mutate()` refetches (shows loading) and returns a promise. Options: `enabled` (skip while false, default true), `refreshMs` (silent poll interval — no `isLoading` toggle on poll ticks).
 
 Do **not** hand-roll `useState` + `useEffect(fetch)` for a GET in new section components — use this hook. State-heavy section components (`WaiterPassportSection`, `VenueSmeneSection`, `WaiterSmeneSection`) are being migrated onto it to shed their large `useState` counts.
+
+### useWaiterSearch + WaiterCard (waiter-search feature)
+
+`src/hooks/useWaiterSearch.ts` + `src/components/ui/WaiterCard.tsx` — the **single** way to query and render `GET /api/waiters`. Before CQ-P three clients (`headhunter/search`, venue `DiscoverSection`, `venue/invites`) each hand-rolled the querystring + fetch + result-card markup. Never rebuild that inline — use these.
+
+```typescript
+import { useWaiterSearch, type WaiterFilters } from "@/hooks/useWaiterSearch";
+import { WaiterCard } from "@/components/ui/WaiterCard";
+
+// Reactive filters (chips): refetches when the query string changes
+const { waiters, isLoading } = useWaiterSearch<WaiterEntry>({ available, minScore });
+
+// Button-triggered search (headhunter): hold draft vs applied, fetch only on submit
+const [draft, setDraft]     = useState<WaiterFilters>({});
+const [applied, setApplied] = useState<WaiterFilters>({});
+const { waiters } = useWaiterSearch<Waiter>(applied, { enabled: status === "authenticated" });
+// <button onClick={() => setApplied({ ...draft })}>Pretraži</button>
+
+// Conditional (collapsed panel): enabled skips the fetch
+const { waiters } = useWaiterSearch<VenueInviteWaiter>({ search }, { enabled: showSearch });
+```
+
+- `buildWaiterQuery(filters)` — pure, exported, unit-tested. Omits empty/falsy params. Import it (don't rebuild `URLSearchParams`) if you need the query string without the fetch.
+- The hook is generic over the row shape `<T>` — each caller keeps its own typed response; no forced cross-file type merge.
+- `WaiterCard` renders avatar + name + tier/passport badges + score + skills + availability. Inject surface-specific buttons via the `actions` slot; toggle the stats grid with `showStats`; cap skill chips with `maxSkills`. Compact list rows (e.g. `venue/invites`) that need a genuinely different, smaller presentation may keep their own markup — but must still use `useWaiterSearch` for the fetch.
 
 ### withRole / withAuth
 
