@@ -23,6 +23,11 @@ Graph-based code quality audit. Findings sourced from Graphify graph (`graphify-
 | TEL-C | Important   | Logger has no request-scoped context binding                  | [FIXED]           |
 | TEL-D | Important   | No Prisma / DB-tier span instrumentation                      | [FIXED]           |
 | TEL-E | Nice-to-have| Golden-signals / saturation coverage incomplete              | [FIXED]           |
+| CQ-P | Important    | Waiter-search feature triplicated (3 clients, no shared hook/card)   | [FIXED]    |
+| CQ-Q | Important    | jobs/new god-form: 11 scattered field useState (CQ-N not propagated) | [FIXED]    |
+| CQ-R | Important    | Headhunter dashboard never modularized (SRP; skipped by CQ-G)        | [FIXED]    |
+| CQ-S | Nice-to-have | Server-side bare catch swallow in dispatch.ts (CQ-I recurrence)      | [FIXED]    |
+| CQ-T | Nice-to-have | Tier isActive resolution reinlined in leaderboard vs getEffectiveTier | [FIXED]   |
 
 ---
 
@@ -360,3 +365,98 @@ Fix applied (2026-06-18):
     (non-fatal; telemetry is optional infra, must not brick boot).
   tsc + ESLint clean; 926 tests green.
 Nodes: `sentry.server.config.ts`, `src/app/api/admin/health/route.ts`, `lib/core/env.ts`.
+
+---
+
+## Audit Re-run — 2026-07-09 (fresh graph, 3003 nodes, HEAD 5eb0ff8)
+
+Re-ran graph analysis 8 commits after the telemetry work landed. Graph refreshed via
+`graphify update .` → 3003 nodes / 7424 edges / 204 communities, built from HEAD `5eb0ff83`.
+
+Recurrence / validation check:
+- CQ-F holds — god-node list clean (`db` 201, `dbRaw` 161, `withRole` 92, `parseBody` 84,
+  `useRequireRole` 53, `fireSideEffects` 42). No phantom/duplicate nodes.
+- All CQ-F→CQ-O + TEL-A→TEL-E confirmed FIXED, none regressed.
+- CQ-I: remaining bare `.catch(() => {})` in `src/` are the client-cosmetic ones CQ-I cleared,
+  EXCEPT one new server-lib swallow → CQ-S below.
+
+### CQ-P — Waiter-search feature triplicated [FIXED]
+
+Severity: Important
+Found: 2026-07-09 graph re-audit (fresh graph, HEAD 5eb0ff8).
+Problem: 3 clients consume `GET /api/waiters` — `headhunter/search`, `VenueDiscoverSection`,
+`venue/invites` — each hand-rolls query-param build + filter state + result-card markup + local
+Waiter type. No shared `useWaiterSearch` hook, no shared `WaiterResultCard` (verified: none in
+`components/`). Cards render the same PassportTierBadge + score + skills + sanitary/verification set
+from differently-named shapes (`w.waiterPassport` vs `p`).
+Fix applied (2026-07-09):
+- New `src/hooks/useWaiterSearch.ts` — canonical `WaiterFilters` type + pure `buildWaiterQuery()`
+  (exported, unit-tested) + `useApi`-backed fetch, generic over the row shape `<T>` so each caller
+  keeps its own typed response without a cross-file type merge.
+- New `src/components/ui/WaiterCard.tsx` — shared result card with an `actions` render-slot +
+  `showStats` / `maxSkills` display props.
+- Rewired all 3 clients onto the hook; headhunter + discover onto the card.
+- 5 new unit tests for `buildWaiterQuery`. tsc + ESLint clean; 943 unit tests green.
+Deliberately NOT done: `venue/invites` keeps its own compact table-row markup (a genuinely distinct,
+smaller presentation — one card there would be over-config); only its fetch was migrated to the hook.
+Nodes: `useWaiterSearch()` (new), `WaiterCard()` (new), `headhunter/search/page.tsx`,
+`VenueDiscoverSection()`, `venue/invites/page.tsx`, `GET /api/waiters`.
+
+### CQ-Q — jobs/new god-form: scattered field useState [FIXED]
+
+Severity: Important
+Found: 2026-07-09 graph re-audit.
+Problem: `venue/jobs/new/page.tsx` — one component body, 16 useState of which 11 are individual form
+fields. Exact CQ-N smell; fix pattern not propagated. Repo already has the good pattern (grouped
+`form` object) in `VenueSmeneModals` ShiftModal/TemplateModal — jobs/new ignores its own convention.
+Desync risk, validation-hostile, untestable as a unit.
+Fix applied (2026-07-09): collapsed the 11 form fields into one typed `JobPostForm` object +
+`setField(k,v)` updater (CQ-N ReviewForm pattern). Control state (venues/loading/saving/error) stays
+separate. Component useState 16 → 5. tsc + ESLint clean.
+Nodes: `NewJobPostPage()` / `venue/jobs/new/page.tsx`. Refs: `ReviewForm` (CQ-N), `VenueSmeneModals.tsx`.
+
+### CQ-R — Headhunter dashboard never modularized [FIXED]
+
+Severity: Important
+Found: 2026-07-09 graph re-audit.
+Problem: `headhunter/search/page.tsx` is a single monolith — 7 scattered filter useState + fetch +
+querystring + saved-profile mutation + card render in one 400-LOC file. CQ-G modularized waiter/venue
+dashboards (section split + co-located hooks + useApi + `*-helpers`); headhunter was skipped entirely
+(CQ-K noted it only for i18n, never for structure). SRP + architectural inconsistency.
+Fix applied (2026-07-09): filters + fetch extracted to the shared `useWaiterSearch` (CQ-P); card render
+extracted to `WaiterCard`. Filter state collapsed into `draft`/`applied` objects with `setField` — the
+`applied` split preserves the button-triggered ("Pretraži") search UX (fetch only fires on submit, not
+per keystroke). File dropped ~90 LOC of inline query + card markup. tsc + ESLint clean.
+Nodes: `headhunter/search/page.tsx`, `useWaiterSearch()`, `WaiterCard()`. Refs: `waiter-helpers.tsx`.
+
+### CQ-S — Server-side bare catch swallow in dispatch.ts [FIXED]
+
+Severity: Nice-to-have
+Found: 2026-07-09 graph re-audit (CQ-I recurrence — escaped original sweep via notify→dispatch refactor).
+Problem: `lib/notifications/dispatch.ts:45` — `db.pushSubscription.delete(...).catch(() => {})`. Server lib
+module, bare empty catch — violates the CLAUDE.md rule CQ-I/CQ-J set. Silent DB failure leaves dead push
+subs accumulating with no signal.
+Fix applied (2026-07-09): `.catch(delErr => logger.warn({ err: delErr, subId: sub.id }, "expired
+push-sub cleanup failed"))` + `logger` import added to dispatch.ts. tsc + ESLint clean; 943 tests green.
+Nodes: `dispatchPush()` / `lib/notifications/dispatch.ts`.
+
+### CQ-T — Tier isActive resolution reinlined in leaderboard [FIXED]
+
+Severity: Nice-to-have
+Found: 2026-07-09 graph re-audit.
+Problem: `getEffectiveTier()` (`lib/passport/tier.ts`) is the documented single source for tier-expiry
+resolution. `admin/leaderboard/route.ts:62` reinlines it (`isActive: expiresAt ? expiresAt > now : false`).
+(subscribe + monri/callback also do expiry math but legitimately SET new expiry — not violations.)
+DRY + drift risk if the effective-tier rule ever gains a grace window / null nuance.
+Fix applied (2026-07-09): `isActive: getEffectiveTier(w) !== "FREE"` — behaviour-identical to the old
+ternary (verified: FREE/expired/null-expiry all map the same) but now routes through the single source.
+tsc + ESLint clean.
+Nodes: `admin/leaderboard/route.ts`, `getEffectiveTier()` / `lib/passport/tier.ts`.
+
+### DA-C — instrumentation ↔ sentry.server.config import cycle [FALSE POSITIVE]
+
+Found: 2026-07-09 graph re-audit. Graphify reports a 2-file cycle `instrumentation.ts ↔
+sentry.server.config.ts`. NOT real: `instrumentation.ts` does `await import("./sentry.server.config")`
+(Next.js `register()` dynamic-import contract); `sentry.server.config.ts` imports PrismaInstrumentation
+from `@prisma/instrumentation`, not back. Back-edge inferred from "instrumentation" name substring —
+same artifact class as the dismissed `venue/page.tsx` self-cycle (line 224). No action.

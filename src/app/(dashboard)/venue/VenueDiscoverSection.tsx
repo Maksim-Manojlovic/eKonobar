@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { OwnPost, IncomingApp, WaiterEntry, Venue } from "./venue-types";
 import { getInitials } from "@/lib/formatting/utils";
-import { TierBadge, PassportTierBadge, ScorePill, DiscoverSkeleton, WaitersSkeleton } from "./venue-helpers";
+import { TierBadge, ScorePill, DiscoverSkeleton, WaitersSkeleton } from "./venue-helpers";
+import { WaiterCard } from "@/components/ui/WaiterCard";
+import { useWaiterSearch } from "@/hooks/useWaiterSearch";
 /* ── InviteModal ─────────────────────────────────────────────────────────── */
 
 export function InviteModal({ waiter, posts, onClose, onSent }: {
@@ -90,21 +92,13 @@ export function InviteModal({ waiter, posts, onClose, onSent }: {
 /* ── Section: Discover ───────────────────────────────────────────────────── */
 
 export function DiscoverSection({ onInvite }: { posts: OwnPost[]; onInvite: (w: WaiterEntry) => void }) {
-  const [waiters, setWaiters]           = useState<WaiterEntry[]>([]);
-  const [loading, setLoading]           = useState(true);
   const [filterAvailable, setFilterAvailable] = useState(false);
   const [filterMinScore, setFilterMinScore]   = useState(0);
 
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (filterAvailable) params.set("available", "true");
-    if (filterMinScore > 0) params.set("minScore", String(filterMinScore));
-    setLoading(true);
-    fetch(`/api/waiters?${params}`)
-      .then(r => r.json())
-      .then(data => { setWaiters(data.waiters ?? []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [filterAvailable, filterMinScore]);
+  const { waiters, isLoading: loading } = useWaiterSearch<WaiterEntry>({
+    available: filterAvailable,
+    minScore: filterMinScore > 0 ? filterMinScore : undefined,
+  });
 
   return (
     <>
@@ -124,49 +118,15 @@ export function DiscoverSection({ onInvite }: { posts: OwnPost[]; onInvite: (w: 
         ? <div className="dash-card p-10 text-center text-neutral-400 text-sm">Nema konobara koji odgovaraju filteru</div>
         : <div className="grid gap-3 sm:grid-cols-2">
             {waiters.map(w => (
-              <div key={w.id} className="dash-card p-5">
-                <div className="flex items-start gap-3">
-                  {w.image
-                    // eslint-disable-next-line @next/next/no-img-element
-                    ? <img src={w.image} alt={w.name ?? ""} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
-                    : <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-lg flex-shrink-0">{getInitials(w.name)}</div>
-                  }
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-neutral-900">{w.name ?? "Konobar"}</span>
-                      <TierBadge tier={w.verificationTier} />
-                      <PassportTierBadge tier={w.waiterPassport?.passportTier} expiresAt={w.waiterPassport?.subscriptionExpiresAt} />
-                    </div>
-                    {w.waiterPassport && (
-                      <>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <ScorePill score={w.waiterPassport.score} />
-                          {w.waiterPassport.currentlyAvailable
-                            ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Dostupan</span>
-                            : <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-400">Zauzet</span>
-                          }
-                          {w.waiterPassport.sanitaryBookValid && (
-                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">Sanitarna ✓</span>
-                          )}
-                        </div>
-                        {w.waiterPassport.skills.length > 0 && (
-                          <div className="flex gap-1 flex-wrap mt-2">
-                            {w.waiterPassport.skills.slice(0, 4).map(s => (
-                              <span key={s} className="text-[10px] bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded-full font-medium">{s}</span>
-                            ))}
-                          </div>
-                        )}
-                        {w.waiterPassport.yearsExperience > 0 && (
-                          <div className="text-xs text-neutral-400 mt-1">{w.waiterPassport.yearsExperience}g iskustva</div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                  <button onClick={() => onInvite(w)} className="btn-dash-orange px-3 py-1.5 text-[11px] flex-shrink-0 mt-1">
+              <WaiterCard
+                key={w.id}
+                waiter={w}
+                actions={
+                  <button onClick={() => onInvite(w)} className="btn-dash-orange flex-1 py-1.5 text-xs">
                     Pozovi
                   </button>
-                </div>
-              </div>
+                }
+              />
             ))}
           </div>
       }

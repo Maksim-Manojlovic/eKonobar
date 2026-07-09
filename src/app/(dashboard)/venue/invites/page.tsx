@@ -9,19 +9,25 @@ import {
   formatDate,
 } from "@/lib/formatting/display-maps";
 import type { SentInvite, VenueInviteWaiter } from "../venue-types";
+import { useWaiterSearch } from "@/hooks/useWaiterSearch";
 
 import { useRequireRole } from "@/hooks/useRequireRole";
 export default function VenueInvitesPage() {
   const { status } = useRequireRole("VENUE_OWNER");
 
   const [invites, setInvites]       = useState<SentInvite[]>([]);
-  const [waiters, setWaiters]       = useState<VenueInviteWaiter[]>([]);
   const [loading, setLoading]       = useState(true);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQ, setSearchQ]       = useState("");
   const [message, setMessage]       = useState("");
   const [sending, setSending]       = useState<string | null>(null);
   const [sentIds, setSentIds]       = useState<Set<string>>(new Set());
+
+  // Shared waiter-search (CQ-P) — only fetches while the search panel is open.
+  const { waiters } = useWaiterSearch<VenueInviteWaiter>(
+    { search: searchQ },
+    { enabled: showSearch },
+  );
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -35,15 +41,6 @@ export default function VenueInvitesPage() {
         setLoading(false);
       });
   }, [status]);
-
-  useEffect(() => {
-    if (!showSearch) return;
-    const params = new URLSearchParams();
-    if (searchQ) params.set("search", searchQ);
-    fetch(`/api/waiters?${params}`)
-      .then(r => r.json())
-      .then(d => setWaiters(d.waiters ?? []));
-  }, [showSearch, searchQ]);
 
   async function sendInvite(waiterId: string) {
     setSending(waiterId);
