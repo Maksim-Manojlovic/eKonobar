@@ -23,6 +23,11 @@ Graph-based code quality audit. Findings sourced from Graphify graph (`graphify-
 | TEL-C | Important   | Logger has no request-scoped context binding                  | [FIXED]           |
 | TEL-D | Important   | No Prisma / DB-tier span instrumentation                      | [FIXED]           |
 | TEL-E | Nice-to-have| Golden-signals / saturation coverage incomplete              | [FIXED]           |
+| CQ-P | Important    | Waiter-search feature triplicated (3 clients, no shared hook/card)   | [OPEN]     |
+| CQ-Q | Important    | jobs/new god-form: 11 scattered field useState (CQ-N not propagated) | [OPEN]     |
+| CQ-R | Important    | Headhunter dashboard never modularized (SRP; skipped by CQ-G)        | [OPEN]     |
+| CQ-S | Nice-to-have | Server-side bare catch swallow in dispatch.ts (CQ-I recurrence)      | [OPEN]     |
+| CQ-T | Nice-to-have | Tier isActive resolution reinlined in leaderboard vs getEffectiveTier | [OPEN]    |
 
 ---
 
@@ -360,3 +365,83 @@ Fix applied (2026-06-18):
     (non-fatal; telemetry is optional infra, must not brick boot).
   tsc + ESLint clean; 926 tests green.
 Nodes: `sentry.server.config.ts`, `src/app/api/admin/health/route.ts`, `lib/core/env.ts`.
+
+---
+
+## Audit Re-run — 2026-07-09 (fresh graph, 3003 nodes, HEAD 5eb0ff8)
+
+Re-ran graph analysis 8 commits after the telemetry work landed. Graph refreshed via
+`graphify update .` → 3003 nodes / 7424 edges / 204 communities, built from HEAD `5eb0ff83`.
+
+Recurrence / validation check:
+- CQ-F holds — god-node list clean (`db` 201, `dbRaw` 161, `withRole` 92, `parseBody` 84,
+  `useRequireRole` 53, `fireSideEffects` 42). No phantom/duplicate nodes.
+- All CQ-F→CQ-O + TEL-A→TEL-E confirmed FIXED, none regressed.
+- CQ-I: remaining bare `.catch(() => {})` in `src/` are the client-cosmetic ones CQ-I cleared,
+  EXCEPT one new server-lib swallow → CQ-S below.
+
+### CQ-P — Waiter-search feature triplicated [OPEN]
+
+Severity: Important
+Found: 2026-07-09 graph re-audit (fresh graph, HEAD 5eb0ff8).
+Problem: 3 clients consume `GET /api/waiters` — `headhunter/search`, `VenueDiscoverSection`,
+`venue/invites` — each hand-rolls query-param build + filter state + result-card markup + local
+Waiter type. No shared `useWaiterSearch` hook, no shared `WaiterResultCard` (verified: none in
+`components/`). Cards render the same PassportTierBadge + score + skills + sanitary/verification set
+from differently-named shapes (`w.waiterPassport` vs `p`).
+Fix: (1) `useWaiterSearch.ts` (filters + querystring + `useApi`); (2) `components/ui/WaiterResultCard.tsx`
+(one card + one shared Waiter type); (3) rewire all 3. ~150 LOC dup removed. Do with CQ-R.
+Nodes: `headhunter/search/page.tsx`, `VenueDiscoverSection()`, `venue/invites/page.tsx`, `GET /api/waiters`.
+
+### CQ-Q — jobs/new god-form: scattered field useState [OPEN]
+
+Severity: Important
+Found: 2026-07-09 graph re-audit.
+Problem: `venue/jobs/new/page.tsx` — one component body, 16 useState of which 11 are individual form
+fields. Exact CQ-N smell; fix pattern not propagated. Repo already has the good pattern (grouped
+`form` object) in `VenueSmeneModals` ShiftModal/TemplateModal — jobs/new ignores its own convention.
+Desync risk, validation-hostile, untestable as a unit.
+Fix: collapse 11 fields → typed `JobPostForm` object + `setField(k,v)` (copy CQ-N ReviewForm pattern).
+useState 16 → ~6.
+Nodes: `NewJobPostPage()` / `venue/jobs/new/page.tsx`. Refs: `ReviewForm` (CQ-N), `VenueSmeneModals.tsx`.
+
+### CQ-R — Headhunter dashboard never modularized [OPEN]
+
+Severity: Important
+Found: 2026-07-09 graph re-audit.
+Problem: `headhunter/search/page.tsx` is a single monolith — 7 scattered filter useState + fetch +
+querystring + saved-profile mutation + card render in one 400-LOC file. CQ-G modularized waiter/venue
+dashboards (section split + co-located hooks + useApi + `*-helpers`); headhunter was skipped entirely
+(CQ-K noted it only for i18n, never for structure). SRP + architectural inconsistency.
+Fix: apply the established dashboard pattern — extract filters into `useWaiterSearch` (shared w/ CQ-P),
+GET onto `useApi`, Waiter type shared. Converges with CQ-P.
+Nodes: `headhunter/search/page.tsx`. Refs: `WaiterSmeneSection`, `waiter-helpers.tsx`, `useApi()`.
+
+### CQ-S — Server-side bare catch swallow in dispatch.ts [OPEN]
+
+Severity: Nice-to-have
+Found: 2026-07-09 graph re-audit (CQ-I recurrence — escaped original sweep via notify→dispatch refactor).
+Problem: `lib/notifications/dispatch.ts:45` — `db.pushSubscription.delete(...).catch(() => {})`. Server lib
+module, bare empty catch — violates the CLAUDE.md rule CQ-I/CQ-J set. Silent DB failure leaves dead push
+subs accumulating with no signal.
+Fix: `.catch(err => logger.warn({ err, subId: sub.id }, "expired push-sub cleanup failed"))`.
+Nodes: `dispatchPush()` / `lib/notifications/dispatch.ts:45`.
+
+### CQ-T — Tier isActive resolution reinlined in leaderboard [OPEN]
+
+Severity: Nice-to-have
+Found: 2026-07-09 graph re-audit.
+Problem: `getEffectiveTier()` (`lib/passport/tier.ts`) is the documented single source for tier-expiry
+resolution. `admin/leaderboard/route.ts:62` reinlines it (`isActive: expiresAt ? expiresAt > now : false`).
+(subscribe + monri/callback also do expiry math but legitimately SET new expiry — not violations.)
+DRY + drift risk if the effective-tier rule ever gains a grace window / null nuance.
+Fix: import `getEffectiveTier(passport)` in leaderboard; drop the inline ternary.
+Nodes: `admin/leaderboard/route.ts`, `getEffectiveTier()` / `lib/passport/tier.ts`.
+
+### DA-C — instrumentation ↔ sentry.server.config import cycle [FALSE POSITIVE]
+
+Found: 2026-07-09 graph re-audit. Graphify reports a 2-file cycle `instrumentation.ts ↔
+sentry.server.config.ts`. NOT real: `instrumentation.ts` does `await import("./sentry.server.config")`
+(Next.js `register()` dynamic-import contract); `sentry.server.config.ts` imports PrismaInstrumentation
+from `@prisma/instrumentation`, not back. Back-edge inferred from "instrumentation" name substring —
+same artifact class as the dismissed `venue/page.tsx` self-cycle (line 224). No action.
