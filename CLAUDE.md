@@ -51,6 +51,7 @@ Optional in development (all features degrade gracefully when `REDIS_URL` is not
 | `shift:claim:lock:{shiftId}` | `api/shifts/[id]/claim/route.ts` | 5s | `releaseLock` in `finally` |
 | `cron:renew-subscriptions:running` | `api/cron/renew-subscriptions` | 300s | TTL only |
 | `renewal:lock:{userId}` | `api/cron/renew-subscriptions` | 3600s | TTL only |
+| `analytics:venue:{venueId}:{period}` | `api/venues/[id]/waiter-analytics` | 300s | TTL only |
 
 ### Cache bust functions
 
