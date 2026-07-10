@@ -270,6 +270,41 @@ export function ShiftsSkeleton() {
   );
 }
 
+export function AnalyticsSkeleton() {
+  return (
+    <>
+      <div className="flex items-center justify-between">
+        <Sk className="h-7 w-52" />
+        <div className="flex gap-1.5">
+          {[1,2,3].map(i => <Sk key={i} className="h-8 w-16 rounded-lg" />)}
+        </div>
+      </div>
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+        {[1,2,3,4].map(i => (
+          <div key={i} className="dash-card p-4 flex flex-col gap-2">
+            <Sk className="h-3 w-20" />
+            <Sk className="h-7 w-12" />
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-col gap-3">
+        {[1,2,3].map(i => (
+          <div key={i} className="dash-card p-5">
+            <div className="flex items-center gap-3">
+              <Sk className="w-11 h-11 rounded-full flex-shrink-0" />
+              <div className="flex-1 flex flex-col gap-2">
+                <Sk className="h-5 w-32" />
+                <Sk className="h-3 w-48" />
+              </div>
+              <Sk className="h-10 w-14 rounded-xl flex-shrink-0" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 export function EmptyVenue({ onNavigate }: { onNavigate: (s: Section) => void }) {
   return (
     <div className="dash-card p-10 flex flex-col items-center gap-4 text-center">

@@ -142,12 +142,12 @@ export const translations = {
     venueNav: {
       overview: "Pregled", posts: "Zapošljavanje", "new-post": "Novi oglas", smene: "Smene",
       applications: "Prijave", waiters: "Konobari", discover: "Pronađi konobara", reviews: "Recenzije",
-      "qr-review": "QR Recenzije", profile: "Profil lokala", notifications: "Obaveštenja",
+      "qr-review": "QR Recenzije", analitika: "Analitika", profile: "Profil lokala", notifications: "Obaveštenja",
     },
     venueTitles: {
       overview: "Pregled", posts: "Oglasi", "new-post": "Novi oglas", smene: "Smene",
       applications: "Prijave", waiters: "Konobari", discover: "Pronađi konobara", reviews: "Recenzije",
-      "qr-review": "QR Recenzije", profile: "Profil lokala", notifications: "Obaveštenja",
+      "qr-review": "QR Recenzije", analitika: "Analitika konobara", profile: "Profil lokala", notifications: "Obaveštenja",
     },
     venueUi: {
       signOut: "Odjavi se", role: "Vlasnik lokala",
@@ -289,12 +289,12 @@ export const translations = {
     venueNav: {
       overview: "Overview", posts: "Hiring", "new-post": "New post", smene: "Shifts",
       applications: "Applications", waiters: "Waiters", discover: "Find waiters", reviews: "Reviews",
-      "qr-review": "QR Reviews", profile: "Venue profile", notifications: "Notifications",
+      "qr-review": "QR Reviews", analitika: "Analytics", profile: "Venue profile", notifications: "Notifications",
     },
     venueTitles: {
       overview: "Overview", posts: "Job posts", "new-post": "New post", smene: "Shifts",
       applications: "Applications", waiters: "Waiters", discover: "Find a waiter", reviews: "Reviews",
-      "qr-review": "QR Reviews", profile: "Venue profile", notifications: "Notifications",
+      "qr-review": "QR Reviews", analitika: "Waiter analytics", profile: "Venue profile", notifications: "Notifications",
     },
     venueUi: {
       signOut: "Sign out", role: "Venue owner",
@@ -436,12 +436,12 @@ export const translations = {
     venueNav: {
       overview: "Обзор", posts: "Найм", "new-post": "Новая вакансия", smene: "Смены",
       applications: "Заявки", waiters: "Официанты", discover: "Найти официанта", reviews: "Отзывы",
-      "qr-review": "QR Отзывы", profile: "Профиль заведения", notifications: "Уведомления",
+      "qr-review": "QR Отзывы", analitika: "Аналитика", profile: "Профиль заведения", notifications: "Уведомления",
     },
     venueTitles: {
       overview: "Обзор", posts: "Вакансии", "new-post": "Новая вакансия", smene: "Смены",
       applications: "Заявки", waiters: "Официанты", discover: "Найти официанта", reviews: "Отзывы",
-      "qr-review": "QR Отзывы", profile: "Профиль заведения", notifications: "Уведомления",
+      "qr-review": "QR Отзывы", analitika: "Аналитика официантов", profile: "Профиль заведения", notifications: "Уведомления",
     },
     venueUi: {
       signOut: "Выйти", role: "Владелец заведения",

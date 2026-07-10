@@ -1,6 +1,10 @@
 import type { VenueZoneInsights } from "@/lib/geo/analytics";
 
-export type Section = "overview" | "posts" | "new-post" | "smene" | "applications" | "waiters" | "discover" | "reviews" | "qr-review" | "profile" | "notifications";
+// Waiter-analytics response shapes are computed in the pure lib; re-export so
+// the client and server share one source of truth (the lib has no server deps).
+export type { WaiterAnalytics, WaiterReliability, WaiterFlag, AnalyticsTeamSummary, GuestRating } from "@/lib/analytics/waiter-analytics";
+
+export type Section = "overview" | "posts" | "new-post" | "smene" | "applications" | "waiters" | "discover" | "reviews" | "qr-review" | "analitika" | "profile" | "notifications";
 export type AppFilter = "SVE" | "PENDING" | "SHORTLISTED" | "ACCEPTED" | "REJECTED";
 
 export type VenueShiftAssignment = {
