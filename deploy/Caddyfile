@@ -1,0 +1,8 @@
+# Caddy reverse proxy — automatic HTTPS via Let's Encrypt.
+# DOMAIN comes from the caddy service environment (set in .env.production).
+# Caddy sets X-Forwarded-For, which the app trusts because TRUST_PROXY=1.
+
+{$DOMAIN} {
+	encode gzip zstd
+	reverse_proxy app:3000
+}

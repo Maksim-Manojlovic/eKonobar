@@ -29,6 +29,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Self-contained server bundle for Docker deploys (node server.js, no next CLI)
+  output: "standalone",
   serverExternalPackages: ["cloudinary", "pino", "thread-stream", "sonic-boom", "pino-pretty"],
   images: {
     remotePatterns: [
