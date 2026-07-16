@@ -10,6 +10,9 @@ import { SUBSCRIPTION_DURATION_MS } from "@/lib/passport/constants";
 import { decryptToken } from "@/lib/core/encryption";
 import { redis } from "@/lib/core/redis";
 
+// Vercel: raise the Hobby 10s function cap — sequential Monri charges can run long. Ignored on Docker.
+export const maxDuration = 60;
+
 const TIER_AMOUNT_RSD: Record<Exclude<PassportTier, "FREE">, number> = {
   PRO:      29000,
   PRO_PLUS: 49000,

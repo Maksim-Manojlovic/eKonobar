@@ -19,6 +19,9 @@ services:
     environment:
       # Canonical in-network URLs — override anything in the env file
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/ekonobar
+      # No pooler in-network — DIRECT_URL mirrors DATABASE_URL so `prisma migrate deploy`
+      # (schema.prisma datasource.directUrl) has a target on the Docker path too.
+      DIRECT_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/ekonobar
       REDIS_URL: redis://redis:6379
       TRUST_PROXY: "1"
     depends_on:

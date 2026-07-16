@@ -1,0 +1,72 @@
+name: Cron
+
+# Vercel Hobby crons run at most once/day and cap at 2 jobs — not enough for the
+# hourly publish/retry jobs. GitHub Actions drives them for free on real schedules.
+# Each job POSTs to a /api/cron/* route with the shared Bearer secret.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   APP_URL      e.g. https://ekonobar.rs   (no trailing slash)
+#   CRON_SECRET  same value set in Vercel env — routes reject anything else (401)
+#
+# Note: GitHub cron is UTC and best-effort — runs may lag 5–15 min under load.
+# The routes are idempotent (publish = due-only, retry = failed-only, renew has a
+# 2h dedup guard), so an occasional double/late fire is safe.
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # publish-reviews      — hourly
+    - cron: "30 * * * *"  # retry-notifications  — hourly (offset 30m)
+    - cron: "0 3 * * *"   # renew-subscriptions  — daily 03:00 UTC
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Run a job manually"
+        type: choice
+        default: all
+        options: [all, publish-reviews, retry-notifications, renew-subscriptions]
+
+jobs:
+  publish-reviews:
+    if: >-
+      github.event.schedule == '0 * * * *' ||
+      (github.event_name == 'workflow_dispatch' &&
+        (inputs.job == 'publish-reviews' || inputs.job == 'all'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/cron/publish-reviews
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS --retry 2 -X POST "$APP_URL/api/cron/publish-reviews" \
+            -H "Authorization: Bearer $CRON_SECRET"
+
+  retry-notifications:
+    if: >-
+      github.event.schedule == '30 * * * *' ||
+      (github.event_name == 'workflow_dispatch' &&
+        (inputs.job == 'retry-notifications' || inputs.job == 'all'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/cron/retry-notifications
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS --retry 2 -X POST "$APP_URL/api/cron/retry-notifications" \
+            -H "Authorization: Bearer $CRON_SECRET"
+
+  renew-subscriptions:
+    if: >-
+      github.event.schedule == '0 3 * * *' ||
+      (github.event_name == 'workflow_dispatch' &&
+        (inputs.job == 'renew-subscriptions' || inputs.job == 'all'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/cron/renew-subscriptions
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS --retry 2 -X POST "$APP_URL/api/cron/renew-subscriptions" \
+            -H "Authorization: Bearer $CRON_SECRET"

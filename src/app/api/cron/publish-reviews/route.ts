@@ -5,6 +5,9 @@ import { syncVenueTrustScore, syncPassportScore } from "@/lib/scoring/sync";
 import { isCronAuthorized } from "@/lib/auth/cron-auth";
 import logger from "@/lib/core/logger";
 
+// Vercel: raise the Hobby 10s function cap — score recalcs can run long. Ignored on Docker.
+export const maxDuration = 60;
+
 // Accepts GET or POST.
 // Requires: Authorization: Bearer <CRON_SECRET>
 //
