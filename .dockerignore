@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.env*
+!.env.example
+coverage
+playwright-report
+test-results
+graphify-out
+*.md
+!README.md
+Dockerfile
+docker-compose*.yml
+deploy/backup.sh

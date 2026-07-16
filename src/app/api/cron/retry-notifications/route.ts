@@ -3,6 +3,9 @@ import { dbRaw } from "@/lib/core/db";
 import { isCronAuthorized } from "@/lib/auth/cron-auth";
 import { retryWhatsApp, retrySms } from "@/lib/notifications/retry";
 
+// Vercel: raise the Hobby 10s function cap — WhatsApp/SMS sends can run long. Ignored on Docker.
+export const maxDuration = 60;
+
 // Retries failed WhatsApp and SMS notification sends.
 // Max 3 attempts per channel, within 24h of creation.
 // Requires: Authorization: Bearer <CRON_SECRET>

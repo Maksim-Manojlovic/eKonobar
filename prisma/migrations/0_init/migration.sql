@@ -131,7 +131,7 @@ CREATE TABLE "Venue" (
     "latitude" DOUBLE PRECISION NOT NULL,
     "longitude" DOUBLE PRECISION NOT NULL,
     "reviewRadiusKm" DOUBLE PRECISION NOT NULL DEFAULT 0.15,
-    "geofenceEnabled" BOOLEAN NOT NULL DEFAULT false,
+    "geofenceEnabled" BOOLEAN NOT NULL DEFAULT true,
     "priceRangeMin" DOUBLE PRECISION,
     "priceRangeMax" DOUBLE PRECISION,
     "images" TEXT[],
