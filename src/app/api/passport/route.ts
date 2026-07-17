@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { parseBody } from "@/lib/auth/parse-body";
+import { sanitizeMunicipalities } from "@/lib/geo/municipalities";
 import { z } from "zod";
 
 const PassportPutSchema = z.object({
@@ -13,6 +14,7 @@ const PassportPutSchema = z.object({
   profilePhoto:         z.string().nullish(),
   galleryPhotos:        z.array(z.string()).optional(),
   venueTypePreferences: z.array(z.string()).optional(),
+  workMunicipalities:   z.array(z.string()).optional(),
 });
 
 export const GET = withRole("WAITER", async (_req, _ctx, session) => {
@@ -52,7 +54,12 @@ export const GET = withRole("WAITER", async (_req, _ctx, session) => {
 export const PUT = withRole("WAITER", async (req, _ctx, session) => {
   const parsed = await parseBody(PassportPutSchema, req);
   if (!parsed.ok) return parsed.response;
-  const { bio, skills, languages, yearsExperience, currentlyAvailable, profilePhoto, galleryPhotos, venueTypePreferences } = parsed.data;
+  const { bio, skills, languages, yearsExperience, currentlyAvailable, profilePhoto, galleryPhotos, venueTypePreferences, workMunicipalities } = parsed.data;
+
+  // Drop junk/dupes/casing drift before persisting — the search filter and the
+  // future coverage choropleth both aggregate on exact municipality names.
+  const cleanMunicipalities =
+    workMunicipalities !== undefined ? sanitizeMunicipalities(workMunicipalities) : undefined;
 
   const existing = await db.waiterPassport.findUnique({
     where: { userId: session.user.id },
@@ -78,6 +85,7 @@ export const PUT = withRole("WAITER", async (req, _ctx, session) => {
       yearsExperience: yearsExperience != null ? Number(yearsExperience) : 0,
       currentlyAvailable: currentlyAvailable ?? true,
       venueTypePreferences: Array.isArray(venueTypePreferences) ? venueTypePreferences : [],
+      workMunicipalities: cleanMunicipalities ?? [],
       galleryPhotos: Array.isArray(galleryPhotos) ? galleryPhotos.slice(0, 4) : [],
       ...(profilePhoto && { profilePhoto }),
       lastAvailableDate: currentlyAvailable !== false ? new Date() : null,
@@ -90,6 +98,7 @@ export const PUT = withRole("WAITER", async (req, _ctx, session) => {
       ...(currentlyAvailable !== undefined && { currentlyAvailable }),
       ...(profilePhoto !== undefined && { profilePhoto }),
       ...(venueTypePreferences !== undefined && { venueTypePreferences: Array.isArray(venueTypePreferences) ? venueTypePreferences : [] }),
+      ...(cleanMunicipalities !== undefined && { workMunicipalities: cleanMunicipalities }),
       ...(galleryPhotos !== undefined && { galleryPhotos: Array.isArray(galleryPhotos) ? galleryPhotos.slice(0, 4) : [] }),
       ...availabilityDateUpdate,
     },

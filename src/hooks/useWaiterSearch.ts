@@ -19,6 +19,8 @@ export interface WaiterFilters {
   minExperience?: string | number;
   skills?: string;
   languages?: string;
+  /** Belgrade municipality the waiter must have in their declared reach. */
+  municipality?: string;
 }
 
 /** Pure builder — exported for unit testing. Omits empty/falsy params. */
@@ -32,6 +34,7 @@ export function buildWaiterQuery(f: WaiterFilters): string {
   if (f.minExperience)              params.set("minExperience", String(f.minExperience));
   if (f.skills)                     params.set("skills", f.skills);
   if (f.languages)                  params.set("languages", f.languages);
+  if (f.municipality)               params.set("municipality", f.municipality);
   return params.toString();
 }
 

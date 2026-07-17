@@ -5,6 +5,7 @@ import ImageUpload from "@/components/ui/ImageUpload";
 import TagInput from "@/components/ui/TagInput";
 import type { PassportData, PassportSubscription } from "./waiter-types";
 import { BADGE_META, BADGE_PROGRESS, VENUE_TYPE_OPTIONS, SCORE_DIMS } from "./waiter-constants";
+import { BELGRADE_MUNICIPALITIES } from "@/lib/geo/municipalities";
 import { useNotifPrefs } from "./useNotifPrefs";
 import { useSanitaryBook } from "./useSanitaryBook";
 
@@ -25,6 +26,7 @@ export default function PassportSection({ userName }: { userName: string }) {
   const [yearsExperience, setYears]               = useState(0);
   const [currentlyAvailable, setAvailable]        = useState(true);
   const [venueTypePreferences, setVenuePrefs]     = useState<string[]>([]);
+  const [workMunicipalities, setWorkMunis]        = useState<string[]>([]);
   const [galleryPhotos, setGalleryPhotos]         = useState<string[]>([]);
 
   // Self-contained concerns live in their own hooks (CQ-G god-component split).
@@ -44,6 +46,7 @@ export default function PassportSection({ userName }: { userName: string }) {
         setYears(passportData.yearsExperience ?? 0);
         setAvailable(passportData.currentlyAvailable ?? true);
         setVenuePrefs(passportData.venueTypePreferences ?? []);
+        setWorkMunis(passportData.workMunicipalities ?? []);
         setGalleryPhotos(passportData.galleryPhotos ?? []);
       }
       if (subData?.tier) setSubscription(subData);
@@ -86,7 +89,7 @@ export default function PassportSection({ userName }: { userName: string }) {
     const res = await fetch("/api/passport", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bio: bio || null, skills, languages, yearsExperience, currentlyAvailable, venueTypePreferences }),
+      body: JSON.stringify({ bio: bio || null, skills, languages, yearsExperience, currentlyAvailable, venueTypePreferences, workMunicipalities }),
     });
     if (res.ok) {
       const data = await res.json();
@@ -365,6 +368,23 @@ export default function PassportSection({ userName }: { userName: string }) {
             })}
           </div>
           <p className="text-[11px] text-neutral-400 mt-1.5">Algoritam šalje Red Alert samo za odabrane tipove.</p>
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold text-neutral-600 mb-2 block">Gde radiš (opštine)</label>
+          <div className="flex flex-wrap gap-2">
+            {BELGRADE_MUNICIPALITIES.map(muni => {
+              const active = workMunicipalities.includes(muni);
+              return (
+                <button key={muni} type="button"
+                  onClick={() => setWorkMunis(p => active ? p.filter(v => v !== muni) : [...p, muni])}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${active ? "bg-orange-500 text-white border-orange-500" : "bg-white text-neutral-500 border-neutral-200 hover:border-orange-300"}`}>
+                  {muni}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-neutral-400 mt-1.5">Lokali te pronalaze po opštinama u kojima si spreman da radiš.</p>
         </div>
 
         <div className="flex items-center gap-3">

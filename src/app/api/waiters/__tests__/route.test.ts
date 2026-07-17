@@ -3,6 +3,10 @@ import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
 vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+// Pin the no-Redis path: with REDIS_URL set, the route's search cache would serve
+// a stale hit from another test and skip db.user.findMany, breaking the where-clause
+// assertions non-deterministically.
+vi.mock("@/lib/core/redis", () => ({ redis: null }));
 vi.mock("@/lib/core/db", () => ({
   db: {
     user: { count: vi.fn(), findMany: vi.fn() },
@@ -126,6 +130,38 @@ describe("GET /api/waiters", () => {
 
     const call = vi.mocked(db.user.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
     expect(call.where.name).toMatchObject({ contains: "Marko" });
+  });
+
+  it("municipality filter → workMunicipalities has check", async () => {
+    mockSession("VENUE_OWNER", OWNER_ID);
+
+    await GET(makeReq("municipality=Vra%C4%8Dar"), CTX);
+
+    const call = vi.mocked(db.user.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
+    expect(call.where.waiterPassport).toMatchObject({ workMunicipalities: { has: "Vračar" } });
+  });
+
+  it("no municipality → filter not applied", async () => {
+    mockSession("VENUE_OWNER", OWNER_ID);
+
+    await GET(makeReq("available=true"), CTX);
+
+    const call = vi.mocked(db.user.findMany).mock.calls[0][0] as {
+      where: { waiterPassport?: Record<string, unknown> };
+    };
+    expect(call.where.waiterPassport).not.toHaveProperty("workMunicipalities");
+  });
+
+  it("municipality combines with other passport filters", async () => {
+    mockSession("HEADHUNTER", HEADHUNTER_ID);
+
+    await GET(makeReq("municipality=Zemun&available=true"), CTX);
+
+    const call = vi.mocked(db.user.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
+    expect(call.where.waiterPassport).toMatchObject({
+      workMunicipalities: { has: "Zemun" },
+      currentlyAvailable: true,
+    });
   });
 
   it("verificationTier filter → ignored if invalid", async () => {
