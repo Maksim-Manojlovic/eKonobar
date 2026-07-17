@@ -362,9 +362,6 @@ export default function VenueDashboard() {
         ))}
       </div>
       <div className="px-3 py-4 border-t border-white/10">
-        <div className="px-2 mb-3">
-          <FlagSwitcher />
-        </div>
         <div className="flex items-center gap-3 px-2 mb-3">
           {venue?.logo ? (
             <Image src={venue.logo} alt="" width={32} height={32} className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-orange-500/30" />
@@ -397,6 +394,7 @@ export default function VenueDashboard() {
         mobileSidebarId="tour-sidebar"
         topRight={
           <>
+            <FlagSwitcher variant="dark" />
             <div id="tour-notifications">
               <NotificationBell
                 dashboardPath="/dashboard/venue"

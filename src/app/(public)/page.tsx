@@ -27,7 +27,7 @@ export default function PreloaderPage() {
           {t("preloader", "tagline")}
         </p>
         <div className="mt-4 flex justify-center">
-          <FlagSwitcher />
+          <FlagSwitcher variant="dark" />
         </div>
       </div>
 
