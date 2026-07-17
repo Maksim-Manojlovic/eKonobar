@@ -18,6 +18,14 @@ describe("buildWaiterQuery", () => {
     expect(buildWaiterQuery({ minScore: 70, minExperience: 3 })).toBe("minScore=70&minExperience=3");
   });
 
+  it("sets municipality when present", () => {
+    expect(new URLSearchParams(buildWaiterQuery({ municipality: "Vračar" })).get("municipality")).toBe("Vračar");
+  });
+
+  it("omits municipality when empty", () => {
+    expect(buildWaiterQuery({ municipality: "" })).toBe("");
+  });
+
   it("builds the full headhunter query", () => {
     const qs = new URLSearchParams(
       buildWaiterQuery({

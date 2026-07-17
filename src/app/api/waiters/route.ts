@@ -16,6 +16,7 @@ export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async (req, _ctx) => 
   const skillsParam     = searchParams.get("skills");   // comma-separated
   const langsParam      = searchParams.get("languages"); // comma-separated
   const minExp          = searchParams.get("minExperience");
+  const municipality    = searchParams.get("municipality");
   const search          = searchParams.get("search");
   const page            = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
   const limit           = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") ?? "25", 10)));
@@ -30,6 +31,8 @@ export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async (req, _ctx) => 
   if (minExp)                 passportFilter.yearsExperience = { gte: Number(minExp) };
   if (skills.length > 0)      passportFilter.skills = { hasSome: skills };
   if (languages.length > 0)   passportFilter.languages = { hasSome: languages };
+  // Reach filter: waiters who declared they will work in this municipality.
+  if (municipality)           passportFilter.workMunicipalities = { has: municipality };
 
   const where = {
     role: "WAITER" as const,
@@ -77,6 +80,7 @@ export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async (req, _ctx) => 
             tierRank: true,
             skills: true,
             languages: true,
+            workMunicipalities: true,
             yearsExperience: true,
             sanitaryBookValid: true,
             currentlyAvailable: true,

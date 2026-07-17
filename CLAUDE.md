@@ -466,7 +466,7 @@ The Prisma client is cached on `globalThis._prisma`. After every `db:push` that 
 - `ShiftAssignment` — explicit waiter-to-shift assignment (replaced implicit M2M). Has clock-in fields: `clockInAt`, `clockOutAt`, `clockInMethod` (GPS | GPS_GRACE | QR | MANUAL), `clockInLat`, `clockInLng`, `lateMinutes`, `earlyExitAt`, `pendingClockIn` (awaiting manager approval).
 - `ShiftSwapRequest` — swap request between two waiters. Status: `PENDING → ACCEPTED | REJECTED | CANCELLED`.
 - `ShiftTemplate` — recurring shift pattern. Has `dayOfWeek Int?` (null when `weekdaysOnly=true`), `weekdaysOnly Boolean`, `metadata Json?` (`{ type, label, shift }`). Used for bulk generation.
-- `WaiterPassport` — one-to-one with `WAITER` User. Has `passportTier PassportTier @default(FREE)`, `subscriptionExpiresAt DateTime?`, `monriPanToken String?` (stored pan_token from Monri for recurring charges). Indexed on `passportTier`.
+- `WaiterPassport` — one-to-one with `WAITER` User. Has `passportTier PassportTier @default(FREE)`, `subscriptionExpiresAt DateTime?`, `monriPanToken String?` (stored pan_token from Monri for recurring charges). Indexed on `passportTier`. `workMunicipalities String[]` — Belgrade opštine the waiter will work in (declared reach; see Waiter Search "Reach filter"). No home coordinates — reach is coarse and non-identifying by design.
 - `PassportPayment` — payment record per checkout attempt. Has `userId`, `orderNumber` (unique, `EK-` prefix), `tier PassportTier`, `amountRsd Int` (minor units), `status String` (`PENDING | SUCCESS | FAILED | CANCELLED`), `monriApprovalCode String?`, `monriPanToken String?`. Indexed on `userId`, `orderNumber`, `status`. Idempotent: callback checks status before updating.
 - `Notification` — in-app notification record. Has `type NotificationType`, `title`, `body`, `link`, `read`, `pushSent`, `waSent`, `smsSent`.
 - `PushSubscription` — browser Web Push subscription per user. Has `endpoint` (unique), `p256dh`, `auth`.
@@ -1020,8 +1020,13 @@ GET /api/waiters
     skills=a,b,c            → passport.skills hasSome [a,b,c]
     languages=a,b           → passport.languages hasSome [a,b]
     minExperience=N         → passport.yearsExperience >= N
+    municipality=NAME       → passport.workMunicipalities has NAME (waiter's declared reach)
     search=text             → user.name contains text (case-insensitive)
 ```
+
+**Reach filter (`municipality`):** waiters declare `workMunicipalities` (Belgrade gradske opštine they will work in) on their passport; owners/headhunters filter by it. Both sides pick from the canonical `BELGRADE_MUNICIPALITIES` in `lib/geo/municipalities.ts`, so the match is an exact `has` — never a fuzzy join on the free-text `Venue.municipality`. **No waiter home coordinates are stored** — the question the feature answers is "will he come", not "where does he sleep", and plotting real people's homes for every owner to browse is a privacy non-starter. Add a filter param via `buildWaiterQuery`/`WaiterFilters` (`hooks/useWaiterSearch.ts`) so all three search clients inherit it. `PUT /api/passport` runs `sanitizeMunicipalities` before persisting (drops junk/dupes/casing drift) so the value stays clean for the filter and the future coverage choropleth.
+
+**Beograd-only today, Serbia later:** `BELGRADE_MUNICIPALITIES` is the seam. Serbia-wide means a city→municipalities map keyed off `lib/geo/cities.ts`; the `String[]` shape and the `has` filter do not change.
 
 **Tier-based ranking:** After the DB query, results are sorted in-memory: PRO_PLUS (rank 2) → PRO (rank 1) → FREE (rank 0), then by score descending within each tier. Expired subscriptions are treated as FREE. This is done in-memory (not at DB level) because expiry comparison requires runtime Date logic.
 

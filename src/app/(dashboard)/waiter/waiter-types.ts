@@ -154,6 +154,7 @@ export type PassportData = {
   bio: string | null;
   galleryPhotos: string[];
   venueTypePreferences: string[];
+  workMunicipalities: string[];
   lastAvailableDate: string | null;
   avgRedAlertResponseMinutes: number | null;
   redAlertResponseCount: number;

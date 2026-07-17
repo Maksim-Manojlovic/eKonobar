@@ -132,6 +132,27 @@ describe("PUT /api/passport", () => {
     expect(vi.mocked(db.user.update)).not.toHaveBeenCalled();
   });
 
+  it("workMunicipalities sanitized — junk dropped, canonical order kept", async () => {
+    await PUT(makePutReq({ workMunicipalities: ["Zemun", "Atlantis", "Vračar"] }), CTX);
+
+    const upsertCall = vi.mocked(db.waiterPassport.upsert).mock.calls[0][0] as {
+      create: { workMunicipalities: string[] };
+      update: { workMunicipalities?: string[] };
+    };
+    // Atlantis dropped; Vračar (canonical idx 1) before Zemun (idx 9).
+    expect(upsertCall.create.workMunicipalities).toEqual(["Vračar", "Zemun"]);
+    expect(upsertCall.update.workMunicipalities).toEqual(["Vračar", "Zemun"]);
+  });
+
+  it("workMunicipalities omitted → not written on update", async () => {
+    await PUT(makePutReq({ bio: "no reach change" }), CTX);
+
+    const upsertCall = vi.mocked(db.waiterPassport.upsert).mock.calls[0][0] as {
+      update: Record<string, unknown>;
+    };
+    expect(upsertCall.update).not.toHaveProperty("workMunicipalities");
+  });
+
   it("galleryPhotos capped at 4", async () => {
     const photos = Array(6).fill("https://img.test/photo.jpg");
     await PUT(makePutReq({ galleryPhotos: photos }), CTX);

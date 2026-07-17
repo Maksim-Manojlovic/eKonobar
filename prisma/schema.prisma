@@ -468,6 +468,11 @@ model WaiterPassport {
 
   venueTypePreferences String[]  // ["RESTAURANT", "CAFE", "BAR", "NIGHT_CLUB", "HOTEL", "CATERING"]
 
+  // Reach — Belgrade gradske opštine the waiter will work in (canonical list in
+  // lib/geo/municipalities.ts). Venue owners filter search by these. No home
+  // coordinates are stored: the question is "will he come", not "where he sleeps".
+  workMunicipalities   String[]
+
   avgRedAlertResponseMinutes Float?  // rolling avg minutes from Red Alert post to application
   redAlertResponseCount      Int    @default(0)
 

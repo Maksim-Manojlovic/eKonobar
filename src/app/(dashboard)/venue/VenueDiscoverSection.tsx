@@ -6,6 +6,7 @@ import { getInitials } from "@/lib/formatting/utils";
 import { TierBadge, ScorePill, DiscoverSkeleton, WaitersSkeleton } from "./venue-helpers";
 import { WaiterCard } from "@/components/ui/WaiterCard";
 import { useWaiterSearch } from "@/hooks/useWaiterSearch";
+import { BELGRADE_MUNICIPALITIES } from "@/lib/geo/municipalities";
 /* ── InviteModal ─────────────────────────────────────────────────────────── */
 
 export function InviteModal({ waiter, posts, onClose, onSent }: {
@@ -94,10 +95,12 @@ export function InviteModal({ waiter, posts, onClose, onSent }: {
 export function DiscoverSection({ onInvite }: { posts: OwnPost[]; onInvite: (w: WaiterEntry) => void }) {
   const [filterAvailable, setFilterAvailable] = useState(false);
   const [filterMinScore, setFilterMinScore]   = useState(0);
+  const [filterMunicipality, setFilterMuni]   = useState("");
 
   const { waiters, isLoading: loading } = useWaiterSearch<WaiterEntry>({
     available: filterAvailable,
     minScore: filterMinScore > 0 ? filterMinScore : undefined,
+    municipality: filterMunicipality || undefined,
   });
 
   return (
@@ -113,6 +116,11 @@ export function DiscoverSection({ onInvite }: { posts: OwnPost[]; onInvite: (w: 
             {score === 0 ? "Svi" : `Score ${score}+`}
           </button>
         ))}
+        <select value={filterMunicipality} onChange={e => setFilterMuni(e.target.value)}
+          className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer ${filterMunicipality ? "bg-orange-500 text-white border-orange-500" : "bg-white text-neutral-600 border-neutral-200 hover:border-orange-300"}`}>
+          <option value="">Sve opštine</option>
+          {BELGRADE_MUNICIPALITIES.map(m => <option key={m} value={m} className="text-neutral-900">{m}</option>)}
+        </select>
       </div>
       {loading ? <DiscoverSkeleton /> : waiters.length === 0
         ? <div className="dash-card p-10 text-center text-neutral-400 text-sm">Nema konobara koji odgovaraju filteru</div>
