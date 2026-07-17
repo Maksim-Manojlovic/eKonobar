@@ -58,7 +58,7 @@ function mockNoSession() {
 const VALID_BODY = {
   name: "New Venue",
   address: "Knez Mihailova 1",
-  municipality: "Beograd",
+  municipality: "Vračar",
   venueType: "CAFE",
   latitude: 44.8,
   longitude: 20.4,
@@ -114,6 +114,27 @@ describe("POST /api/venues", () => {
     expect(res.status).toBe(201);
     const json = await res.json();
     expect(json.id).toBe("v-new");
+  });
+
+  it("stores the canonical opština, normalizing casing/neighborhood input", async () => {
+    mockSession("VENUE_OWNER");
+    vi.mocked(db.venue.create).mockResolvedValue({ id: "v-new" } as never);
+
+    // "Dorćol" is a neighborhood of Stari grad; must land as the canonical opština.
+    await POST(makePostReq({ ...VALID_BODY, municipality: "Dorćol" }), CTX);
+
+    expect(vi.mocked(db.venue.create)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ municipality: "Stari grad" }),
+      }),
+    );
+  });
+
+  it("unrecognised municipality → 400, no venue created", async () => {
+    mockSession("VENUE_OWNER");
+    const res = await POST(makePostReq({ ...VALID_BODY, municipality: "Atlantis" }), CTX);
+    expect(res.status).toBe(400);
+    expect(vi.mocked(db.venue.create)).not.toHaveBeenCalled();
   });
 
   it("WAITER → 403", async () => {

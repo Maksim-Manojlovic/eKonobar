@@ -3,6 +3,7 @@ import { withOptionalAuth, withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { VenueType } from "@prisma/client";
 import { parseBody } from "@/lib/auth/parse-body";
+import { normalizeMunicipality } from "@/lib/geo/municipalities";
 import { z } from "zod";
 
 const VenueCreateSchema = z.object({
@@ -50,12 +51,22 @@ export const POST = withRole("VENUE_OWNER", async (req, _ctx, session) => {
   if (!parsed.ok) return parsed.response;
   const { name, address, municipality, venueType, latitude, longitude, capacity, description, phone, website, instagram } = parsed.data;
 
+  // Store the canonical opština, so waiter reach (workMunicipalities) matches by
+  // exact `has` and later coverage aggregates don't split on casing/neighborhoods.
+  const canonicalMunicipality = normalizeMunicipality(municipality);
+  if (!canonicalMunicipality) {
+    return NextResponse.json(
+      { error: "Nepoznata opština. Odaberi jednu od ponuđenih beogradskih opština." },
+      { status: 400 },
+    );
+  }
+
   const venue = await db.venue.create({
     data: {
       ownerId: session.user.id,
       name,
       address,
-      municipality,
+      municipality: canonicalMunicipality,
       venueType,
       latitude,
       longitude,
