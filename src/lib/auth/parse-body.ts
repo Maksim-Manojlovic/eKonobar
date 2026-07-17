@@ -1,4 +1,4 @@
-import { type ZodSchema } from "zod";
+import { type ZodSchema, type ZodType, type ZodTypeDef } from "zod";
 import { NextResponse } from "next/server";
 
 type ParseOk<T> = { ok: true; data: T };
@@ -48,14 +48,18 @@ export async function parseBody<T>(
  * Parses query params from a URL against a Zod schema.
  * Converts URLSearchParams to a plain object first.
  *
+ * Typed as `ZodType<Out, _, In>` rather than `ZodSchema<T>` (which pins input ===
+ * output): query params arrive as strings and schemas routinely parse them into
+ * numbers or enums, e.g. `z.string().min(1).pipe(z.coerce.number())`.
+ *
  * Usage:
  *   const parsed = parseQuery(MySchema, req);
  *   if (!parsed.ok) return parsed.response;
  */
-export function parseQuery<T>(
-  schema: ZodSchema<T>,
+export function parseQuery<Out, In>(
+  schema: ZodType<Out, ZodTypeDef, In>,
   req: Request,
-): ParseResult<T> {
+): ParseResult<Out> {
   const url = new URL(req.url);
   const raw = Object.fromEntries(url.searchParams.entries());
 
