@@ -153,9 +153,6 @@ export default function WaiterDashboard() {
         ))}
       </div>
       <div className="px-3 py-4 border-t border-white/10">
-        <div className="px-2 mb-3">
-          <FlagSwitcher />
-        </div>
         <div className="flex items-center gap-3 px-2 mb-3">
           <div className="w-8 h-8 rounded-full bg-orange-900/40 flex items-center justify-center text-orange-300 font-bold text-sm flex-shrink-0 border border-orange-500/30">{initials}</div>
           <div className="min-w-0">
@@ -192,6 +189,7 @@ export default function WaiterDashboard() {
         navContent={navContent}
         topRight={
           <>
+            <FlagSwitcher variant="dark" />
             <NotificationBell
               dashboardPath="/dashboard/waiter"
               onViewAll={() => setSection("notifications")}
