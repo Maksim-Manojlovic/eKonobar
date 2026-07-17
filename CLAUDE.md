@@ -71,6 +71,12 @@ vi.mock("@/lib/core/redis", () => ({ redis: mockRedis }));
 
 Tests for the no-Redis fallback path do not mock `@/lib/core/redis` — the module returns `null` naturally when `REDIS_URL` is unset, so the DB mock path activates automatically.
 
+**Caveat — this only holds when `REDIS_URL` is unset.** A dev machine with `REDIS_URL` in `.env` runs unit tests against **live Redis**, and cache reads then leak across test files: a test seeding `passport:tier:waiter-1 = "FREE"` makes a later PRO-tier test in another file resolve FREE, failing only in full-suite runs. Any test whose subject reads a Redis-cached value (tier, rate limit, search gen) must pin the path explicitly:
+
+```typescript
+vi.mock("@/lib/core/redis", () => ({ redis: null }));
+```
+
 ## ESLint
 
 Config is in `eslint.config.mjs` (ESLint 9 flat config). Run with `npm run lint`. The CI job runs lint before tests — fix all errors before committing.
@@ -143,23 +149,53 @@ Guest reviews use 150m radius (venue.reviewRadiusKm). Shift clock-in uses a stri
 
 `redAlert: true` job posts have a dedicated DB index (`@@index([redAlert])`). Filter by it directly — do not scan all job posts and filter in memory.
 
-**Red Alert early access for PRO/PRO_PLUS waiters:** FREE tier waiters see Red Alert posts only after a 30-minute delay. This is enforced at the query level in `GET /api/jobs`:
+**Red Alert early access for PRO/PRO_PLUS waiters:** FREE tier waiters see — and may apply to — Red Alert posts only after a 30-minute delay.
+
+All enforcement goes through `lib/passport/red-alert.ts`. **Never inline the cutoff or the OR clause in a route.** It previously lived inline in `GET /api/jobs` only, which left `GET /api/jobs/geojson` and `POST /api/jobs/applications` serving the full undelayed set to anyone.
 
 ```typescript
-// In the WHERE clause — only applied for FREE-tier authenticated waiters:
-...(redAlertCreatedAfter && {
-  OR: [
-    { redAlert: false },
-    { redAlert: true, createdAt: { lte: redAlertCreatedAfter } },
-  ],
-}),
+import { getRedAlertCutoff, redAlertVisibilityFilter, isRedAlertEmbargoed } from "@/lib/passport/red-alert";
+
+// Read surfaces — compose under AND, never as a bare `OR` key:
+const redAlertCutoff = await getRedAlertCutoff(session);
+where: { status: "ACTIVE", AND: redAlertVisibilityFilter(redAlertCutoff) }
+
+// Write surfaces — block the action, not just the listing:
+if (isRedAlertEmbargoed(post, redAlertCutoff)) return NextResponse.json({ error: "..." }, { status: 403 });
 ```
 
-`redAlertCreatedAfter = new Date(now - RED_ALERT_DELAY_MS)` (from `lib/passport/constants.ts`) for FREE, `undefined` for PRO/PRO_PLUS and unauthenticated users.
+`getRedAlertCutoff(session)` returns a `Date` (delay applies) or `undefined` (full set):
+
+| Caller | Cutoff |
+|---|---|
+| PRO / PRO_PLUS waiter, active sub | `undefined` |
+| FREE waiter, or expired sub | `now - RED_ALERT_DELAY_MS` |
+| **Unauthenticated** | `now - RED_ALERT_DELAY_MS` |
+| VENUE_OWNER / HEADHUNTER / ADMIN | `undefined` (not the audience for the gate) |
+
+Unauthenticated callers are gated deliberately. Leaving them undelayed makes every other gate pointless — a FREE waiter just signs out, or reads the public map GeoJSON, and gets the same posts instantly.
+
+**Gate writes, not just reads.** What PRO sells is *applying first*. `POST /api/jobs/applications` returns 403 for an embargoed Red Alert; without it, anyone who learns a post id by any means converts it into an early application regardless of the read gates.
+
+**Never share a cache across entitlement.** `/api/jobs/geojson` sends `public, s-maxage=15` for the delayed set (identical for every unauthenticated/FREE caller) but `private, no-store` when serving the undelayed PRO set — one public hit there would hand every FREE waiter the early access they didn't buy.
+
+**Composing `OR` filters:** `redAlertVisibilityFilter` returns an *array* for spreading into `AND`, not a bare `{ OR }`. Spreading two `{ OR: [...] }` objects into one Prisma where-object silently drops the first — duplicate JS keys overwrite. This bug shipped in `GET /api/jobs`, where a FREE waiter's `?search=` was discarded.
 
 ### Coordinate jitter
 
-Venues get ~100m stable coordinate jitter derived from `venueId` hash (same logic as the RentCheck base). This is intentional for privacy — do not remove it.
+`stableJitter(id)` in `lib/geo/bbox.ts` — venues get ~100m stable coordinate jitter derived from a `venueId` hash (same logic as the RentCheck base). Intentional for privacy — published coordinates mark the zone, never the exact address. Do not remove it, and do not re-inline a copy in a route (it was duplicated across both geojson routes).
+
+### Map GeoJSON endpoints
+
+`/api/venues/geojson` and `/api/jobs/geojson` back the map. Both take a viewport bbox (`swLat`, `swLng`, `neLat`, `neLng`) plus filters, and both cap the result (`MAX_FEATURES` — 200 venues / 300 jobs).
+
+**Filter in the query, never on the response.** The cap makes client-side `.filter()` silently wrong: it filters an already-truncated page, so a chip like "Red Alert" can show 3 of 40 and look like the whole truth. Add a param to the route's `QuerySchema` and let the DB filter. `MapSearch` sends its filter state as query params and refetches on change — it does not post-filter.
+
+**bbox validation:** `BBoxSchema` from `lib/geo/bbox.ts`, via `parseQuery`. Never hand-roll `parseFloat` + `isNaN`. It rejects inverted boxes (`swLat >= neLat`), out-of-range coordinates, and — importantly — empty params: `z.coerce.number()` alone maps `""` → `0`, which silently widens a viewport to the equator. Coordinates are deliberately unclamped: coverage follows the data, so a new city needs no endpoint change.
+
+`parseQuery` is typed `ZodType<Out, _, In>`, so schemas may parse strings into numbers/enums (`z.string().min(1).pipe(z.coerce.number())`).
+
+**Beograd today, Serbia later:** `lib/geo/cities.ts` holds the seeded cities and `DEFAULT_CITY` (the map's initial viewport). Only Belgrade is seeded. The endpoints are already city-agnostic — they filter by bbox, not by city — so adding Novi Sad is one `CITIES` entry plus a picker. Do not hardcode city coordinates in a component.
 
 ### Rate limiting
 
@@ -823,7 +859,7 @@ export const POST = withRole("VENUE_OWNER", async (req, ctx, session) => {
 const QuerySchema = z.object({ page: z.coerce.number().default(1) });
 const parsed = parseQuery(QuerySchema, req); // synchronous
 ```
-- GeoJSON endpoints (`/api/venues/geojson`, `/api/jobs/geojson`) accept bounding box params: `swLat`, `swLng`, `neLat`, `neLng`
+- GeoJSON endpoints (`/api/venues/geojson`, `/api/jobs/geojson`) accept bounding box params: `swLat`, `swLng`, `neLat`, `neLng` (validate with `BBoxSchema` — see "Map GeoJSON endpoints")
 - `GUEST_TO_WAITER` and `GUEST_TO_VENUE` reviews require `guestLatitude` and `guestLongitude` in the request body (when `geofenceEnabled`)
 - Guest review submissions go to `POST /api/reviews/guest` (no auth) — not the main `/api/reviews` route
 - `GET /api/venues/[id]/reviews` — owner-only feed; returns all non-REMOVED reviews across all directions for the venue

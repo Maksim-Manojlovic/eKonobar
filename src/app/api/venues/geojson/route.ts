@@ -1,37 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/core/db";
+import { parseQuery } from "@/lib/auth/parse-body";
+import { BBoxSchema, venueBBoxFilter, stableJitter } from "@/lib/geo/bbox";
+import { VenueType } from "@prisma/client";
+import { z } from "zod";
 
-// Deterministic ~100m coordinate jitter for privacy (stable per venueId).
-function stableJitter(id: string): { lat: number; lng: number } {
-  let h = 5381;
-  for (let i = 0; i < id.length; i++) h = (Math.imul(h, 33) + id.charCodeAt(i)) | 0;
-  const u = h >>> 0;
-  return {
-    lat: ((u % 200) - 100) / 111_000,           // ±~100m in latitude
-    lng: (((u >>> 8) % 200) - 100) / 78_700,    // ±~100m in longitude (at ~45°N)
-  };
-}
+/**
+ * Cap on features returned per viewport. Filters are applied in the query (never
+ * client-side) so this truncates the *filtered* set — filtering after a truncated
+ * fetch silently drops matches and makes the UI lie about how many exist.
+ */
+const MAX_FEATURES = 200;
+
+const QuerySchema = BBoxSchema.and(
+  z.object({
+    venueType: z.nativeEnum(VenueType).optional(),
+  }),
+);
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-
-  const swLat = parseFloat(searchParams.get("swLat") ?? "");
-  const swLng = parseFloat(searchParams.get("swLng") ?? "");
-  const neLat = parseFloat(searchParams.get("neLat") ?? "");
-  const neLng = parseFloat(searchParams.get("neLng") ?? "");
-
-  if ([swLat, swLng, neLat, neLng].some(isNaN)) {
-    return NextResponse.json(
-      { error: "swLat, swLng, neLat, neLng required" },
-      { status: 400 },
-    );
-  }
+  const parsed = parseQuery(QuerySchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { venueType, ...bbox } = parsed.data;
 
   const venues = await db.venue.findMany({
     where: {
       isActive: true,
-      latitude:  { gte: swLat, lte: neLat },
-      longitude: { gte: swLng, lte: neLng },
+      ...venueBBoxFilter(bbox),
+      ...(venueType && { venueType }),
     },
     select: {
       id: true,
@@ -43,13 +39,15 @@ export async function GET(req: NextRequest) {
       trustScore: true,
       latitude: true,
       longitude: true,
-      _count: { select: { jobPosts: true } },
+      // Counts ACTIVE posts only — the popup renders this as "aktivnih oglasa",
+      // so an unfiltered count would advertise closed and draft posts as open.
+      _count: { select: { jobPosts: { where: { status: "ACTIVE" } } } },
       zones: {
         select: { zone: { select: { zoneType: true, projectedGrowthPercent: true } } },
         take: 1,
       },
     },
-    take: 200,
+    take: MAX_FEATURES,
   });
 
   const features = venues.map((v) => {
