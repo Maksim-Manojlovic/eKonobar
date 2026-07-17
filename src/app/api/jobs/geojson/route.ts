@@ -1,50 +1,47 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { withOptionalAuth } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
+import { parseQuery } from "@/lib/auth/parse-body";
+import { BBoxSchema, venueBBoxFilter, stableJitter } from "@/lib/geo/bbox";
+import { getRedAlertCutoff, redAlertVisibilityFilter } from "@/lib/passport/red-alert";
 import { EngagementType } from "@prisma/client";
+import { z } from "zod";
 
-function stableJitter(id: string): { lat: number; lng: number } {
-  let h = 5381;
-  for (let i = 0; i < id.length; i++) h = (Math.imul(h, 33) + id.charCodeAt(i)) | 0;
-  const u = h >>> 0;
-  return {
-    lat: ((u % 200) - 100) / 111_000,
-    lng: (((u >>> 8) % 200) - 100) / 78_700,
-  };
-}
+/**
+ * Cap on features returned per viewport. Filters are applied in the query (never
+ * client-side) so this truncates the *filtered* set — filtering after a truncated
+ * fetch silently drops matches and makes the UI lie about how many exist.
+ */
+const MAX_FEATURES = 300;
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
+const QuerySchema = BBoxSchema.and(
+  z.object({
+    redAlert:         z.enum(["true", "false"]).optional(),
+    engagementType:   z.nativeEnum(EngagementType).optional(),
+    sanitaryRequired: z.enum(["true", "false"]).optional(),
+  }),
+);
 
-  const swLat = parseFloat(searchParams.get("swLat") ?? "");
-  const swLng = parseFloat(searchParams.get("swLng") ?? "");
-  const neLat = parseFloat(searchParams.get("neLat") ?? "");
-  const neLng = parseFloat(searchParams.get("neLng") ?? "");
+export const GET = withOptionalAuth(async (req, _ctx, session) => {
+  const parsed = parseQuery(QuerySchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { redAlert, engagementType, sanitaryRequired, ...bbox } = parsed.data;
 
-  if ([swLat, swLng, neLat, neLng].some(isNaN)) {
-    return NextResponse.json(
-      { error: "swLat, swLng, neLat, neLng required" },
-      { status: 400 },
-    );
-  }
-
-  const redAlert       = searchParams.get("redAlert") === "true" ? true : undefined;
-  const engagementType = searchParams.get("engagementType") as EngagementType | null;
-  const sanitaryRaw    = searchParams.get("sanitaryRequired");
-  const sanitaryRequired =
-    sanitaryRaw === "true" ? true : sanitaryRaw === "false" ? false : undefined;
+  // Red Alert early access (PRO/PRO_PLUS). Without this the public map served the
+  // full undelayed set — including redAlertNote — to anyone, paid feature or not.
+  const redAlertCutoff = await getRedAlertCutoff(session);
 
   const jobs = await db.jobPost.findMany({
     where: {
       status: "ACTIVE",
-      ...(redAlert !== undefined && { redAlert }),
-      ...(engagementType &&
-        Object.values(EngagementType).includes(engagementType) && { engagementType }),
-      ...(sanitaryRequired !== undefined && { sanitaryRequired }),
+      ...(redAlert !== undefined && { redAlert: redAlert === "true" }),
+      ...(engagementType && { engagementType }),
+      ...(sanitaryRequired !== undefined && { sanitaryRequired: sanitaryRequired === "true" }),
       venue: {
         isActive: true,
-        latitude:  { gte: swLat, lte: neLat },
-        longitude: { gte: swLng, lte: neLng },
+        ...venueBBoxFilter(bbox),
       },
+      AND: redAlertVisibilityFilter(redAlertCutoff),
     },
     select: {
       id: true,
@@ -70,7 +67,7 @@ export async function GET(req: NextRequest) {
       },
     },
     orderBy: [{ redAlert: "desc" }, { createdAt: "desc" }],
-    take: 300,
+    take: MAX_FEATURES,
   });
 
   const features = jobs.map((j) => {
@@ -103,8 +100,16 @@ export async function GET(req: NextRequest) {
     };
   });
 
+  // Cache must be split by entitlement, never shared across it. The delayed set is
+  // identical for every unauthenticated/FREE caller, so it stays CDN-cacheable. The
+  // undelayed PRO set is per-user and must never land in a shared cache — a single
+  // public hit there would hand every FREE waiter the early access they didn't buy.
+  const cacheControl = redAlertCutoff
+    ? "public, s-maxage=15, stale-while-revalidate=30"
+    : "private, no-store";
+
   return NextResponse.json(
     { type: "FeatureCollection", features },
-    { headers: { "Cache-Control": "public, s-maxage=15, stale-while-revalidate=30" } },
+    { headers: { "Cache-Control": cacheControl } },
   );
-}
+});
