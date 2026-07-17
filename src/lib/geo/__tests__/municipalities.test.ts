@@ -3,6 +3,7 @@ import {
   BELGRADE_MUNICIPALITIES,
   isKnownMunicipality,
   sanitizeMunicipalities,
+  normalizeMunicipality,
 } from "../municipalities";
 
 describe("BELGRADE_MUNICIPALITIES", () => {
@@ -57,5 +58,37 @@ describe("sanitizeMunicipalities", () => {
 
   it("all-junk input → empty array (nothing persisted)", () => {
     expect(sanitizeMunicipalities(["nope", "", "   "])).toEqual([]);
+  });
+});
+
+describe("normalizeMunicipality", () => {
+  it("passes through an already-canonical name", () => {
+    expect(normalizeMunicipality("Vračar")).toBe("Vračar");
+  });
+
+  it("fixes casing drift", () => {
+    // The old free-text / register values used different casing.
+    expect(normalizeMunicipality("Stari Grad")).toBe("Stari grad");
+    expect(normalizeMunicipality("Savski Venac")).toBe("Savski venac");
+    expect(normalizeMunicipality("VRAČAR")).toBe("Vračar");
+  });
+
+  it("maps known neighborhoods to their opština", () => {
+    expect(normalizeMunicipality("Dorćol")).toBe("Stari grad");
+    expect(normalizeMunicipality("Savamala")).toBe("Savski venac");
+  });
+
+  it("recovers ASCII-only spellings of diacritic names", () => {
+    expect(normalizeMunicipality("vracar")).toBe("Vračar");
+    expect(normalizeMunicipality("vozdovac")).toBe("Voždovac");
+  });
+
+  it("trims whitespace", () => {
+    expect(normalizeMunicipality("  Zemun  ")).toBe("Zemun");
+  });
+
+  it("returns null for the unrecognisable (never guesses)", () => {
+    expect(normalizeMunicipality("Atlantis")).toBeNull();
+    expect(normalizeMunicipality("")).toBeNull();
   });
 });

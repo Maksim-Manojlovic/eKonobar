@@ -8,6 +8,7 @@ import VenueInsightsBadge from "@/components/venue/VenueInsightsBadge";
 import type { Venue } from "./venue-types";
 import { getInitials } from "@/lib/formatting/utils";
 import { VENUE_TYPE_LABELS } from "@/lib/formatting/display-maps";
+import { BELGRADE_MUNICIPALITIES } from "@/lib/geo/municipalities";
 import { Sk, trustDimensions } from "./venue-helpers";
 
 function VenueCreateForm({ onCreated }: { onCreated: () => void }) {
@@ -70,9 +71,12 @@ function VenueCreateForm({ onCreated }: { onCreated: () => void }) {
           </div>
           <div>
             <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Opština *</label>
-            <input type="text" required value={form.municipality}
+            <select required value={form.municipality}
               onChange={e => set("municipality", e.target.value)}
-              placeholder="npr. Stari Grad" className="auth-input" />
+              className="auth-input">
+              <option value="" disabled>Odaberi opštinu</option>
+              {BELGRADE_MUNICIPALITIES.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">

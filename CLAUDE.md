@@ -1028,6 +1028,8 @@ GET /api/waiters
 
 **Beograd-only today, Serbia later:** `BELGRADE_MUNICIPALITIES` is the seam. Serbia-wide means a city→municipalities map keyed off `lib/geo/cities.ts`; the `String[]` shape and the `has` filter do not change.
 
+**Venue municipality is canonical-on-write.** `POST /api/venues` runs `normalizeMunicipality` (casing fixes + known neighborhood→opština aliases, e.g. Dorćol→Stari grad) and stores the canonical opština, or 400s if unrecognised. The create form is a `BELGRADE_MUNICIPALITIES` dropdown. This is what makes `workMunicipalities has venue.municipality` an exact match — do not reintroduce a free-text municipality input. Legacy free-text rows (created before this) are corrected by `scripts/backfill-venue-municipality.ts` (dry-run by default, `--apply` to write) — run it once against the DB after deploy; unresolved values are listed for manual review, never guessed.
+
 **Tier-based ranking:** After the DB query, results are sorted in-memory: PRO_PLUS (rank 2) → PRO (rank 1) → FREE (rank 0), then by score descending within each tier. Expired subscriptions are treated as FREE. This is done in-memory (not at DB level) because expiry comparison requires runtime Date logic.
 
 ## Zone Analytics
