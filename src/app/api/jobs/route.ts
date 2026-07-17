@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { withOptionalAuth, withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { EngagementType, TipSystem } from "@prisma/client";
-import { getEffectiveTierCached } from "@/lib/passport/tier-cache";
-import { RED_ALERT_DELAY_MS } from "@/lib/passport/constants";
+import { getRedAlertCutoff, redAlertVisibilityFilter } from "@/lib/passport/red-alert";
 import { parseBody } from "@/lib/auth/parse-body";
 import { z } from "zod";
 
@@ -45,33 +44,27 @@ export const GET = withOptionalAuth(async (req, _ctx, session) => {
   const search         = searchParams.get("search") ?? undefined;
 
   // Red Alert early access: PRO/PRO_PLUS waiters see Red Alert posts immediately.
-  // FREE tier waiters only see Red Alert posts older than 30 minutes.
-  let redAlertCreatedAfter: Date | undefined;
-  if (session?.user.role === "WAITER") {
-    const tier = await getEffectiveTierCached(session.user.id);
-    if (tier === "FREE") {
-      redAlertCreatedAfter = new Date(Date.now() - RED_ALERT_DELAY_MS);
-    }
-  }
+  // FREE tier waiters (and unauthenticated callers) only see posts ≥30 min old.
+  const redAlertCutoff = await getRedAlertCutoff(session);
 
+  // search and Red Alert visibility both need an OR. They compose under AND —
+  // spreading two `{ OR }` objects into one where-object drops the first one.
   const posts = await db.jobPost.findMany({
     where: {
       status: "ACTIVE",
       ...(redAlertFilter !== undefined && { redAlert: redAlertFilter }),
       ...(type && Object.values(EngagementType).includes(type) && { engagementType: type }),
-      ...(search && {
-        OR: [
-          { title: { contains: search, mode: "insensitive" } },
-          { description: { contains: search, mode: "insensitive" } },
-        ],
-      }),
-      // For FREE waiters: Red Alert posts must be ≥30 min old
-      ...(redAlertCreatedAfter && {
-        OR: [
-          { redAlert: false },
-          { redAlert: true, createdAt: { lte: redAlertCreatedAfter } },
-        ],
-      }),
+      AND: [
+        ...(search
+          ? [{
+              OR: [
+                { title:       { contains: search, mode: "insensitive" as const } },
+                { description: { contains: search, mode: "insensitive" as const } },
+              ],
+            }]
+          : []),
+        ...redAlertVisibilityFilter(redAlertCutoff),
+      ],
     },
     include: {
       venue: {

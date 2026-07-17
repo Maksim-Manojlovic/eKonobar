@@ -102,4 +102,62 @@ describe("GET /api/venues/geojson", () => {
     const json = await res.json();
     expect(json.features[0].properties.zone).toBeNull();
   });
+
+  // ── Server-side filtering ─────────────────────────────────────────────────
+  // Filters must reach the query. Filtering the response client-side would filter
+  // an already-capped page and silently hide matches.
+
+  it("venueType filter passed to query", async () => {
+    await GET(makeReq(`${BBOX}&venueType=BAR`));
+    expect(vi.mocked(db.venue.findMany)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ venueType: "BAR" }),
+      }),
+    );
+  });
+
+  it("no venueType → filter not applied", async () => {
+    await GET(makeReq(BBOX));
+    const call = vi.mocked(db.venue.findMany).mock.calls[0][0] as {
+      where: Record<string, unknown>;
+    };
+    expect(call.where.venueType).toBeUndefined();
+  });
+
+  it("unknown venueType → 400 rather than a silently ignored filter", async () => {
+    const res = await GET(makeReq(`${BBOX}&venueType=NOT_A_TYPE`));
+    expect(res.status).toBe(400);
+    expect(vi.mocked(db.venue.findMany)).not.toHaveBeenCalled();
+  });
+
+  it("bbox applied as lat/lng range on the venue", async () => {
+    await GET(makeReq());
+    expect(vi.mocked(db.venue.findMany)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          isActive:  true,
+          latitude:  { gte: 44.7, lte: 44.9 },
+          longitude: { gte: 20.3, lte: 20.5 },
+        }),
+      }),
+    );
+  });
+
+  it("inverted bbox (swLat north of neLat) → 400", async () => {
+    const res = await GET(makeReq("swLat=44.9&swLng=20.3&neLat=44.7&neLng=20.5"));
+    expect(res.status).toBe(400);
+  });
+
+  it("out-of-range longitude → 400", async () => {
+    const res = await GET(makeReq("swLat=44.7&swLng=20.3&neLat=44.9&neLng=181"));
+    expect(res.status).toBe(400);
+  });
+
+  it("activeJobs counts ACTIVE posts only", async () => {
+    await GET(makeReq());
+    const call = vi.mocked(db.venue.findMany).mock.calls[0][0] as {
+      select: { _count: { select: { jobPosts: unknown } } };
+    };
+    expect(call.select._count.select.jobPosts).toEqual({ where: { status: "ACTIVE" } });
+  });
 });
