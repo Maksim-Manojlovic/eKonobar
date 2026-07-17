@@ -141,6 +141,7 @@ enum NotificationType {
   REVIEW_PUBLISHED               // review went live → subject
   CLOCKIN_APPROVAL_REQUESTED     // waiter outside geofence → venue owner
   CLOCKIN_RESOLVED               // owner approved/rejected clock-in → waiter
+  RED_ALERT_POSTED               // new Red Alert job in a waiter's reach → matching PRO/PRO_PLUS waiters
 }
 
 enum PassportTier {
