@@ -6,6 +6,7 @@ import { timeAgo } from "@/lib/formatting/utils";
 
 const FILTER_GROUPS = [
   { key: "SVE",          label: "Sve" },
+  { key: "RED_ALERT",    label: "Red Alert" },
   { key: "APPLICATIONS", label: "Prijave" },
   { key: "SHIFTS",        label: "Smene" },
   { key: "SWAPS",         label: "Zamene" },
@@ -14,6 +15,7 @@ const FILTER_GROUPS = [
 
 const FILTER_MAP: Record<string, string[]> = {
   SVE:          [],
+  RED_ALERT:    ["RED_ALERT_POSTED"],
   APPLICATIONS: ["APPLICATION_RECEIVED", "APPLICATION_STATUS_CHANGED"],
   SHIFTS:       ["SHIFT_CLAIMED", "SHIFT_ASSIGNED"],
   SWAPS:        ["SWAP_REQUESTED", "SWAP_RESOLVED"],

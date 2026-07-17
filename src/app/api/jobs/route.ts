@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { withOptionalAuth, withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
+import logger from "@/lib/core/logger";
+import { broadcastRedAlert } from "@/lib/notifications/red-alert-broadcast";
 import { EngagementType, TipSystem } from "@prisma/client";
 import { getRedAlertCutoff, redAlertVisibilityFilter } from "@/lib/passport/red-alert";
 import { parseBody } from "@/lib/auth/parse-body";
@@ -113,6 +115,18 @@ export const POST = withRole("VENUE_OWNER", async (req, _ctx, session) => {
       venue: { select: { id: true, name: true } },
     },
   });
+
+  // Red Alert reverse discovery: ping PRO/PRO_PLUS waiters whose declared reach
+  // covers this venue's opština. Fire-and-forget — the recipient query must not
+  // block the response, and a broadcast failure must not fail the post creation.
+  if (post.redAlert) {
+    broadcastRedAlert({
+      jobPostId:    post.id,
+      jobTitle:     post.title,
+      venueName:    post.venue.name,
+      municipality: venue.municipality,
+    }).catch((err) => logger.error({ err, jobPostId: post.id }, "red-alert broadcast failed"));
+  }
 
   return NextResponse.json(post, { status: 201 });
 });

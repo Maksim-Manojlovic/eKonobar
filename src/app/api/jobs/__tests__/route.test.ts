@@ -3,6 +3,11 @@ import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
 vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+// Pin no-Redis so the Red Alert tier path is deterministic under a set REDIS_URL.
+vi.mock("@/lib/core/redis", () => ({ redis: null }));
+vi.mock("@/lib/notifications/red-alert-broadcast", () => ({
+  broadcastRedAlert: vi.fn().mockResolvedValue(0),
+}));
 vi.mock("@/lib/core/db", () => ({
   db: {
     jobPost:       { findMany: vi.fn(), create: vi.fn() },
@@ -13,6 +18,7 @@ vi.mock("@/lib/core/db", () => ({
 
 import { getServerSession } from "next-auth";
 import { db } from "@/lib/core/db";
+import { broadcastRedAlert } from "@/lib/notifications/red-alert-broadcast";
 import { GET, POST } from "../route";
 
 const CTX = { params: Promise.resolve({}) };
@@ -22,7 +28,7 @@ const WAITER_ID = "waiter-1";
 const VENUE_ID  = "venue-1";
 
 const JOB_POST = { id: "job-1", title: "Test Job", status: "ACTIVE", redAlert: false };
-const VENUE    = { id: VENUE_ID, name: "Test Venue", ownerId: OWNER_ID };
+const VENUE    = { id: VENUE_ID, name: "Test Venue", ownerId: OWNER_ID, municipality: "Vračar" };
 
 const VALID_POST_BODY = {
   venueId:        VENUE_ID,
@@ -142,6 +148,30 @@ describe("POST /api/jobs", () => {
     expect(res.status).toBe(201);
     const json = await res.json();
     expect(json.id).toBe("job-new");
+  });
+
+  it("normal post → no Red Alert broadcast", async () => {
+    await POST(makePostReq(VALID_POST_BODY), { params: Promise.resolve({}) });
+    expect(broadcastRedAlert).not.toHaveBeenCalled();
+  });
+
+  it("Red Alert post → broadcasts to reachable waiters in the venue's opština", async () => {
+    vi.mocked(db.jobPost.create).mockResolvedValue({
+      id: "job-ra", title: "Konobar hitno", redAlert: true,
+      venue: { id: VENUE_ID, name: "Test Venue" },
+    } as never);
+
+    const res = await POST(makePostReq({ ...VALID_POST_BODY, redAlert: true }), { params: Promise.resolve({}) });
+
+    expect(res.status).toBe(201);
+    expect(broadcastRedAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jobPostId: "job-ra",
+        jobTitle: "Konobar hitno",
+        venueName: "Test Venue",
+        municipality: "Vračar",
+      }),
+    );
   });
 
   it("WAITER → 403", async () => {

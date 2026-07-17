@@ -25,6 +25,7 @@ export const TYPE_ICONS: Record<string, string> = {
   REVIEW_PUBLISHED:            "⭐",
   CLOCKIN_APPROVAL_REQUESTED:  "⏰",
   CLOCKIN_RESOLVED:            "✅",
+  RED_ALERT_POSTED:            "🚨",
 };
 
 function NotifRow({ n, onClick }: { n: NotificationItem; onClick?: () => void }) {

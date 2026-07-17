@@ -266,9 +266,16 @@ Providers are no-ops when env vars are missing — safe in development.
 
 **Tier gating logic in `notify()`:** `notify` queries `waiterPassport.passportTier` and `subscriptionExpiresAt` for the recipient. If `subscriptionExpiresAt` is in the past, the tier is treated as FREE at runtime. WhatsApp requires `isPro` (PRO or PRO_PLUS active), SMS requires `isProPlus` (PRO_PLUS active). Venue owners and other non-waiter roles always receive all channels (tier gating only applies to WAITER recipients).
 
-`NotificationType` enum values: `APPLICATION_RECEIVED`, `APPLICATION_STATUS_CHANGED`, `SWAP_REQUESTED`, `SWAP_RESOLVED`, `SHIFT_CLAIMED`, `SHIFT_ASSIGNED`, `REVIEW_RECEIVED`, `REVIEW_PUBLISHED`, `CLOCKIN_APPROVAL_REQUESTED`, `CLOCKIN_RESOLVED`.
+`NotificationType` enum values: `APPLICATION_RECEIVED`, `APPLICATION_STATUS_CHANGED`, `SWAP_REQUESTED`, `SWAP_RESOLVED`, `SHIFT_CLAIMED`, `SHIFT_ASSIGNED`, `REVIEW_RECEIVED`, `REVIEW_PUBLISHED`, `CLOCKIN_APPROVAL_REQUESTED`, `CLOCKIN_RESOLVED`, `RED_ALERT_POSTED`.
 
 - `REVIEW_RECEIVED` — fires to venue owner when any review is submitted (WAITER_TO_VENUE, GUEST_TO_VENUE, GUEST_TO_WAITER)
+- `RED_ALERT_POSTED` — fires to matching waiters when a Red Alert job is posted (see Red Alert broadcast below). When adding a new `NotificationType`, also add its icon to `TYPE_ICONS` (`NotificationBell.tsx`) and, if it deserves its own filter chip, an entry to `FILTER_MAP`/`FILTER_GROUPS` in `NotificationsSection.tsx`.
+
+### Red Alert broadcast (reverse discovery)
+
+`lib/notifications/red-alert-broadcast.ts` — `broadcastRedAlert({ jobPostId, jobTitle, venueName, municipality })`. `POST /api/jobs` calls it **fire-and-forget** when a created post has `redAlert: true`; a broadcast failure must never fail the post creation.
+
+Recipients: available WAITERs whose `workMunicipalities` includes the venue's municipality, **PRO/PRO_PLUS only**, capped at 50. FREE waiters are excluded on purpose — Red Alert early access is the paid feature, and web push reaches every tier, so pushing to FREE here would leak the early access the `GET /api/jobs` delay and the apply gate enforce. Tier is filtered at the DB by `passportTier IN (PRO, PRO_PLUS)`, then re-checked in-process with `isPro` so an expired subscription (stored tier still PRO, effectively FREE) is dropped. **This matching only works when the venue's municipality is canonical** (`normalizeMunicipality` on write + the backfill) — a free-text venue municipality won't `has`-match a canonical `workMunicipalities`.
 
 ### NotificationBell
 
