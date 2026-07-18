@@ -1,11 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import type { JobPost, MyApplication, AppFilter, InviteItem, Section } from "./waiter-types";
 import { InvitesSection } from "./WaiterInvitesSection";
 import { ENGAGEMENT_LABELS, formatDate } from "@/lib/formatting/display-maps";
 import { formatSalary } from "@/lib/formatting/utils";
 import { AlertsSkeleton, JobsSkeleton, WaiterApplicationsSkeleton, ApplyButton, StatusBadge, appStatusKey } from "./waiter-helpers";
+
+// mapbox-gl is browser-only — load the map component client-side, same as /jobs.
+const MapSearch = dynamic(() => import("@/components/map/MapSearch"), { ssr: false });
 
 /* ── Section: Alerts ─────────────────────────────────────────────────────── */
 
@@ -43,10 +47,26 @@ export function JobsSection({ jobs, loading, onApply, applying, appliedJobIds }:
   jobs: JobPost[]; loading: boolean; onApply: (id: string) => Promise<void>;
   applying: string | null; appliedJobIds: Set<string>;
 }) {
+  const [view, setView] = useState<"list" | "map">("list");
   if (loading) return <JobsSkeleton />;
   return (
     <>
-      {jobs.length === 0
+      {/* Lista / Mapa — the map shows where work is across the city, so a waiter
+          can eyeball which posts are near where they'll travel. */}
+      <div className="bg-white/5 rounded-xl p-1 flex gap-1 w-fit">
+        {(["list", "map"] as const).map(v => (
+          <button key={v} onClick={() => setView(v)}
+            className={`text-xs font-semibold px-4 py-1.5 rounded-lg transition-colors ${
+              view === v ? "bg-orange-500 text-white shadow-sm" : "text-white/50 hover:text-white/80"
+            }`}>
+            {v === "list" ? "Lista" : "Mapa"}
+          </button>
+        ))}
+      </div>
+
+      {view === "map"
+        ? <MapSearch mode="jobs" />
+        : jobs.length === 0
         ? <div className="dash-card p-10 text-center text-neutral-400 text-sm">Nema dostupnih oglasa</div>
         : <div className="flex flex-col gap-3">
             {jobs.map(j => (
