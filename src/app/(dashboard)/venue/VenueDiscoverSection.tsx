@@ -6,6 +6,7 @@ import { getInitials } from "@/lib/formatting/utils";
 import { TierBadge, ScorePill, DiscoverSkeleton, WaitersSkeleton } from "./venue-helpers";
 import { WaiterCard } from "@/components/ui/WaiterCard";
 import { useWaiterSearch } from "@/hooks/useWaiterSearch";
+import { useApi } from "@/hooks/useApi";
 import { BELGRADE_MUNICIPALITIES } from "@/lib/geo/municipalities";
 /* ── InviteModal ─────────────────────────────────────────────────────────── */
 
@@ -92,6 +93,63 @@ export function InviteModal({ waiter, posts, onClose, onSent }: {
 
 /* ── Section: Discover ───────────────────────────────────────────────────── */
 
+interface CoverageCell { municipality: string; availableCount: number; }
+
+/**
+ * Reach coverage (B3): available-waiter count per opština as a ranked bar ladder.
+ * Aggregate only — no names, no coordinates. Clicking a bar drives the same
+ * municipality filter the dropdown does, so the map-like "where's the talent"
+ * view and the result list stay one surface.
+ */
+function ReachCoveragePanel({ selected, onSelect }: {
+  selected: string;
+  onSelect: (m: string) => void;
+}) {
+  const { data, isLoading } = useApi<CoverageCell[]>("/api/waiters/coverage");
+  const [expanded, setExpanded] = useState(false);
+
+  if (isLoading) return <div className="h-24 rounded-2xl bg-neutral-100 animate-pulse" />;
+
+  const cells  = (data ?? []).filter(c => c.availableCount > 0).sort((a, b) => b.availableCount - a.availableCount);
+  if (cells.length === 0) return null;
+
+  const max     = cells[0].availableCount;
+  const visible = expanded ? cells : cells.slice(0, 6);
+
+  return (
+    <div className="dash-card p-4 flex flex-col gap-2.5">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-bold text-neutral-500 uppercase tracking-wide">Dostupni konobari po opštini</p>
+        {cells.length > 6 && (
+          <button onClick={() => setExpanded(e => !e)} className="text-[11px] font-bold text-orange-600 hover:text-orange-700">
+            {expanded ? "Prikaži manje" : `Još ${cells.length - 6}`}
+          </button>
+        )}
+      </div>
+      <div className="flex flex-col gap-1.5">
+        {visible.map(c => {
+          const active = selected === c.municipality;
+          return (
+            <button key={c.municipality} onClick={() => onSelect(active ? "" : c.municipality)}
+              className="group flex items-center gap-2 text-left">
+              <span className={`w-24 shrink-0 text-xs font-semibold truncate ${active ? "text-orange-600" : "text-neutral-600"}`}>
+                {c.municipality}
+              </span>
+              <span className="flex-1 h-4 rounded-full bg-neutral-100 overflow-hidden">
+                <span className={`block h-full rounded-full transition-all ${active ? "bg-orange-500" : "bg-orange-300 group-hover:bg-orange-400"}`}
+                  style={{ width: `${Math.max(6, (c.availableCount / max) * 100)}%` }} />
+              </span>
+              <span className={`w-6 shrink-0 text-right text-xs font-bold ${active ? "text-orange-600" : "text-neutral-500"}`}>
+                {c.availableCount}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function DiscoverSection({ onInvite }: { posts: OwnPost[]; onInvite: (w: WaiterEntry) => void }) {
   const [filterAvailable, setFilterAvailable] = useState(false);
   const [filterMinScore, setFilterMinScore]   = useState(0);
@@ -105,6 +163,7 @@ export function DiscoverSection({ onInvite }: { posts: OwnPost[]; onInvite: (w: 
 
   return (
     <>
+      <ReachCoveragePanel selected={filterMunicipality} onSelect={setFilterMuni} />
       <div className="flex flex-wrap gap-2">
         <button onClick={() => setFilterAvailable(p => !p)}
           className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${filterAvailable ? "bg-green-500 text-white border-green-500" : "bg-white text-neutral-600 border-neutral-200 hover:border-green-400"}`}>
