@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useWaiterSearch } from "@/hooks/useWaiterSearch";
+import { WaiterCard, type WaiterCardData } from "@/components/ui/WaiterCard";
 
-type Venue = { id: string; name: string };
+type Venue = { id: string; name: string; municipality: string };
 
 const ENGAGEMENT_TYPES = [
   { value: "FULL_TIME",    label: "Stalno" },
@@ -63,6 +65,10 @@ export default function NewJobPostPage() {
   const setField = <K extends keyof JobPostForm>(k: K, v: JobPostForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
+  // After a successful post: switch to the reachable-waiter suggestions instead of
+  // navigating away, so the owner can invite the right people in one step.
+  const [posted, setPosted] = useState<{ jobId: string; municipality: string } | null>(null);
+
   useEffect(() => {
     if (status !== "authenticated") return;
     fetch("/api/venues")
@@ -102,8 +108,16 @@ export default function NewJobPostPage() {
           redAlertNote: form.redAlert ? (form.redAlertNote || null) : null,
         }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? "Greška");
-      router.push("/venue/jobs");
+      const created = await res.json();
+      if (!res.ok) throw new Error(created.error ?? "Greška");
+      const venue = venues.find(v => v.id === form.venueId);
+      // Suggest reachable waiters for the venue's opština; fall back to navigating
+      // if we somehow lack the municipality (older venue rows).
+      if (venue?.municipality) {
+        setPosted({ jobId: created.id, municipality: venue.municipality });
+      } else {
+        router.push("/venue/jobs");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Greška");
     } finally {
@@ -125,9 +139,18 @@ export default function NewJobPostPage() {
           <div className="flex items-center gap-3 mb-1">
             <Link href="/venue/jobs" className="text-sm text-neutral-400 hover:text-orange-500 font-semibold transition-colors">← Oglasi</Link>
           </div>
-          <h1 className="text-2xl font-black text-neutral-900">Novi oglas za posao</h1>
+          <h1 className="text-2xl font-black text-neutral-900">
+            {posted ? "Oglas objavljen!" : "Novi oglas za posao"}
+          </h1>
         </div>
 
+        {posted ? (
+          <ReachSuggestions
+            jobId={posted.jobId}
+            municipality={posted.municipality}
+            onDone={() => router.push("/venue/jobs")}
+          />
+        ) : (
         <form onSubmit={handleSubmit} className="dash-card p-6 flex flex-col gap-5">
 
           {venues.length > 1 && (
@@ -236,7 +259,85 @@ export default function NewJobPostPage() {
           </div>
 
         </form>
+        )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Reverse discovery (B4 Part 1): right after a post is created, surface the
+ * available waiters whose declared reach covers the venue's opština, each with a
+ * one-tap invite. Reuses the shared waiter search + card so this stays in sync
+ * with the venue Discover surface.
+ */
+function ReachSuggestions({ jobId, municipality, onDone }: {
+  jobId: string;
+  municipality: string;
+  onDone: () => void;
+}) {
+  const { waiters, isLoading } = useWaiterSearch<WaiterCardData>({ municipality, available: true });
+  const [invited, setInvited] = useState<Record<string, "sending" | "done" | "error">>({});
+
+  async function invite(waiterId: string) {
+    setInvited(p => ({ ...p, [waiterId]: "sending" }));
+    const res = await fetch("/api/invites", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ waiterId, jobPostId: jobId }),
+    });
+    // 409 = already invited for this post — treat as done, not an error.
+    setInvited(p => ({ ...p, [waiterId]: res.ok || res.status === 409 ? "done" : "error" }));
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="dash-card p-5">
+        <p className="text-sm font-bold text-neutral-900">
+          Konobari koji rade u opštini {municipality}
+        </p>
+        <p className="text-xs text-neutral-400 mt-0.5">
+          Dostupni konobari iz tvoje opštine — pozovi ih direktno na ovaj oglas.
+        </p>
+      </div>
+
+      {isLoading ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[0, 1].map(i => <div key={i} className="h-32 rounded-2xl bg-neutral-100 animate-pulse" />)}
+        </div>
+      ) : waiters.length === 0 ? (
+        <div className="dash-card p-8 text-center text-sm text-neutral-400">
+          Trenutno nema dostupnih konobara u ovoj opštini. Oglas je i dalje objavljen.
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {waiters.map(w => {
+            const state = invited[w.id];
+            return (
+              <WaiterCard
+                key={w.id}
+                waiter={w}
+                actions={
+                  <button
+                    onClick={() => invite(w.id)}
+                    disabled={state === "sending" || state === "done"}
+                    className="btn-dash-orange flex-1 py-1.5 text-xs disabled:opacity-60"
+                  >
+                    {state === "done" ? "Pozvan ✓"
+                      : state === "sending" ? "Šaljem..."
+                      : state === "error" ? "Pokušaj opet"
+                      : "Pozovi"}
+                  </button>
+                }
+              />
+            );
+          })}
+        </div>
+      )}
+
+      <button onClick={onDone} className="btn-dash-outline py-2.5 text-sm self-start px-6">
+        Gotovo →
+      </button>
     </div>
   );
 }
