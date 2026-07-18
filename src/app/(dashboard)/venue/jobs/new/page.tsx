@@ -162,6 +162,8 @@ export default function NewJobPostPage() {
             </div>
           )}
 
+          <ReachPreview municipality={venues.find(v => v.id === form.venueId)?.municipality ?? ""} />
+
           <div>
             <label className="text-xs font-bold text-neutral-500 uppercase tracking-wide mb-1 block">Naslov oglasa *</label>
             <input value={form.title} onChange={e => setField("title", e.target.value)} className="auth-input" placeholder="npr. Senior Konobar" required />
@@ -261,6 +263,34 @@ export default function NewJobPostPage() {
         </form>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Live reach preview on the job form: how many available waiters already work in
+ * the selected venue's opština, so the owner knows the post will land before
+ * committing to it. Zero is a nudge toward Red Alert. Reuses the shared search so
+ * the count matches the post-success suggestions exactly.
+ */
+function ReachPreview({ municipality }: { municipality: string }) {
+  const { waiters, isLoading } = useWaiterSearch<{ id: string }>(
+    { municipality, available: true },
+    { enabled: !!municipality },
+  );
+
+  if (!municipality || isLoading) return null;
+
+  const n = waiters.length;
+  return n > 0 ? (
+    <div className="flex items-center gap-2 rounded-xl bg-green-50 border border-green-200 px-3 py-2 text-xs font-semibold text-green-800">
+      <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+      {n} {n === 1 ? "dostupan konobar radi" : "dostupnih konobara radi"} u opštini {municipality} — videće tvoj oglas.
+    </div>
+  ) : (
+    <div className="flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-semibold text-amber-800">
+      <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+      Trenutno nema dostupnih konobara u opštini {municipality}. Razmisli o Red Alert-u za širi doseg.
     </div>
   );
 }
