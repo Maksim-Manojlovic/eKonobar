@@ -5,6 +5,19 @@ import Link from "next/link";
 import { FAQAccordion, type FAQItem } from "@/components/ui/FAQAccordion";
 import { NavAuthButton } from "@/components/ui/NavAuthButton";
 import { FlagSwitcher } from "@/components/ui/FlagSwitcher";
+import { WaiterCard, type WaiterCardData } from "@/components/ui/WaiterCard";
+
+// Illustrative sample profiles for the marketplace preview — NOT real waiters.
+// Real profiles carry names/photos (PII) and are gated behind an owner account;
+// this teaser shows the format only. `image: null` renders initials, not a face.
+const SAMPLE_WAITERS: WaiterCardData[] = [
+  { id: "s1", name: "Marko N.", image: null, verificationTier: "ID_VERIFIED",
+    waiterPassport: { score: 94, skills: ["fine dining", "cocktails", "sommelier"], yearsExperience: 8, sanitaryBookValid: true, currentlyAvailable: true, reviewCount: 42, totalEngagements: 37, passportTier: "PRO_PLUS", subscriptionExpiresAt: "2099-01-01" } },
+  { id: "s2", name: "Ana P.", image: null, verificationTier: "GOLD",
+    waiterPassport: { score: 88, skills: ["kafe aparat", "brza usluga"], yearsExperience: 5, sanitaryBookValid: true, currentlyAvailable: true, reviewCount: 28, totalEngagements: 21, passportTier: "PRO", subscriptionExpiresAt: "2099-01-01" } },
+  { id: "s3", name: "Stefan Đ.", image: null, verificationTier: "SILVER",
+    waiterPassport: { score: 76, skills: ["šank", "catering"], yearsExperience: 3, sanitaryBookValid: false, currentlyAvailable: true, reviewCount: 11, totalEngagements: 9, passportTier: "FREE", subscriptionExpiresAt: null } },
+];
 
 const LogoMark = () => (
   <div className="logo-mark w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -392,6 +405,37 @@ export default function ForVenuesPage() {
           </div>
         </div>
       </section>
+
+      {/* ── MARKETPLACE KONOBARA (preview) ── */}
+      <section id="konobari" className="max-w-7xl mx-auto px-6 py-24">
+        <div className="max-w-2xl mb-12">
+          <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Marketplace</span>
+          <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">
+            Pretraži konobare kao <span className="text-orange-500">bazu talenata</span>.
+          </h2>
+          <p className="mt-4 text-lg text-neutral-500 font-light leading-relaxed">
+            Filtriraj po oceni, veštinama, sanitarnoj i opštini u kojoj su spremni da rade. Verifikovani profili — pozovi ih jednim klikom.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {SAMPLE_WAITERS.map(w => (
+            <WaiterCard key={w.id} waiter={w} showStats
+              actions={<span className="flex-1 text-center py-1.5 text-xs font-bold text-orange-500 border border-orange-200 rounded-lg bg-orange-50">Pozovi</span>} />
+          ))}
+        </div>
+
+        <div className="mt-6 flex flex-col sm:flex-row items-center gap-3 rounded-2xl bg-neutral-900 px-5 py-4">
+          <p className="text-sm text-white/80 font-medium flex-1 text-center sm:text-left">
+            <span className="text-white font-bold">Primer prikaza.</span> Registruj lokal da pretražiš prave, verifikovane konobare u tvojoj opštini.
+          </p>
+          <Link href="/register?role=VENUE_OWNER" className="btn-primary text-white font-bold px-6 py-2.5 rounded-xl text-sm whitespace-nowrap">
+            Registruj lokal →
+          </Link>
+        </div>
+      </section>
+
+      <div className="section-divider max-w-7xl mx-auto" />
 
       {/* ── KAKO RADI ── */}
       <section id="kako-radi" className="max-w-7xl mx-auto px-6 py-24">
