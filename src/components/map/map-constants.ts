@@ -1,4 +1,5 @@
 import { DEFAULT_CITY } from "@/lib/geo/cities";
+import { ENGAGEMENT_LABELS, VENUE_TYPE_LABELS } from "@/lib/formatting/display-maps";
 import type { JobProps, MapFilters, MapMode, MapProps } from "./map-types";
 
 /** Initial viewport. Belgrade until a city picker exists — see lib/geo/cities.ts. */
@@ -32,6 +33,49 @@ export function isJob(p: MapProps): p is JobProps {
 /** Stable id for any feature — job posts and venues never share an id space. */
 export function featureId(p: MapProps): string {
   return p.id;
+}
+
+// ── Marker colors ───────────────────────────────────────────────────────────
+// Hex (for inline marker fill), keyed by enum so a new value fails obviously as
+// the grey fallback rather than a wrong color. Distinct saturated hues so the
+// categories separate on the light-v11 basemap; white marker borders carry the
+// contrast. Red is reserved for Red Alert (RedAlertPulse), so it appears in
+// neither palette.
+const NEUTRAL_MARKER = "#f97316"; // brand orange — fallback + cluster color
+
+export const VENUE_TYPE_MARKER: Record<string, string> = {
+  RESTAURANT: "#f97316", // orange
+  CAFE:       "#a16207", // coffee brown
+  BAR:        "#8b5cf6", // violet
+  CATERING:   "#14b8a6", // teal
+  HOTEL:      "#3b82f6", // blue
+  EVENT:      "#ec4899", // pink
+};
+
+export const ENGAGEMENT_MARKER: Record<string, string> = {
+  FULL_TIME:   "#3b82f6", // blue — permanent
+  SEASONAL:    "#14b8a6", // teal
+  WEEKEND:     "#8b5cf6", // violet
+  CELEBRATION: "#ec4899", // pink
+};
+
+/** Marker fill for a feature — by venueType (venues) or engagementType (jobs). */
+export function markerColor(p: MapProps): string {
+  if (isJob(p)) return ENGAGEMENT_MARKER[p.engagementType] ?? NEUTRAL_MARKER;
+  return VENUE_TYPE_MARKER[p.venueType ?? ""] ?? NEUTRAL_MARKER;
+}
+
+export const CLUSTER_COLOR = NEUTRAL_MARKER;
+
+/** Legend rows for a mode: [label, hex]. Red Alert appended for jobs. */
+export function legendRows(mode: MapMode): [string, string][] {
+  if (mode === "venues") {
+    return Object.entries(VENUE_TYPE_MARKER).map(([k, hex]) => [VENUE_TYPE_LABELS[k] ?? k, hex]);
+  }
+  return [
+    ...Object.entries(ENGAGEMENT_MARKER).map(([k, hex]): [string, string] => [ENGAGEMENT_LABELS[k] ?? k, hex]),
+    ["Red Alert", "#ef4444"],
+  ];
 }
 
 /**

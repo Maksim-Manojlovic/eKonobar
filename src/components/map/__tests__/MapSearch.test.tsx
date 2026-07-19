@@ -134,7 +134,9 @@ describe("MapSearch", () => {
     lastOnLoad?.();
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
 
-    fireEvent.click(screen.getAllByText("Red Alert")[0]);
+    // Target a chip button — "Red Alert" also appears as a legend label (a span),
+    // and the chip renders in both the desktop sidebar and the mobile sheet.
+    fireEvent.click(screen.getAllByRole("button", { name: /Red Alert/ })[0]);
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
     // The whole point of A2: the filter goes to the server, not to a .filter().
