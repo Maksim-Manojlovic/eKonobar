@@ -88,8 +88,6 @@ const faqItems: FAQItem[] = [
   },
 ];
 
-const venues = ["Salon 1905", "Freestyler", "Manufaktura", "Bar Central", "Kafana Skadarlija", "Bar Mixer", "Kafeterija Dok", "Klub 20/44"];
-
 const NAV_LINKS_VENUE = [
   { href: "#kako-radi", label: "Kako funkcioniše" },
   { href: "#cenovnik",  label: "Cenovnik"         },
@@ -184,42 +182,12 @@ export default function ForVenuesPage() {
               <strong className="font-semibold text-neutral-700">plaćate samo odrađenu smenu. Hitna zamena osoblja za 12 minuta.</strong>
             </p>
 
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-3 pt-1">
-              <div className="flex items-center gap-2.5">
-                <div className="flex -space-x-2">
-                  {["bg-orange-200", "bg-orange-300", "bg-orange-400"].map(c => (
-                    <div key={c} className={`w-7 h-7 rounded-full ${c} border-2 border-white`} />
-                  ))}
-                </div>
-                <span className="text-xs text-neutral-600"><strong className="font-bold text-neutral-900">500+ lokala</strong> u Beogradu već koristi</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-neutral-500">
-                <CheckOrange />
-                <span>0 RSD dok ne popuniš prvu smenu</span>
-              </div>
-            </div>
-
             <div className="flex flex-wrap gap-4 pt-2">
               <Link href="#demo" className="btn-primary text-white font-bold text-base px-8 py-4 rounded-2xl flex items-center gap-2.5">
                 Zakaži demo (20 min)
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M9 4L13 8L9 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </Link>
               <Link href="/register?role=venue" className="btn-secondary font-semibold text-base px-8 py-4 rounded-2xl flex items-center gap-2.5">Postavi prvi oglas</Link>
-            </div>
-
-            <div className="grid grid-cols-3 gap-6 pt-8 border-t border-neutral-200/70 max-w-lg">
-              <div className="stat">
-                <div className="font-extrabold text-3xl text-neutral-900">15<span className="text-base text-neutral-400 font-bold">min</span></div>
-                <div className="text-[11px] text-neutral-400 font-medium mt-0.5">prosečno do prve prijave</div>
-              </div>
-              <div className="stat border-l border-neutral-200/70 pl-6">
-                <div className="font-extrabold text-3xl text-neutral-900">↓68<span className="text-base text-neutral-400 font-bold">%</span></div>
-                <div className="text-[11px] text-neutral-400 font-medium mt-0.5">no-show stopa</div>
-              </div>
-              <div className="stat border-l border-neutral-200/70 pl-6">
-                <div className="font-extrabold text-3xl text-neutral-900">+24<span className="text-base text-neutral-400 font-bold">%</span></div>
-                <div className="text-[11px] text-neutral-400 font-medium mt-0.5">prosečna ocena gosta</div>
-              </div>
             </div>
           </div>
 
@@ -297,17 +265,34 @@ export default function ForVenuesPage() {
             </div>
           </div>
         </div>
+      </section>
 
-        {/* Marquee */}
-        <div className="mt-20 pt-10 border-t border-neutral-200/70">
-          <div className="text-center text-[11px] tracking-[0.2em] uppercase font-bold text-neutral-400 mb-6">Lokali koji nam veruju</div>
-          <div className="overflow-hidden relative" style={{ maskImage: "linear-gradient(90deg, transparent, black 10%, black 90%, transparent)" }}>
-            <div className="marquee-track flex gap-12 whitespace-nowrap">
-              {[...venues, ...venues].map((v, i) => (
-                <span key={i} className="text-2xl font-extrabold text-neutral-300 tracking-tight">{v}</span>
-              ))}
-            </div>
-          </div>
+      {/* ── MARKETPLACE KONOBARA (preview) ── */}
+      <section id="konobari" className="max-w-7xl mx-auto px-6 py-24">
+        <div className="max-w-2xl mb-12">
+          <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Marketplace</span>
+          <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">
+            Pretraži konobare kao <span className="text-orange-500">bazu talenata</span>.
+          </h2>
+          <p className="mt-4 text-lg text-neutral-500 font-light leading-relaxed">
+            Filtriraj po oceni, veštinama, sanitarnoj i opštini u kojoj su spremni da rade. Verifikovani profili — pozovi ih jednim klikom.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {SAMPLE_WAITERS.map(w => (
+            <WaiterCard key={w.id} waiter={w} showStats
+              actions={<span className="flex-1 text-center py-1.5 text-xs font-bold text-orange-500 border border-orange-200 rounded-lg bg-orange-50">Pozovi</span>} />
+          ))}
+        </div>
+
+        <div className="mt-6 flex flex-col sm:flex-row items-center gap-3 rounded-2xl bg-neutral-900 px-5 py-4">
+          <p className="text-sm text-white/80 font-medium flex-1 text-center sm:text-left">
+            <span className="text-white font-bold">Primer prikaza.</span> Registruj lokal da pretražiš prave, verifikovane konobare u tvojoj opštini.
+          </p>
+          <Link href="/register?role=VENUE_OWNER" className="btn-primary text-white font-bold px-6 py-2.5 rounded-xl text-sm whitespace-nowrap">
+            Registruj lokal →
+          </Link>
         </div>
       </section>
 
@@ -406,35 +391,6 @@ export default function ForVenuesPage() {
         </div>
       </section>
 
-      {/* ── MARKETPLACE KONOBARA (preview) ── */}
-      <section id="konobari" className="max-w-7xl mx-auto px-6 py-24">
-        <div className="max-w-2xl mb-12">
-          <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Marketplace</span>
-          <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">
-            Pretraži konobare kao <span className="text-orange-500">bazu talenata</span>.
-          </h2>
-          <p className="mt-4 text-lg text-neutral-500 font-light leading-relaxed">
-            Filtriraj po oceni, veštinama, sanitarnoj i opštini u kojoj su spremni da rade. Verifikovani profili — pozovi ih jednim klikom.
-          </p>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {SAMPLE_WAITERS.map(w => (
-            <WaiterCard key={w.id} waiter={w} showStats
-              actions={<span className="flex-1 text-center py-1.5 text-xs font-bold text-orange-500 border border-orange-200 rounded-lg bg-orange-50">Pozovi</span>} />
-          ))}
-        </div>
-
-        <div className="mt-6 flex flex-col sm:flex-row items-center gap-3 rounded-2xl bg-neutral-900 px-5 py-4">
-          <p className="text-sm text-white/80 font-medium flex-1 text-center sm:text-left">
-            <span className="text-white font-bold">Primer prikaza.</span> Registruj lokal da pretražiš prave, verifikovane konobare u tvojoj opštini.
-          </p>
-          <Link href="/register?role=VENUE_OWNER" className="btn-primary text-white font-bold px-6 py-2.5 rounded-xl text-sm whitespace-nowrap">
-            Registruj lokal →
-          </Link>
-        </div>
-      </section>
-
       <div className="section-divider max-w-7xl mx-auto" />
 
       {/* ── KAKO RADI ── */}
@@ -519,6 +475,10 @@ export default function ForVenuesPage() {
 
       {/* ── TESTIMONIALS ── */}
       <section className="max-w-7xl mx-auto px-6 py-24">
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Utisci</span>
+          <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">Šta kažu vlasnici lokala</h2>
+        </div>
         <div className="grid lg:grid-cols-3 gap-5">
           {[
             { q: "Imam restoran 14 godina. Prvi alat koji je stvarno rešio problem zamena u sezoni — bez agencija i bez panike.", name: "Aleksandar Pavlović", venue: "Manufaktura · Zemun", init: "AP" },
