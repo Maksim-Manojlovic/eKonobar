@@ -2,11 +2,15 @@
 
 import { Marker } from "react-map-gl/mapbox";
 import RedAlertPulse from "./RedAlertPulse";
-import { isJob } from "./map-constants";
+import { isJob, markerColor, CLUSTER_COLOR } from "./map-constants";
 import type { MapProps } from "./map-types";
 import type { MapState } from "./useMapState";
 
-/** A single feature's pin. Red Alert jobs pulse; everything else is a plain disc. */
+/**
+ * A single feature's pin. Red Alert jobs pulse red (their urgency overrides the
+ * category color); everything else is a disc tinted by its type — venueType for
+ * venues, engagementType for jobs — so the map reads as a legend at a glance.
+ */
 function MarkerBody({ p, isSel, isHov }: { p: MapProps; isSel: boolean; isHov: boolean }) {
   const scale = isSel ? "scale-150" : isHov ? "scale-125" : "";
 
@@ -20,10 +24,8 @@ function MarkerBody({ p, isSel, isHov }: { p: MapProps; isSel: boolean; isHov: b
 
   return (
     <div
-      className={
-        "w-4 h-4 rounded-full bg-orange-500 border-2 border-white shadow-md " +
-        `cursor-pointer transition-transform hover:scale-125 ${scale}`
-      }
+      className={`w-4 h-4 rounded-full border-2 border-white shadow-md cursor-pointer transition-transform hover:scale-125 ${scale}`}
+      style={{ backgroundColor: markerColor(p) }}
     />
   );
 }
@@ -73,8 +75,8 @@ export function ClusterMarkers({
               }}
             >
               <div
-                className="flex items-center justify-center rounded-full bg-orange-500 border-2 border-white text-white font-black shadow-lg cursor-pointer transition-transform hover:scale-110"
-                style={{ width: size, height: size, fontSize: count < 50 ? 12 : 13 }}
+                className="flex items-center justify-center rounded-full border-2 border-white text-white font-black shadow-lg cursor-pointer transition-transform hover:scale-110"
+                style={{ width: size, height: size, fontSize: count < 50 ? 12 : 13, backgroundColor: CLUSTER_COLOR }}
               >
                 {count}
               </div>

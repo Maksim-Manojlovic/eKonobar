@@ -4,6 +4,7 @@ import Map, { NavigationControl } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { ClusterMarkers } from "./MapMarkers";
 import { MapPopup } from "./MapPopup";
+import { MapLegend } from "./MapLegend";
 import { MapSidebar } from "./MapSidebar";
 import { MapMobileSheet } from "./MapMobileSheet";
 import type { MapPanelProps } from "./MapPanelContent";
@@ -101,6 +102,8 @@ export default function MapSearch({ mode, className = "" }: Props) {
             <p className="text-xs font-bold text-neutral-500">Učitavam…</p>
           </div>
         )}
+
+        <MapLegend mode={s.mode} />
 
         <MapMobileSheet {...panelProps} />
       </div>
