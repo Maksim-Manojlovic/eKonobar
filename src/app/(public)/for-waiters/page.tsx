@@ -1,11 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { FAQAccordion, type FAQItem } from "@/components/ui/FAQAccordion";
 import { NavAuthButton } from "@/components/ui/NavAuthButton";
 import { PassportProCTA } from "@/components/ui/PassportProCTA";
 import { FlagSwitcher } from "@/components/ui/FlagSwitcher";
+
+// Real, public job map — the same MapSearch the app uses. Loaded client-side
+// (mapbox-gl is browser-only). Renders a token-missing fallback until configured.
+const MapSearch = dynamic(() => import("@/components/map/MapSearch"), { ssr: false });
 
 const LogoMark = () => (
   <div className="logo-mark w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -337,6 +342,32 @@ export default function ForWaitersPage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <div className="section-divider max-w-7xl mx-auto" />
+
+      {/* ── ŽIVA MAPA POSLOVA ── */}
+      <section id="mapa" className="max-w-7xl mx-auto px-6 py-24">
+        <div className="max-w-2xl mb-14">
+          <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Uživo</span>
+          <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">
+            Poslovi na <span className="text-orange-500">mapi</span>, u realnom vremenu.
+          </h2>
+          <p className="mt-4 text-lg text-neutral-500 font-light leading-relaxed">
+            Ovo je prava mapa iz aplikacije — pomeraj, zumiraj, filtriraj po tipu. Vidi gde ima posla pre nego što se registruješ.
+          </p>
+        </div>
+
+        <MapSearch mode="jobs" />
+
+        <div className="mt-6 flex flex-col sm:flex-row items-center gap-3 rounded-2xl bg-orange-50 border border-orange-100 px-5 py-4">
+          <p className="text-sm text-neutral-700 font-medium flex-1 text-center sm:text-left">
+            Da konkurišeš na oglas i vidiš pun profil lokala — napravi nalog. Besplatno.
+          </p>
+          <Link href="/register?role=WAITER" className="btn-primary text-white font-bold px-6 py-2.5 rounded-xl text-sm whitespace-nowrap">
+            Napravi Passport →
+          </Link>
         </div>
       </section>
 
