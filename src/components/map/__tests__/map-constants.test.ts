@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { buildMapQuery, mapEndpoint, isJob, EMPTY_FILTERS } from "../map-constants";
+import {
+  buildMapQuery, mapEndpoint, isJob, EMPTY_FILTERS,
+  markerColor, legendRows, VENUE_TYPE_MARKER, ENGAGEMENT_MARKER,
+} from "../map-constants";
 import type { JobProps, MapFilters, VenueProps } from "../map-types";
 
 const BBOX = { swLat: 44.7, swLng: 20.3, neLat: 44.9, neLng: 20.5 };
@@ -91,5 +94,44 @@ describe("isJob", () => {
   it("survives supercluster passthrough (properties copied verbatim)", () => {
     expect(isJob({ ...job })).toBe(true);
     expect(isJob({ ...venue })).toBe(false);
+  });
+});
+
+describe("markerColor", () => {
+  const venue = (venueType: string) => ({ id: "v", name: "X", activeJobs: 0, venueType } as unknown as VenueProps);
+  const job = (engagementType: string) => ({ id: "j", title: "K", engagementType, venue: {} } as unknown as JobProps);
+
+  it("colors a venue by its venueType", () => {
+    expect(markerColor(venue("BAR"))).toBe(ENGAGEMENT_MARKER.WEEKEND); // BAR + WEEKEND share violet
+    expect(markerColor(venue("HOTEL"))).toBe(VENUE_TYPE_MARKER.HOTEL);
+  });
+
+  it("colors a job by its engagementType", () => {
+    expect(markerColor(job("FULL_TIME"))).toBe(ENGAGEMENT_MARKER.FULL_TIME);
+    expect(markerColor(job("CELEBRATION"))).toBe(ENGAGEMENT_MARKER.CELEBRATION);
+  });
+
+  it("falls back to the brand orange for an unknown type", () => {
+    expect(markerColor(venue("NOT_A_TYPE"))).toBe("#f97316");
+    expect(markerColor(job("NOT_A_TYPE"))).toBe("#f97316");
+  });
+
+  it("every venue/engagement enum value has a distinct-ish hex (no undefined)", () => {
+    for (const hex of Object.values(VENUE_TYPE_MARKER)) expect(hex).toMatch(/^#[0-9a-f]{6}$/i);
+    for (const hex of Object.values(ENGAGEMENT_MARKER)) expect(hex).toMatch(/^#[0-9a-f]{6}$/i);
+  });
+});
+
+describe("legendRows", () => {
+  it("venues: one row per venue type, Serbian labels", () => {
+    const rows = legendRows("venues");
+    expect(rows.length).toBe(Object.keys(VENUE_TYPE_MARKER).length);
+    expect(rows).toContainEqual(["Restoran", VENUE_TYPE_MARKER.RESTAURANT]);
+  });
+
+  it("jobs: engagement rows plus a Red Alert row", () => {
+    const rows = legendRows("jobs");
+    expect(rows).toContainEqual(["Stalno", ENGAGEMENT_MARKER.FULL_TIME]);
+    expect(rows.some(([label]) => label === "Red Alert")).toBe(true);
   });
 });
