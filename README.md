@@ -326,7 +326,15 @@ Trigger with any HTTP scheduler. On Vercel, add to `vercel.json`:
 {
   "crons": [
     { "path": "/api/cron/publish-reviews",      "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/retry-notifications",  "schedule": "0 * * * *"   }
+    { "path": "/api/cron/retry-notifications",  "schedule": "0 * * * *"   },
+    { "path": "/api/cron/leave-rollover",       "schedule": "0 3 * * *"   }
   ]
 }
 ```
+
+`POST /api/cron/leave-rollover` — opens the new leave year for every active staff
+member and expires carry-over days left unused past each venue's
+`carryOverDeadline`. Safe to run daily: opening a year is a no-op once the
+balance exists, and expiry only touches days that are still unused. Running it
+daily rather than annually also means a venue that changes its deadline mid-year
+is honoured without a manual trigger.

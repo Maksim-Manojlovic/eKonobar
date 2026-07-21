@@ -8,7 +8,7 @@ import {
   DEPARTMENT_LABELS, POSITION_LABELS, formatDate,
 } from "@/lib/formatting/display-maps";
 import { Sk } from "./venue-helpers";
-import type { LeaveRequestRow, LeaveRequestsResponse } from "./venue-types";
+import type { LeaveRequestRow, LeaveRequestsResponse, StaffResponse } from "./venue-types";
 
 type StatusFilter = "PENDING" | "APPROVED" | "ALL";
 
@@ -51,6 +51,132 @@ function RejectModal({ request, onClose, onConfirm, busy }: {
             className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 disabled:opacity-50">
             {busy ? "…" : "Odbij"}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Manager files sick leave on a worker's behalf ───────────────────────── */
+
+type SickForm = { waiterId: string; startDate: string; endDate: string; reason: string };
+
+function SickModal({ venueId, department, onClose, onSaved }: {
+  venueId: string;
+  department: "FOH" | "BOH" | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [form, setForm] = useState<SickForm>({
+    waiterId: "", startDate: "", endDate: "", reason: "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState<string | null>(null);
+
+  const setField = <K extends keyof SickForm>(k: K, v: SickForm[K]) =>
+    setForm(f => ({ ...f, [k]: v }));
+
+  const { data: roster } = useApi<StaffResponse>(`/api/venues/${venueId}/staff`);
+  const staff = (roster?.staff ?? [])
+    .filter(m => m.status === "ACTIVE")
+    .filter(m => (department ? m.department === department : true));
+
+  const valid = !!form.waiterId && !!form.startDate && !!form.endDate;
+
+  const submit = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/leave/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          venueId,
+          type: "SICK",
+          waiterId:  form.waiterId,
+          startDate: form.startDate,
+          endDate:   form.endDate,
+          reason:    form.reason || null,
+        }),
+      });
+      if (!res.ok) {
+        setError((await res.json().catch(() => ({}))).error ?? "Greška");
+        return;
+      }
+      onSaved();
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+         onClick={onClose}>
+      <div className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl max-h-[88dvh] overflow-y-auto"
+           onClick={e => e.stopPropagation()}>
+        <div className="p-5 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-black text-lg text-neutral-900">Evidentiraj bolovanje</h3>
+            <button onClick={onClose} className="text-neutral-400 hover:text-neutral-900 text-xl leading-none">×</button>
+          </div>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold text-neutral-500 uppercase">Radnik</span>
+            <select value={form.waiterId} onChange={e => setField("waiterId", e.target.value)}
+              className="px-3 py-2 rounded-xl border border-neutral-200 text-sm bg-white">
+              <option value="">— izaberite —</option>
+              {staff.map(m => (
+                <option key={m.id} value={m.waiter.id}>
+                  {m.waiter.name ?? "Radnik"} · {POSITION_LABELS[m.position] ?? m.position}
+                </option>
+              ))}
+            </select>
+            {staff.length === 0 && (
+              <span className="text-[10px] text-neutral-400">
+                Nema aktivnog osoblja. Dodajte radnike u sekciji Osoblje.
+              </span>
+            )}
+          </label>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-neutral-500 uppercase">Od</span>
+              <input type="date" value={form.startDate}
+                onChange={e => setField("startDate", e.target.value)}
+                className="px-3 py-2 rounded-xl border border-neutral-200 text-sm" />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-neutral-500 uppercase">Do</span>
+              <input type="date" value={form.endDate} min={form.startDate}
+                onChange={e => setField("endDate", e.target.value)}
+                className="px-3 py-2 rounded-xl border border-neutral-200 text-sm" />
+            </label>
+          </div>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold text-neutral-500 uppercase">Napomena (opciono)</span>
+            <textarea value={form.reason} onChange={e => setField("reason", e.target.value)} rows={2}
+              className="px-3 py-2 rounded-xl border border-neutral-200 text-sm resize-none" />
+          </label>
+
+          <p className="text-[10px] text-neutral-400">
+            Bolovanje se ne oduzima od godišnjeg odmora i može se uneti unazad.
+            Odobrava se odmah — vaš unos je potvrda.
+          </p>
+
+          {error && <p className="text-sm text-red-600 font-medium">{error}</p>}
+
+          <div className="flex gap-2">
+            <button onClick={onClose}
+              className="flex-1 px-4 py-2.5 rounded-xl border border-neutral-200 text-sm font-bold text-neutral-600 hover:bg-neutral-50">
+              Otkaži
+            </button>
+            <button onClick={submit} disabled={!valid || saving}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 disabled:opacity-50">
+              {saving ? "Čuvanje…" : "Evidentiraj"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -144,6 +270,7 @@ export default function VenueLeaveRequests({ venueId, hasKitchen, department }: 
   const [busyId, setBusyId]     = useState<string | null>(null);
   const [error, setError]       = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<LeaveRequestRow | null>(null);
+  const [filingSick, setFilingSick] = useState(false);
 
   const { data, isLoading, mutate } = useApi<LeaveRequestsResponse>(
     `/api/leave/requests?venueId=${venueId}`,
@@ -200,6 +327,11 @@ export default function VenueLeaveRequests({ venueId, hasKitchen, department }: 
             )}
           </button>
         ))}
+
+        <button onClick={() => setFilingSick(true)}
+          className="ml-auto px-3 py-1.5 rounded-full text-xs font-bold border border-rose-200 text-rose-600 hover:bg-rose-50">
+          + Bolovanje
+        </button>
       </div>
 
       {error && <p className="text-sm text-red-600 font-medium">{error}</p>}
@@ -230,6 +362,11 @@ export default function VenueLeaveRequests({ venueId, hasKitchen, department }: 
         <RejectModal request={rejecting} busy={busyId === rejecting.id}
           onClose={() => setRejecting(null)}
           onConfirm={(reason) => act(rejecting, "reject", reason)} />
+      )}
+
+      {filingSick && (
+        <SickModal venueId={venueId} department={department}
+          onClose={() => setFilingSick(false)} onSaved={mutate} />
       )}
     </>
   );

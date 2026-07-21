@@ -21,6 +21,10 @@ export interface WaiterFilters {
   languages?: string;
   /** Belgrade municipality the waiter must have in their declared reach. */
   municipality?: string;
+  /** FOH | BOH — matches anyone currently on a roster in that department. */
+  department?: string;
+  /** Exact StaffPosition, e.g. HEAD_CHEF. Narrower than department. */
+  position?: string;
 }
 
 /** Pure builder — exported for unit testing. Omits empty/falsy params. */
@@ -35,6 +39,8 @@ export function buildWaiterQuery(f: WaiterFilters): string {
   if (f.skills)                     params.set("skills", f.skills);
   if (f.languages)                  params.set("languages", f.languages);
   if (f.municipality)               params.set("municipality", f.municipality);
+  if (f.department)                 params.set("department", f.department);
+  if (f.position)                   params.set("position", f.position);
   return params.toString();
 }
 

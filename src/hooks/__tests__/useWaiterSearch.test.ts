@@ -47,3 +47,27 @@ describe("buildWaiterQuery", () => {
     expect(qs.get("skills")).toBe("cocktail,sommelier");
   });
 });
+
+describe("buildWaiterQuery — roster filters", () => {
+  it("includes department", () => {
+    expect(buildWaiterQuery({ department: "BOH" })).toBe("department=BOH");
+  });
+
+  it("includes position", () => {
+    expect(buildWaiterQuery({ position: "HEAD_CHEF" })).toBe("position=HEAD_CHEF");
+  });
+
+  it("omits both when unset", () => {
+    expect(buildWaiterQuery({ search: "marko" })).toBe("search=marko");
+  });
+
+  it("combines with the existing filters", () => {
+    const q = new URLSearchParams(buildWaiterQuery({
+      available: true, department: "BOH", position: "LINE_COOK", municipality: "Vračar",
+    }));
+    expect(q.get("available")).toBe("true");
+    expect(q.get("department")).toBe("BOH");
+    expect(q.get("position")).toBe("LINE_COOK");
+    expect(q.get("municipality")).toBe("Vračar");
+  });
+});

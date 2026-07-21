@@ -77,7 +77,70 @@ function BalanceRing({ balance }: { balance: LeaveBalanceEntry }) {
 
 /* ── Request form ────────────────────────────────────────────────────────── */
 
-type RequestForm = { type: string; startDate: string; endDate: string; reason: string };
+type RequestForm = {
+  type: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  attachmentUrl: string;
+};
+
+/** Doznaka upload. Only shown for SICK — nothing else needs paperwork. */
+function AttachmentField({ value, onChange }: {
+  value: string;
+  onChange: (url: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const upload = async (file: File) => {
+    setUploading(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("type", "leave-doc");
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(body.error ?? "Otpremanje nije uspelo");
+        return;
+      }
+      onChange(body.url);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[10px] font-bold text-neutral-500 uppercase">
+        Doznaka <span className="font-normal normal-case">(slika ili PDF)</span>
+      </span>
+
+      {value ? (
+        <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2">
+          <span className="text-xs text-green-700 font-bold flex-1 truncate">Doznaka priložena</span>
+          <a href={value} target="_blank" rel="noopener noreferrer"
+             className="text-xs text-green-700 underline">Pogledaj</a>
+          <button type="button" onClick={() => onChange("")}
+            className="text-xs text-neutral-400 hover:text-neutral-700">Ukloni</button>
+        </div>
+      ) : (
+        <input type="file" accept="image/*,application/pdf" disabled={uploading}
+          onChange={e => { const f = e.target.files?.[0]; if (f) void upload(f); }}
+          className="text-xs file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0
+                     file:bg-orange-50 file:text-orange-700 file:font-bold file:text-xs" />
+      )}
+
+      {uploading && <span className="text-[10px] text-neutral-400">Otpremanje…</span>}
+      {error && <span className="text-[10px] text-red-600">{error}</span>}
+      <span className="text-[10px] text-neutral-400">
+        Bez doznake zahtev čeka da ga lokal potvrdi.
+      </span>
+    </label>
+  );
+}
 
 function RequestModal({ balance, onClose, onSaved }: {
   balance: LeaveBalanceEntry;
@@ -85,7 +148,7 @@ function RequestModal({ balance, onClose, onSaved }: {
   onSaved: () => void;
 }) {
   const [form, setForm] = useState<RequestForm>({
-    type: "ANNUAL", startDate: "", endDate: "", reason: "",
+    type: "ANNUAL", startDate: "", endDate: "", reason: "", attachmentUrl: "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState<string | null>(null);
@@ -117,6 +180,7 @@ function RequestModal({ balance, onClose, onSaved }: {
           startDate: form.startDate,
           endDate:   form.endDate,
           reason:    form.reason || null,
+          attachmentUrl: form.attachmentUrl || null,
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -181,6 +245,11 @@ function RequestModal({ balance, onClose, onSaved }: {
                 <div className="mt-1 text-neutral-400">Vikendi se ne računaju.</div>
               )}
             </div>
+          )}
+
+          {form.type === "SICK" && (
+            <AttachmentField value={form.attachmentUrl}
+              onChange={url => setField("attachmentUrl", url)} />
           )}
 
           <label className="flex flex-col gap-1">
