@@ -65,7 +65,7 @@ export function JobsSection({ jobs, loading, onApply, applying, appliedJobIds }:
       </div>
 
       {view === "map"
-        ? <MapSearch mode="jobs" />
+        ? <MapSearch mode="jobs" theme="dark" />
         : jobs.length === 0
         ? <div className="dash-card p-10 text-center text-neutral-400 text-sm">Nema dostupnih oglasa</div>
         : <div className="flex flex-col gap-3">

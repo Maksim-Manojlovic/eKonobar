@@ -2,18 +2,20 @@
 
 import { useState } from "react";
 import { legendRows } from "./map-constants";
-import type { MapMode } from "./map-types";
+import { mapThemeTokens } from "./map-theme";
+import type { MapMode, MapTheme } from "./map-types";
 
 /**
  * Color key for the marker categories. Collapsible so it never fights the map on
  * small screens. Sits bottom-left over the canvas.
  */
-export function MapLegend({ mode }: { mode: MapMode }) {
+export function MapLegend({ mode, theme }: { mode: MapMode; theme: MapTheme }) {
   const [open, setOpen] = useState(true);
   const rows = legendRows(mode);
+  const t = mapThemeTokens(theme);
 
   return (
-    <div className="absolute bottom-3 left-3 z-10 rounded-xl bg-white/95 backdrop-blur-sm shadow-lg border border-neutral-200 text-neutral-700 max-w-[60%]">
+    <div className={`absolute bottom-3 left-3 z-10 rounded-xl backdrop-blur-sm shadow-lg border max-w-[60%] ${t.float} ${t.floatText}`}>
       <button
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold w-full"

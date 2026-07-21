@@ -7,6 +7,7 @@ import {
   MapResultList,
   type MapPanelProps,
 } from "./MapPanelContent";
+import { mapThemeTokens } from "./map-theme";
 
 /**
  * Mobile bottom sheet — the same panel content as the desktop sidebar, in the
@@ -18,6 +19,7 @@ import {
  */
 export function MapMobileSheet(props: MapPanelProps) {
   const [open, setOpen] = useState(false);
+  const t = mapThemeTokens(props.theme);
 
   // Body scroll lock while expanded — matches NotificationBell's sheet.
   useEffect(() => {
@@ -30,7 +32,7 @@ export function MapMobileSheet(props: MapPanelProps) {
   return (
     <div className="md:hidden absolute inset-x-0 bottom-0 z-20">
       <div
-        className="rounded-t-2xl border-t border-neutral-200 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.08)] flex flex-col"
+        className={`rounded-t-2xl border-t shadow-[0_-4px_20px_rgba(0,0,0,0.18)] flex flex-col ${t.panelBorder} ${t.panel}`}
         style={{
           maxHeight: open ? "82dvh" : "auto",
           paddingBottom: "env(safe-area-inset-bottom)",
@@ -42,7 +44,7 @@ export function MapMobileSheet(props: MapPanelProps) {
           aria-expanded={open}
           aria-label={open ? "Sakrij rezultate" : "Prikaži rezultate"}
         >
-          <span className="h-1 w-10 rounded-full bg-neutral-300" />
+          <span className={`h-1 w-10 rounded-full ${t.skeleton}`} />
         </button>
 
         <div className="px-4 pb-3 flex flex-col gap-3 shrink-0">
@@ -55,7 +57,7 @@ export function MapMobileSheet(props: MapPanelProps) {
             <MapResultCount {...props} />
             <button
               onClick={() => setOpen((v) => !v)}
-              className="text-xs font-bold text-orange-600 hover:text-orange-700"
+              className="text-xs font-bold text-orange-500 hover:text-orange-400"
             >
               {open ? "Sakrij" : "Prikaži listu"}
             </button>

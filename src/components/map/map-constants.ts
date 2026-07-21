@@ -2,14 +2,57 @@ import { DEFAULT_CITY } from "@/lib/geo/cities";
 import { ENGAGEMENT_LABELS, VENUE_TYPE_LABELS } from "@/lib/formatting/display-maps";
 import type { JobProps, MapFilters, MapMode, MapProps } from "./map-types";
 
-/** Initial viewport. Belgrade until a city picker exists — see lib/geo/cities.ts. */
+/**
+ * Initial viewport. Belgrade until a city picker exists — see lib/geo/cities.ts.
+ *
+ * `pitch` tilts the camera so the Standard style's 3D buildings read as volume
+ * rather than footprints. Kept moderate: markers are DOM elements and stay
+ * screen-aligned, but a steep pitch pushes distant pins into a crowded band at
+ * the top of the viewport.
+ */
 export const INITIAL_VIEW = {
   longitude: DEFAULT_CITY.center.longitude,
   latitude:  DEFAULT_CITY.center.latitude,
   zoom:      DEFAULT_CITY.zoom,
+  pitch:     35,
 };
 
-export const MAP_STYLE = "mapbox://styles/mapbox/light-v11";
+/**
+ * Mapbox Standard — vector 3D basemap with real land/water/park color and a
+ * configurable light preset. Replaced `light-v11`, which is deliberately
+ * desaturated grey-on-white (built to disappear under a data overlay) and read
+ * as a blank slab next to the rest of the product.
+ *
+ * Per-theme appearance is *not* a second style URL: it is set on the loaded map
+ * via `applyBasemapConfig` below.
+ */
+export const MAP_STYLE = "mapbox://styles/mapbox/standard";
+
+/**
+ * Standard-style config applied once the style is loaded.
+ *
+ * Guarded because `setConfigProperty` exists only on mapbox-gl v3 map instances
+ * whose style is Standard (or a Standard derivative) — the test double has no
+ * such method, and a non-Standard style throws on unknown config keys.
+ *
+ * POI labels are suppressed: this map's job is to show *our* pins, and Mapbox's
+ * own restaurant/cafe icons compete directly with the venue markers.
+ */
+export function applyBasemapConfig(
+  map: { setConfigProperty?: (scope: string, name: string, value: unknown) => void } | null | undefined,
+  lightPreset: "day" | "night",
+): void {
+  if (typeof map?.setConfigProperty !== "function") return;
+  try {
+    map.setConfigProperty("basemap", "lightPreset", lightPreset);
+    map.setConfigProperty("basemap", "show3dObjects", true);
+    map.setConfigProperty("basemap", "showPointOfInterestLabels", false);
+    map.setConfigProperty("basemap", "showTransitLabels", false);
+  } catch {
+    // Non-Standard style (or an older gl-js): the basemap simply keeps its
+    // defaults. Nothing else on the map depends on these being applied.
+  }
+}
 
 /** radius 60px matches the marker footprint; maxZoom 17 stops clustering before street level. */
 export const CLUSTER_OPTIONS = { radius: 60, maxZoom: 17 };

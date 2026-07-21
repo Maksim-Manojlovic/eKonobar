@@ -5,6 +5,12 @@
 
 export type MapMode = "jobs" | "venues";
 
+/**
+ * Which visual theme the map surface renders in. Light for the public pages,
+ * dark for the dashboards (`#120a00`). Tokens live in `map-theme.ts`.
+ */
+export type MapTheme = "light" | "dark";
+
 export interface JobProps {
   id:               string;
   title:            string;
