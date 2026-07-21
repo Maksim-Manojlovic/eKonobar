@@ -140,12 +140,12 @@ export const translations = {
       signOut: "Odjavi se", role: "Konobar", headWaiter: "Šef konobara", headWaiterBadge: "ŠEFOV",
     },
     venueNav: {
-      overview: "Pregled", posts: "Zapošljavanje", "new-post": "Novi oglas", smene: "Smene", tim: "Osoblje",
+      overview: "Pregled", posts: "Zapošljavanje", "new-post": "Novi oglas", smene: "Smene", tim: "Osoblje", odmori: "Odmori",
       applications: "Prijave", waiters: "Konobari", discover: "Pronađi konobara", reviews: "Recenzije",
       "qr-review": "QR Recenzije", analitika: "Analitika", profile: "Profil lokala", notifications: "Obaveštenja",
     },
     venueTitles: {
-      overview: "Pregled", posts: "Oglasi", "new-post": "Novi oglas", smene: "Smene", tim: "Osoblje",
+      overview: "Pregled", posts: "Oglasi", "new-post": "Novi oglas", smene: "Smene", tim: "Osoblje", odmori: "Odmori",
       applications: "Prijave", waiters: "Konobari", discover: "Pronađi konobara", reviews: "Recenzije",
       "qr-review": "QR Recenzije", analitika: "Analitika konobara", profile: "Profil lokala", notifications: "Obaveštenja",
     },
@@ -287,12 +287,12 @@ export const translations = {
       signOut: "Sign out", role: "Waiter", headWaiter: "Head Waiter", headWaiterBadge: "HEAD",
     },
     venueNav: {
-      overview: "Overview", posts: "Hiring", "new-post": "New post", smene: "Shifts", tim: "Staff",
+      overview: "Overview", posts: "Hiring", "new-post": "New post", smene: "Shifts", tim: "Staff", odmori: "Leave",
       applications: "Applications", waiters: "Waiters", discover: "Find waiters", reviews: "Reviews",
       "qr-review": "QR Reviews", analitika: "Analytics", profile: "Venue profile", notifications: "Notifications",
     },
     venueTitles: {
-      overview: "Overview", posts: "Job posts", "new-post": "New post", smene: "Shifts", tim: "Staff",
+      overview: "Overview", posts: "Job posts", "new-post": "New post", smene: "Shifts", tim: "Staff", odmori: "Leave",
       applications: "Applications", waiters: "Waiters", discover: "Find a waiter", reviews: "Reviews",
       "qr-review": "QR Reviews", analitika: "Waiter analytics", profile: "Venue profile", notifications: "Notifications",
     },
@@ -434,12 +434,12 @@ export const translations = {
       signOut: "Выйти", role: "Официант", headWaiter: "Старший официант", headWaiterBadge: "ШЕФ",
     },
     venueNav: {
-      overview: "Обзор", posts: "Найм", "new-post": "Новая вакансия", smene: "Смены", tim: "Персонал",
+      overview: "Обзор", posts: "Найм", "new-post": "Новая вакансия", smene: "Смены", tim: "Персонал", odmori: "Отпуска",
       applications: "Заявки", waiters: "Официанты", discover: "Найти официанта", reviews: "Отзывы",
       "qr-review": "QR Отзывы", analitika: "Аналитика", profile: "Профиль заведения", notifications: "Уведомления",
     },
     venueTitles: {
-      overview: "Обзор", posts: "Вакансии", "new-post": "Новая вакансия", smene: "Смены", tim: "Персонал",
+      overview: "Обзор", posts: "Вакансии", "new-post": "Новая вакансия", smene: "Смены", tim: "Персонал", odmori: "Отпуска",
       applications: "Заявки", waiters: "Официанты", discover: "Найти официанта", reviews: "Отзывы",
       "qr-review": "QR Отзывы", analitika: "Аналитика официантов", profile: "Профиль заведения", notifications: "Уведомления",
     },

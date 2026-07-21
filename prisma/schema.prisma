@@ -167,6 +167,23 @@ enum StaffStatus {
   ENDED
 }
 
+// ─── Odmori (leave) ──────────────────────────────────────────────────────────
+
+enum LeaveType {
+  ANNUAL     // Godišnji odmor
+  SICK       // Bolovanje — never deducted from the annual balance
+  UNPAID     // Neplaćeno odsustvo
+  PARENTAL   // Roditeljsko
+  SPECIAL    // Plaćeno odsustvo (svadba, smrtni slučaj…)
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
 enum NotificationType {
   APPLICATION_RECEIVED           // waiter applied → venue owner
   APPLICATION_STATUS_CHANGED     // status updated → waiter
@@ -342,6 +359,8 @@ model Venue {
   venueTrustScore   VenueTrustScore?
   zones             VenueZoneRelation[]
   staff             VenueStaff[]
+  leavePolicies     LeavePolicy[]
+  blackoutDates     VenueBlackoutDate[]
 
   @@index([municipality])
   @@index([venueType])
@@ -744,6 +763,65 @@ model VenueStaff {
   @@index([venueId, status])
   @@index([venueId, department, status])
   @@index([waiterId])
+}
+
+// ─── LeavePolicy ─────────────────────────────────────────────────────────────
+// One row per (venue, department). Kitchens and floors commonly negotiate leave
+// differently, and capacity must be counted per department — two waiters off is
+// not the same as two cooks off.
+
+model LeavePolicy {
+  id         String          @id @default(cuid())
+  venueId    String
+  venue      Venue           @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  department StaffDepartment
+
+  // 26 is a house default, above the Serbian statutory minimum of 20 working
+  // days (Zakon o radu čl. 69). Deliberately configurable, never hardcoded.
+  annualDays Int @default(26)
+
+  // Default cap on how many people may be off on the same day. A blackout row
+  // overrides it per date; maxOff = 0 there means "everyone works".
+  maxConcurrentOff Int @default(2)
+
+  minNoticeDays Int     @default(14)
+  // Requests that clear every check are approved without a human. The premise is
+  // "everything free unless the owner says otherwise" — routing every request to
+  // an approval queue is what makes owners abandon the feature.
+  autoApprove   Boolean @default(true)
+  // Hospitality staff work weekends; skipping Sat/Sun would silently gift days.
+  countWeekends Boolean @default(true)
+
+  allowCarryOver    Boolean @default(true)
+  carryOverDays     Int     @default(5)
+  carryOverDeadline String  @default("06-30")  // MM-DD
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([venueId, department])
+}
+
+// ─── VenueBlackoutDate ───────────────────────────────────────────────────────
+// Sparse: only days that deviate from the policy default are stored. Absence of
+// a row means "normal policy applies", which is the intended default of
+// everything being available.
+
+model VenueBlackoutDate {
+  id         String          @id @default(cuid())
+  venueId    String
+  venue      Venue           @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  department StaffDepartment
+  date       DateTime        @db.Date
+
+  // 0 = fully blocked ("X" in the UI). >0 = reduced cap for that day.
+  maxOff Int     @default(0)
+  reason String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([venueId, department, date])
+  @@index([venueId, date])
 }
 
 model Shift {
