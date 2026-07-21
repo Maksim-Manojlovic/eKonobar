@@ -19,7 +19,8 @@ test.describe("public pages", () => {
   test("for-waiters landing loads", async ({ page }) => {
     await page.goto("/for-waiters");
     await expect(page.locator("nav")).toBeVisible();
-    await expect(page.locator("#tierovi")).toBeVisible();
+    // Verification section anchor — replaced the old #tierovi paid-tier ladder
+    await expect(page.locator("#verifikacija")).toBeVisible();
   });
 
   test("login page renders", async ({ page }) => {
