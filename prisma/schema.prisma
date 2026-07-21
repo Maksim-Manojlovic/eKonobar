@@ -167,6 +167,23 @@ enum StaffStatus {
   ENDED
 }
 
+// ─── Odmori (leave) ──────────────────────────────────────────────────────────
+
+enum LeaveType {
+  ANNUAL     // Godišnji odmor
+  SICK       // Bolovanje — never deducted from the annual balance
+  UNPAID     // Neplaćeno odsustvo
+  PARENTAL   // Roditeljsko
+  SPECIAL    // Plaćeno odsustvo (svadba, smrtni slučaj…)
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
 enum NotificationType {
   APPLICATION_RECEIVED           // waiter applied → venue owner
   APPLICATION_STATUS_CHANGED     // status updated → waiter
@@ -179,6 +196,9 @@ enum NotificationType {
   CLOCKIN_APPROVAL_REQUESTED     // waiter outside geofence → venue owner
   CLOCKIN_RESOLVED               // owner approved/rejected clock-in → waiter
   RED_ALERT_POSTED               // new Red Alert job in a waiter's reach → matching available waiters
+  LEAVE_REQUESTED                // leave request created → manager(s) of that department
+  LEAVE_RESOLVED                 // approved / rejected → the worker
+  LEAVE_CANCELLED                // worker withdrew a request → manager(s)
 }
 
 // ─── User ─────────────────────────────────────────────────────────────────────
@@ -218,6 +238,7 @@ model User {
   headWaiterVenues  Venue[]             @relation("VenueHeadWaiter")
   headChefVenues    Venue[]             @relation("VenueHeadChef")
   staffRoles        VenueStaff[]        @relation("VenueStaffMember")
+  leaveRequests     LeaveRequest[]      @relation("LeaveRequester")
   jobPosts          JobPost[]
   applications      JobApplication[]
   reviewsGiven      Review[]            @relation("ReviewAuthor")
@@ -342,6 +363,9 @@ model Venue {
   venueTrustScore   VenueTrustScore?
   zones             VenueZoneRelation[]
   staff             VenueStaff[]
+  leavePolicies     LeavePolicy[]
+  blackoutDates     VenueBlackoutDate[]
+  leaveRequests     LeaveRequest[]
 
   @@index([municipality])
   @@index([venueType])
@@ -740,10 +764,149 @@ model VenueStaff {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  leaveBalances LeaveBalance[]
+  leaveRequests LeaveRequest[]
+
   @@unique([venueId, waiterId])
   @@index([venueId, status])
   @@index([venueId, department, status])
   @@index([waiterId])
+}
+
+// ─── LeavePolicy ─────────────────────────────────────────────────────────────
+// One row per (venue, department). Kitchens and floors commonly negotiate leave
+// differently, and capacity must be counted per department — two waiters off is
+// not the same as two cooks off.
+
+model LeavePolicy {
+  id         String          @id @default(cuid())
+  venueId    String
+  venue      Venue           @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  department StaffDepartment
+
+  // 26 is a house default, above the Serbian statutory minimum of 20 working
+  // days (Zakon o radu čl. 69). Deliberately configurable, never hardcoded.
+  annualDays Int @default(26)
+
+  // Default cap on how many people may be off on the same day. A blackout row
+  // overrides it per date; maxOff = 0 there means "everyone works".
+  maxConcurrentOff Int @default(2)
+
+  minNoticeDays Int     @default(14)
+  // Requests that clear every check are approved without a human. The premise is
+  // "everything free unless the owner says otherwise" — routing every request to
+  // an approval queue is what makes owners abandon the feature.
+  autoApprove   Boolean @default(true)
+  // Hospitality staff work weekends; skipping Sat/Sun would silently gift days.
+  countWeekends Boolean @default(true)
+
+  allowCarryOver    Boolean @default(true)
+  carryOverDays     Int     @default(5)
+  carryOverDeadline String  @default("06-30")  // MM-DD
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([venueId, department])
+}
+
+// ─── VenueBlackoutDate ───────────────────────────────────────────────────────
+// Sparse: only days that deviate from the policy default are stored. Absence of
+// a row means "normal policy applies", which is the intended default of
+// everything being available.
+
+model VenueBlackoutDate {
+  id         String          @id @default(cuid())
+  venueId    String
+  venue      Venue           @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  department StaffDepartment
+  date       DateTime        @db.Date
+
+  // 0 = fully blocked ("X" in the UI). >0 = reduced cap for that day.
+  maxOff Int     @default(0)
+  reason String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([venueId, department, date])
+  @@index([venueId, date])
+}
+
+// ─── LeaveBalance ────────────────────────────────────────────────────────────
+// Per staff member, per leave year. Balance follows the VenueStaff row, not the
+// person: someone on two rosters has two independent balances, because leave at
+// one venue says nothing about availability at the other.
+
+model LeaveBalance {
+  id      String     @id @default(cuid())
+  staffId String
+  staff   VenueStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  year    Int
+
+  // Pro-rated when startedAt falls mid-year (Serbian 1/12-per-month rule).
+  entitledDays  Float
+  carriedInDays Float @default(0)
+
+  // APPROVED ANNUAL only.
+  usedDays    Float @default(0)
+  // PENDING ANNUAL — reserved at request time so two concurrent requests
+  // cannot both fit into the last remaining day.
+  pendingDays Float @default(0)
+  // Tracked for the record, never deducted from the annual entitlement:
+  // bolovanje has its own accrual under Serbian labour law.
+  sickDaysTaken Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([staffId, year])
+  @@index([year])
+}
+
+// ─── LeaveRequest ────────────────────────────────────────────────────────────
+
+model LeaveRequest {
+  id      String     @id @default(cuid())
+  staffId String
+  staff   VenueStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  // Denormalized so the calendar and approval queue can filter without a join.
+  venueId    String
+  venue      Venue           @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  waiterId   String
+  waiter     User            @relation("LeaveRequester", fields: [waiterId], references: [id])
+  department StaffDepartment
+
+  type      LeaveType   @default(ANNUAL)
+  startDate DateTime    @db.Date
+  endDate   DateTime    @db.Date
+  // The leave year this request draws from. A range crossing New Year is split
+  // into one request per year at creation, so this is always unambiguous.
+  year      Int
+  // Computed server-side from the range and the policy — never trusted from the
+  // client.
+  days      Float
+  status    LeaveStatus @default(PENDING)
+
+  reason        String? @db.Text
+  attachmentUrl String?          // doznaka / doctor's note for SICK
+
+  // The manager may file SICK on a worker's behalf, so the author is not
+  // necessarily the subject.
+  createdById  String
+  reviewedById String?
+  reviewedAt   DateTime?
+  rejectReason String?
+  // True when no human approved it — it cleared every check automatically.
+  autoApproved Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([venueId, department, startDate])
+  @@index([waiterId, status])
+  @@index([staffId, year])
+  @@index([status])
 }
 
 model Shift {

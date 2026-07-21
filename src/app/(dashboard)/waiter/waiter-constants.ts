@@ -88,6 +88,7 @@ export const SECTION_TITLES: Record<Section, string> = {
   jobs:          "Dostupni poslovi",
   applications:  "Moje prijave",
   shifts:        "Smene",
+  odmori:        "Odmori",
   invites:       "Pozivnice",
   reviews:       "Recenzije",
   passport:      "Waiter Passport™",

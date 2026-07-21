@@ -26,6 +26,9 @@ export const TYPE_ICONS: Record<string, string> = {
   CLOCKIN_APPROVAL_REQUESTED:  "⏰",
   CLOCKIN_RESOLVED:            "✅",
   RED_ALERT_POSTED:            "🚨",
+  LEAVE_REQUESTED:             "🏖️",
+  LEAVE_RESOLVED:              "🏖️",
+  LEAVE_CANCELLED:             "🏖️",
 };
 
 function NotifRow({ n, onClick }: { n: NotificationItem; onClick?: () => void }) {

@@ -196,6 +196,49 @@ export const STAFF_STATUS_COLORS: Record<string, string> = {
   ENDED:     "text-neutral-500 bg-neutral-50 border-neutral-300",
 };
 
+/* ── Leave type (ANNUAL | SICK | UNPAID | PARENTAL | SPECIAL) ────────────── */
+
+export const LEAVE_TYPE_LABELS: Record<string, string> = {
+  ANNUAL:   "Godišnji odmor",
+  SICK:     "Bolovanje",
+  UNPAID:   "Neplaćeno odsustvo",
+  PARENTAL: "Roditeljsko odsustvo",
+  SPECIAL:  "Plaćeno odsustvo",
+};
+
+/** Compact form for calendar cells and dense list rows. */
+export const LEAVE_TYPE_SHORT: Record<string, string> = {
+  ANNUAL:   "Odmor",
+  SICK:     "Bolovanje",
+  UNPAID:   "Neplaćeno",
+  PARENTAL: "Roditeljsko",
+  SPECIAL:  "Plaćeno",
+};
+
+export const LEAVE_TYPE_COLORS: Record<string, string> = {
+  ANNUAL:   "text-orange-700 bg-orange-50 border-orange-300",
+  SICK:     "text-rose-700   bg-rose-50   border-rose-300",
+  UNPAID:   "text-slate-600  bg-slate-50  border-slate-300",
+  PARENTAL: "text-violet-700 bg-violet-50 border-violet-300",
+  SPECIAL:  "text-sky-700    bg-sky-50    border-sky-300",
+};
+
+/* ── Leave status (PENDING | APPROVED | REJECTED | CANCELLED) ────────────── */
+
+export const LEAVE_STATUS_LABELS: Record<string, string> = {
+  PENDING:   "Na čekanju",
+  APPROVED:  "Odobreno",
+  REJECTED:  "Odbijeno",
+  CANCELLED: "Otkazano",
+};
+
+export const LEAVE_STATUS_COLORS: Record<string, string> = {
+  PENDING:   "text-amber-700   bg-amber-50   border-amber-300",
+  APPROVED:  "text-green-700   bg-green-50   border-green-300",
+  REJECTED:  "text-red-700     bg-red-50     border-red-300",
+  CANCELLED: "text-neutral-500 bg-neutral-50 border-neutral-300",
+};
+
 /* ── Date formatting — Serbian locale ────────────────────────────────────── */
 
 /** Formats ISO date string → "15. maj 2025." in Serbian locale. */

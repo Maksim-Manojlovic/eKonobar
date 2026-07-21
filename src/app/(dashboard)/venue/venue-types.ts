@@ -4,7 +4,7 @@ import type { VenueZoneInsights } from "@/lib/geo/analytics";
 // the client and server share one source of truth (the lib has no server deps).
 export type { WaiterAnalytics, WaiterReliability, WaiterFlag, AnalyticsTeamSummary, GuestRating } from "@/lib/analytics/waiter-analytics";
 
-export type Section = "overview" | "posts" | "new-post" | "smene" | "tim" | "applications" | "waiters" | "discover" | "reviews" | "qr-review" | "analitika" | "profile" | "notifications";
+export type Section = "overview" | "posts" | "new-post" | "smene" | "tim" | "odmori" | "applications" | "waiters" | "discover" | "reviews" | "qr-review" | "analitika" | "profile" | "notifications";
 export type AppFilter = "SVE" | "PENDING" | "SHORTLISTED" | "ACCEPTED" | "REJECTED";
 
 export type VenueShiftAssignment = {
@@ -117,6 +117,76 @@ export type StaffResponse = {
   staff: StaffMember[];
   hasKitchen: boolean;
   canManage: boolean;
+};
+
+/* ── Odmori (GET /api/leave/blackouts, /api/leave/policy) ────────────────── */
+
+export type BlackoutDate = {
+  id: string;
+  department: "FOH" | "BOH";
+  /** YYYY-MM-DD — never a timestamp; see lib/leave/dates.ts */
+  date: string;
+  /** 0 = fully blocked; >0 = reduced cap for that day */
+  maxOff: number;
+  reason: string | null;
+};
+
+export type BlackoutsResponse = {
+  blackouts: BlackoutDate[];
+  departments: ("FOH" | "BOH")[];
+  hasKitchen: boolean;
+  canManageBlackouts: boolean;
+};
+
+export type LeavePolicyRow = {
+  department: "FOH" | "BOH";
+  /** false = no row stored, these are the platform defaults */
+  configured: boolean;
+  annualDays: number;
+  maxConcurrentOff: number;
+  minNoticeDays: number;
+  autoApprove: boolean;
+  countWeekends: boolean;
+  allowCarryOver: boolean;
+  carryOverDays: number;
+  carryOverDeadline: string;
+};
+
+export type LeaveRequestRow = {
+  id: string;
+  type: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  year: number;
+  days: number;
+  /** YYYY-MM-DD */
+  startDate: string;
+  endDate: string;
+  department: "FOH" | "BOH";
+  reason: string | null;
+  attachmentUrl: string | null;
+  rejectReason: string | null;
+  autoApproved: boolean;
+  reviewedAt: string | null;
+  createdAt: string;
+  waiter: { id: string; name: string | null; image: string | null };
+  staff: { position: string };
+  venue: { id: string; name: string };
+  /** Only present on the create response, explaining why it was queued. */
+  pendingReason?: string | null;
+};
+
+export type LeaveRequestsResponse = {
+  requests: LeaveRequestRow[];
+  scope: "own" | "manage";
+  departments?: ("FOH" | "BOH")[];
+  hasKitchen?: boolean;
+};
+
+export type LeavePolicyResponse = {
+  policies: LeavePolicyRow[];
+  hasKitchen: boolean;
+  canManagePolicy: boolean;
+  defaults: Omit<LeavePolicyRow, "department" | "configured">;
 };
 
 export type VenueReview = {
