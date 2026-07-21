@@ -8,6 +8,8 @@ cat > /etc/crontabs/root <<EOF
 */10 * * * * wget -q -O- --header="Authorization: Bearer ${CRON_SECRET}" --post-data= http://app:3000/api/cron/publish-reviews
 # retry failed WhatsApp/SMS hourly
 0 * * * * wget -q -O- --header="Authorization: Bearer ${CRON_SECRET}" --post-data= http://app:3000/api/cron/retry-notifications
+# open the new leave year + expire stale carry-over, daily at 03:00
+0 3 * * * wget -q -O- --header="Authorization: Bearer ${CRON_SECRET}" --post-data= http://app:3000/api/cron/leave-rollover
 EOF
 
 echo "[cron] crontab installed, starting crond"

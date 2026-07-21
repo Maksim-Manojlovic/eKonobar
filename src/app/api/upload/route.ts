@@ -20,7 +20,18 @@ const UPLOAD_CONFIGS = {
     folder:        "ekonobar/sanitary",
     resource_type: "auto" as const, // handles PDF + image
   },
+  // Doznaka / doctor's note attached to a SICK leave request.
+  "leave-doc": {
+    folder:        "ekonobar/leave",
+    resource_type: "auto" as const,
+  },
 };
+
+/**
+ * Types that accept a PDF as well as an image. Both are scans of paperwork —
+ * a sanitary book or a doznaka — which people photograph or receive as a PDF.
+ */
+const DOCUMENT_TYPES = new Set(["sanitary-doc", "leave-doc"]);
 
 // MIME types that must never be accepted even though some start with "image/".
 // SVG can embed <script> tags and executes JavaScript when opened in a browser.
@@ -59,13 +70,13 @@ export const POST = withAuth(async (req) => {
   }
 
   // 2. MIME category allowlist.
-  const isSanitaryDoc = type === "sanitary-doc";
-  const allowedMime   = isSanitaryDoc
+  const isDocument  = DOCUMENT_TYPES.has(type);
+  const allowedMime = isDocument
     ? file.type.startsWith("image/") || file.type === "application/pdf"
     : file.type.startsWith("image/");
   if (!allowedMime) {
     return NextResponse.json(
-      { error: isSanitaryDoc ? "Dozvoljeni su slike i PDF fajlovi" : "Dozvoljen je samo format slike" },
+      { error: isDocument ? "Dozvoljeni su slike i PDF fajlovi" : "Dozvoljen je samo format slike" },
       { status: 400 },
     );
   }

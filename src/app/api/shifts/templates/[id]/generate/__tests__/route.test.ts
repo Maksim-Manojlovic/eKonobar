@@ -7,6 +7,9 @@ vi.mock("@/lib/core/db", () => ({
   db: {
     shiftTemplate: { findFirst: vi.fn() },
     shift:         { findMany: vi.fn(), createMany: vi.fn() },
+    // Coverage notices on generated dates (empty roster by default).
+    venueStaff:    { findMany: vi.fn().mockResolvedValue([]) },
+    leaveRequest:  { findMany: vi.fn().mockResolvedValue([]) },
   },
 }));
 vi.mock("@/lib/shifts/utils", () => ({ computeScheduledStart: vi.fn().mockReturnValue(new Date()) }));

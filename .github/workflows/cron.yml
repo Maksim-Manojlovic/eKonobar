@@ -16,13 +16,14 @@ on:
   schedule:
     - cron: "0 * * * *"   # publish-reviews      — hourly
     - cron: "30 * * * *"  # retry-notifications  — hourly (offset 30m)
+    - cron: "0 3 * * *"   # leave-rollover       — daily, 03:00 UTC
   workflow_dispatch:
     inputs:
       job:
         description: "Run a job manually"
         type: choice
         default: all
-        options: [all, publish-reviews, retry-notifications]
+        options: [all, publish-reviews, retry-notifications, leave-rollover]
 
 jobs:
   publish-reviews:
@@ -54,3 +55,17 @@ jobs:
         run: |
           curl -fsS --retry 2 -X POST "$APP_URL/api/cron/retry-notifications" \
             -H "Authorization: Bearer $CRON_SECRET"
+
+  leave-rollover:
+    if: >-
+      github.event.schedule == '0 3 * * *' ||
+      (github.event_name == 'workflow_dispatch' &&
+        (inputs.job == 'leave-rollover' || inputs.job == 'all'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/cron/leave-rollover
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS --retry 2 -X POST "$APP_URL/api/cron/leave-rollover"             -H "Authorization: Bearer $CRON_SECRET"

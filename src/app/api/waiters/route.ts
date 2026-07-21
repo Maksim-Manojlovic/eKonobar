@@ -17,6 +17,8 @@ export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async (req, _ctx) => 
   const langsParam      = searchParams.get("languages"); // comma-separated
   const minExp          = searchParams.get("minExperience");
   const municipality    = searchParams.get("municipality");
+  const department      = searchParams.get("department");   // FOH | BOH
+  const position        = searchParams.get("position");     // exact StaffPosition
   const search          = searchParams.get("search");
   const page            = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
   const limit           = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") ?? "25", 10)));
@@ -44,6 +46,19 @@ export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async (req, _ctx) => 
       name: { contains: search, mode: "insensitive" as const },
     }),
     ...(Object.keys(passportFilter).length > 0 && { waiterPassport: passportFilter }),
+    // Department / position come from the roster, not the passport: they are a
+    // fact about where someone works, not a claim on their profile. Matching on
+    // any non-ended roster row means a cook stays findable as a cook between
+    // jobs, which is exactly when an owner is looking for one.
+    ...((department || position) && {
+      staffRoles: {
+        some: {
+          status: { not: "ENDED" as const },
+          ...(department && { department: department as "FOH" | "BOH" }),
+          ...(position && { position: position as never }),
+        },
+      },
+    }),
   };
 
   // Cache keyed by generation (bumped on any passport score sync) + filter hash.

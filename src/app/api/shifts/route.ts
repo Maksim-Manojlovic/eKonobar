@@ -5,6 +5,8 @@ import { computeScheduledStart } from "@/lib/shifts/utils";
 import type { Session } from "next-auth";
 import { parseBody } from "@/lib/auth/parse-body";
 import { z } from "zod";
+import { findLeaveOnDate } from "@/lib/leave/conflicts";
+import { LEAVE_TYPE_LABELS } from "@/lib/formatting/display-maps";
 
 const ShiftCreateSchema = z.object({
   venueId:       z.string().min(1),
@@ -174,6 +176,11 @@ export const POST = withRole(["VENUE_OWNER", "WAITER"], async (req, _ctx, sessio
   const scheduledStart = computeScheduledStart(date, startTime);
   const status = ids.length >= rc ? "ASSIGNED" : "OPEN";
 
+  // Warn, never block. A manager may knowingly schedule over approved leave —
+  // they may have just agreed it verbally. The worker-initiated paths (claim,
+  // swap) hard-block instead.
+  const conflicts = await findLeaveOnDate(ids, new Date(date));
+
   const shift = await db.shift.create({
     data: {
       venueId,
@@ -198,5 +205,24 @@ export const POST = withRole(["VENUE_OWNER", "WAITER"], async (req, _ctx, sessio
       assignments: { include: { waiter: { select: { id: true, name: true } } } },
     },
   });
-  return NextResponse.json(shift, { status: 201 });
+  // Attached to the response rather than blocking it, so the UI can show
+  // "Marko ima godišnji odmor tog dana" next to a shift that was still created.
+  const leaveWarnings = conflicts.map(c => ({
+    waiterId: c.waiterId,
+    type: c.type,
+    message: `${nameOf(shift.assignments, c.waiterId)} ima ${(LEAVE_TYPE_LABELS[c.type] ?? "odsustvo").toLowerCase()} tog dana`,
+  }));
+
+  return NextResponse.json(
+    leaveWarnings.length ? { ...shift, leaveWarnings } : shift,
+    { status: 201 },
+  );
 });
+
+/** Display name for a warning message, falling back when the join is absent. */
+function nameOf(
+  assignments: { waiterId: string; waiter: { name: string | null } }[],
+  waiterId: string,
+): string {
+  return assignments.find(a => a.waiterId === waiterId)?.waiter.name ?? "Radnik";
+}

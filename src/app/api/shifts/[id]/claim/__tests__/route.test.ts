@@ -7,6 +7,8 @@ vi.mock("@/lib/core/db", () => ({
   db: {
     shift:           { findUnique: vi.fn(), update: vi.fn() },
     shiftAssignment: { create: vi.fn() },
+    // Claim is hard-blocked when the waiter has approved leave that day.
+    leaveRequest:    { findFirst: vi.fn().mockResolvedValue(null) },
     $transaction:    vi.fn(),
   },
 }));
@@ -49,8 +51,32 @@ describe("POST /api/shifts/[id]/claim", () => {
     vi.mocked(db.shift.findUnique).mockResolvedValue(BASE_SHIFT as never);
     vi.mocked(db.shiftAssignment.create).mockResolvedValue({ id: "assign-new" } as never);
     vi.mocked(db.shift.update).mockResolvedValue({} as never);
+    // clearAllMocks keeps implementations, so a per-test override would leak.
+    vi.mocked(db.leaveRequest.findFirst).mockResolvedValue(null as never);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(db.$transaction).mockImplementation((ops: any) => Promise.all(ops));
+  });
+
+  it("returns 409 when the waiter has approved leave that day", async () => {
+    // Hard block: a worker must not book themselves onto a day they have off.
+    // The manager-side assign path only warns.
+    vi.mocked(db.leaveRequest.findFirst).mockResolvedValue({ id: "leave-1" } as never);
+
+    const res = await POST(makeReq(), makeCtx());
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toContain("odsustvo");
+    expect(db.shiftAssignment.create).not.toHaveBeenCalled();
+  });
+
+  it("checks leave against the shift date", async () => {
+    const shiftDate = new Date("2026-08-12T00:00:00Z");
+    vi.mocked(db.shift.findUnique).mockResolvedValue({ ...BASE_SHIFT, date: shiftDate } as never);
+
+    await POST(makeReq(), makeCtx());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where = (vi.mocked(db.leaveRequest.findFirst).mock.calls[0][0] as any).where;
+    expect(where.waiterId).toBe(WAITER_ID);
+    expect(where.status).toBe("APPROVED");
   });
 
   it("returns 401 when unauthenticated", async () => {
