@@ -11,6 +11,8 @@ vi.mock("@/lib/core/db", () => ({
     leavePolicy:       { findUnique: vi.fn() },
     leaveBalance:      { findUnique: vi.fn(), update: vi.fn() },
     leaveRequest:      { findUnique: vi.fn(), findMany: vi.fn(), update: vi.fn() },
+    // Approval reports the shifts the approved leave strands.
+    shiftAssignment:   { findMany: vi.fn() },
     user:              { findUnique: vi.fn() },
     $transaction:      vi.fn(),
   },
@@ -63,6 +65,7 @@ beforeEach(() => {
   mdb.leaveBalance.update.mockResolvedValue({});
   mdb.leaveRequest.findUnique.mockResolvedValue(PENDING_REQUEST);
   mdb.leaveRequest.findMany.mockResolvedValue([]);
+  mdb.shiftAssignment.findMany.mockResolvedValue([]);
   mdb.leaveRequest.update.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({
     id: "req-1", ...data,
     startDate: PENDING_REQUEST.startDate, endDate: PENDING_REQUEST.endDate,
@@ -186,6 +189,36 @@ describe("approve", () => {
 
     await PATCH(patchReq({ action: "approve" }), CTX);
     expect(balanceUpdate()).toEqual({ sickDaysTaken: { increment: 3 } });
+  });
+});
+
+describe("approve — stranded shifts", () => {
+  it("reports shifts the approved leave collides with", async () => {
+    // Nothing is unassigned automatically: silently pulling someone off a rota
+    // is how a venue ends up short-staffed without noticing.
+    mockSession();
+    mdb.shiftAssignment.findMany.mockResolvedValue([
+      {
+        id: "asg-1",
+        shift: {
+          id: "s-1", title: "Večernja",
+          date: new Date("2026-08-11T00:00:00Z"),
+          startTime: "18:00", endTime: "02:00",
+        },
+      },
+    ]);
+
+    const body = await (await PATCH(patchReq({ action: "approve" }), CTX)).json();
+    expect(body.shiftConflicts).toHaveLength(1);
+    expect(body.shiftConflicts[0]).toMatchObject({
+      assignmentId: "asg-1", shiftId: "s-1", title: "Večernja", date: "2026-08-11",
+    });
+  });
+
+  it("omits the key entirely when there is no collision", async () => {
+    mockSession();
+    const body = await (await PATCH(patchReq({ action: "approve" }), CTX)).json();
+    expect(body.shiftConflicts).toBeUndefined();
   });
 });
 

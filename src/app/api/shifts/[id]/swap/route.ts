@@ -4,6 +4,7 @@ import { db } from "@/lib/core/db";
 import { fireSideEffects } from "@/lib/notifications/side-effects";
 import { parseBody } from "@/lib/auth/parse-body";
 import { z } from "zod";
+import { isOnLeave } from "@/lib/leave/conflicts";
 
 const SwapSchema = z.object({
   toWaiterId: z.string().min(1),
@@ -37,6 +38,14 @@ export const POST = withRole<{ params: Promise<{ id: string }> }>("WAITER", asyn
 
   const toWaiter = await db.user.findUnique({ where: { id: toWaiterId, role: "WAITER" } });
   if (!toWaiter) return NextResponse.json({ error: "Konobar nije pronađen" }, { status: 404 });
+
+  // Handing a shift to someone who has that day off just moves the problem.
+  if (await isOnLeave(toWaiterId, shift.date)) {
+    return NextResponse.json(
+      { error: "Taj konobar ima odobreno odsustvo tog dana" },
+      { status: 409 },
+    );
+  }
 
   let swapReq;
   try {

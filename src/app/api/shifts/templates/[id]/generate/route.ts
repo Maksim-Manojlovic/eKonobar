@@ -4,6 +4,7 @@ import { db } from "@/lib/core/db";
 import { computeScheduledStart } from "@/lib/shifts/utils";
 import { parseBody } from "@/lib/auth/parse-body";
 import { z } from "zod";
+import { findLeaveInRange } from "@/lib/leave/conflicts";
 
 const GenerateSchema = z.object({
   fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "fromDate must be YYYY-MM-DD"),
@@ -84,5 +85,40 @@ export const POST = withRole<{ params: Promise<{ id: string }> }>(["VENUE_OWNER"
     })),
   });
 
-  return NextResponse.json({ created: toCreate.length, skipped: matchingDates.length - toCreate.length });
+  // Generated shifts start unassigned, so there is no assignee to clash with.
+  // The signal worth surfacing is coverage: which of these dates already have
+  // staff on approved leave, so the owner knows which will be hard to fill.
+  const leaveNotices = await coverageNotices(template.venueId, toCreate);
+
+  return NextResponse.json({
+    created: toCreate.length,
+    skipped: matchingDates.length - toCreate.length,
+    ...(leaveNotices.length ? { leaveNotices } : {}),
+  });
 });
+
+/** For each generated date, how many roster members are on approved leave. */
+async function coverageNotices(venueId: string, dates: string[]) {
+  if (dates.length === 0) return [];
+
+  const roster = await db.venueStaff.findMany({
+    where: { venueId, status: { not: "ENDED" } },
+    select: { waiterId: true },
+  });
+  if (roster.length === 0) return [];
+
+  const parsed = dates.map(d => new Date(d));
+  const rangeStart = parsed.reduce((a, b) => (a < b ? a : b));
+  const rangeEnd   = parsed.reduce((a, b) => (a > b ? a : b));
+
+  const conflicts = await findLeaveInRange(roster.map(r => r.waiterId), rangeStart, rangeEnd);
+  if (conflicts.length === 0) return [];
+
+  return dates
+    .map((date) => {
+      const at = new Date(date);
+      const count = conflicts.filter(c => c.startDate <= at && c.endDate >= at).length;
+      return { date, onLeave: count };
+    })
+    .filter(n => n.onLeave > 0);
+}

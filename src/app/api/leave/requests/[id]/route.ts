@@ -13,6 +13,7 @@ import {
   commitPending, releasePending, refundUsed, recordSickDays, countOffPerDate,
 } from "@/lib/leave/balance";
 import { deductsFromBalance, bypassesCapacity } from "@/lib/leave/request";
+import { findShiftConflicts } from "@/lib/leave/conflicts";
 import { LEAVE_TYPE_LABELS } from "@/lib/formatting/display-maps";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -197,7 +198,29 @@ export const PATCH = withAuth<Ctx>(async (req, ctx, session) => {
     );
 
     notifyResolution(request, "APPROVED", session.user.id, null);
-    return NextResponse.json(serialize(updated));
+
+    // Shifts this person is already on during the approved dates. Nothing is
+    // unassigned automatically — silently pulling someone off a rota is how a
+    // venue ends up short-staffed without noticing. The manager decides.
+    const shiftConflicts = await findShiftConflicts(
+      request.waiterId, request.startDate, request.endDate,
+    );
+
+    return NextResponse.json({
+      ...serialize(updated),
+      ...(shiftConflicts.length
+        ? {
+            shiftConflicts: shiftConflicts.map(c => ({
+              assignmentId: c.id,
+              shiftId:      c.shift.id,
+              title:        c.shift.title,
+              date:         formatDateOnly(c.shift.date),
+              startTime:    c.shift.startTime,
+              endTime:      c.shift.endTime,
+            })),
+          }
+        : {}),
+    });
   } catch (err) {
     if (err instanceof CapacityGone) {
       return NextResponse.json(

@@ -8,6 +8,8 @@ vi.mock("@/lib/core/db", () => ({
     shift:  { create: vi.fn() },
     venue:  { findFirst: vi.fn() },
     user:   { findMany: vi.fn() },
+    // Leave-conflict warnings on assignment (no conflicts by default).
+    leaveRequest: { findMany: vi.fn().mockResolvedValue([]) },
   },
 }));
 vi.mock("@/lib/shifts/utils", () => ({

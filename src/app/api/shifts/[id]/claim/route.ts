@@ -4,6 +4,7 @@ import { db } from "@/lib/core/db";
 import { fireSideEffects } from "@/lib/notifications/side-effects";
 import { acquireLock, releaseLock } from "@/lib/core/redis-lock";
 import logger from "@/lib/core/logger";
+import { isOnLeave } from "@/lib/leave/conflicts";
 
 export const POST = withRole<{ params: Promise<{ id: string }> }>("WAITER", async (_req, ctx, session) => {
   const { id } = await ctx.params;
@@ -40,6 +41,16 @@ export const POST = withRole<{ params: Promise<{ id: string }> }>("WAITER", asyn
     }
     if (shift.assignments.length >= shift.requiredCount) {
       return NextResponse.json({ error: "Smena je popunjena" }, { status: 409 });
+    }
+
+    // Hard block: a worker must not be able to book themselves onto a day they
+    // already have approved off. A manager may still assign them directly —
+    // that path only warns.
+    if (await isOnLeave(session.user.id, shift.date)) {
+      return NextResponse.json(
+        { error: "Imate odobreno odsustvo tog dana" },
+        { status: 409 },
+      );
     }
 
     const newCount  = shift.assignments.length + 1;

@@ -8,6 +8,8 @@ vi.mock("@/lib/core/db", () => ({
     shift:            { findUnique: vi.fn() },
     user:             { findUnique: vi.fn() },
     shiftSwapRequest: { create: vi.fn(), findFirst: vi.fn() },
+    // Swap target is rejected when they have approved leave that day.
+    leaveRequest:     { findFirst: vi.fn().mockResolvedValue(null) },
     $transaction:     vi.fn(),
   },
 }));
@@ -73,7 +75,18 @@ describe("POST /api/shifts/[id]/swap", () => {
     mockSession();
     vi.mocked(db.shift.findUnique).mockResolvedValue(BASE_SHIFT as never);
     vi.mocked(db.user.findUnique).mockResolvedValue({ id: TO_WAITER, role: "WAITER" } as never);
+    // clearAllMocks keeps implementations, so a per-test override would leak.
+    vi.mocked(db.leaveRequest.findFirst).mockResolvedValue(null as never);
     mockTransaction({ id: "swap-1", shiftId: SHIFT_ID, fromAssignmentId: "assign-1", toWaiterId: TO_WAITER });
+  });
+
+  it("returns 409 when the swap target has approved leave that day", async () => {
+    // Handing a shift to someone who has that day off just moves the problem.
+    vi.mocked(db.leaveRequest.findFirst).mockResolvedValue({ id: "leave-1" } as never);
+
+    const res = await POST(makeReq({ toWaiterId: "waiter-2" }), makeCtx());
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toContain("odsustvo");
   });
 
   it("returns 401 when unauthenticated", async () => {
