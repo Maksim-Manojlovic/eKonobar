@@ -183,6 +183,33 @@ export function WaitersSkeleton() {
   );
 }
 
+export function TimSkeleton() {
+  return (
+    <>
+      <div className="flex items-center justify-between gap-3">
+        <Sk className="h-7 w-40" />
+        <Sk className="h-9 w-32 rounded-xl" />
+      </div>
+      <div className="flex gap-2">
+        <Sk className="h-8 w-20 rounded-full" />
+        <Sk className="h-8 w-24 rounded-full" />
+      </div>
+      <div className="flex flex-col gap-2">
+        {[1,2,3,4].map(i => (
+          <div key={i} className="dash-card p-4 flex items-center gap-3">
+            <Sk className="w-10 h-10 rounded-full flex-shrink-0" />
+            <div className="flex-1 flex flex-col gap-2">
+              <Sk className="h-4 w-32" />
+              <Sk className="h-3 w-48" />
+            </div>
+            <Sk className="h-6 w-20 rounded-full flex-shrink-0" />
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 export function DiscoverSkeleton() {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
