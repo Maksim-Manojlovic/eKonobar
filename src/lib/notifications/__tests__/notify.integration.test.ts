@@ -17,12 +17,7 @@ import { dbRaw } from "@/lib/core/db";
 import { dispatchWhatsApp, dispatchSms } from "@/lib/notifications/dispatch";
 import { notify } from "../notify";
 
-const FUTURE = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-const PAST   = new Date(Date.now() -  5 * 24 * 60 * 60 * 1000);
-
 async function seedWaiter(opts: {
-  passportTier?: "FREE" | "PRO" | "PRO_PLUS";
-  subscriptionExpiresAt?: Date | null;
   waOptIn?: boolean;
   smsOptIn?: boolean;
   phone?: string | null;
@@ -37,13 +32,7 @@ async function seedWaiter(opts: {
       smsOptIn: opts.smsOptIn !== undefined ? opts.smsOptIn : true,
     },
   });
-  await dbRaw.waiterPassport.create({
-    data: {
-      userId,
-      passportTier:          opts.passportTier          ?? "FREE",
-      subscriptionExpiresAt: opts.subscriptionExpiresAt ?? null,
-    },
-  });
+  await dbRaw.waiterPassport.create({ data: { userId } });
   return userId;
 }
 
@@ -59,7 +48,7 @@ beforeEach(async () => {
 
 describe("notify — real DB writes", () => {
   it("creates Notification row in DB", async () => {
-    const userId = await seedWaiter({ passportTier: "FREE" });
+    const userId = await seedWaiter();
     await notify(userId, "APPLICATION_RECEIVED", "Title", "Body", "/link");
 
     const rows = await dbRaw.notification.findMany({ where: { userId } });
@@ -83,7 +72,7 @@ describe("notify — real DB writes", () => {
   });
 
   it("sets waSent=true in DB after successful WhatsApp dispatch", async () => {
-    const userId = await seedWaiter({ passportTier: "PRO", subscriptionExpiresAt: FUTURE });
+    const userId = await seedWaiter();
     await notify(userId, "APPLICATION_RECEIVED", "T", "B");
 
     const row = await dbRaw.notification.findFirst({ where: { userId } });
@@ -92,7 +81,7 @@ describe("notify — real DB writes", () => {
 
   it("increments waRetries when WhatsApp fails", async () => {
     vi.mocked(dispatchWhatsApp).mockResolvedValue(false);
-    const userId = await seedWaiter({ passportTier: "PRO", subscriptionExpiresAt: FUTURE });
+    const userId = await seedWaiter();
     await notify(userId, "APPLICATION_RECEIVED", "T", "B");
 
     const row = await dbRaw.notification.findFirst({ where: { userId } });
@@ -101,7 +90,7 @@ describe("notify — real DB writes", () => {
   });
 
   it("sets smsSent=true in DB after successful SMS dispatch", async () => {
-    const userId = await seedWaiter({ passportTier: "PRO_PLUS", subscriptionExpiresAt: FUTURE });
+    const userId = await seedWaiter();
     await notify(userId, "APPLICATION_RECEIVED", "T", "B");
 
     const row = await dbRaw.notification.findFirst({ where: { userId } });
@@ -109,78 +98,43 @@ describe("notify — real DB writes", () => {
   });
 });
 
-// ── Tier gating — reads real WaiterPassport rows ──────────────────────────────
+// ── Channel gating — opt-in + phone only, no tiers ────────────────────────────
 
-describe("notify — tier gating from real DB", () => {
-  it("FREE waiter → neither WhatsApp nor SMS dispatched", async () => {
-    const userId = await seedWaiter({ passportTier: "FREE" });
-    await notify(userId, "APPLICATION_RECEIVED", "T", "B");
-    expect(dispatchWhatsApp).not.toHaveBeenCalled();
-    expect(dispatchSms).not.toHaveBeenCalled();
-  });
-
-  it("PRO waiter (active) → WhatsApp dispatched, SMS not", async () => {
-    const userId = await seedWaiter({ passportTier: "PRO", subscriptionExpiresAt: FUTURE });
-    await notify(userId, "APPLICATION_RECEIVED", "T", "B");
-    expect(dispatchWhatsApp).toHaveBeenCalledTimes(1);
-    expect(dispatchSms).not.toHaveBeenCalled();
-  });
-
-  it("PRO_PLUS waiter (active) → both WhatsApp and SMS dispatched", async () => {
-    const userId = await seedWaiter({ passportTier: "PRO_PLUS", subscriptionExpiresAt: FUTURE });
+describe("notify — channel gating from real DB", () => {
+  it("opted-in waiter with a phone → both WhatsApp and SMS dispatched", async () => {
+    const userId = await seedWaiter();
     await notify(userId, "APPLICATION_RECEIVED", "T", "B");
     expect(dispatchWhatsApp).toHaveBeenCalledTimes(1);
     expect(dispatchSms).toHaveBeenCalledTimes(1);
   });
 
-  it("PRO_PLUS with EXPIRED subscription → treated as FREE (real runtime resolution)", async () => {
-    // This is the critical case: passportTier=PRO_PLUS in DB but subscriptionExpiresAt in past.
-    // getEffectiveTier() must downgrade to FREE at runtime. Mocked unit tests always
-    // returned the tier field directly — this test proves the expiry check runs against real data.
-    const userId = await seedWaiter({ passportTier: "PRO_PLUS", subscriptionExpiresAt: PAST });
+  it("waOptIn=false suppresses WhatsApp but not SMS", async () => {
+    const userId = await seedWaiter({ waOptIn: false });
+    await notify(userId, "APPLICATION_RECEIVED", "T", "B");
+    expect(dispatchWhatsApp).not.toHaveBeenCalled();
+    expect(dispatchSms).toHaveBeenCalledTimes(1);
+  });
+
+  it("smsOptIn=false suppresses SMS but not WhatsApp", async () => {
+    const userId = await seedWaiter({ smsOptIn: false });
+    await notify(userId, "APPLICATION_RECEIVED", "T", "B");
+    expect(dispatchSms).not.toHaveBeenCalled();
+    expect(dispatchWhatsApp).toHaveBeenCalledTimes(1);
+  });
+
+  it("no phone suppresses both WhatsApp and SMS even when opted in", async () => {
+    const userId = await seedWaiter({ phone: null });
     await notify(userId, "APPLICATION_RECEIVED", "T", "B");
     expect(dispatchWhatsApp).not.toHaveBeenCalled();
     expect(dispatchSms).not.toHaveBeenCalled();
   });
 
-  it("PRO with expired subscription → treated as FREE — no WhatsApp", async () => {
-    const userId = await seedWaiter({ passportTier: "PRO", subscriptionExpiresAt: PAST });
-    await notify(userId, "APPLICATION_RECEIVED", "T", "B");
-    expect(dispatchWhatsApp).not.toHaveBeenCalled();
-  });
-
-  it("waOptIn=false suppresses WhatsApp for PRO", async () => {
-    const userId = await seedWaiter({
-      passportTier: "PRO", subscriptionExpiresAt: FUTURE, waOptIn: false,
-    });
-    await notify(userId, "APPLICATION_RECEIVED", "T", "B");
-    expect(dispatchWhatsApp).not.toHaveBeenCalled();
-  });
-
-  it("smsOptIn=false suppresses SMS for PRO_PLUS", async () => {
-    const userId = await seedWaiter({
-      passportTier: "PRO_PLUS", subscriptionExpiresAt: FUTURE, smsOptIn: false,
-    });
-    await notify(userId, "APPLICATION_RECEIVED", "T", "B");
-    expect(dispatchSms).not.toHaveBeenCalled();
-  });
-
-  it("no phone suppresses WhatsApp and SMS even for PRO_PLUS", async () => {
-    const userId = await seedWaiter({
-      passportTier: "PRO_PLUS", subscriptionExpiresAt: FUTURE, phone: null,
-    });
-    await notify(userId, "APPLICATION_RECEIVED", "T", "B");
-    expect(dispatchWhatsApp).not.toHaveBeenCalled();
-    expect(dispatchSms).not.toHaveBeenCalled();
-  });
-
-  it("VENUE_OWNER bypasses tier gating — all channels regardless of no passport", async () => {
+  it("VENUE_OWNER with no passport row still gets all opted-in channels", async () => {
     const ownerId = await seedUser({ role: "VENUE_OWNER" });
     await dbRaw.user.update({
       where: { id: ownerId },
       data: { phone: "+381611111111", waOptIn: true, smsOptIn: true },
     });
-    // No WaiterPassport created — owner has no passport, but tier gating doesn't apply
     await notify(ownerId, "APPLICATION_RECEIVED", "T", "B");
     expect(dispatchWhatsApp).toHaveBeenCalledTimes(1);
     expect(dispatchSms).toHaveBeenCalledTimes(1);

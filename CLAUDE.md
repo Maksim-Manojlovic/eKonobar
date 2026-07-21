@@ -41,24 +41,20 @@ Optional in development (all features degrade gracefully when `REDIS_URL` is not
 | `rl:{key}:{bucket}` | `lib/core/rate-limit.ts` | `windowMs + 10s` | TTL only |
 | `rl:auth:{userId}:{action}:{bucket}` | `lib/core/rate-limit.ts` | `windowMs + 10s` | TTL only |
 | `notif:cache:{userId}` | `api/notifications/route.ts` | 60s | `notify()`, mark-read PATCH |
-| `notif:dispatch:prefs:{userId}` | `lib/notifications/notify.ts` | 300s | notification-prefs PATCH, push subscribe/unsubscribe, tier change |
+| `notif:dispatch:prefs:{userId}` | `lib/notifications/notify.ts` | 300s | notification-prefs PATCH, push subscribe/unsubscribe |
 | `cache:admin:stats` | `api/admin/stats/route.ts` | 60s | TTL only |
-| `passport:tier:{userId}` | `lib/passport/tier-cache.ts` | min(time-to-expiry, 3600s) | `bustTierCache()` — Monri callback, subscribe route |
 | `waiter:search:gen` | `api/waiters/route.ts` | no TTL (counter) | `INCR` after every `syncPassportScore` |
 | `search:waiters:{gen}:{hash}` | `api/waiters/route.ts` | 120s | counter change (old keys expire via TTL) |
 | `score:sync:waiter:{waiterId}` | `lib/notifications/side-effects.ts` | 5s | TTL only — cooldown guard, prevents concurrent re-syncs |
 | `score:sync:venue:{venueId}` | `lib/notifications/side-effects.ts` | 5s | TTL only — cooldown guard, prevents concurrent re-syncs |
 | `shift:claim:lock:{shiftId}` | `api/shifts/[id]/claim/route.ts` | 5s | `releaseLock` in `finally` |
-| `cron:renew-subscriptions:running` | `api/cron/renew-subscriptions` | 300s | TTL only |
-| `renewal:lock:{userId}` | `api/cron/renew-subscriptions` | 3600s | TTL only |
 | `analytics:venue:{venueId}:{period}` | `api/venues/[id]/waiter-analytics` | 300s | TTL only |
 
 ### Cache bust functions
 
-- `bustTierCache(userId)` — `lib/passport/tier-cache.ts`
 - `bustNotifyPrefsCache(userId)` — `lib/notifications/notify.ts`
 
-Call both when a user's passport tier changes (payment, cancellation). Call `bustNotifyPrefsCache` alone when contact preferences or push subscriptions change.
+Call when contact preferences or push subscriptions change.
 
 ### Testing Redis paths
 
@@ -149,37 +145,31 @@ Guest reviews use 150m radius (venue.reviewRadiusKm). Shift clock-in uses a stri
 
 `redAlert: true` job posts have a dedicated DB index (`@@index([redAlert])`). Filter by it directly — do not scan all job posts and filter in memory.
 
-**Red Alert early access for PRO/PRO_PLUS waiters:** FREE tier waiters see — and may apply to — Red Alert posts only after a 30-minute delay.
+**Red Alert visibility — signed-in vs anonymous.** Signed-in users see Red Alert posts immediately. Anonymous callers only see a Red Alert once it is 30 minutes old, so the public map and public job feed can't be scraped for fresh urgent posts. Registering is free, so this costs a real waiter nothing.
 
-All enforcement goes through `lib/passport/red-alert.ts`. **Never inline the cutoff or the OR clause in a route.** It previously lived inline in `GET /api/jobs` only, which left `GET /api/jobs/geojson` and `POST /api/jobs/applications` serving the full undelayed set to anyone.
+All enforcement goes through `lib/passport/red-alert.ts`. **Never inline the cutoff or the OR clause in a route.** It previously lived inline in `GET /api/jobs` only, which left `GET /api/jobs/geojson` serving the full undelayed set to anyone.
 
 ```typescript
-import { getRedAlertCutoff, redAlertVisibilityFilter, isRedAlertEmbargoed } from "@/lib/passport/red-alert";
+import { getRedAlertCutoff, redAlertVisibilityFilter } from "@/lib/passport/red-alert";
 
-// Read surfaces — compose under AND, never as a bare `OR` key:
-const redAlertCutoff = await getRedAlertCutoff(session);
+// Read surfaces — compose under AND, never as a bare `OR` key.
+// getRedAlertCutoff is synchronous — do not await it.
+const redAlertCutoff = getRedAlertCutoff(session);
 where: { status: "ACTIVE", AND: redAlertVisibilityFilter(redAlertCutoff) }
-
-// Write surfaces — block the action, not just the listing:
-if (isRedAlertEmbargoed(post, redAlertCutoff)) return NextResponse.json({ error: "..." }, { status: 403 });
 ```
 
 `getRedAlertCutoff(session)` returns a `Date` (delay applies) or `undefined` (full set):
 
 | Caller | Cutoff |
 |---|---|
-| PRO / PRO_PLUS waiter, active sub | `undefined` |
-| FREE waiter, or expired sub | `now - RED_ALERT_DELAY_MS` |
+| Any signed-in user | `undefined` |
 | **Unauthenticated** | `now - RED_ALERT_DELAY_MS` |
-| VENUE_OWNER / HEADHUNTER / ADMIN | `undefined` (not the audience for the gate) |
 
-Unauthenticated callers are gated deliberately. Leaving them undelayed makes every other gate pointless — a FREE waiter just signs out, or reads the public map GeoJSON, and gets the same posts instantly.
+`isRedAlertEmbargoed(post, cutoff)` is still exported for any future surface that must block an *action* on an embargoed post. It is deliberately **not** used in `POST /api/jobs/applications`: that route is `withRole("WAITER")`, so every caller is authenticated and the cutoff is always `undefined` there.
 
-**Gate writes, not just reads.** What PRO sells is *applying first*. `POST /api/jobs/applications` returns 403 for an embargoed Red Alert; without it, anyone who learns a post id by any means converts it into an early application regardless of the read gates.
+**Never share a cache across visibility.** `/api/jobs/geojson` sends `public, s-maxage=15` for the delayed set (identical for every anonymous caller) but `private, no-store` when serving the undelayed signed-in set — one public hit there would serve fresh Red Alerts to anonymous scrapers.
 
-**Never share a cache across entitlement.** `/api/jobs/geojson` sends `public, s-maxage=15` for the delayed set (identical for every unauthenticated/FREE caller) but `private, no-store` when serving the undelayed PRO set — one public hit there would hand every FREE waiter the early access they didn't buy.
-
-**Composing `OR` filters:** `redAlertVisibilityFilter` returns an *array* for spreading into `AND`, not a bare `{ OR }`. Spreading two `{ OR: [...] }` objects into one Prisma where-object silently drops the first — duplicate JS keys overwrite. This bug shipped in `GET /api/jobs`, where a FREE waiter's `?search=` was discarded.
+**Composing `OR` filters:** `redAlertVisibilityFilter` returns an *array* for spreading into `AND`, not a bare `{ OR }`. Spreading two `{ OR: [...] }` objects into one Prisma where-object silently drops the first — duplicate JS keys overwrite. This bug shipped in `GET /api/jobs`, where an anonymous caller's `?search=` was discarded.
 
 ### Coordinate jitter
 
@@ -255,16 +245,14 @@ notify(userId, "APPLICATION_RECEIVED", "Nova prijava", "Marko se prijavio...", "
 
 `notify()` always writes a `Notification` DB row, then dispatches:
 1. **Web push** — if the user has a `PushSubscription` row (free, via VAPID)
-2. **WhatsApp** — if `user.waOptIn && user.phone`, `WA_ACCESS_TOKEN` is set, **and the recipient has an active PRO or PRO_PLUS passport tier**
-3. **Infobip SMS** — if `user.smsOptIn && user.phone`, `INFOBIP_API_KEY` is set, **and the recipient has an active PRO_PLUS passport tier**
+2. **WhatsApp** — if `user.waOptIn && user.phone` and `WA_ACCESS_TOKEN` is set
+3. **Infobip SMS** — if `user.smsOptIn && user.phone` and `INFOBIP_API_KEY` is set
 
 Providers are no-ops when env vars are missing — safe in development.
 
+**No tier gating.** Every recipient gets every channel they opted into. The paid PRO / PRO_PLUS subscription that used to gate WhatsApp and SMS was removed; cost stays zero until the provider env vars are configured. Do not reintroduce a tier check here.
+
 **Internal architecture:** Channel dispatchers (`dispatchPush`, `dispatchWhatsApp`, `dispatchSms`) perform the network send only and return a boolean. The coordinator collects all results, then does a single `await db.notification.update` with all status flags (`pushSent`, `waSent`, `smsSent`) and retry counters (`waRetries`, `smsRetries`) in one batched write. No fire-and-forget DB writes inside dispatchers.
-
-**Tier resolution:** `notify()` always fetches `waiterPassport` as part of the initial `user.findUnique` select. Tier is computed in-process from that data — no second DB query needed. Do not pass a `tierHint` parameter (it was removed — it provided no actual DB savings).
-
-**Tier gating logic in `notify()`:** `notify` queries `waiterPassport.passportTier` and `subscriptionExpiresAt` for the recipient. If `subscriptionExpiresAt` is in the past, the tier is treated as FREE at runtime. WhatsApp requires `isPro` (PRO or PRO_PLUS active), SMS requires `isProPlus` (PRO_PLUS active). Venue owners and other non-waiter roles always receive all channels (tier gating only applies to WAITER recipients).
 
 `NotificationType` enum values: `APPLICATION_RECEIVED`, `APPLICATION_STATUS_CHANGED`, `SWAP_REQUESTED`, `SWAP_RESOLVED`, `SHIFT_CLAIMED`, `SHIFT_ASSIGNED`, `REVIEW_RECEIVED`, `REVIEW_PUBLISHED`, `CLOCKIN_APPROVAL_REQUESTED`, `CLOCKIN_RESOLVED`, `RED_ALERT_POSTED`.
 
@@ -275,7 +263,7 @@ Providers are no-ops when env vars are missing — safe in development.
 
 `lib/notifications/red-alert-broadcast.ts` — `broadcastRedAlert({ jobPostId, jobTitle, venueName, municipality })`. `POST /api/jobs` calls it **fire-and-forget** when a created post has `redAlert: true`; a broadcast failure must never fail the post creation.
 
-Recipients: available WAITERs whose `workMunicipalities` includes the venue's municipality, **PRO/PRO_PLUS only**, capped at 50. FREE waiters are excluded on purpose — Red Alert early access is the paid feature, and web push reaches every tier, so pushing to FREE here would leak the early access the `GET /api/jobs` delay and the apply gate enforce. Tier is filtered at the DB by `passportTier IN (PRO, PRO_PLUS)`, then re-checked in-process with `isPro` so an expired subscription (stored tier still PRO, effectively FREE) is dropped. **This matching only works when the venue's municipality is canonical** (`normalizeMunicipality` on write + the backfill) — a free-text venue municipality won't `has`-match a canonical `workMunicipalities`.
+Recipients: available WAITERs whose `workMunicipalities` includes the venue's municipality, capped at 50. **This matching only works when the venue's municipality is canonical** (`normalizeMunicipality` on write + the backfill) — a free-text venue municipality won't `has`-match a canonical `workMunicipalities`.
 
 ### NotificationBell
 
@@ -313,8 +301,9 @@ Recipients: available WAITERs whose `workMunicipalities` includes the venue's mu
 
 `lib/formatting/display-maps.ts` — **single source of truth** for Tailwind badge classes and human-readable labels. Never define `*_COLORS` or `*_LABELS` maps inline in a page; import from here:
 
-- `VERIFICATION_TIER_COLORS` — per verification tier (UNVERIFIED → ID_VERIFIED)
-- `PASSPORT_TIER_COLORS` — per passport tier, dark-bg variant
+- `isVerified(tier)` — true for any `VerificationTier` other than `UNVERIFIED`
+- `VERIFICATION_LABELS` — what each verification value *proves*, in Serbian ("Lična karta", "Potvrdio lokal", "Ugovor potvrđen", "Neverifikovan")
+- `VERIFICATION_TIER_COLORS` — per verification value (used by admin + search filter chips)
 - `APPLICATION_STATUS_COLORS`, `APPLICATION_STATUS_LABELS` — per application status
 - `INVITE_STATUS_COLORS`, `INVITE_STATUS_LABELS` — per invite status
 - `DIRECTION_LABELS` — all 4 review directions (WAITER_TO_VENUE, VENUE_TO_WAITER, GUEST_TO_WAITER, GUEST_TO_VENUE)
@@ -413,13 +402,13 @@ Each dashboard is split across several co-located files. Do not put shared helpe
 - `page.tsx` — root client component, session + section state only; no business logic
 - `venue-types.ts` — type declarations only: `Section`, `AppFilter`, and all API response shapes. No runtime values.
 - `venue-constants.ts` — runtime display constants: `SECTION_TITLES`. Imports types from `venue-types.ts`.
-- `venue-helpers.tsx` — shared UI: `PostStatusBadge`, `AppStatusBadge`, `TierBadge`, `PassportTierBadge`, `ScorePill`, `Sk` (re-exported from `components/ui/Sk`), and all `*Skeleton` loader components
+- `venue-helpers.tsx` — shared UI: `PostStatusBadge`, `AppStatusBadge`, `TierBadge`, `VerifiedBadge`, `VerificationProofChip`, `ScorePill`, `Sk` (re-exported from `components/ui/Sk`), and all `*Skeleton` loader components
 - Section components: `VenueJobsSection`, `VenueSmeneSection`, `VenueDiscoverSection`, `VenueReviewsSection`, `ProfileSection`, `VenueSmeneModals`
 
 **Waiter dashboard** (`src/app/(dashboard)/waiter/`):
 - `page.tsx` — root client component
 - `waiter-types.ts` — type declarations only: `Section`, `ShiftAssignment`, `WaiterShift`, and all API response shapes. No runtime values.
-- `waiter-constants.ts` — runtime display constants: `TIER_BADGE`, `NEXT_TIER`, `DIRECTION_LABELS`, `BADGE_META`, `BADGE_PROGRESS` (named progress functions + map), `VENUE_TYPE_OPTIONS`, `SCORE_DIMS`, `SECTION_TITLES`. Imports types from `waiter-types.ts`.
+- `waiter-constants.ts` — runtime display constants: `NEXT_VERIFICATION_STEP`, `DIRECTION_LABELS`, `BADGE_META`, `BADGE_PROGRESS` (named progress functions + map), `VENUE_TYPE_OPTIONS`, `SCORE_DIMS`, `SECTION_TITLES`. Imports types from `waiter-types.ts`.
 - `waiter-helpers.tsx` — shared UI: `StatusBadge`, `ShiftStatusBadge`, `Sk`, and all `*Skeleton` loaders
 - Section components: `WaiterOverviewSection`, `WaiterJobsSection`, `WaiterSmeneSection`, `WaiterPassportSection`, `WaiterInvitesSection`, `WaiterReviewsSection`
 - `useNotifPrefs.ts` — co-located hook owning the notification-preferences concern (phone / WhatsApp / SMS opt-in + web-push subscribe toggle + their load/save). Extracted out of `WaiterPassportSection` to shrink its state surface (CQ-G). Section components with many self-contained concerns should extract them into co-located hooks like this rather than accumulating `useState` in the component body.
@@ -432,7 +421,7 @@ Each dashboard is split across several co-located files. Do not put shared helpe
 
 ### Code conventions
 
-**Inline UI micro-components:** Never define `Initials`, `PassportTierBadge`, `ScorePill`, or similar inside a page file. For venue/headhunter contexts import from `venue-helpers.tsx`. For cross-dashboard reuse, promote to `components/ui/`.
+**Inline UI micro-components:** Never define `Initials`, `VerifiedBadge`, `ScorePill`, or similar inside a page file. For venue/headhunter contexts import from `venue-helpers.tsx`. For cross-dashboard reuse, promote to `components/ui/`.
 
 **`timeAgo()`:** Defined once in `lib/formatting/utils.ts`. Import directly from there. Admin pages use the re-export in `admin-helpers.tsx` (intentional — keeps admin imports consistent). Do not write a new local definition.
 
@@ -500,7 +489,6 @@ The Prisma client is cached on `globalThis._prisma`. After every `db:push` that 
 - `WaiterPassport` — one-to-one with `WAITER` User
 - `EngagementRecord` — verified work history entry on the passport
 - `Review` — four directions: `WAITER_TO_VENUE`, `VENUE_TO_WAITER`, `GUEST_TO_WAITER`, `GUEST_TO_VENUE`. `authorId` is nullable (null = guest).
-- `PassportTier` enum — `FREE | PRO | PRO_PLUS`. Used on `WaiterPassport.passportTier` and `PassportPayment.tier`.
 - `VenueZone` — map zone (hotspot) for analytics
 - `Invite` — venue invite code for GOLD verification
 - `RateLimit` — DB-backed rate limit counters (userId + action + hourly window)
@@ -509,8 +497,8 @@ The Prisma client is cached on `globalThis._prisma`. After every `db:push` that 
 - `ShiftAssignment` — explicit waiter-to-shift assignment (replaced implicit M2M). Has clock-in fields: `clockInAt`, `clockOutAt`, `clockInMethod` (GPS | GPS_GRACE | QR | MANUAL), `clockInLat`, `clockInLng`, `lateMinutes`, `earlyExitAt`, `pendingClockIn` (awaiting manager approval).
 - `ShiftSwapRequest` — swap request between two waiters. Status: `PENDING → ACCEPTED | REJECTED | CANCELLED`.
 - `ShiftTemplate` — recurring shift pattern. Has `dayOfWeek Int?` (null when `weekdaysOnly=true`), `weekdaysOnly Boolean`, `metadata Json?` (`{ type, label, shift }`). Used for bulk generation.
-- `WaiterPassport` — one-to-one with `WAITER` User. Has `passportTier PassportTier @default(FREE)`, `subscriptionExpiresAt DateTime?`, `monriPanToken String?` (stored pan_token from Monri for recurring charges). Indexed on `passportTier`. `workMunicipalities String[]` — Belgrade opštine the waiter will work in (declared reach; see Waiter Search "Reach filter"). No home coordinates — reach is coarse and non-identifying by design.
-- `PassportPayment` — payment record per checkout attempt. Has `userId`, `orderNumber` (unique, `EK-` prefix), `tier PassportTier`, `amountRsd Int` (minor units), `status String` (`PENDING | SUCCESS | FAILED | CANCELLED`), `monriApprovalCode String?`, `monriPanToken String?`. Indexed on `userId`, `orderNumber`, `status`. Idempotent: callback checks status before updating.
+- `WaiterPassport` — one-to-one with `WAITER` User. Indexed on `score`. `workMunicipalities String[]` — Belgrade opštine the waiter will work in (declared reach; see Waiter Search "Reach filter"). No home coordinates — reach is coarse and non-identifying by design.
+- `PassportPayment` — **historical only.** Payment rows from the removed waiter subscription product. Nothing writes to it now; kept so past payment history survives for accounting. `tier` is a plain `String` (the `PassportTier` enum is gone).
 - `Notification` — in-app notification record. Has `type NotificationType`, `title`, `body`, `link`, `read`, `pushSent`, `waSent`, `smsSent`.
 - `PushSubscription` — browser Web Push subscription per user. Has `endpoint` (unique), `p256dh`, `auth`.
 
@@ -633,8 +621,7 @@ export async function GET(req: NextRequest) {
 
 `POST /api/cron/retry-notifications` — hourly job that retries failed WhatsApp and SMS sends.
 
-- Queries `Notification` where `waSent=false AND waRetries<3` (or same for SMS), `createdAt` within last 24h, user not deleted
-- Re-checks tier eligibility at retry time (subscription may have changed)
+- Queries `Notification` where `waSent=false AND waRetries<3` (or same for SMS), `createdAt` within last 24h, user not deleted, still opted in
 - On success: sets `waSent`/`smsSent = true`
 - On failure: increments `waRetries`/`smsRetries`; stops retrying once count reaches 3
 - Returns `{ checked, waSent, waFailed, smsSent, smsFailed }`
@@ -733,7 +720,6 @@ Login page links to `/reset-password` ("Zaboravili ste lozinku?").
 - `/api/venues/[id]` — single venue GET (marketplace)
 - `/api/venues/geojson`, `/api/jobs/geojson` — map data
 - `/api/passport/public/*` — share-link passport
-- `/api/payments/monri/(callback|success|cancel)` — Monri webhook + redirects
 
 Route handlers still use `withRole`/`withAuth` as the primary guard — the middleware is defense-in-depth only.
 
@@ -1075,7 +1061,7 @@ GET /api/waiters
 
 **Venue municipality is canonical-on-write.** `POST /api/venues` runs `normalizeMunicipality` (casing fixes + known neighborhood→opština aliases, e.g. Dorćol→Stari grad) and stores the canonical opština, or 400s if unrecognised. The create form is a `BELGRADE_MUNICIPALITIES` dropdown. This is what makes `workMunicipalities has venue.municipality` an exact match — do not reintroduce a free-text municipality input. Legacy free-text rows (created before this) are corrected by `scripts/backfill-venue-municipality.ts` (dry-run by default, `--apply` to write) — run it once against the DB after deploy; unresolved values are listed for manual review, never guessed.
 
-**Tier-based ranking:** After the DB query, results are sorted in-memory: PRO_PLUS (rank 2) → PRO (rank 1) → FREE (rank 0), then by score descending within each tier. Expired subscriptions are treated as FREE. This is done in-memory (not at DB level) because expiry comparison requires runtime Date logic.
+**Ranking:** ordered by passport `score` descending, at the DB (`@@index([score])`). There is no paid priority placement — a waiter's position is earned by score alone. Do not reintroduce a purchasable rank.
 
 ## Zone Analytics
 
@@ -1124,9 +1110,9 @@ DELETE /api/admin/venues/[id]
   engagementRecords, shifts, venueTrustScore). Works on soft-deleted venues too.
 
 GET /api/admin/stats
-  13 parallel queries. Returns: users by role, passports by tier, active venues,
-  open/red-alert jobs, applications, reviews by status, sanitary pending count,
-  total successful payments, revenue this month (amountRsd / 100 = dinars).
+  11 parallel queries. Returns: users by role, passports (total/available/verified),
+  active venues, open/red-alert jobs, applications, reviews by status,
+  sanitary pending count.
 
 GET /api/admin/activity
   Last 25 events merged and sorted across User (registrations), PassportPayment
@@ -1145,10 +1131,7 @@ GET /api/admin/health
   Returns system health metrics:
   - reviews.overdueGuest   — PENDING guest reviews older than 2h (should be 0 if cron runs)
   - reviews.overdueRegular — PENDING non-guest reviews older than 48h
-  - passports.expiredPaid  — WaiterPassport with non-FREE tier but subscriptionExpiresAt < now
-                             (DB stale — runtime already treats these as FREE)
   - cron.lastPublishedReviewAt  — proxy for publish-reviews cron last-ran timestamp
-  - cron.lastRenewalPaymentAt   — proxy for renew-subscriptions cron last-ran timestamp
   - users.softDeleted           — count of users with deletedAt set
   - system.pendingClockIns      — ShiftAssignment rows with pendingClockIn = true
   - system.rateLimitEntries     — RateLimit row count (spike = heavy use or abuse)
@@ -1172,12 +1155,10 @@ PATCH /api/user/notification-prefs  { phone?, smsOptIn?, waOptIn? }
 ```
 notify(userId, type, title, body, link?)
   → 1. db.notification.create (always)
-  → 2. web push to all PushSubscription rows (VAPID, free for all tiers)
+  → 2. web push to all PushSubscription rows (VAPID)
       expired subs (410/404) auto-deleted
-  → 3. WhatsApp template msg if isPro && user.waOptIn && user.phone
-      (isPro = active PRO or PRO_PLUS passport tier)
-  → 4. Infobip SMS if isProPlus && user.smsOptIn && user.phone
-      (isProPlus = active PRO_PLUS passport tier only)
+  → 3. WhatsApp template msg if user.waOptIn && user.phone
+  → 4. Infobip SMS if user.smsOptIn && user.phone
 ```
 
 ### VAPID setup (one-time)
@@ -1200,120 +1181,30 @@ Template name is set via `WA_TEMPLATE_NAME` env var (default: `ekonobar_notifica
 
 Infobip messages are truncated to 160 chars: `"${title}: ${body} | ekonobar.rs"`.
 
-## Passport Pro Subscriptions
+## Waiter monetization — removed
 
-Waiters can upgrade their passport tier for priority features. Venues are commission-only — no subscription fees.
+**There is no paid tier for waiters.** The `PassportTier` (`FREE | PRO | PRO_PLUS`) subscription product was removed entirely: the enum, the `WaiterPassport.passportTier` / `subscriptionExpiresAt` / `monriPanToken` / `tierRank` columns, the checkout + subscription routes, and the renewal cron are all gone. A future paid product for waiters is planned but not designed — do not resurrect the old shape.
 
-### Tiers
+What that means for code you write now:
 
-| Tier | Price | Features |
-|---|---|---|
-| `FREE` | 0 RSD | Basic passport, web push notifications, Red Alert access (30-min delay) |
-| `PRO` | 290 RSD/mo | + WhatsApp notifications, priority in search results, Red Alert early access |
-| `PRO_PLUS` | 490 RSD/mo | + SMS notifications, first in search results (rank 2 vs PRO rank 1) |
+- **Everything a waiter gets is free** — passport, verification, all notification channels (web push, WhatsApp, SMS), Red Alert.
+- **Search rank is earned, not bought.** `GET /api/waiters` orders by passport `score` desc only. Never add a purchasable priority.
+- **No entitlement checks.** If you find yourself writing `isPro`, `effectiveTier`, or a `tier` gate, it does not belong. The only remaining axes are `VerificationTier` (identity evidence) and `score` (performance).
+- Venues remain commission-only.
 
-### Tier resolution
+### What survives, and why
 
-Always check at runtime — never cache tier in JWT:
+| Kept | Reason |
+|---|---|
+| `lib/integrations/monri.ts` + tests | Dormant. Provider-specific gateway wrapper (digests, callback verification, tokenized recurring charges) that would be rebuilt identically for the next paid product. **Nothing imports it.** Its success/cancel/callback URLs point at routes that no longer exist — recreate them before wiring it back up. |
+| `lib/core/encryption.ts` + tests | Generic AES-256-GCM, not payment-specific. |
+| `PassportPayment` table | Historical payment rows, for accounting. Nothing writes to it. `tier` is now a plain `String`. |
+| `MONRI_*` env vars | Unused, kept in `.env.example` for the eventual rewire. |
 
-```typescript
-const passport = await db.waiterPassport.findUnique({ where: { userId } });
-const isActive = passport?.subscriptionExpiresAt
-  ? passport.subscriptionExpiresAt > new Date()
-  : false;
-const effectiveTier = isActive ? passport.passportTier : "FREE";
-const isPro     = isActive && (effectiveTier === "PRO" || effectiveTier === "PRO_PLUS");
-const isProPlus = isActive && effectiveTier === "PRO_PLUS";
-```
+Admin surfaces that reported on this product (`stats.payments`, `leaderboard.revenue`, `health.passports.expiredPaid`, `health.cron.lastRenewalPaymentAt`) were removed rather than left showing a permanent zero.
 
-### Subscription API
+### Verification is not a ladder
 
-```
-GET /api/passport/subscription
-  WAITER only. Returns { tier, subscriptionExpiresAt, isActive, daysRemaining }.
+`VerificationTier` (`UNVERIFIED | SILVER | GOLD | ID_VERIFIED`) records *which evidence* was checked, not a rank — GOLD (owner invite code) is not "better than" ID_VERIFIED (government ID). Render it as a binary badge plus the named evidence, via `<VerifiedBadge />` and `<VerificationProofChip />` from `components/ui/PassportWidgets.tsx`.
 
-POST /api/passport/subscribe  { tier: "FREE" | "PRO" | "PRO_PLUS" }
-  WAITER only.
-  FREE → clears subscription immediately (cancels).
-  PRO/PRO_PLUS → extends 30 days from now (or from current expiry if still active).
-  Note: this is the direct/admin path. Normal user path goes through Monri checkout.
-```
-
-### Subscription renewal cron
-
-`POST /api/cron/renew-subscriptions` — daily job that charges stored `monriPanToken` for passports expiring within 25h.
-
-- Queries `WaiterPassport` where `passportTier IN [PRO, PRO_PLUS]`, `monriPanToken IS NOT NULL`, `subscriptionExpiresAt` in `[now-1h, now+25h]`
-- Dedup guard: skips users with a `PassportPayment` in `status IN [PENDING, SUCCESS]` created in the last 2h
-- On success: extends `subscriptionExpiresAt` by 30 days from the **current expiry** (not `now`), to avoid date drift on late cron runs
-- On failure: marks payment FAILED, lets subscription lapse naturally — does **not** force-downgrade `passportTier`. User notified to resubscribe.
-- Returns `{ checked, renewed, failed }`
-
-## Monri Payment Integration
-
-Visa/Mastercard/DinaCard payment via Monri WebPay (Serbian gateway). Replaces any Stripe/PayPal — Monri is the only payment provider.
-
-### Environment variables
-
-```env
-MONRI_ENV="test"                  # "test" | "production"
-MONRI_MERCHANT_KEY=""             # from Monri dashboard → API keys
-MONRI_AUTHENTICITY_TOKEN=""       # from Monri dashboard → API keys
-```
-
-Test endpoint: `https://ipgtest.monri.com`  
-Production endpoint: `https://ipg.monri.com`
-
-### lib/integrations/monri.ts
-
-```typescript
-import { createPaymentSession, verifyCallback, callbackApproved } from "@/lib/monri";
-```
-
-- `requestDigest(params)` — `SHA512(authenticity_token + order_number + amount + currency)` — included in checkout POST
-- `callbackDigest(payload)` — `SHA512(merchant_key + approval_code + order_number + amount)` — used to verify server-to-server callbacks
-- `createPaymentSession(params)` — POSTs to `/v2/payment/new`, returns `{ paymentUrl, orderId }`
-- `verifyCallback(payload)` — compares expected vs received digest; returns boolean
-- `callbackApproved(payload)` — checks `response_code === "0000" && status === "approved"`
-- `chargeStoredCard(params)` — recurring charge using stored `monriPanToken` (not yet used)
-
-### Payment flow
-
-```
-POST /api/payments/monri/checkout  { tier: "PRO" | "PRO_PLUS" }
-  WAITER only.
-  → Creates PassportPayment record (status: PENDING, orderNumber: EK-{16 hex chars})
-  → Calls createPaymentSession()
-  → Returns { paymentUrl } — frontend redirects the user
-
-User pays on Monri-hosted page →
-
-POST /api/payments/monri/callback  (Monri server-to-server, no auth)
-  Body: application/x-www-form-urlencoded or JSON
-  → verifyCallback(): digest mismatch → 400
-  → Idempotency: already SUCCESS → 200 (skip)
-  → callbackApproved():
-      YES → dbRaw.$transaction:
-              PassportPayment status=SUCCESS, approvalCode, panToken
-              WaiterPassport tier=tier, subscriptionExpiresAt=+30days, monriPanToken
-            notify() fire-and-forget (APPLICATION_STATUS_CHANGED)
-      NO  → PassportPayment status=FAILED
-  → Returns { ok: true }
-
-GET /api/payments/monri/success?order_number=...
-  → Redirects to ${NEXT_PUBLIC_APP_URL}/waiter?payment=success&order={orderNumber}
-
-GET /api/payments/monri/cancel?order_number=...
-  → Updates PassportPayment PENDING → CANCELLED
-  → Redirects to ${NEXT_PUBLIC_APP_URL}/waiter?payment=cancelled
-```
-
-### Waiter dashboard payment UX
-
-After redirect back from Monri, `WaiterDashboard` reads `?payment=success|cancelled` from the URL on mount, shows a toast, cleans the URL with `window.history.replaceState`, and auto-navigates to the passport section on success.
-
-### Callback security
-
-**Always use `dbRaw` in the Monri callback handler**, not `db`. The callback is unauthenticated (Monri server → our server) and needs to update `PassportPayment` which has no `deletedAt` field — but using `dbRaw` is still correct here to avoid any soft-delete filter issues.
-
-Configure the callback URL in Monri dashboard: `https://your-domain.com/api/payments/monri/callback`
+The old `TIER_BADGE` / `NEXT_TIER` display maps (BRONZE → SILVER → GOLD → PLATINUM) are deleted. They never matched the DB: BRONZE and PLATINUM were unreachable enum values while UNVERIFIED and ID_VERIFIED had no entry, so `TIER_BADGE[tier] ?? TIER_BADGE.BRONZE` rendered "BRONZE" for the platform's *most* verified users. `NEXT_VERIFICATION_STEP` in `waiter-constants.ts` replaces `NEXT_TIER` — it holds the next concrete action, not the next metal.

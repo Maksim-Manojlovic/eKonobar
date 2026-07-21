@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import ImageUpload from "@/components/ui/ImageUpload";
 import TagInput from "@/components/ui/TagInput";
-import type { PassportData, PassportSubscription } from "./waiter-types";
+import type { PassportData } from "./waiter-types";
 import { BADGE_META, BADGE_PROGRESS, VENUE_TYPE_OPTIONS, SCORE_DIMS } from "./waiter-constants";
 import { BELGRADE_MUNICIPALITIES } from "@/lib/geo/municipalities";
 import { useNotifPrefs } from "./useNotifPrefs";
@@ -13,12 +13,10 @@ import { useSanitaryBook } from "./useSanitaryBook";
 /* ── Section: Passport ───────────────────────────────────────────────────── */
 
 export default function PassportSection({ userName }: { userName: string }) {
-  const [passport, setPassport]         = useState<PassportData | null>(null);
-  const [subscription, setSubscription] = useState<PassportSubscription | null>(null);
-  const [loading, setLoading]           = useState(true);
-  const [saving, setSaving]             = useState(false);
-  const [saved, setSaved]               = useState(false);
-  const [subscribing, setSubscribing]   = useState(false);
+  const [passport, setPassport] = useState<PassportData | null>(null);
+  const [loading, setLoading]   = useState(true);
+  const [saving, setSaving]     = useState(false);
+  const [saved, setSaved]       = useState(false);
 
   const [bio, setBio]                             = useState("");
   const [skills, setSkills]                       = useState<string[]>([]);
@@ -34,54 +32,24 @@ export default function PassportSection({ userName }: { userName: string }) {
   const san   = useSanitaryBook();
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/passport").then(r => r.json()),
-      fetch("/api/passport/subscription").then(r => r.json()),
-    ]).then(([passportData, subData]) => {
-      if (passportData?.id) {
-        setPassport(passportData);
-        setBio(passportData.bio ?? "");
-        setSkills(passportData.skills ?? []);
-        setLanguages(passportData.languages ?? []);
-        setYears(passportData.yearsExperience ?? 0);
-        setAvailable(passportData.currentlyAvailable ?? true);
-        setVenuePrefs(passportData.venueTypePreferences ?? []);
-        setWorkMunis(passportData.workMunicipalities ?? []);
-        setGalleryPhotos(passportData.galleryPhotos ?? []);
-      }
-      if (subData?.tier) setSubscription(subData);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    fetch("/api/passport")
+      .then(r => r.json())
+      .then((passportData) => {
+        if (passportData?.id) {
+          setPassport(passportData);
+          setBio(passportData.bio ?? "");
+          setSkills(passportData.skills ?? []);
+          setLanguages(passportData.languages ?? []);
+          setYears(passportData.yearsExperience ?? 0);
+          setAvailable(passportData.currentlyAvailable ?? true);
+          setVenuePrefs(passportData.venueTypePreferences ?? []);
+          setWorkMunis(passportData.workMunicipalities ?? []);
+          setGalleryPhotos(passportData.galleryPhotos ?? []);
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, []);
-
-  async function handleSubscribe(tier: "PRO" | "PRO_PLUS") {
-    setSubscribing(true);
-    const res = await fetch("/api/payments/monri/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tier }),
-    });
-    if (res.ok) {
-      const { paymentUrl } = await res.json();
-      window.location.href = paymentUrl;
-      // Don't setSubscribing(false) — page will redirect away
-      return;
-    }
-    setSubscribing(false);
-  }
-
-  async function handleCancel() {
-    setSubscribing(true);
-    const res = await fetch("/api/passport/subscribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tier: "FREE" }),
-    });
-    if (res.ok) {
-      setSubscription({ tier: "FREE", subscriptionExpiresAt: null, isActive: false, daysRemaining: 0 });
-    }
-    setSubscribing(false);
-  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -189,104 +157,6 @@ export default function PassportSection({ userName }: { userName: string }) {
               {" "}· {passport.redAlertResponseCount} Red Alert{passport.redAlertResponseCount !== 1 ? "a" : ""}
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Passport Pro subscription card */}
-      <div className="dash-card p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="font-bold text-neutral-900 text-sm">Passport Pro</h3>
-            <p className="text-xs text-neutral-400 mt-0.5">Plaćate samo odrađenu smenu — pretplatom dobijate prioritet i direktne notifikacije.</p>
-          </div>
-          {subscription?.tier === "PRO" && (
-            <span className="text-xs font-black px-2.5 py-1 rounded-full bg-orange-100 text-orange-600 flex-shrink-0">PRO</span>
-          )}
-          {subscription?.tier === "PRO_PLUS" && (
-            <span className="text-xs font-black px-2.5 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white flex-shrink-0">PRO+</span>
-          )}
-          {(!subscription || subscription.tier === "FREE") && (
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-neutral-100 text-neutral-400 flex-shrink-0">FREE</span>
-          )}
-        </div>
-
-        {subscription?.isActive && (
-          <p className="text-xs text-green-600 font-medium mb-4">
-            Aktivan — ističe za {subscription.daysRemaining} {subscription.daysRemaining === 1 ? "dan" : "dana"}
-          </p>
-        )}
-
-        <div className="grid sm:grid-cols-2 gap-3">
-          {/* PRO card */}
-          <div className={`rounded-2xl p-4 border ${subscription?.tier === "PRO" ? "border-orange-300 bg-orange-50" : "border-neutral-200 bg-white"}`}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-black text-orange-600 tracking-wider uppercase">PRO</span>
-              <span className="font-extrabold text-neutral-900">290 <span className="text-xs font-medium text-neutral-400">RSD/mes</span></span>
-            </div>
-            <ul className="flex flex-col gap-1.5 text-xs text-neutral-600 mb-4">
-              {[
-                "Prioritet u pretrazi vlasnika",
-                "Red Alert 30 min pre svih",
-                "WhatsApp notifikacije",
-                "\"Aktivan\" bedž na profilu",
-              ].map(f => (
-                <li key={f} className="flex items-center gap-1.5">
-                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="#f97316" strokeWidth="2" strokeLinecap="round" /></svg>
-                  {f}
-                </li>
-              ))}
-            </ul>
-            {subscription?.tier !== "PRO" && (
-              <button
-                onClick={() => handleSubscribe("PRO")}
-                disabled={subscribing}
-                className="w-full btn-primary text-white text-xs font-bold py-2 rounded-xl disabled:opacity-50"
-              >
-                {subscribing ? "..." : "Aktiviraj PRO"}
-              </button>
-            )}
-            {subscription?.tier === "PRO" && (
-              <button onClick={handleCancel} className="w-full text-xs text-neutral-400 py-1.5 hover:text-red-500 transition-colors">
-                Otkaži pretplatu
-              </button>
-            )}
-          </div>
-
-          {/* PRO+ card */}
-          <div className={`rounded-2xl p-4 border relative overflow-hidden ${subscription?.tier === "PRO_PLUS" ? "border-amber-300 bg-amber-50" : "border-neutral-200 bg-white"}`}>
-            <div className="absolute top-3 right-3 text-[9px] font-black tracking-wider bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded-full">NAJPOPULARNIJI</div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-black text-amber-600 tracking-wider uppercase">PRO+</span>
-              <span className="font-extrabold text-neutral-900">490 <span className="text-xs font-medium text-neutral-400">RSD/mes</span></span>
-            </div>
-            <ul className="flex flex-col gap-1.5 text-xs text-neutral-600 mb-4">
-              {[
-                "Sve iz PRO plana",
-                "SMS notifikacije (Infobip)",
-                "Prvo u rezultatima pretrage",
-                "Mesečni izveštaj skora",
-              ].map(f => (
-                <li key={f} className="flex items-center gap-1.5">
-                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" /></svg>
-                  {f}
-                </li>
-              ))}
-            </ul>
-            {subscription?.tier !== "PRO_PLUS" && (
-              <button
-                onClick={() => handleSubscribe("PRO_PLUS")}
-                disabled={subscribing}
-                className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold py-2 rounded-xl disabled:opacity-50 transition-all"
-              >
-                {subscribing ? "..." : "Aktiviraj PRO+"}
-              </button>
-            )}
-            {subscription?.tier === "PRO_PLUS" && (
-              <button onClick={handleCancel} className="w-full text-xs text-neutral-400 py-1.5 hover:text-red-500 transition-colors">
-                Otkaži pretplatu
-              </button>
-            )}
-          </div>
         </div>
       </div>
 
@@ -589,17 +459,11 @@ export default function PassportSection({ userName }: { userName: string }) {
         <div className="flex items-center justify-between py-1">
           <div>
             <div className="text-sm font-semibold text-neutral-700">WhatsApp notifikacije</div>
-            <div className="text-xs text-neutral-400 mt-0.5">
-              {subscription?.tier === "PRO" || subscription?.tier === "PRO_PLUS"
-                ? "Aktivno za vaš PRO plan"
-                : <span>Dostupno uz <span className="font-bold text-orange-500">PRO</span> pretplatu</span>
-              }
-            </div>
+            <div className="text-xs text-neutral-400 mt-0.5">Zahteva broj telefona</div>
           </div>
           <button
             onClick={() => notif.setWa(v => !v)}
-            disabled={subscription?.tier !== "PRO" && subscription?.tier !== "PRO_PLUS"}
-            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 disabled:opacity-40 ${notif.wa ? "bg-green-500" : "bg-neutral-200"}`}
+            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${notif.wa ? "bg-green-500" : "bg-neutral-200"}`}
           >
             <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${notif.wa ? "translate-x-5" : ""}`} />
           </button>
@@ -609,17 +473,11 @@ export default function PassportSection({ userName }: { userName: string }) {
         <div className="flex items-center justify-between py-1">
           <div>
             <div className="text-sm font-semibold text-neutral-700">SMS notifikacije</div>
-            <div className="text-xs text-neutral-400 mt-0.5">
-              {subscription?.tier === "PRO_PLUS"
-                ? "Aktivno za vaš PRO+ plan"
-                : <span>Dostupno uz <span className="font-bold text-amber-500">PRO+</span> pretplatu</span>
-              }
-            </div>
+            <div className="text-xs text-neutral-400 mt-0.5">Zahteva broj telefona</div>
           </div>
           <button
             onClick={() => notif.setSms(v => !v)}
-            disabled={subscription?.tier !== "PRO_PLUS"}
-            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 disabled:opacity-40 ${notif.sms ? "bg-green-500" : "bg-neutral-200"}`}
+            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${notif.sms ? "bg-green-500" : "bg-neutral-200"}`}
           >
             <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${notif.sms ? "translate-x-5" : ""}`} />
           </button>

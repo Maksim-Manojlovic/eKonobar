@@ -61,13 +61,9 @@ function mockNoSession() {
   vi.mocked(getServerSession).mockResolvedValue(null as never);
 }
 
-function mockWaiter(passportTier: string, subscriptionExpiresAt: Date | null) {
+function mockWaiter() {
   vi.mocked(getServerSession).mockResolvedValue({
     user: { id: WAITER_ID, role: "WAITER" },
-  } as never);
-  vi.mocked(db.waiterPassport.findUnique).mockResolvedValue({
-    passportTier,
-    subscriptionExpiresAt,
   } as never);
 }
 
@@ -79,8 +75,6 @@ function redAlertClause(): unknown[] {
   return call.where.AND ?? [];
 }
 
-const ACTIVE_SUB  = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-const EXPIRED_SUB = new Date(Date.now() - 1000);
 
 describe("GET /api/jobs/geojson", () => {
   beforeEach(() => {
@@ -210,7 +204,7 @@ describe("GET /api/jobs/geojson", () => {
     });
   });
 
-  // ── Red Alert early access (paid PRO/PRO_PLUS feature) ────────────────────
+  // ── Red Alert visibility (anonymous vs signed-in) ─────────────────────────
 
   it("unauthenticated → Red Alert delay applied", async () => {
     await GET(makeReq(), CTX);
@@ -219,28 +213,10 @@ describe("GET /api/jobs/geojson", () => {
     ]);
   });
 
-  it("FREE waiter → Red Alert delay applied", async () => {
-    mockWaiter("FREE", null);
-    await GET(makeReq(), CTX);
-    expect(redAlertClause()).toHaveLength(1);
-  });
-
-  it("PRO waiter → no Red Alert delay", async () => {
-    mockWaiter("PRO", ACTIVE_SUB);
+  it("signed-in waiter → no Red Alert delay", async () => {
+    mockWaiter();
     await GET(makeReq(), CTX);
     expect(redAlertClause()).toEqual([]);
-  });
-
-  it("PRO_PLUS waiter → no Red Alert delay", async () => {
-    mockWaiter("PRO_PLUS", ACTIVE_SUB);
-    await GET(makeReq(), CTX);
-    expect(redAlertClause()).toEqual([]);
-  });
-
-  it("expired PRO passport treated as FREE → delay applied", async () => {
-    mockWaiter("PRO", EXPIRED_SUB);
-    await GET(makeReq(), CTX);
-    expect(redAlertClause()).toHaveLength(1);
   });
 
   it("cutoff is RED_ALERT_DELAY_MS in the past", async () => {
@@ -263,8 +239,8 @@ describe("GET /api/jobs/geojson", () => {
     expect(res.headers.get("Cache-Control")).toContain("public");
   });
 
-  it("undelayed PRO set is never shared-cached", async () => {
-    mockWaiter("PRO", ACTIVE_SUB);
+  it("undelayed signed-in set is never shared-cached", async () => {
+    mockWaiter();
     const res = await GET(makeReq(), CTX);
     const cc = res.headers.get("Cache-Control");
     expect(cc).toContain("private");

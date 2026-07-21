@@ -20,7 +20,6 @@ import { GET, POST }    from "../route";
 
 const SECRET = "test-secret";
 
-const FUTURE = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
 const BASE_NOTIF = {
   id: "n-1",
@@ -32,11 +31,9 @@ const BASE_NOTIF = {
   smsSent: false,
   smsRetries: 0,
   user: {
-    role: "WAITER",
     phone: "+381611234567",
     waOptIn: true,
     smsOptIn: true,
-    waiterPassport: { passportTier: "PRO_PLUS", subscriptionExpiresAt: FUTURE },
   },
 };
 
@@ -115,9 +112,9 @@ describe("GET /api/cron/retry-notifications", () => {
     expect(json.smsFailed).toBe(1);
   });
 
-  it("PRO tier not eligible for SMS", async () => {
+  it("smsOptIn=false skips SMS", async () => {
     vi.mocked(dbRaw.notification.findMany).mockResolvedValue([
-      { ...BASE_NOTIF, user: { ...BASE_NOTIF.user, waiterPassport: { passportTier: "PRO", subscriptionExpiresAt: FUTURE } } },
+      { ...BASE_NOTIF, user: { ...BASE_NOTIF.user, smsOptIn: false } },
     ] as never);
     const res = await GET(makeReq());
     const json = await res.json();

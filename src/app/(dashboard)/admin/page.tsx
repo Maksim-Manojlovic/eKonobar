@@ -398,9 +398,6 @@ export default function AdminDashboard() {
                       </div>
                       <div className="text-right flex-shrink-0">
                         <p className="text-sm font-black text-orange-400">{w.score}</p>
-                        {w.isActive && (
-                          <p className="text-[10px] font-bold text-amber-400">{w.passportTier.replace("_", "+")}</p>
-                        )}
                       </div>
                     </div>
                   ))}

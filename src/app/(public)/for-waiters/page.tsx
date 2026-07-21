@@ -33,7 +33,7 @@ const faqItems: FAQItem[] = [
     question: "Mogu li poneti Passport iz Beograda u Novi Sad ili Zagreb?",
     answer: (
       <>
-        Da. Passport je vezan za tebe, ne za grad. Trenutno radimo u Beogradu, Novom Sadu i Nišu — Zagreb stiže u Q3 2026. Tier i sve recenzije se prenose, ne resetuju.
+        Da. Passport je vezan za tebe, ne za grad. Trenutno radimo u Beogradu, Novom Sadu i Nišu — Zagreb stiže u Q3 2026. Skor, verifikacija i sve recenzije se prenose, ne resetuju.
       </>
     ),
   },
@@ -47,19 +47,19 @@ const faqItems: FAQItem[] = [
     ),
   },
   {
-    question: "Mogu li sakriti loš tier od poslodavca?",
+    question: "Mogu li sakriti nizak skor od poslodavca?",
     answer: (
       <>
-        Ne — to je suština sistema. Ali Bronze tier{" "}
-        <strong className="font-semibold text-neutral-700">nije rupa</strong>; svi smo počeli odatle. Lokali koji traže iskusne ljude filtriraju Gold+, ali ima podosta otvorenih ka početnicima.
+        Ne — to je suština sistema. Ali nizak skor na početku{" "}
+        <strong className="font-semibold text-neutral-700">nije rupa</strong>; svi smo počeli odatle. Lokali koji traže iskusne ljude filtriraju po skoru, ali ima podosta otvorenih ka početnicima.
       </>
     ),
   },
   {
-    question: "Da li tier opada ako mesec dana ne radim?",
+    question: "Da li skor opada ako mesec dana ne radim?",
     answer: (
       <>
-        Tier ne opada nikada — broj smena ostaje. Ali aktivnost u poslednjih 90 dana{" "}
+        Skor ne opada zbog pauze — broj smena i recenzije ostaju. Ali aktivnost u poslednjih 90 dana{" "}
         <strong className="font-semibold text-neutral-700">poboljšava prioritet</strong> u algoritmu preporuke. Ako planiraš pauzu, postaviš status „nedostupan&rdquo; i ne kvariš statistiku.
       </>
     ),
@@ -68,7 +68,7 @@ const faqItems: FAQItem[] = [
     question: "Koliko košta Passport?",
     answer: (
       <>
-        Osnovna verzija je <strong className="font-semibold text-neutral-700">besplatna zauvek</strong> — profil, recenzije, geofenced smene, web notifikacije. Ako hoćeš WhatsApp notifikacije i prioritet u pretragama, PRO tier je 290 RSD mesečno. PRO+ (490 RSD/mes) dodaje SMS notifikacije i prvu poziciju u rezultatima. Vlasnici lokala ne plaćaju pretplatu — samo proviziju pri angažmanu.
+        Za konobare je <strong className="font-semibold text-neutral-700">besplatan u celosti</strong> — profil, verifikacija, recenzije, geofenced smene, web push, WhatsApp i SMS notifikacije. Nema pretplate i nema pozicije u pretrazi koja se može kupiti; rangira te skor koji si zaradio. Vlasnici lokala plaćaju samo proviziju pri angažmanu.
       </>
     ),
   },
@@ -76,7 +76,7 @@ const faqItems: FAQItem[] = [
 
 const NAV_LINKS = [
   { href: "#kako-radi", label: "Passport™" },
-  { href: "#tierovi",   label: "Tierovi"   },
+  { href: "#verifikacija", label: "Verifikacija" },
   { href: "#faq",       label: "FAQ"        },
 ];
 
@@ -177,7 +177,7 @@ export default function ForWaitersPage() {
               {[
                 <>Geofencing potvrđuje da si <strong className="font-semibold text-neutral-800">stvarno radio smenu</strong> — niko ne može lažirati iskustvo.</>,
                 <>Recenzije su vezane za lokal — <strong className="font-semibold text-neutral-800">ne može ih obrisati niko</strong>, ni ti ni vlasnik.</>,
-                <>Tieri (Bronze → Platinum) <strong className="font-semibold text-neutral-800">otkljuĉavaju bolje pozicije</strong> i veće zarade.</>,
+                <>Skor 0–100 iz stvarnih recenzija <strong className="font-semibold text-neutral-800">otvara bolje pozicije</strong> i veće zarade — i ne može se kupiti.</>,
               ].map((text, i) => (
                 <div key={i} className="flex items-start gap-3 text-sm text-neutral-600">
                   <CheckCircle />
@@ -272,9 +272,9 @@ export default function ForWaitersPage() {
                     <div className="w-6 h-6 rounded-lg tier-gold flex items-center justify-center">
                       <svg width="11" height="11" viewBox="0 0 12 12" fill="white"><path d="M6 1L7.42 4.13L10.85 4.66L8.42 7.05L9 10.45L6 8.84L3 10.45L3.58 7.05L1.15 4.66L4.58 4.13L6 1Z" /></svg>
                     </div>
-                    <span className="text-white text-xs font-bold tracking-tight">GOLD tier</span>
+                    <span className="text-white text-xs font-bold tracking-tight">Verifikovan</span>
                   </div>
-                  <span className="text-orange-400 text-[10px] font-semibold">127 / 150 do Platinum</span>
+                  <span className="text-orange-400 text-[10px] font-semibold">Skor 84 / 100</span>
                 </div>
                 <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
                   <div className="h-full" style={{ width: "84%", background: "linear-gradient(90deg, #f97316, #fbbf24)" }} />
@@ -392,7 +392,7 @@ export default function ForWaitersPage() {
             { num: "03", title: "Recenzije po lokalu", desc: "Vlasnik ocenjuje samo nakon završene smene. Ti ocenjuješ vlasnika. Obe ocene su trajne." },
             { num: "04", title: "Sertifikati i bedževi", desc: "Sanitarna knjižica, somelijer, jezici, HACCP — uploduješ jednom, eKonobar verifikuje, koristiš svuda." },
             { num: "05", title: "Pouzdanost (no-show indeks)", desc: "Skor koji prati: zakazane vs. održane smene, kašnjenja, otkazane na poslednji čas. Vlasnici ga vide odmah." },
-            { num: "06", title: "Tier (Bronze → Platinum)", desc: "Algoritam kombinuje sve gore navedeno u jedan tier. Viši tier = prednost na konkurenciji + Red Alert™ pristup.", dark: true },
+            { num: "06", title: "Skor 0–100", desc: "Bayesov algoritam kombinuje sve gore navedeno u jedan broj. Viši skor = prednost na konkurenciji. Ne kupuje se — zarađuje se.", dark: true },
           ].map((card) => (
             card.dark ? (
               <div key={card.num} className="rounded-3xl p-7 relative overflow-hidden"
@@ -423,109 +423,73 @@ export default function ForWaitersPage() {
         </div>
       </section>
 
-      {/* ── TIER LADDER ── */}
-      <section id="tierovi" className="relative py-24 overflow-hidden">
+      {/* ── VERIFICATION ── */}
+      <section id="verifikacija" className="relative py-24 overflow-hidden">
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, #fafaf8 0%, #f5f1ec 100%)" }} />
         <div className="relative max-w-7xl mx-auto px-6">
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-14">
             <div>
-              <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Passport Pro</span>
+              <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Verifikacija</span>
               <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">
-                Osnovno besplatno.<br /><span className="text-orange-500">Pro ako hoćeš više.</span>
+                Sve besplatno.<br /><span className="text-orange-500">Plaćaš samo dokazom.</span>
               </h2>
             </div>
             <p className="text-base text-neutral-500 font-light leading-relaxed max-w-md">
-              Profil, recenzije i smene su besplatni zauvek. PRO pretplata otključava prioritet u pretragama, WhatsApp notifikacije i trenutni pristup Red Alert oglasima.
+              Nema paketa, nema pretplate, nema pozicija koje se kupuju. Vlasnik te rangira po skoru koji si zaradio i po tome šta si stvarno potvrdio.
             </p>
           </div>
 
           <div className="grid sm:grid-cols-3 gap-6">
-            {/* FREE */}
-            <div className="bg-white rounded-3xl p-7 border border-neutral-100 flex flex-col">
-              <div className="mb-5">
-                <div className="text-[10px] font-black tracking-[0.2em] uppercase text-neutral-400 mb-2">Besplatno</div>
-                <div className="flex items-end gap-1 mb-1">
-                  <span className="text-4xl font-extrabold text-neutral-900">0</span>
-                  <span className="text-base text-neutral-400 font-medium mb-1.5">RSD / mes</span>
+            {[
+              {
+                kicker: "Ko si",
+                title: "Identitet",
+                desc: "Ličnom kartom potvrđuješ da si ti. Jedan profil po osobi — nema lažnih duplikata, a tvoje ocene nose veću težinu.",
+                items: ["Lična karta (JMBG se čuva samo kao hash)", "Ugovor o radu potvrđen", "Invite kod od lokala u kom radiš"],
+              },
+              {
+                kicker: "Šta znaš",
+                title: "Dokumenti i veštine",
+                desc: "Sanitarna, somelijer, jezici, HACCP. Uploaduješ jednom, eKonobar verifikuje, koristiš svuda.",
+                items: ["Sanitarna knjižica sa rokom važenja", "Sertifikati i kursevi", "Jezici i specijalnosti"],
+              },
+              {
+                kicker: "Kako radiš",
+                title: "Skor 0–100",
+                desc: "Jedan broj iz stvarnih recenzija vlasnika i gostiju. Raste kad radiš dobro, pada kad ne. Ne može se kupiti.",
+                items: ["Geofenced istorija smena", "Recenzije koje niko ne može obrisati", "Pouzdanost — nedolasci i kašnjenja"],
+              },
+            ].map((card, i) => (
+              <div
+                key={card.title}
+                className={`rounded-3xl p-7 flex flex-col ${i === 2 ? "" : "bg-white border border-neutral-100"}`}
+                style={i === 2 ? { background: "linear-gradient(160deg, #1c1209 0%, #2a1a08 100%)", border: "1px solid rgba(249,115,22,0.3)" } : undefined}
+              >
+                <div className="mb-5">
+                  <div className={`text-[10px] font-black tracking-[0.2em] uppercase mb-2 ${i === 2 ? "text-orange-400" : "text-neutral-400"}`}>{card.kicker}</div>
+                  <h3 className={`font-extrabold text-xl ${i === 2 ? "text-white" : "text-neutral-900"}`}>{card.title}</h3>
+                  <p className={`text-sm font-light leading-relaxed mt-2 ${i === 2 ? "text-neutral-300" : "text-neutral-500"}`}>{card.desc}</p>
                 </div>
-                <h3 className="font-extrabold text-xl text-neutral-900">FREE</h3>
+                <ul className={`flex flex-col gap-2.5 text-sm flex-1 ${i === 2 ? "text-neutral-300" : "text-neutral-600"}`}>
+                  {card.items.map(item => (
+                    <li key={item} className="flex gap-2.5 items-start">
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="flex-shrink-0 mt-0.5">
+                        <circle cx="7" cy="7" r="6" fill={i === 2 ? "rgba(249,115,22,0.2)" : "#fff1e7"} />
+                        <path d="M4 7L6.5 9.5L10 5" stroke="#f97316" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="flex flex-col gap-2.5 text-sm text-neutral-600 flex-1">
-                {[
-                  "Passport™ profil + verifikacija",
-                  "Sve recenzije i istorija smena",
-                  "Geofenced GPS clock-in",
-                  "Web push notifikacije",
-                  "Red Alert™ (30-minutno kašnjenje)",
-                ].map(item => (
-                  <li key={item} className="flex gap-2.5 items-start">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="flex-shrink-0 mt-0.5"><circle cx="7" cy="7" r="6" fill="#f3f4f6" /><path d="M4 7L6.5 9.5L10 5" stroke="#9ca3af" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <PassportProCTA label="Registruj se besplatno" className="mt-7 block text-center border border-neutral-200 text-neutral-700 font-bold text-sm py-3 rounded-xl hover:border-orange-300 hover:text-orange-600 transition-colors" />
-            </div>
-
-            {/* PRO */}
-            <div className="rounded-3xl p-7 relative overflow-hidden flex flex-col"
-              style={{ background: "linear-gradient(160deg, #f97316, #ea580c)", boxShadow: "0 12px 40px rgba(249,115,22,0.35)" }}>
-              <div className="absolute top-5 right-5 bg-white/20 border border-white/30 text-white text-[9px] font-black px-2.5 py-1 rounded-full tracking-wider">NAJPOPULARNIJE</div>
-              <div className="mb-5">
-                <div className="text-[10px] font-black tracking-[0.2em] uppercase text-orange-100 mb-2">Mesečna pretplata</div>
-                <div className="flex items-end gap-1 mb-1">
-                  <span className="text-4xl font-extrabold text-white">290</span>
-                  <span className="text-base text-orange-200 font-medium mb-1.5">RSD / mes</span>
-                </div>
-                <h3 className="font-extrabold text-xl text-white">PRO</h3>
-              </div>
-              <ul className="flex flex-col gap-2.5 text-sm text-white/90 flex-1">
-                {[
-                  "Sve iz FREE paketa",
-                  "WhatsApp notifikacije (opt-in)",
-                  "Red Alert™ — odmah po objavi",
-                  "Prioritet u pretragama vlasnika",
-                  "PRO bedž na profilu",
-                ].map(item => (
-                  <li key={item} className="flex gap-2.5 items-start">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="flex-shrink-0 mt-0.5"><circle cx="7" cy="7" r="6" fill="rgba(255,255,255,0.25)" /><path d="M4 7L6.5 9.5L10 5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <PassportProCTA label="Aktiviraj PRO" className="mt-7 block text-center bg-white text-orange-600 font-bold text-sm py-3 rounded-xl hover:bg-orange-50 transition-colors" />
-            </div>
-
-            {/* PRO_PLUS */}
-            <div className="rounded-3xl p-7 relative overflow-hidden flex flex-col"
-              style={{ background: "linear-gradient(160deg, #1c1209 0%, #2a1a08 100%)", border: "1px solid rgba(249,115,22,0.3)" }}>
-              <div className="mb-5">
-                <div className="text-[10px] font-black tracking-[0.2em] uppercase text-orange-400 mb-2">Mesečna pretplata</div>
-                <div className="flex items-end gap-1 mb-1">
-                  <span className="text-4xl font-extrabold text-white">490</span>
-                  <span className="text-base text-neutral-400 font-medium mb-1.5">RSD / mes</span>
-                </div>
-                <h3 className="font-extrabold text-xl text-white">PRO+</h3>
-              </div>
-              <ul className="flex flex-col gap-2.5 text-sm text-neutral-300 flex-1">
-                {[
-                  "Sve iz PRO paketa",
-                  "SMS notifikacije (opt-in)",
-                  "Prva pozicija u svim pretragama",
-                  "PRO+ bedž — ističeš se odmah",
-                ].map(item => (
-                  <li key={item} className="flex gap-2.5 items-start">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="flex-shrink-0 mt-0.5"><circle cx="7" cy="7" r="6" fill="rgba(249,115,22,0.2)" /><path d="M4 7L6.5 9.5L10 5" stroke="#f97316" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <PassportProCTA label="Aktiviraj PRO+" className="mt-7 block text-center border border-orange-500/50 text-orange-400 font-bold text-sm py-3 rounded-xl hover:bg-orange-500/10 transition-colors" />
-            </div>
+            ))}
           </div>
 
-          <p className="text-center text-xs text-neutral-400 mt-8">
-            Plaćanje karticom (Visa / Mastercard / DinaCard). Otkazivanje u bilo kom trenutku iz dashboarda.
+          <div className="max-w-md mx-auto mt-10">
+            <PassportProCTA label="Napravi Passport besplatno" className="block text-center btn-primary text-white font-bold text-sm py-3.5 rounded-xl" />
+          </div>
+          <p className="text-center text-xs text-neutral-400 mt-4">
+            Bez kartice, bez pretplate. Registracija traje minut.
           </p>
         </div>
       </section>
@@ -548,7 +512,7 @@ export default function ForWaitersPage() {
               </p>
               <div className="flex flex-col gap-4">
                 {[
-                  { n: "1", title: "Vlasnik filtrira po Passport™ kriterijumima", desc: "Tier, lokacija, dostupnost, sertifikati. Vidi samo relevantne profile." },
+                  { n: "1", title: "Vlasnik filtrira po Passport™ kriterijumima", desc: "Skor, verifikacija, lokacija, dostupnost, sertifikati. Vidi samo relevantne profile." },
                   { n: "2", title: "Otvara tvoj profil — bez polovičnih informacija", desc: "Sve recenzije, sve smene, svi bedževi — odmah, bez tela mejlova." },
                   { n: "3", title: `Šalje ti ponudu — ti potvrđuješ jednim klikom`, desc: `Bez razgovora, bez „pošalji CV". Ako ti odgovara — radiš.` },
                 ].map(step => (
@@ -580,7 +544,7 @@ export default function ForWaitersPage() {
                     <div className="text-white font-bold text-sm">Kandidati za smenu · 02. maj</div>
                     <div className="flex items-center gap-1.5 text-[10px] text-neutral-500">
                       <span className="w-2 h-2 rounded-full bg-orange-400 blink" />
-                      Filter: Gold+, Sanitarna, Engleski
+                      Filter: Verifikovan, Sanitarna, Engleski
                     </div>
                   </div>
                   <div className="rounded-2xl p-4 relative"
@@ -594,7 +558,7 @@ export default function ForWaitersPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-white font-bold text-sm">Marko Milošević</span>
-                          <span className="text-[9px] font-black text-white bg-orange-500 px-1.5 py-0.5 rounded">GOLD</span>
+                          <span className="text-[9px] font-black text-white bg-green-600 px-1.5 py-0.5 rounded">✓ VERIFIKOVAN</span>
                         </div>
                         <div className="text-xs text-neutral-400 mt-0.5">98 skor · 127 smena · 4.9★</div>
                       </div>
@@ -607,22 +571,22 @@ export default function ForWaitersPage() {
                     </div>
                   </div>
                   {[
-                    { init: "JN", name: "Jovana N.", tier: "SILVER", score: "87 skor · 64 smene · 4.7★" },
-                    { init: "SP", name: "Stefan P.", tier: "SILVER", score: "82 skor · 41 smena · 4.6★" },
+                    { init: "JN", name: "Jovana N.", tier: "✓ VERIFIKOVAN", score: "87 skor · 64 smene · 4.7★" },
+                    { init: "SP", name: "Stefan P.", tier: "✓ VERIFIKOVAN", score: "82 skor · 41 smena · 4.6★" },
                   ].map(c => (
                     <div key={c.init} className="rounded-2xl p-4 flex items-center gap-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white font-black text-sm flex-shrink-0">{c.init}</div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-neutral-200 font-semibold text-xs">{c.name}</span>
-                          <span className="text-[8px] font-black text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">{c.tier}</span>
+                          <span className="text-[8px] font-black text-green-700 bg-green-100 px-1.5 py-0.5 rounded">{c.tier}</span>
                         </div>
                         <div className="text-[10px] text-neutral-500 mt-0.5">{c.score}</div>
                       </div>
                       <button className="text-neutral-400 hover:text-white text-[10px] font-semibold px-3 py-1.5 rounded-lg" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>Profil</button>
                     </div>
                   ))}
-                  <div className="text-[10px] text-neutral-500 text-center pt-2">+ 14 dodatnih kandidata u Bronze tieru</div>
+                  <div className="text-[10px] text-neutral-500 text-center pt-2">+ 14 dodatnih kandidata sa nižim skorom</div>
                 </div>
               </div>
               <div className="absolute -top-4 -right-4 rounded-2xl px-4 py-2.5 shadow-lg" style={{ background: "white" }}>
@@ -647,9 +611,9 @@ export default function ForWaitersPage() {
         </div>
         <div className="grid lg:grid-cols-3 gap-5">
           {[
-            { q: "Za dva meseca sam podigao skor sa 48 na 76. Sad me lokali nalaze — ne moram više da šaljem CV svuda. Jednostavno radi.", name: "Aleksandar D.", city: "Konobar · Beograd, Savamala", init: "AD", tier: "SILVER" },
-            { q: "PRO tier mi se isplati za prvu Red Alert smenu. Dobio sam notifikaciju pre svih i bio sam potvrđen za 3 minuta. Bez tog sistema nikad ne bih saznao.", name: "Jelena M.", city: "Šanker · Novi Sad", init: "JM", tier: "PRO" },
-            { q: "Imam 5 godina iskustva ali nikad nisam imao ništa da pokažem. Passport je to rešio — vlasnik vidi 67 smena i 4.8★ odmah pri prvom kontaktu.", name: "Nikola S.", city: "Konobar · Beograd, Stari Grad", init: "NS", tier: "GOLD" },
+            { q: "Za dva meseca sam podigao skor sa 48 na 76. Sad me lokali nalaze — ne moram više da šaljem CV svuda. Jednostavno radi.", name: "Aleksandar D.", city: "Konobar · Beograd, Savamala", init: "AD", tier: "76 skor" },
+            { q: "Red Alert notifikacija mi je stigla na WhatsApp dok sam bio na putu. Javio sam se prvi i bio potvrđen za 3 minuta. Bez tog sistema nikad ne bih saznao.", name: "Jelena M.", city: "Šanker · Novi Sad", init: "JM", tier: "91 skor" },
+            { q: "Imam 5 godina iskustva ali nikad nisam imao ništa da pokažem. Passport je to rešio — vlasnik vidi 67 smena i 4.8★ odmah pri prvom kontaktu.", name: "Nikola S.", city: "Konobar · Beograd, Stari Grad", init: "NS", tier: "88 skor" },
           ].map(t => (
             <div key={t.init} className="bg-white rounded-3xl p-7 border border-neutral-100 flex flex-col">
               <div className="flex items-center gap-0.5 mb-4">

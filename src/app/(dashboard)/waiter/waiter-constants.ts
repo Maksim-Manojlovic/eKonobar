@@ -8,17 +8,22 @@ import type { PassportData, Section } from "./waiter-types";
 
 export type BadgeProgress = { current: number; total: number; unit: string };
 
-/* ── Tier helpers ────────────────────────────────────────────────────────── */
+/* ── Next verification step ──────────────────────────────────────────────── */
+//
+// Replaces the old TIER_BADGE / NEXT_TIER metal ladder (BRONZE→PLATINUM). That
+// ladder never matched the DB: VerificationTier is UNVERIFIED | SILVER | GOLD |
+// ID_VERIFIED, so BRONZE and PLATINUM were unreachable while UNVERIFIED and
+// ID_VERIFIED had no entry and fell back to rendering "BRONZE".
+//
+// Verification is now shown as a binary badge (<VerifiedBadge />) plus the named
+// evidence. What a waiter needs is not "the next metal" but the next concrete
+// action, which is what this map holds.
 
-export const TIER_BADGE: Record<string, { label: string; cls: string }> = {
-  BRONZE:   { label: "BRONZE",      cls: "bg-orange-100 text-orange-700" },
-  SILVER:   { label: "SILVER",      cls: "bg-neutral-200 text-neutral-600" },
-  GOLD:     { label: "🥇 GOLD",     cls: "bg-amber-100 text-amber-700" },
-  PLATINUM: { label: "💎 PLATINUM", cls: "bg-blue-100 text-blue-700" },
-};
-
-export const NEXT_TIER: Record<string, string | null> = {
-  BRONZE: "SILVER", SILVER: "GOLD", GOLD: "PLATINUM", PLATINUM: null,
+export const NEXT_VERIFICATION_STEP: Record<string, string | null> = {
+  UNVERIFIED:  "Potvrdi identitet ličnom kartom da dobiješ oznaku Verifikovan",
+  SILVER:      "Zatraži invite kod od lokala u kojem radiš",
+  GOLD:        "Potvrdi identitet ličnom kartom — tvoje ocene tada nose veću težinu",
+  ID_VERIFIED: null,
 };
 
 /* ── Passport badge metadata ─────────────────────────────────────────────── */
@@ -27,9 +32,9 @@ export const BADGE_META: Record<string, { emoji: string; label: string; sub: str
   sanitarna:        { emoji: "🧪", label: "Sanitarna knjižica", sub: "Verifikovan dokument" },
   sommelier:        { emoji: "🍷", label: "Somelijer",           sub: "Kurs završen" },
   english_b2:       { emoji: "🌍", label: "Engleski B2",         sub: "Jezik potvrđen" },
-  verified_history: { emoji: "📋", label: "Verified History",    sub: "3+ verifikovane smene" },
+  verified_history: { emoji: "📋", label: "Verifikovana istorija", sub: "3+ verifikovane smene" },
   hospitality_pro:  { emoji: "🏅", label: "Hospitality Pro",     sub: "50 smena potrebno" },
-  platinum:         { emoji: "💎", label: "Platinum Waiter",     sub: "Skor 98+ potreban" },
+  elite:            { emoji: "⭐", label: "Elitni konobar",      sub: "Skor 98+ potreban" },
 };
 
 /* ── Badge progress functions (named so they are individually testable) ─── */
@@ -42,14 +47,14 @@ export function hospitalityProProgress(p: PassportData): BadgeProgress {
   return { current: Math.min(p.totalEngagements, 50), total: 50, unit: "smena" };
 }
 
-export function platinumProgress(p: PassportData): BadgeProgress {
+export function eliteProgress(p: PassportData): BadgeProgress {
   return { current: Math.min(Math.round(p.score), 98), total: 98, unit: "skor" };
 }
 
 export const BADGE_PROGRESS: Record<string, ((p: PassportData) => BadgeProgress) | null> = {
   verified_history: verifiedHistoryProgress,
   hospitality_pro:  hospitalityProProgress,
-  platinum:         platinumProgress,
+  elite:            eliteProgress,
   sanitarna:        null,
   sommelier:        null,
   english_b2:       null,

@@ -8,13 +8,12 @@ vi.mock("next/cache", () => ({ unstable_cache: (fn: () => unknown) => fn }));
 vi.mock("@/lib/core/db", () => ({
   dbRaw: {
     user:            { groupBy: vi.fn(), count: vi.fn() },
-    waiterPassport:  { groupBy: vi.fn(), count: vi.fn() },
+    waiterPassport:  { count: vi.fn() },
     venue:           { count: vi.fn() },
     jobPost:         { count: vi.fn() },
     jobApplication:  { count: vi.fn() },
     review:          { groupBy: vi.fn() },
     sanitaryBook:    { count: vi.fn() },
-    passportPayment: { count: vi.fn(), aggregate: vi.fn() },
   },
 }));
 
@@ -38,12 +37,9 @@ function setupDefaultMocks() {
     { role: "WAITER",      _count: { _all: 10 } },
     { role: "VENUE_OWNER", _count: { _all: 5  } },
   ] as never);
-  vi.mocked(dbRaw.waiterPassport.groupBy).mockResolvedValue([
-    { passportTier: "FREE",     _count: { _all: 8 } },
-    { passportTier: "PRO",      _count: { _all: 2 } },
-    { passportTier: "PRO_PLUS", _count: { _all: 1 } },
-  ] as never);
-  vi.mocked(dbRaw.waiterPassport.count).mockResolvedValue(4);
+  vi.mocked(dbRaw.waiterPassport.count)
+    .mockResolvedValueOnce(11)  // totalPassports
+    .mockResolvedValueOnce(4);  // availableWaiters
   vi.mocked(dbRaw.user.count).mockResolvedValue(3);
   vi.mocked(dbRaw.venue.count).mockResolvedValue(7);
   vi.mocked(dbRaw.jobPost.count)
@@ -58,10 +54,6 @@ function setupDefaultMocks() {
     { status: "DISPUTED",  _count: { _all: 2  } },
   ] as never);
   vi.mocked(dbRaw.sanitaryBook.count).mockResolvedValue(1);
-  vi.mocked(dbRaw.passportPayment.count).mockResolvedValue(15);
-  vi.mocked(dbRaw.passportPayment.aggregate).mockResolvedValue({
-    _sum: { amountRsd: 580000 },
-  } as never);
 }
 
 describe("GET /api/admin/stats", () => {
@@ -96,13 +88,12 @@ describe("GET /api/admin/stats", () => {
     expect(json.users.total).toBe(15);
   });
 
-  it("passports shape with tier breakdown", async () => {
+  it("passports shape — total/available/verified, no tier breakdown", async () => {
     const res = await GET(makeReq(), CTX);
     const json = await res.json();
-    expect(json.passports.free).toBe(8);
-    expect(json.passports.pro).toBe(2);
-    expect(json.passports.proPlus).toBe(1);
     expect(json.passports.total).toBe(11);
+    expect(json.passports).not.toHaveProperty("pro");
+    expect(json.passports).not.toHaveProperty("proPlus");
   });
 
   it("reviews shape with all statuses", async () => {
@@ -114,10 +105,10 @@ describe("GET /api/admin/stats", () => {
     expect(json.reviews.removed).toBe(0); // missing from mock → defaults to 0
   });
 
-  it("revenue converted from minor units (÷100)", async () => {
+  it("no payments key — the waiter subscription product was removed", async () => {
     const res = await GET(makeReq(), CTX);
     const json = await res.json();
-    expect(json.payments.revenueThisMonth).toBe(5800); // 580000 / 100
+    expect(json).not.toHaveProperty("payments");
   });
 
   it("missing roles default to 0", async () => {
@@ -132,13 +123,4 @@ describe("GET /api/admin/stats", () => {
     expect(json.users.admins).toBe(0);
   });
 
-  it("null amountRsd sum → revenue 0", async () => {
-    vi.mocked(dbRaw.passportPayment.aggregate).mockResolvedValue({
-      _sum: { amountRsd: null },
-    } as never);
-
-    const res = await GET(makeReq(), CTX);
-    const json = await res.json();
-    expect(json.payments.revenueThisMonth).toBe(0);
-  });
 });

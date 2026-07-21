@@ -45,13 +45,9 @@ async function run() {
       smsRetries: true,
       user: {
         select: {
-          role:    true,   // needed for role-bypass parity with notify()
-          phone:   true,
+          phone:    true,
           waOptIn:  true,
           smsOptIn: true,
-          waiterPassport: {
-            select: { passportTier: true, subscriptionExpiresAt: true },
-          },
         },
       },
     },
@@ -66,13 +62,13 @@ async function run() {
       if (!user.phone) return;
 
       if (!n.waSent && n.waRetries < MAX_RETRIES && user.waOptIn) {
-        const r = await retryWhatsApp(n.id, user.phone, user.role, user.waiterPassport, n.title, n.body);
+        const r = await retryWhatsApp(n.id, user.phone, n.title, n.body);
         if (r === "sent")   waSent++;
         if (r === "failed") waFailed++;
       }
 
       if (!n.smsSent && n.smsRetries < MAX_RETRIES && user.smsOptIn) {
-        const r = await retrySms(n.id, user.phone, user.role, user.waiterPassport, n.title, n.body, n.link);
+        const r = await retrySms(n.id, user.phone, n.title, n.body, n.link);
         if (r === "sent")   smsSent++;
         if (r === "failed") smsFailed++;
       }

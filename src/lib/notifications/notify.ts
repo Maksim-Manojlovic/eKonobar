@@ -4,10 +4,6 @@ import { redis } from "@/lib/core/redis";
 import logger from "@/lib/core/logger";
 import { sendNotificationEmail } from "@/lib/integrations/email";
 import {
-  isPro          as isPassportPro,
-  isProPlus      as isPassportProPlus,
-} from "@/lib/passport/tier";
-import {
   dispatchPush,
   dispatchWhatsApp,
   dispatchSms,
@@ -15,14 +11,14 @@ import {
 
 // ── User dispatch prefs cache ─────────────────────────────────────────────────
 //
-// Caches the full user payload needed for notify() dispatch decisions — role,
-// contact info, push subscriptions, and passport tier — to avoid a multi-join
-// DB read on every notification send.
+// Caches the full user payload needed for notify() dispatch decisions — contact
+// info and push subscriptions — to avoid a multi-join DB read on every
+// notification send.
 //
 // Push subscriptions are included in the cache. Stale endpoints (browser cleared
 // or expired) are auto-cleaned by dispatchPush when it receives a 410 response.
 //
-// Busted by: notification-prefs PATCH, push subscribe/unsubscribe, tier changes.
+// Busted by: notification-prefs PATCH, push subscribe/unsubscribe.
 
 const DISPATCH_PREFS_TTL = 300; // seconds
 
@@ -32,13 +28,11 @@ async function fetchDispatchUser(userId: string) {
   return db.user.findUnique({
     where: { id: userId },
     select: {
-      role:     true,
       email:    true,
       phone:    true,
       smsOptIn: true,
       waOptIn:  true,
       pushSubscriptions: { select: { id: true, endpoint: true, p256dh: true, auth: true } },
-      waiterPassport: { select: { passportTier: true, subscriptionExpiresAt: true } },
     },
   });
 }
@@ -49,15 +43,7 @@ async function getCachedDispatchUser(userId: string): Promise<DispatchUser> {
   if (redis) {
     try {
       const cached = await redis.get(key);
-      if (cached !== null) {
-        const parsed = JSON.parse(cached);
-        // Reconstruct the Date field that JSON serialization turns into a string.
-        if (parsed?.waiterPassport?.subscriptionExpiresAt) {
-          parsed.waiterPassport.subscriptionExpiresAt =
-            new Date(parsed.waiterPassport.subscriptionExpiresAt);
-        }
-        return parsed as DispatchUser;
-      }
+      if (cached !== null) return JSON.parse(cached) as DispatchUser;
     } catch {
       // Redis error — fall through to DB.
     }
@@ -88,11 +74,9 @@ export function bustNotifyPrefsCache(userId: string): void {
  * Creates an in-app notification record and dispatches to all eligible channels
  * in parallel (push, WhatsApp, SMS, email fallback).
  *
- * Tier gating applies only to WAITER recipients:
- *   - Web push:  free for all tiers
- *   - WhatsApp:  requires active PRO or PRO_PLUS
- *   - SMS:       requires active PRO_PLUS
- * Venue owners and other roles bypass tier gating and receive all opted-in channels.
+ * Every recipient gets every channel they opted into — no tier gating. WhatsApp
+ * and SMS additionally require a phone number, and their providers are no-ops
+ * when the relevant env vars are unset, so cost stays zero until configured.
  *
  * Always call fire-and-forget from request handlers:
  *   notify(userId, ...).catch(console.error);
@@ -120,13 +104,8 @@ export async function notify(
       .catch((err) => logger.warn({ err, userId }, "notify: notif-list cache bust failed"));
   }
 
-  // Tier gating: waiterPassport is always fetched in the user query above.
-  // Non-WAITER roles bypass tier gating and receive all opted-in channels.
-  const isPro     = user.role !== "WAITER" || isPassportPro(user.waiterPassport);
-  const isProPlus = user.role !== "WAITER" || isPassportProPlus(user.waiterPassport);
-
-  const shouldWA  = isPro     && !!user.waOptIn  && !!user.phone;
-  const shouldSms = isProPlus && !!user.smsOptIn && !!user.phone;
+  const shouldWA  = !!user.waOptIn  && !!user.phone;
+  const shouldSms = !!user.smsOptIn && !!user.phone;
 
   // Dispatch push + WhatsApp + SMS in parallel; failures in one channel don't block others
   const [pushResult, waResult, smsResult] = await Promise.allSettled([

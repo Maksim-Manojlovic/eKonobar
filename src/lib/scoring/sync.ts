@@ -114,12 +114,12 @@ export async function syncPassportScore(waiterId: string): Promise<void> {
   // passport state, so starting from an empty set makes writes idempotent and
   // eliminates the read-modify-write race when concurrent syncs run simultaneously.
   // "verified_history" / "hospitality_pro" are still permanent (totalEngagements
-  // never decreases); "platinum" correctly reverts when score drops below 98.
+  // never decreases); "elite" correctly reverts when score drops below 98.
   const earned = new Set<string>();
   if (passport.sanitaryBookValid) earned.add("sanitarna");
   if (passport.totalEngagements >= 3) earned.add("verified_history");
   if (passport.totalEngagements >= 50) earned.add("hospitality_pro");
-  if (score >= 98) earned.add("platinum");
+  if (score >= 98) earned.add("elite");
   const badges = Array.from(earned);
 
   // Bump the waiter search cache generation — all cached search result pages

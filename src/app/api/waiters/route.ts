@@ -77,7 +77,6 @@ export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async (req, _ctx) => 
         waiterPassport: {
           select: {
             score: true,
-            tierRank: true,
             skills: true,
             languages: true,
             workMunicipalities: true,
@@ -89,15 +88,10 @@ export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async (req, _ctx) => 
             reviewCount: true,
             totalEngagements: true,
             shareToken: true,
-            passportTier: true,
-            subscriptionExpiresAt: true,
           },
         },
       },
-      orderBy: [
-        { waiterPassport: { tierRank: "desc" } },
-        { waiterPassport: { score: "desc" } },
-      ],
+      orderBy: [{ waiterPassport: { score: "desc" } }],
       skip: (page - 1) * limit,
       take: limit,
     }),

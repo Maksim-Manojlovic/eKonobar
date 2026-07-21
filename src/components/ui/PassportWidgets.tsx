@@ -1,6 +1,7 @@
 "use client";
 
 import { getInitials } from "@/lib/formatting/utils";
+import { isVerified, VERIFICATION_LABELS } from "@/lib/formatting/display-maps";
 
 // ── Initials avatar ───────────────────────────────────────────────────────────
 
@@ -29,29 +30,45 @@ export function Initials({
   );
 }
 
-// ── Passport tier badge ───────────────────────────────────────────────────────
+// ── Verification badge ────────────────────────────────────────────────────────
 
 /**
- * Shows "PRO" or "PRO+" badge. Returns null for FREE tier or expired subscriptions.
+ * Binary "is this a proven person?" badge, with the evidence source named.
+ *
+ * Replaces the old Bronze→Platinum ladder. Verification is not a rank — see the
+ * note above VERIFICATION_LABELS in lib/formatting/display-maps.ts. Waiter
+ * *performance* is the separate 0–100 score rendered by <ScorePill />.
  */
-export function PassportTierBadge({
-  tier,
-  expiresAt,
-}: {
-  tier?: string;
-  expiresAt?: string | null;
-}) {
-  if (!tier || tier === "FREE") return null;
-  if (expiresAt && new Date(expiresAt) <= new Date()) return null;
-  if (tier === "PRO_PLUS")
+export function VerifiedBadge({ tier }: { tier?: string | null }) {
+  const label = VERIFICATION_LABELS[tier ?? "UNVERIFIED"] ?? VERIFICATION_LABELS.UNVERIFIED;
+
+  if (!isVerified(tier)) {
     return (
-      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-500 text-white tracking-wide">
-        PRO+
+      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500 border border-neutral-200">
+        {label}
       </span>
     );
+  }
+
   return (
-    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-300">
-      PRO
+    <span
+      title={`Verifikovano: ${label}`}
+      className="text-[10px] font-black px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-300 inline-flex items-center gap-1"
+    >
+      <span aria-hidden>✓</span> Verifikovan
+    </span>
+  );
+}
+
+/**
+ * The evidence chip that pairs with <VerifiedBadge />: names *what* was proven.
+ * Renders nothing for UNVERIFIED (the badge already says so).
+ */
+export function VerificationProofChip({ tier }: { tier?: string | null }) {
+  if (!isVerified(tier)) return null;
+  return (
+    <span className="text-[10px] font-semibold text-neutral-500 bg-neutral-50 border border-neutral-200 px-2 py-0.5 rounded-full">
+      {VERIFICATION_LABELS[tier!] ?? tier}
     </span>
   );
 }

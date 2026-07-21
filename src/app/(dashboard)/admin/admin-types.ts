@@ -27,8 +27,8 @@ export type ActivityEvent = {
 export type LeaderboardData = {
   topWaiters: {
     id: string; name: string | null; image: string | null;
-    verificationTier: string; score: number; passportTier: string;
-    isActive: boolean; reviewCount: number; totalEngagements: number;
+    verificationTier: string; score: number;
+    reviewCount: number; totalEngagements: number;
   }[];
   topVenues: {
     id: string; name: string; municipality: string | null;

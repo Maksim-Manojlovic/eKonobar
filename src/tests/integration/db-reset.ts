@@ -80,15 +80,17 @@ export async function seedVenue(
 export async function seedPassport(
   userId: string,
   overrides: Partial<{
-    passportTier:          "FREE" | "PRO" | "PRO_PLUS";
-    subscriptionExpiresAt: Date | null;
+    score:              number;
+    currentlyAvailable: boolean;
+    workMunicipalities: string[];
   }> = {},
 ): Promise<string> {
   const passport = await dbRaw.waiterPassport.create({
     data: {
       userId,
-      passportTier:          overrides.passportTier          ?? "FREE",
-      subscriptionExpiresAt: overrides.subscriptionExpiresAt ?? null,
+      score:              overrides.score              ?? 0,
+      currentlyAvailable: overrides.currentlyAvailable ?? true,
+      workMunicipalities: overrides.workMunicipalities ?? [],
     },
   });
   return passport.id;

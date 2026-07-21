@@ -92,7 +92,7 @@ describe("GET /api/venues/[id]/waiter-analytics", () => {
     expect(body.period).toBe(30);
     expect(body.waiters).toHaveLength(1);
     expect(body.waiters[0].name).toBe("Marko");
-    expect(body.waiters[0].passportTier).toBe("PRO");
+    expect(body.waiters[0]).not.toHaveProperty("passportTier");
     expect(body.team.rosterSize).toBe(1);
   });
 

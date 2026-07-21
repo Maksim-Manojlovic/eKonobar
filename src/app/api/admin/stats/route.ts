@@ -5,12 +5,9 @@ import { redis } from "@/lib/core/redis";
 import logger from "@/lib/core/logger";
 
 async function fetchStats() {
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
   const [
     usersByRole,
-    passportsByTier,
+    totalPassports,
     availableWaiters,
     verifiedWaiters,
     activeVenues,
@@ -20,11 +17,9 @@ async function fetchStats() {
     pendingApplications,
     reviewsByStatus,
     pendingSanitary,
-    paymentsSuccess,
-    revenueThisMonth,
   ] = await Promise.all([
     dbRaw.user.groupBy({ by: ["role"], where: { deletedAt: null }, _count: { _all: true } }),
-    dbRaw.waiterPassport.groupBy({ by: ["passportTier"], _count: { _all: true } }),
+    dbRaw.waiterPassport.count(),
     dbRaw.waiterPassport.count({ where: { currentlyAvailable: true } }),
     dbRaw.user.count({
       where: {
@@ -40,15 +35,9 @@ async function fetchStats() {
     dbRaw.jobApplication.count({ where: { status: "PENDING" } }),
     dbRaw.review.groupBy({ by: ["status"], _count: { _all: true } }),
     dbRaw.sanitaryBook.count({ where: { status: "PENDING" } }),
-    dbRaw.passportPayment.count({ where: { status: "SUCCESS" } }),
-    dbRaw.passportPayment.aggregate({
-      where: { status: "SUCCESS", createdAt: { gte: monthStart } },
-      _sum: { amountRsd: true },
-    }),
   ]);
 
   const roleMap   = Object.fromEntries(usersByRole.map((r) => [r.role, r._count._all]));
-  const tierMap   = Object.fromEntries(passportsByTier.map((r) => [r.passportTier, r._count._all]));
   const reviewMap = Object.fromEntries(reviewsByStatus.map((r) => [r.status, r._count._all]));
 
   return {
@@ -60,10 +49,7 @@ async function fetchStats() {
       total: Object.values(roleMap).reduce((a, b) => a + b, 0),
     },
     passports: {
-      total:    (tierMap["FREE"] ?? 0) + (tierMap["PRO"] ?? 0) + (tierMap["PRO_PLUS"] ?? 0),
-      free:     tierMap["FREE"]     ?? 0,
-      pro:      tierMap["PRO"]      ?? 0,
-      proPlus:  tierMap["PRO_PLUS"] ?? 0,
+      total:     totalPassports,
       available: availableWaiters,
       verified:  verifiedWaiters,
     },
@@ -84,10 +70,6 @@ async function fetchStats() {
     },
     sanitary: {
       pending: pendingSanitary,
-    },
-    payments: {
-      totalSuccess:     paymentsSuccess,
-      revenueThisMonth: Math.round((revenueThisMonth._sum.amountRsd ?? 0) / 100),
     },
   };
 }

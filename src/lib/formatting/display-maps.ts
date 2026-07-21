@@ -9,21 +9,35 @@
  *   <ENTITY>_<FIELD>_LABELS  — Human-readable Serbian labels
  */
 
-/* ── Verification tier (UNVERIFIED | SILVER | GOLD | ID_VERIFIED) ─────────── */
+/* ── Verification (UNVERIFIED | SILVER | GOLD | ID_VERIFIED) ──────────────── */
+//
+// These are *evidence sources*, not ranks. GOLD is not "better than" ID_VERIFIED
+// — one means a venue owner vouched via invite code, the other means a government
+// ID was checked. Never render them as a ladder (that was the old Bronze→Platinum
+// display, which also mismapped: it had no key for UNVERIFIED or ID_VERIFIED and
+// fell back to showing "BRONZE" for both).
+//
+// The user-facing question is binary — "is this a proven person?" — with the
+// evidence named alongside. Performance is the separate 0–100 passport score.
+
+/** True for any tier that represents actual verified evidence. */
+export function isVerified(tier?: string | null): boolean {
+  return !!tier && tier !== "UNVERIFIED";
+}
+
+/** What each verification value actually proves, in Serbian. */
+export const VERIFICATION_LABELS: Record<string, string> = {
+  ID_VERIFIED: "Lična karta",
+  GOLD:        "Potvrdio lokal",
+  SILVER:      "Ugovor potvrđen",
+  UNVERIFIED:  "Neverifikovan",
+};
 
 export const VERIFICATION_TIER_COLORS: Record<string, string> = {
   ID_VERIFIED: "text-purple-700 bg-purple-50 border-purple-300",
   GOLD:        "text-amber-700  bg-amber-50  border-amber-300",
   SILVER:      "text-slate-600  bg-slate-50  border-slate-300",
   UNVERIFIED:  "text-neutral-500 bg-neutral-50 border-neutral-300",
-};
-
-/* ── Passport subscription tier (FREE | PRO | PRO_PLUS) — dark-bg variant ── */
-
-export const PASSPORT_TIER_COLORS: Record<string, string> = {
-  FREE:     "text-white/40 bg-white/5",
-  PRO:      "text-orange-400 bg-orange-500/15",
-  PRO_PLUS: "text-amber-300 bg-amber-500/15",
 };
 
 /* ── Job application status ──────────────────────────────────────────────── */

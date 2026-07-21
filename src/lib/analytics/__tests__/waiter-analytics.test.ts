@@ -41,7 +41,6 @@ function passport(over: Partial<RawPassport> = {}): RawPassport {
     userId: "w1",
     sanitaryBookValid: true,
     sanitaryExpiry: new Date(NOW.getTime() + 200 * DAY),
-    passportTier: "FREE",
     ...over,
   };
 }
@@ -178,10 +177,9 @@ describe("computeWaiterAnalytics", () => {
     expect(waiters[0].waiterId).toBe("good"); // higher reliability ranked first
   });
 
-  it("defaults to FREE tier when no passport row", () => {
+  it("defaults sanitary to invalid when no passport row", () => {
     const rows = Array.from({ length: 3 }, () => assignment({}));
     const { waiters } = computeWaiterAnalytics(rows, [], 30, NOW);
-    expect(waiters[0].passportTier).toBe("FREE");
     expect(waiters[0].sanitaryBookValid).toBe(false);
   });
 

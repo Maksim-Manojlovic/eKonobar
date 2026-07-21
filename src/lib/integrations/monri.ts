@@ -1,3 +1,16 @@
+/**
+ * Monri WebPay gateway wrapper (Visa / Mastercard / DinaCard, Serbian gateway).
+ *
+ * DORMANT — nothing imports this module right now. The waiter subscription
+ * product it was built for has been removed, along with the four
+ * /api/payments/monri/* routes. The wrapper itself is provider-specific work
+ * (digest construction, callback verification, tokenized recurring charges) that
+ * would be rebuilt identically for the next paid product, so it is kept intact.
+ *
+ * The success/cancel/callback URLs below point at routes that no longer exist —
+ * recreate them before wiring this back up.
+ */
+
 import crypto from "crypto";
 import { withSpan } from "@/lib/core/observability";
 

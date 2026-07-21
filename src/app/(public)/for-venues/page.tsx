@@ -12,11 +12,11 @@ import { WaiterCard, type WaiterCardData } from "@/components/ui/WaiterCard";
 // this teaser shows the format only. `image: null` renders initials, not a face.
 const SAMPLE_WAITERS: WaiterCardData[] = [
   { id: "s1", name: "Marko N.", image: null, verificationTier: "ID_VERIFIED",
-    waiterPassport: { score: 94, skills: ["fine dining", "cocktails", "sommelier"], yearsExperience: 8, sanitaryBookValid: true, currentlyAvailable: true, reviewCount: 42, totalEngagements: 37, passportTier: "PRO_PLUS", subscriptionExpiresAt: "2099-01-01" } },
+    waiterPassport: { score: 94, skills: ["fine dining", "cocktails", "sommelier"], yearsExperience: 8, sanitaryBookValid: true, currentlyAvailable: true, reviewCount: 42, totalEngagements: 37 } },
   { id: "s2", name: "Ana P.", image: null, verificationTier: "GOLD",
-    waiterPassport: { score: 88, skills: ["kafe aparat", "brza usluga"], yearsExperience: 5, sanitaryBookValid: true, currentlyAvailable: true, reviewCount: 28, totalEngagements: 21, passportTier: "PRO", subscriptionExpiresAt: "2099-01-01" } },
+    waiterPassport: { score: 88, skills: ["kafe aparat", "brza usluga"], yearsExperience: 5, sanitaryBookValid: true, currentlyAvailable: true, reviewCount: 28, totalEngagements: 21 } },
   { id: "s3", name: "Stefan Đ.", image: null, verificationTier: "SILVER",
-    waiterPassport: { score: 76, skills: ["šank", "catering"], yearsExperience: 3, sanitaryBookValid: false, currentlyAvailable: true, reviewCount: 11, totalEngagements: 9, passportTier: "FREE", subscriptionExpiresAt: null } },
+    waiterPassport: { score: 76, skills: ["šank", "catering"], yearsExperience: 3, sanitaryBookValid: false, currentlyAvailable: true, reviewCount: 11, totalEngagements: 9 } },
 ];
 
 const LogoMark = () => (
@@ -223,7 +223,7 @@ export default function ForVenuesPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-sm text-neutral-900">Marko Milošević</span>
-                        <span className="tier-pill bg-orange-500 text-white">GOLD</span>
+                        <span className="tier-pill bg-green-600 text-white">✓ VERIFIKOVAN</span>
                       </div>
                       <div className="text-[11px] text-neutral-400 mt-0.5">98 skor · 127 smena · 4.9★ · 100% pouzdan</div>
                     </div>
@@ -236,15 +236,15 @@ export default function ForVenuesPage() {
                   </div>
                 </div>
                 {[
-                  { init: "JN", name: "Jovana N.", tier: "SILVER", score: "87 skor · 64 smene · 4.7★" },
-                  { init: "SP", name: "Stefan P.", tier: "SILVER", score: "82 skor · 41 smena · 4.6★" },
+                  { init: "JN", name: "Jovana N.", tier: "✓ VERIFIKOVAN", score: "87 skor · 64 smene · 4.7★" },
+                  { init: "SP", name: "Stefan P.", tier: "✓ VERIFIKOVAN", score: "82 skor · 41 smena · 4.6★" },
                 ].map(c => (
                   <div key={c.init} className="bg-white rounded-2xl p-3.5 border border-neutral-100 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white font-black text-sm flex-shrink-0">{c.init}</div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-xs text-neutral-800">{c.name}</span>
-                        <span className="tier-pill bg-amber-100 text-amber-700">{c.tier}</span>
+                        <span className="tier-pill bg-green-100 text-green-700">{c.tier}</span>
                       </div>
                       <div className="text-[10px] text-neutral-400 mt-0.5">{c.score}</div>
                     </div>
@@ -533,7 +533,7 @@ export default function ForVenuesPage() {
             <p className="text-xs text-orange-100 mb-6">30 – 100 smena mesečno</p>
             <div className="flex items-baseline gap-1.5 mb-6"><span className="font-extrabold text-5xl text-white">6%</span><span className="text-sm text-orange-100">/ smeni</span></div>
             <ul className="flex flex-col gap-2.5 text-sm text-white/90 font-light flex-1">
-              {["Sve iz Startera", "PRO konobari prvi — viši u pretrazi", "Red Alert™ za hitne smene", "Napredni filteri (ocena, sanitarna, jezik)", "Analitika lokala (mesečno)", "Telefon podrška (radni dani)"].map(item => (
+              {["Sve iz Startera", "Rangiranje po skoru — najbolji prvi", "Red Alert™ za hitne smene", "Napredni filteri (ocena, sanitarna, jezik)", "Analitika lokala (mesečno)", "Telefon podrška (radni dani)"].map(item => (
                 <li key={item} className="check-row">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0 mt-0.5"><circle cx="8" cy="8" r="7" fill="rgba(255,255,255,0.25)" /><path d="M5 8L7 10L11 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                   {item}

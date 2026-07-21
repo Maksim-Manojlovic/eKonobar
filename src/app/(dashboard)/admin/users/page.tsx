@@ -2,12 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { PASSPORT_TIER_COLORS, ROLE_LABELS } from "@/lib/formatting/display-maps";
+import { ROLE_LABELS } from "@/lib/formatting/display-maps";
 import { timeAgo, Sk } from "../admin-helpers";
 import { useRequireRole } from "@/hooks/useRequireRole";
-import { getEffectiveTier } from "@/lib/passport/tier";
 
-type Passport = { passportTier: string; score: number; subscriptionExpiresAt: string | null };
+type Passport = { score: number };
 type User = {
   id: string; name: string | null; email: string; role: string;
   verificationTier: string; createdAt: string; deletedAt: string | null;
@@ -101,7 +100,7 @@ export default function AdminUsersPage() {
           <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-5 py-3 bg-white/5 border-b border-white/10 text-[11px] font-black text-white/30 uppercase tracking-widest">
             <span>Korisnik</span>
             <span className="hidden sm:block">Tip</span>
-            <span className="hidden sm:block">Passport</span>
+            <span className="hidden sm:block">Skor</span>
             <span className="hidden sm:block">Registrovan</span>
             <span>Akcija</span>
           </div>
@@ -128,10 +127,6 @@ export default function AdminUsersPage() {
               {users.map(u => {
                 const isDeleted = !!u.deletedAt;
                 const passport = u.waiterPassport;
-                const tier = getEffectiveTier(passport ? {
-                  passportTier: passport.passportTier,
-                  subscriptionExpiresAt: passport.subscriptionExpiresAt ? new Date(passport.subscriptionExpiresAt) : null,
-                } : null);
 
                 return (
                   <div
@@ -154,11 +149,11 @@ export default function AdminUsersPage() {
                       </span>
                     </div>
 
-                    {/* Passport tier */}
+                    {/* Passport score */}
                     <div className="hidden sm:flex items-center">
                       {passport ? (
-                        <span className={`text-xs font-black px-2.5 py-1 rounded-full ${PASSPORT_TIER_COLORS[tier] ?? PASSPORT_TIER_COLORS.FREE}`}>
-                          {tier.replace("_", "+")}
+                        <span className="text-xs font-black px-2.5 py-1 rounded-full bg-orange-500/15 text-orange-400">
+                          {Math.round(passport.score)}
                         </span>
                       ) : (
                         <span className="text-xs text-white/20">—</span>

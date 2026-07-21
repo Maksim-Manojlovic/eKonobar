@@ -47,7 +47,6 @@ export type RawPassport = {
   userId: string;
   sanitaryBookValid: boolean;
   sanitaryExpiry: Date | null;
-  passportTier: string;
 };
 
 /** A swap request initiated by a waiter (fromAssignment.waiterId) in the window. */
@@ -106,7 +105,6 @@ export type WaiterReliability = {
   swapRequests: number;
   /** Completed-shift count per time bucket across the window (SPARK_BUCKETS long). */
   activity: number[];
-  passportTier: string;
   sanitaryBookValid: boolean;
   sanitaryExpiry: string | null;
 };
@@ -345,7 +343,6 @@ export function computeWaiterAnalytics(
       guestRating: guestByWaiter.get(waiterId) ?? null,
       swapRequests: swapCountByWaiter.get(waiterId) ?? 0,
       activity: bucketActivity(list, windowStart, now),
-      passportTier: passport?.passportTier ?? "FREE",
       sanitaryBookValid: passport?.sanitaryBookValid ?? false,
       sanitaryExpiry: passport?.sanitaryExpiry ? passport.sanitaryExpiry.toISOString() : null,
     });

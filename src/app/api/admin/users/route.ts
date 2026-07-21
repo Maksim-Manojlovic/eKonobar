@@ -30,7 +30,7 @@ export const GET = withRole("ADMIN", async (req) => {
         id: true, name: true, email: true, role: true,
         verificationTier: true, createdAt: true, deletedAt: true,
         waiterPassport: {
-          select: { passportTier: true, score: true, subscriptionExpiresAt: true },
+          select: { score: true },
         },
       },
     }),

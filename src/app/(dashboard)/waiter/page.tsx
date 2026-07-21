@@ -40,19 +40,6 @@ export default function WaiterDashboard() {
   const { data: session } = useSession();
   const { section, setSection, notifUnread, setNotifUnread, today } = useDashboardNav<Section>("overview");
   const { t } = useLang();
-  const [paymentToast, setPaymentToast] = useState<"success" | "cancelled" | null>(null);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const payment = params.get("payment");
-    if (payment === "success" || payment === "cancelled") {
-      setPaymentToast(payment);
-      window.history.replaceState({}, "", window.location.pathname);
-      if (payment === "success") setSection("passport");
-      setTimeout(() => setPaymentToast(null), 5000);
-    }
-  }, []);
-
   const [jobs, setJobs]                 = useState<JobPost[]>([]);
   const [applications, setApplications] = useState<MyApplication[]>([]);
   const [loading, setLoading]           = useState(true);
@@ -172,17 +159,6 @@ export default function WaiterDashboard() {
 
   return (
     <>
-      {/* Payment toast — rendered outside shell to stay above everything */}
-      {paymentToast && (
-        <div className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold transition-all ${paymentToast === "success" ? "bg-green-600 text-white" : "bg-neutral-700 text-white"}`}>
-          {paymentToast === "success" ? (
-            <><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12L10 17L19 7" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Passport Pro aktiviran! Pretplata je uspešno pokrenuta.</>
-          ) : (
-            <><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="white" strokeWidth="2" strokeLinecap="round" /></svg>Plaćanje otkazano.</>
-          )}
-        </div>
-      )}
-
       <DashboardShell
         sectionTitle={t("waiterTitles", section)}
         today={today}

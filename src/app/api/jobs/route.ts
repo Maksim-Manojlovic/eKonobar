@@ -45,9 +45,9 @@ export const GET = withOptionalAuth(async (req, _ctx, session) => {
   const type           = searchParams.get("type") as EngagementType | null;
   const search         = searchParams.get("search") ?? undefined;
 
-  // Red Alert early access: PRO/PRO_PLUS waiters see Red Alert posts immediately.
-  // FREE tier waiters (and unauthenticated callers) only see posts ≥30 min old.
-  const redAlertCutoff = await getRedAlertCutoff(session);
+  // Red Alert visibility: signed-in callers see Red Alert posts immediately,
+  // anonymous callers only see posts ≥30 min old.
+  const redAlertCutoff = getRedAlertCutoff(session);
 
   // search and Red Alert visibility both need an OR. They compose under AND —
   // spreading two `{ OR }` objects into one where-object drops the first one.
@@ -116,7 +116,7 @@ export const POST = withRole("VENUE_OWNER", async (req, _ctx, session) => {
     },
   });
 
-  // Red Alert reverse discovery: ping PRO/PRO_PLUS waiters whose declared reach
+  // Red Alert reverse discovery: ping available waiters whose declared reach
   // covers this venue's opština. Fire-and-forget — the recipient query must not
   // block the response, and a broadcast failure must not fail the post creation.
   if (post.redAlert) {

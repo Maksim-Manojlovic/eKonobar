@@ -1,7 +1,7 @@
 "use client";
 
 import type { Section, Venue } from "./venue-types";
-export { PassportTierBadge, ScorePill } from "@/components/ui/PassportWidgets";
+export { VerifiedBadge, VerificationProofChip, ScorePill } from "@/components/ui/PassportWidgets";
 
 export function PostStatusBadge({ status }: { status: string }) {
   if (status === "ACTIVE")  return <span className="badge-accepted text-xs font-semibold px-2.5 py-0.5 rounded-full">Aktivan</span>;

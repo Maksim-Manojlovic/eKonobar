@@ -11,9 +11,7 @@ export const GET = withRole("ADMIN", async () => {
   const [
     overdueGuestReviews,
     overdueRegularReviews,
-    expiredPaidPassports,
     lastPublishedReview,
-    lastRenewalPayment,
     softDeletedUsers,
     rateLimitEntries,
     pendingClockIns,
@@ -26,18 +24,10 @@ export const GET = withRole("ADMIN", async () => {
     dbRaw.review.count({
       where: { status: "PENDING", authorId: { not: null }, createdAt: { lt: regularEmbargo } },
     }),
-    dbRaw.waiterPassport.count({
-      where: { passportTier: { not: "FREE" }, subscriptionExpiresAt: { lt: now } },
-    }),
     dbRaw.review.findFirst({
       where: { status: "PUBLISHED", publishedAt: { not: null } },
       orderBy: { publishedAt: "desc" },
       select: { publishedAt: true },
-    }),
-    dbRaw.passportPayment.findFirst({
-      where: { status: "SUCCESS" },
-      orderBy: { createdAt: "desc" },
-      select: { createdAt: true },
     }),
     dbRaw.user.count({ where: { deletedAt: { not: null } } }),
     dbRaw.rateLimit.count(),
@@ -94,12 +84,8 @@ export const GET = withRole("ADMIN", async () => {
       overdueGuest:   overdueGuestReviews,
       overdueRegular: overdueRegularReviews,
     },
-    passports: {
-      expiredPaid: expiredPaidPassports,
-    },
     cron: {
-      lastPublishedReviewAt:  lastPublishedReview?.publishedAt  ?? null,
-      lastRenewalPaymentAt:   lastRenewalPayment?.createdAt     ?? null,
+      lastPublishedReviewAt: lastPublishedReview?.publishedAt ?? null,
     },
     users: {
       softDeleted: softDeletedUsers,
