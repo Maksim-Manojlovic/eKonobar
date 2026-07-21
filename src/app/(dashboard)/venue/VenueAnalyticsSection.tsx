@@ -178,7 +178,7 @@ function buildCsv(waiters: WaiterReliability[]): string {
   const head = [
     "Konobar", "Pouzdanost", "Trend", "Na vreme %", "Prosek kašnjenja (min)",
     "Nedolasci", "Kasni otkazi", "Rani izlazi", "Sati", "Zahtevi za zamenu",
-    "Gost prosek", "Gost recenzije", "Tier", "Sanitarna",
+    "Gost prosek", "Gost recenzije", "Sanitarna",
   ];
   const rows = waiters.map((w) => [
     (w.name ?? "Konobar").replace(/"/g, '""'),
@@ -193,7 +193,6 @@ function buildCsv(waiters: WaiterReliability[]): string {
     w.swapRequests,
     w.guestRating?.overall ?? "",
     w.guestRating?.count ?? 0,
-    w.passportTier,
     w.sanitaryBookValid ? "važeća" : "ne",
   ]);
   return [head, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
@@ -230,9 +229,6 @@ function WaiterRow({ w }: { w: WaiterReliability }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="font-bold text-neutral-900 truncate">{w.name ?? "Konobar"}</span>
-            {w.passportTier !== "FREE" && (
-              <span className="bg-orange-50 text-orange-600 text-[9px] font-black px-1.5 py-0.5 rounded-full">{w.passportTier}</span>
-            )}
           </div>
           <div className="text-xs text-neutral-400">
             {w.completedShifts} odrađen{w.completedShifts === 1 ? "a" : "ih"} · {w.hoursWorked}h

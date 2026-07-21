@@ -32,7 +32,7 @@ export const GET = withRole("HEADHUNTER", async (_req, _ctx, session) => {
           yearsExperience: true, sanitaryBookValid: true,
           currentlyAvailable: true, badges: true,
           reviewCount: true, totalEngagements: true,
-          shareToken: true, passportTier: true, subscriptionExpiresAt: true,
+          shareToken: true,
         },
       },
     },

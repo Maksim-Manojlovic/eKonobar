@@ -27,9 +27,9 @@ export const GET = withOptionalAuth(async (req, _ctx, session) => {
   if (!parsed.ok) return parsed.response;
   const { redAlert, engagementType, sanitaryRequired, ...bbox } = parsed.data;
 
-  // Red Alert early access (PRO/PRO_PLUS). Without this the public map served the
-  // full undelayed set — including redAlertNote — to anyone, paid feature or not.
-  const redAlertCutoff = await getRedAlertCutoff(session);
+  // Red Alert visibility. Without this the public map serves the full undelayed
+  // set — including redAlertNote — to any anonymous scraper.
+  const redAlertCutoff = getRedAlertCutoff(session);
 
   const jobs = await db.jobPost.findMany({
     where: {
@@ -100,10 +100,10 @@ export const GET = withOptionalAuth(async (req, _ctx, session) => {
     };
   });
 
-  // Cache must be split by entitlement, never shared across it. The delayed set is
-  // identical for every unauthenticated/FREE caller, so it stays CDN-cacheable. The
-  // undelayed PRO set is per-user and must never land in a shared cache — a single
-  // public hit there would hand every FREE waiter the early access they didn't buy.
+  // Cache must be split by visibility, never shared across it. The delayed set is
+  // identical for every anonymous caller, so it stays CDN-cacheable. The undelayed
+  // set is for signed-in callers and must never land in a shared cache — a single
+  // public hit there would serve fresh Red Alerts to anonymous scrapers.
   const cacheControl = redAlertCutoff
     ? "public, s-maxage=15, stale-while-revalidate=30"
     : "private, no-store";

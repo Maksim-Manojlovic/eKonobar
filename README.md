@@ -149,7 +149,7 @@ src/
       venue/                    # Venue owner dashboard (dark theme, skeleton loaders, guided tour)
         page.tsx                # Root client component — session + section state only
         venue-types.ts          # Section type + all API response shapes
-        venue-helpers.tsx       # Shared UI: PostStatusBadge, PassportTierBadge, ScorePill, Sk, *Skeleton
+        venue-helpers.tsx       # Shared UI: PostStatusBadge, VerifiedBadge, ScorePill, Sk, *Skeleton
         VenueJobsSection.tsx
         VenueSmeneSection.tsx   # Shift scheduling UI
         VenueSmeneModals.tsx    # Shift create/edit modals
@@ -188,7 +188,6 @@ src/
     api/
       cron/
         publish-reviews/        # POST — publishes due reviews + syncs trust scores
-        renew-subscriptions/    # POST — charges stored Monri pan_tokens for expiring PRO/PRO_PLUS
         retry-notifications/    # POST — retries failed WA/SMS sends (hourly)
       jobs/                     # Job posts (CRUD), applications, GeoJSON
         applications/           # Application lifecycle (PATCH status transitions)
@@ -210,13 +209,6 @@ src/
       passport/                 # Waiter passport read/write, engagements
         share/                  # POST — generate 30-day share link
         public/[shareToken]/    # GET — public passport view (no auth)
-        subscribe/              # POST — direct tier change (admin/cancel path)
-        subscription/           # GET — current tier + expiry info
-      payments/monri/
-        checkout/               # POST — create Monri payment session, returns paymentUrl
-        callback/               # POST — server-to-server callback (no auth), activates tier
-        success/                # GET — redirect after successful payment
-        cancel/                 # GET — redirect after cancelled payment
       user/
         tour-complete/          # PATCH — mark User.tourCompleted = true
         notification-prefs/     # GET + PATCH — phone, smsOptIn, waOptIn preferences
@@ -305,22 +297,22 @@ prisma/
 - **Session-Aware Nav** — `NavAuthButton` component swaps "Prijava" → role-based "Dashboard →" link when the user is already authenticated. Used on both landing pages.
 - **First-Login Guided Tour** — `driver.js` tour fires automatically on first venue-owner login (`User.tourCompleted`). Re-triggerable via "Vodič" button on the Pregled section. Mobile-aware: auto-opens sidebar drawer before starting. `tourCompleted` is carried in the JWT — no extra DB call at runtime.
 - **Waiter Passport** — Portable reputation profile with Bayesian trust score, engagement history, skill badges, and a 30-day shareable link (`/passport/[shareToken]`)
-- **Passport Pro Subscriptions** — Waiters can upgrade to PRO (290 RSD/mo) or PRO_PLUS (490 RSD/mo) via Visa/Mastercard/DinaCard. PRO unlocks WhatsApp notifications + priority search placement + Red Alert early access. PRO_PLUS adds SMS notifications + first-in-search ranking. Payment via Monri WebPay (Serbian gateway) with server-to-server callback and idempotent activation. Venues pay commission only — no subscription fees.
+- **Free for waiters** — There is no paid waiter tier. Passport, verification, search placement, and every notification channel are free; search rank is earned by trust score alone and cannot be bought. Venues pay commission only.
 - **Job Posts** — Venue owners post shifts with mandatory transparency fields (tip system, sanitary requirement, engagement type)
-- **Red Alert** — Urgent shifts pulse on the map with a highlighted marker; indexed for fast queries. PRO/PRO_PLUS waiters see Red Alert posts immediately; FREE tier sees them after a 30-minute delay (enforced at query level)
+- **Red Alert** — Urgent shifts pulse on the map with a highlighted marker; indexed for fast queries. Signed-in users see Red Alert posts immediately; anonymous callers see them after a 30-minute delay (enforced at query level, so the public map can't be scraped for fresh posts)
 - **Geofenced Guest Reviews** — QR code at the table opens a 3-choice flow: review the venue (GUEST_TO_VENUE), a specific waiter (GUEST_TO_WAITER), or both. No auth required; GPS-geofenced within 150m. Venue owners receive a `REVIEW_RECEIVED` notification and can approve or reject PENDING reviews before auto-publish
 - **Shift Scheduling** — Full shift lifecycle: create → marketplace claim → GPS clock-in with 3-tier geofence (50m auto, 50–150m grace, >150m manager approval) → clock-out with early-exit detection → swap requests with owner approval
 - **Shift Templates** — Recurring shift patterns with bulk generation (up to 90 days). Supports specific day-of-week or weekdays-only mode
-- **Verification Tiers** — UNVERIFIED → SILVER (employment contract) → GOLD (venue invite code) → ID_VERIFIED (document, ×1.2 score weight)
+- **Verification** — Records *which evidence* was checked, not a rank: SILVER (employment contract), GOLD (venue invite code), ID_VERIFIED (document, ×1.2 score weight). Shown as a binary "Verifikovan" badge plus the named evidence — never as a metal ladder
 - **Sanitary Book** — Waiters upload a sanitary certificate; admin approves/rejects; syncs `sanitaryBookValid` flag on passport; venue owners can filter by it
 - **Invites** — Venue owners send targeted job invites to waiters (rate-limited, 7-day expiry); waiters accept or decline
-- **Waiter Search** — VENUE_OWNER and HEADHUNTER can filter by score, availability, sanitary book, verification tier, skills, languages, and experience
+- **Waiter Search** — VENUE_OWNER and HEADHUNTER can filter by score, availability, sanitary book, verification, skills, languages, and experience; results ranked by trust score
 - **Headhunter Tools** — Save waiter profiles with notes; enriched passport data returned
 - **Zone Analytics** — Admin-managed map zones (FESTIVAL_ZONE, TRANSIT_HUB, DEVELOPMENT, …) with projected growth %. Venue zone insights cached as JSON on the Venue model
 - **Market Insights** — Aggregate stats: open positions, red alert count, average salary range, top municipalities
 - **Dark Dashboard Theme** — Both venue-owner and waiter dashboards use a deep `#120a00` background with an orange-brown grid overlay and a mouse-following radial spotlight rendered via `useRef` (no re-renders). Sidebar and mobile drawer match (`#0e0700` + grid). The `.dark-sidebar` CSS class overrides `.nav-item` colors without touching light-mode pages
-- **3-Layer Notifications** — In-app bell with desktop dropdown + mobile bottom sheet (30s polling + Web Push), WhatsApp Business API (PRO+ opt-in), Infobip SMS (PRO_PLUS opt-in). Full notifications page with day-grouped feed and type filter chips (`NotificationsSection`)
-- **Admin Dashboard** — Dark-themed admin panel with real-time platform analytics (users by role, passport tier breakdown, venue/job/review counts, monthly revenue), live activity feed (last 25 events across registrations/payments/reviews/applications), system health panel (overdue reviews, stale subscriptions, cron proxy timestamps, pending clock-ins), and full user management (`/admin/users`) with search, role filter, pagination, soft-delete, and restore
+- **3-Layer Notifications** — In-app bell with desktop dropdown + mobile bottom sheet (30s polling + Web Push), WhatsApp Business API, and Infobip SMS. All three are opt-in and free to every user. Full notifications page with day-grouped feed and type filter chips (`NotificationsSection`)
+- **Admin Dashboard** — Dark-themed admin panel with real-time platform analytics (users by role, passport/venue/job/review counts), live activity feed, system health panel (overdue reviews, cron proxy timestamps, pending clock-ins), and full user management (`/admin/users`) with search, role filter, pagination, soft-delete, and restore
 - **Admin Moderation** — Disputed review queue with publish/remove actions; GDPR hard-delete for venues
 - **Image Uploads** — Waiter avatars (400×400 face-crop), venue photos (up to 8, 1200×800 fill), and venue logo (circle avatar shown in sidebar and top bar); all on Cloudinary
 
@@ -328,15 +320,12 @@ prisma/
 
 `POST /api/cron/publish-reviews` — publishes PENDING reviews past their embargo window and syncs affected trust scores. Requires `Authorization: Bearer <CRON_SECRET>` header.
 
-`POST /api/cron/renew-subscriptions` — charges stored Monri pan_tokens for PRO/PRO_PLUS passports expiring within the next 25 hours. On success extends `subscriptionExpiresAt` by 30 days from the current expiry. On failure marks payment FAILED and lets the subscription lapse naturally (user notified to resubscribe). Idempotent: skips users with a payment attempt in the last 2 hours.
-
 Trigger with any HTTP scheduler. On Vercel, add to `vercel.json`:
 
 ```json
 {
   "crons": [
     { "path": "/api/cron/publish-reviews",      "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/renew-subscriptions",  "schedule": "0 9 * * *"   },
     { "path": "/api/cron/retry-notifications",  "schedule": "0 * * * *"   }
   ]
 }

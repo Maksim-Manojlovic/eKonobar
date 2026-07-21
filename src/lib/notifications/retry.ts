@@ -4,29 +4,19 @@
  * Each function handles dispatch + DB status update as an atomic unit so the
  * cron remains a pure orchestrator with zero channel-specific logic.
  *
- * Role-bypass parity with notify(): non-WAITER roles skip tier gating,
- * matching the behaviour of the initial send.
+ * No eligibility check here: notify() only sets waRetries/smsRetries for sends it
+ * actually attempted, so a row reaching retry was already opted in.
  */
 
 import { db } from "@/lib/core/db";
-import {
-  isPro     as isPassportPro,
-  isProPlus as isPassportProPlus,
-  type PassportTierSource,
-} from "@/lib/passport/tier";
 import { dispatchWhatsApp, dispatchSms } from "@/lib/notifications/dispatch";
 
 export async function retryWhatsApp(
   notificationId: string,
   phone: string,
-  role: string,
-  passport: PassportTierSource | null,
   title: string,
   body: string,
-): Promise<"sent" | "failed" | "skipped"> {
-  const eligible = role !== "WAITER" || isPassportPro(passport);
-  if (!eligible) return "skipped";
-
+): Promise<"sent" | "failed"> {
   const ok = await dispatchWhatsApp(phone, title, body);
   await db.notification.update({
     where: { id: notificationId },
@@ -38,15 +28,10 @@ export async function retryWhatsApp(
 export async function retrySms(
   notificationId: string,
   phone: string,
-  role: string,
-  passport: PassportTierSource | null,
   title: string,
   body: string,
   link?: string | null,
-): Promise<"sent" | "failed" | "skipped"> {
-  const eligible = role !== "WAITER" || isPassportProPlus(passport);
-  if (!eligible) return "skipped";
-
+): Promise<"sent" | "failed"> {
   const ok = await dispatchSms(phone, title, body, link ?? undefined);
   await db.notification.update({
     where: { id: notificationId },

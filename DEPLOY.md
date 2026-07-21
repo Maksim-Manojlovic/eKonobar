@@ -77,9 +77,9 @@ Visit `https://<DOMAIN>` — Caddy should already have a certificate.
 
 ## 7. External services
 
-- **Monri dashboard** → callback URL: `https://<DOMAIN>/api/payments/monri/callback`
 - **Google/Facebook OAuth** → add `https://<DOMAIN>/api/auth/callback/google` (and `/facebook`) to redirect URIs
-- Cron jobs run automatically from the `cron` compose service (publish-reviews every 10 min, retry-notifications hourly, renew-subscriptions daily 03:00) — nothing external needed.
+- **Monri** → nothing to configure. There are no payment routes; `lib/integrations/monri.ts` is dormant and the `MONRI_*` env vars are unused.
+- Cron jobs run automatically from the `cron` compose service (publish-reviews every 10 min, retry-notifications hourly) — nothing external needed.
 
 ## 8. Backups
 

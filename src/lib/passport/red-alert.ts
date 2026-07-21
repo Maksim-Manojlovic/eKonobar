@@ -1,33 +1,24 @@
 import type { Session } from "next-auth";
-import { getEffectiveTierCached } from "@/lib/passport/tier-cache";
 import { RED_ALERT_DELAY_MS } from "@/lib/passport/constants";
 
 /**
- * Red Alert early access — the headline paid PRO/PRO_PLUS feature.
+ * Red Alert visibility — authenticated vs anonymous.
  *
- * FREE waiters may only see, and only apply to, a Red Alert post once it is
- * RED_ALERT_DELAY_MS old. Every surface that exposes or acts on a Red Alert post
- * must gate through this module. The rule previously lived inline in
- * GET /api/jobs alone, which left GET /api/jobs/geojson and
- * POST /api/jobs/applications serving the full undelayed set.
+ * Signed-in users see Red Alert posts immediately. Anonymous callers only see a
+ * Red Alert once it is RED_ALERT_DELAY_MS old, so the public map and the public
+ * job feed cannot be scraped for fresh urgent posts by someone who never
+ * registered. Registering is free, so this costs a real waiter nothing.
+ *
+ * Every surface that exposes or acts on a Red Alert post must gate through this
+ * module. The rule previously lived inline in GET /api/jobs alone, which left
+ * GET /api/jobs/geojson and POST /api/jobs/applications serving the full
+ * undelayed set.
  *
  * Returns the `createdAt` cutoff a Red Alert post must predate to be visible, or
- * `undefined` when the caller is entitled to the full set.
+ * `undefined` when the caller sees the full set.
  */
-export async function getRedAlertCutoff(session: Session | null): Promise<Date | undefined> {
-  // Owners, headhunters and admins are not the audience for waiter early access.
-  if (session && session.user.role !== "WAITER") return undefined;
-
-  // Unauthenticated callers are treated as FREE. Without this a FREE waiter signs
-  // out (or reads the public map GeoJSON) and gets the same posts with no delay,
-  // which makes the gate on every other surface pointless.
-  if (!session) return redAlertCutoff();
-
-  const tier = await getEffectiveTierCached(session.user.id);
-  return tier === "FREE" ? redAlertCutoff() : undefined;
-}
-
-function redAlertCutoff(): Date {
+export function getRedAlertCutoff(session: Session | null): Date | undefined {
+  if (session) return undefined;
   return new Date(Date.now() - RED_ALERT_DELAY_MS);
 }
 
@@ -51,7 +42,7 @@ export function redAlertVisibilityFilter(cutoff: Date | undefined) {
   ];
 }
 
-/** True when `post` is a Red Alert still inside the caller's early-access embargo. */
+/** True when `post` is a Red Alert still inside the caller's embargo window. */
 export function isRedAlertEmbargoed(
   post: { redAlert: boolean; createdAt: Date },
   cutoff: Date | undefined,

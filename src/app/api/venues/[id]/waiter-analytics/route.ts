@@ -113,7 +113,7 @@ export const GET = withRole<Ctx>(["VENUE_OWNER", "WAITER"], async (req, ctx, ses
     waiterIds.length
       ? db.waiterPassport.findMany({
           where: { userId: { in: waiterIds } },
-          select: { userId: true, sanitaryBookValid: true, sanitaryExpiry: true, passportTier: true },
+          select: { userId: true, sanitaryBookValid: true, sanitaryExpiry: true },
         })
       : Promise.resolve([]),
     waiterIds.length
@@ -152,7 +152,6 @@ export const GET = withRole<Ctx>(["VENUE_OWNER", "WAITER"], async (req, ctx, ses
     userId: p.userId,
     sanitaryBookValid: p.sanitaryBookValid,
     sanitaryExpiry: p.sanitaryExpiry,
-    passportTier: p.passportTier,
   }));
 
   const guestReviews: RawGuestReview[] = guestReviewRows

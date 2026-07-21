@@ -21,8 +21,6 @@ import { sendSms }      from "@/lib/integrations/sms";
 import { notify }       from "../notify";
 
 const NOTIF_ID = "n-1";
-const FUTURE   = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-const PAST     = new Date(Date.now() -  5 * 24 * 60 * 60 * 1000);
 
 function makeUser(overrides: Record<string, unknown> = {}) {
   return {
@@ -31,7 +29,6 @@ function makeUser(overrides: Record<string, unknown> = {}) {
     smsOptIn: true,
     waOptIn: true,
     pushSubscriptions: [],
-    waiterPassport: { passportTier: "PRO_PLUS", subscriptionExpiresAt: FUTURE },
     ...overrides,
   };
 }
@@ -69,62 +66,37 @@ describe("notify", () => {
     );
   });
 
-  it("sends WhatsApp to PRO_PLUS waiter with waOptIn + phone", async () => {
+  it("sends WhatsApp to an opted-in waiter with a phone", async () => {
     await notify("u-1", "APPLICATION_RECEIVED" as never, "Title", "Body");
     expect(vi.mocked(sendWhatsApp)).toHaveBeenCalledWith("+381611234567", "Title", "Body");
   });
 
-  it("sends SMS to PRO_PLUS waiter with smsOptIn + phone", async () => {
+  it("sends SMS to an opted-in waiter with a phone", async () => {
     await notify("u-1", "APPLICATION_RECEIVED" as never, "Title", "Body");
     expect(vi.mocked(sendSms)).toHaveBeenCalledTimes(1);
   });
 
-  it("PRO tier waiter gets WhatsApp but not SMS", async () => {
-    vi.mocked(db.user.findUnique).mockResolvedValue(
-      makeUser({ waiterPassport: { passportTier: "PRO", subscriptionExpiresAt: FUTURE } }) as never,
-    );
-    await notify("u-1", "APPLICATION_RECEIVED" as never, "T", "B");
-    expect(vi.mocked(sendWhatsApp)).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(sendSms)).not.toHaveBeenCalled();
-  });
-
-  it("FREE tier waiter gets no WhatsApp and no SMS", async () => {
-    vi.mocked(db.user.findUnique).mockResolvedValue(
-      makeUser({ waiterPassport: { passportTier: "FREE", subscriptionExpiresAt: null } }) as never,
-    );
-    await notify("u-1", "APPLICATION_RECEIVED" as never, "T", "B");
-    expect(vi.mocked(sendWhatsApp)).not.toHaveBeenCalled();
-    expect(vi.mocked(sendSms)).not.toHaveBeenCalled();
-  });
-
-  it("expired PRO_PLUS treated as FREE — no WA, no SMS", async () => {
-    vi.mocked(db.user.findUnique).mockResolvedValue(
-      makeUser({ waiterPassport: { passportTier: "PRO_PLUS", subscriptionExpiresAt: PAST } }) as never,
-    );
-    await notify("u-1", "APPLICATION_RECEIVED" as never, "T", "B");
-    expect(vi.mocked(sendWhatsApp)).not.toHaveBeenCalled();
-    expect(vi.mocked(sendSms)).not.toHaveBeenCalled();
-  });
-
-  it("waOptIn=false skips WhatsApp even for PRO_PLUS", async () => {
+  it("waOptIn=false skips WhatsApp but not SMS", async () => {
     vi.mocked(db.user.findUnique).mockResolvedValue(
       makeUser({ waOptIn: false }) as never,
     );
     await notify("u-1", "APPLICATION_RECEIVED" as never, "T", "B");
     expect(vi.mocked(sendWhatsApp)).not.toHaveBeenCalled();
+    expect(vi.mocked(sendSms)).toHaveBeenCalledTimes(1);
   });
 
-  it("smsOptIn=false skips SMS even for PRO_PLUS", async () => {
+  it("smsOptIn=false skips SMS but not WhatsApp", async () => {
     vi.mocked(db.user.findUnique).mockResolvedValue(
       makeUser({ smsOptIn: false }) as never,
     );
     await notify("u-1", "APPLICATION_RECEIVED" as never, "T", "B");
     expect(vi.mocked(sendSms)).not.toHaveBeenCalled();
+    expect(vi.mocked(sendWhatsApp)).toHaveBeenCalledTimes(1);
   });
 
-  it("VENUE_OWNER gets all channels regardless of passport (no tier gating)", async () => {
+  it("VENUE_OWNER gets all opted-in channels", async () => {
     vi.mocked(db.user.findUnique).mockResolvedValue(
-      makeUser({ role: "VENUE_OWNER", waiterPassport: null }) as never,
+      makeUser({ role: "VENUE_OWNER" }) as never,
     );
     await notify("o-1", "APPLICATION_RECEIVED" as never, "T", "B");
     expect(vi.mocked(sendWhatsApp)).toHaveBeenCalledTimes(1);

@@ -4,7 +4,7 @@ import { NextRequest } from "next/server";
 vi.mock("next-auth",          () => ({ getServerSession: vi.fn() }));
 vi.mock("@/lib/auth/config",  () => ({ authOptions: {} }));
 
-// Unit test mocked db.user entirely — DB-level sort (tierRank desc, score desc),
+// Unit test mocked db.user entirely — DB-level sort (score desc),
 // filter correctness, and soft-delete exclusion were never executed.
 // This test also covers the filterering that collapses into a Prisma WHERE clause.
 
@@ -14,7 +14,6 @@ import { dbRaw } from "@/lib/core/db";
 import { GET } from "../route";
 
 const CTX = { params: Promise.resolve({}) };
-const FUTURE = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
 function makeReq(qs = "") {
   return new NextRequest(`http://localhost/api/waiters${qs ? `?${qs}` : ""}`, { method: "GET" });
@@ -29,9 +28,6 @@ function mockOwner(id: string) {
 async function createWaiter(opts: {
   name?:              string;
   score?:             number;
-  tierRank?:          number;
-  passportTier?:      "FREE" | "PRO" | "PRO_PLUS";
-  subscriptionExpiresAt?: Date | null;
   available?:         boolean;
   sanitaryBookValid?: boolean;
   yearsExperience?:   number;
@@ -53,9 +49,6 @@ async function createWaiter(opts: {
     data: {
       userId,
       score:                opts.score                ?? 50,
-      tierRank:             opts.tierRank             ?? 0,
-      passportTier:         opts.passportTier         ?? "FREE",
-      subscriptionExpiresAt: opts.subscriptionExpiresAt ?? null,
       currentlyAvailable:   opts.available            ?? true,
       sanitaryBookValid:    opts.sanitaryBookValid     ?? false,
       yearsExperience:      opts.yearsExperience       ?? 0,
@@ -81,23 +74,10 @@ describe("GET /api/waiters — integration", () => {
 
   // ── Sort order ──────────────────────────────────────────────────────────────
 
-  it("sorted by tierRank desc then score desc: PRO_PLUS > PRO > FREE regardless of score", async () => {
-    const free    = await createWaiter({ name: "Free",    score: 90, tierRank: 0, passportTier: "FREE" });
-    const pro     = await createWaiter({ name: "Pro",     score: 50, tierRank: 1, passportTier: "PRO",     subscriptionExpiresAt: FUTURE });
-    const proPlus = await createWaiter({ name: "ProPlus", score: 30, tierRank: 2, passportTier: "PRO_PLUS", subscriptionExpiresAt: FUTURE });
-
-    const res = await GET(makeReq(), CTX);
-    const { waiters } = await res.json();
-
-    const ids = waiters.map((w: { id: string }) => w.id);
-    expect(ids.indexOf(proPlus)).toBeLessThan(ids.indexOf(pro));  // PRO_PLUS before PRO
-    expect(ids.indexOf(pro)).toBeLessThan(ids.indexOf(free));     // PRO before FREE
-  });
-
-  it("within same tier, higher score appears first", async () => {
-    const low  = await createWaiter({ name: "Low",  score: 30, tierRank: 0 });
-    const high = await createWaiter({ name: "High", score: 80, tierRank: 0 });
-    const mid  = await createWaiter({ name: "Mid",  score: 55, tierRank: 0 });
+  it("higher score appears first", async () => {
+    const low  = await createWaiter({ name: "Low",  score: 30 });
+    const high = await createWaiter({ name: "High", score: 80 });
+    const mid  = await createWaiter({ name: "Mid",  score: 55 });
 
     const { waiters } = await (await GET(makeReq(), CTX)).json();
     const ids = waiters.map((w: { id: string }) => w.id);

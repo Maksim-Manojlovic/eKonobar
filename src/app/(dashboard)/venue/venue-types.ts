@@ -139,8 +139,6 @@ export type WaiterEntry = {
     currentlyAvailable: boolean;
     badges: string[];
     bio: string | null;
-    passportTier?: string;
-    subscriptionExpiresAt?: string | null;
   } | null;
 };
 

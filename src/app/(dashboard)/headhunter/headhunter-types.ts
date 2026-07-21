@@ -8,8 +8,6 @@ export type WaiterPassport = {
   reviewCount: number;
   totalEngagements: number;
   shareToken?: string | null;
-  passportTier?: string;
-  subscriptionExpiresAt?: string | null;
 };
 
 /** Full waiter shape returned by GET /api/waiters */

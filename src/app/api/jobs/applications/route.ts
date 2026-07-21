@@ -4,7 +4,6 @@ import { db } from "@/lib/core/db";
 import logger from "@/lib/core/logger";
 import { checkRateLimit } from "@/lib/core/rate-limit";
 import { fireSideEffects } from "@/lib/notifications/side-effects";
-import { getRedAlertCutoff, isRedAlertEmbargoed } from "@/lib/passport/red-alert";
 import type { Session } from "next-auth";
 import { parseBody } from "@/lib/auth/parse-body";
 import { z } from "zod";
@@ -79,16 +78,9 @@ export const POST = withRole("WAITER", async (req, _ctx, session) => {
     return NextResponse.json({ error: "Job post not found or not active" }, { status: 404 });
   }
 
-  // Red Alert early access is what PRO actually sells: applying first. Gating only
-  // the read surfaces leaves the feature bypassable by anyone who learns the post id
-  // by any means, so the write is gated too — this is where the value transfers.
-  const redAlertCutoff = await getRedAlertCutoff(session);
-  if (isRedAlertEmbargoed(post, redAlertCutoff)) {
-    return NextResponse.json(
-      { error: "Ovaj Red Alert oglas je za sada dostupan samo PRO konobarima. Pokušaj ponovo za nekoliko minuta." },
-      { status: 403 },
-    );
-  }
+  // No Red Alert embargo check here: this route is withRole("WAITER"), so every
+  // caller is authenticated, and authenticated callers see the full undelayed set.
+  // The 30-minute delay only applies to anonymous read surfaces.
 
   // Duplicate check — @@unique([jobPostId, waiterId]) in schema
   const existing = await db.jobApplication.findUnique({

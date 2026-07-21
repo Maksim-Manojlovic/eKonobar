@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { VERIFICATION_TIER_COLORS } from "@/lib/formatting/display-maps";
-import { Initials, PassportTierBadge } from "@/components/ui/PassportWidgets";
+import { Initials, VerifiedBadge, VerificationProofChip } from "@/components/ui/PassportWidgets";
 import type { SavedEntry } from "../headhunter-types";
 
 import { useRequireRole } from "@/hooks/useRequireRole";
@@ -81,11 +80,11 @@ export default function SavedProfilesPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="font-black text-neutral-900 text-sm truncate">{w.name ?? "Konobar"}</p>
-                        <PassportTierBadge tier={p?.passportTier} expiresAt={p?.subscriptionExpiresAt} />
+                        <VerifiedBadge tier={w.verificationTier} />
                       </div>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${VERIFICATION_TIER_COLORS[w.verificationTier] ?? VERIFICATION_TIER_COLORS.UNVERIFIED}`}>
-                        {w.verificationTier.replace("_", " ")}
-                      </span>
+                      <div className="mt-1">
+                        <VerificationProofChip tier={w.verificationTier} />
+                      </div>
                     </div>
                     {p && (
                       <span className="text-xs font-black text-orange-500 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full flex-shrink-0">

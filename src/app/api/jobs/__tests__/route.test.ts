@@ -84,45 +84,14 @@ describe("GET /api/jobs", () => {
     );
   });
 
-  it("FREE waiter gets Red Alert delay applied", async () => {
+  it("signed-in waiter gets no Red Alert delay", async () => {
     mockSession("WAITER", WAITER_ID);
-    vi.mocked(db.waiterPassport.findUnique).mockResolvedValue({
-      passportTier: "FREE",
-      subscriptionExpiresAt: null,
-    } as never);
 
     await GET(makeGetReq(), CTX);
 
     const call = vi.mocked(db.jobPost.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
-    // FREE waiter where clause should include the OR Red Alert delay filter
-    expect(JSON.stringify(call.where)).toContain("redAlert");
-  });
-
-  it("PRO waiter gets no Red Alert delay", async () => {
-    mockSession("WAITER", WAITER_ID);
-    vi.mocked(db.waiterPassport.findUnique).mockResolvedValue({
-      passportTier: "PRO",
-      subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-    } as never);
-
-    await GET(makeGetReq(), CTX);
-
-    const call = vi.mocked(db.jobPost.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
-    // PRO waiter should not have the extra OR filter for Red Alert delay
-    expect(call.where).not.toHaveProperty("OR");
-  });
-
-  it("expired PRO passport treated as FREE (delay applied)", async () => {
-    mockSession("WAITER", WAITER_ID);
-    vi.mocked(db.waiterPassport.findUnique).mockResolvedValue({
-      passportTier: "PRO",
-      subscriptionExpiresAt: new Date(Date.now() - 1000), // expired
-    } as never);
-
-    await GET(makeGetReq(), CTX);
-
-    const call = vi.mocked(db.jobPost.findMany).mock.calls[0][0] as { where: Record<string, unknown> };
-    expect(JSON.stringify(call.where)).toContain("redAlert");
+    // The AND array carries the delay clause; signed-in callers get an empty one.
+    expect(JSON.stringify(call.where.AND ?? [])).not.toContain("createdAt");
   });
 
   it("redAlert=true filter passed through", async () => {

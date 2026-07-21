@@ -177,63 +177,20 @@ describe("POST /api/jobs/applications", () => {
     );
   });
 
-  // ── Red Alert early access ────────────────────────────────────────────────
-  // Applying first is what PRO sells. Gating the read surfaces alone leaves the
-  // feature bypassable by anyone who learns the post id, so the write is gated.
+  // ── Red Alert ─────────────────────────────────────────────────────────────
+  // No embargo on this route: it is withRole("WAITER"), so every caller is
+  // authenticated, and the 30-minute delay only applies to anonymous reads.
 
   const FRESH_RED_ALERT = { ...JOB_POST, redAlert: true, createdAt: new Date() };
-  const OLD_RED_ALERT   = {
-    ...JOB_POST,
-    redAlert: true,
-    createdAt: new Date(Date.now() - 31 * 60 * 1000),
-  };
-  const ACTIVE_SUB = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-  function mockTier(passportTier: string, subscriptionExpiresAt: Date | null) {
-    vi.mocked(db.waiterPassport.findUnique).mockResolvedValue({
-      passportTier,
-      subscriptionExpiresAt,
-    } as never);
-  }
-
-  it("FREE waiter applying to a fresh Red Alert → 403", async () => {
-    mockTier("FREE", null);
-    vi.mocked(db.jobPost.findFirst).mockResolvedValue(FRESH_RED_ALERT as never);
-    const res = await POST(makePostReq({ jobPostId: JOB_ID }), CTX);
-    expect(res.status).toBe(403);
-    expect(vi.mocked(db.jobApplication.create)).not.toHaveBeenCalled();
-  });
-
-  it("FREE waiter applying to a Red Alert past the window → 201", async () => {
-    mockTier("FREE", null);
-    vi.mocked(db.jobPost.findFirst).mockResolvedValue(OLD_RED_ALERT as never);
-    const res = await POST(makePostReq({ jobPostId: JOB_ID }), CTX);
-    expect(res.status).toBe(201);
-  });
-
-  it("PRO waiter applying to a fresh Red Alert → 201", async () => {
-    mockTier("PRO", ACTIVE_SUB);
+  it("waiter applying to a fresh Red Alert → 201", async () => {
     vi.mocked(db.jobPost.findFirst).mockResolvedValue(FRESH_RED_ALERT as never);
     const res = await POST(makePostReq({ jobPostId: JOB_ID }), CTX);
     expect(res.status).toBe(201);
+    expect(vi.mocked(db.jobApplication.create)).toHaveBeenCalled();
   });
 
-  it("PRO_PLUS waiter applying to a fresh Red Alert → 201", async () => {
-    mockTier("PRO_PLUS", ACTIVE_SUB);
-    vi.mocked(db.jobPost.findFirst).mockResolvedValue(FRESH_RED_ALERT as never);
-    const res = await POST(makePostReq({ jobPostId: JOB_ID }), CTX);
-    expect(res.status).toBe(201);
-  });
-
-  it("expired PRO applying to a fresh Red Alert → 403 (treated as FREE)", async () => {
-    mockTier("PRO", new Date(Date.now() - 1000));
-    vi.mocked(db.jobPost.findFirst).mockResolvedValue(FRESH_RED_ALERT as never);
-    const res = await POST(makePostReq({ jobPostId: JOB_ID }), CTX);
-    expect(res.status).toBe(403);
-  });
-
-  it("FREE waiter applying to a normal fresh post → 201 (gate is Red-Alert-only)", async () => {
-    mockTier("FREE", null);
+  it("waiter applying to a normal fresh post → 201", async () => {
     vi.mocked(db.jobPost.findFirst).mockResolvedValue(
       { ...JOB_POST, redAlert: false, createdAt: new Date() } as never,
     );

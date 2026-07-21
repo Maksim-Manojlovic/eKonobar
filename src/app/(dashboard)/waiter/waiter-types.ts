@@ -166,13 +166,6 @@ export type PassportData = {
   } | null;
 };
 
-export type PassportSubscription = {
-  tier: "FREE" | "PRO" | "PRO_PLUS";
-  subscriptionExpiresAt: string | null;
-  isActive: boolean;
-  daysRemaining: number;
-};
-
 export type MyApplication = {
   id: string;
   status: string;

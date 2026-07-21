@@ -6,8 +6,6 @@ vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
 vi.mock("@/lib/core/db", () => ({
   dbRaw: {
     review:           { count: vi.fn(), findFirst: vi.fn() },
-    waiterPassport:   { count: vi.fn() },
-    passportPayment:  { findFirst: vi.fn() },
     user:             { count: vi.fn() },
     rateLimit:        { count: vi.fn() },
     shiftAssignment:  { count: vi.fn() },
@@ -33,12 +31,8 @@ function setupDefaultMocks() {
   vi.mocked(dbRaw.review.count)
     .mockResolvedValueOnce(0)   // overdueGuestReviews
     .mockResolvedValueOnce(2);  // overdueRegularReviews
-  vi.mocked(dbRaw.waiterPassport.count).mockResolvedValue(3);
   vi.mocked(dbRaw.review.findFirst).mockResolvedValue({
     publishedAt: new Date("2025-01-01"),
-  } as never);
-  vi.mocked(dbRaw.passportPayment.findFirst).mockResolvedValue({
-    createdAt: new Date("2025-01-02"),
   } as never);
   vi.mocked(dbRaw.user.count).mockResolvedValue(5);
   vi.mocked(dbRaw.rateLimit.count).mockResolvedValue(42);
@@ -73,7 +67,6 @@ describe("GET /api/admin/health", () => {
     const res = await GET(makeReq(), CTX);
     const json = await res.json();
     expect(json).toHaveProperty("reviews");
-    expect(json).toHaveProperty("passports");
     expect(json).toHaveProperty("cron");
     expect(json).toHaveProperty("users");
     expect(json).toHaveProperty("system");
@@ -86,10 +79,10 @@ describe("GET /api/admin/health", () => {
     expect(json.reviews.overdueRegular).toBe(2);
   });
 
-  it("passports expiredPaid count returned", async () => {
+  it("no passports key — expiredPaid tracked a removed subscription product", async () => {
     const res = await GET(makeReq(), CTX);
     const json = await res.json();
-    expect(json.passports.expiredPaid).toBe(3);
+    expect(json).not.toHaveProperty("passports");
   });
 
   it("system metrics returned", async () => {
@@ -99,11 +92,10 @@ describe("GET /api/admin/health", () => {
     expect(json.system.pendingClockIns).toBe(1);
   });
 
-  it("cron timestamps returned as ISO strings", async () => {
+  it("cron timestamp returned as ISO string", async () => {
     const res = await GET(makeReq(), CTX);
     const json = await res.json();
     expect(json.cron.lastPublishedReviewAt).toBe("2025-01-01T00:00:00.000Z");
-    expect(json.cron.lastRenewalPaymentAt).toBe("2025-01-02T00:00:00.000Z");
   });
 
   it("null lastPublishedReview → cron.lastPublishedReviewAt null", async () => {
@@ -111,13 +103,6 @@ describe("GET /api/admin/health", () => {
     const res = await GET(makeReq(), CTX);
     const json = await res.json();
     expect(json.cron.lastPublishedReviewAt).toBeNull();
-  });
-
-  it("null lastRenewalPayment → cron.lastRenewalPaymentAt null", async () => {
-    vi.mocked(dbRaw.passportPayment.findFirst).mockResolvedValue(null);
-    const res = await GET(makeReq(), CTX);
-    const json = await res.json();
-    expect(json.cron.lastRenewalPaymentAt).toBeNull();
   });
 
   it("users.softDeleted returned", async () => {

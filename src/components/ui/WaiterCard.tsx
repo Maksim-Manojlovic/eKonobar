@@ -1,8 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { VERIFICATION_TIER_COLORS } from "@/lib/formatting/display-maps";
-import { Initials, PassportTierBadge, ScorePill } from "@/components/ui/PassportWidgets";
+import { Initials, VerifiedBadge, VerificationProofChip, ScorePill } from "@/components/ui/PassportWidgets";
 
 /**
  * Common subset of the `GET /api/waiters` row that the shared card renders. Fields that
@@ -23,8 +22,6 @@ export interface WaiterCardData {
     currentlyAvailable: boolean;
     reviewCount?: number;
     totalEngagements?: number;
-    passportTier?: string;
-    subscriptionExpiresAt?: string | null;
   } | null;
 }
 
@@ -61,11 +58,11 @@ export function WaiterCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <p className="font-black text-neutral-900 text-sm truncate">{waiter.name ?? "Konobar"}</p>
-            <PassportTierBadge tier={p?.passportTier} expiresAt={p?.subscriptionExpiresAt} />
+            <VerifiedBadge tier={waiter.verificationTier} />
           </div>
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${VERIFICATION_TIER_COLORS[waiter.verificationTier] ?? VERIFICATION_TIER_COLORS.UNVERIFIED}`}>
-            {waiter.verificationTier.replace("_", " ")}
-          </span>
+          <div className="mt-1">
+            <VerificationProofChip tier={waiter.verificationTier} />
+          </div>
         </div>
         {p && <ScorePill score={p.score} />}
       </div>

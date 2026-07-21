@@ -1,9 +1,10 @@
 "use client";
 
 import type { Section, JobPost, MyApplication, WaiterShift, PassportData } from "./waiter-types";
-import { TIER_BADGE, NEXT_TIER } from "./waiter-constants";
+import { NEXT_VERIFICATION_STEP } from "./waiter-constants";
 import { ENGAGEMENT_LABELS } from "@/lib/formatting/display-maps";
 import { formatSalary } from "@/lib/formatting/utils";
+import { VerifiedBadge, VerificationProofChip } from "@/components/ui/PassportWidgets";
 import { ApplyButton, MarketInsights, OverviewSkeleton, StatusBadge } from "./waiter-helpers";
 
 export function OverviewSection({ jobs, applications, shifts, userName, verificationTier, passport, onNavigate, onApply, applying, loading }: {
@@ -18,8 +19,7 @@ export function OverviewSection({ jobs, applications, shifts, userName, verifica
   const offset        = circumference - (score / 100) * circumference;
   const appliedJobIds = new Set(applications.map(a => a.jobPost.id));
   const redAlerts     = jobs.filter(j => j.redAlert).slice(0, 3);
-  const tier          = TIER_BADGE[verificationTier] ?? TIER_BADGE.BRONZE;
-  const nextTier      = NEXT_TIER[verificationTier];
+  const nextStep      = NEXT_VERIFICATION_STEP[verificationTier] ?? null;
   const rating        = passport?.score ? (passport.score / 20).toFixed(1) : "—";
 
   return (
@@ -37,13 +37,9 @@ export function OverviewSection({ jobs, applications, shifts, userName, verifica
           </div>
         </div>
         <div className="flex-1 text-center sm:text-left">
-          <div className="flex flex-wrap gap-2 justify-center sm:justify-start mb-1">
-            <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${tier.cls}`}>{tier.label}</span>
-            {verificationTier !== "BRONZE" && (
-              <span className="bg-green-100 text-green-700 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block pulse-dot" />Verifikovan
-              </span>
-            )}
+          <div className="flex flex-wrap gap-2 justify-center sm:justify-start mb-1 items-center">
+            <VerifiedBadge tier={verificationTier} />
+            <VerificationProofChip tier={verificationTier} />
           </div>
           <h2 className="text-2xl font-black text-neutral-900">{userName}</h2>
           <p className="text-sm text-neutral-500 mt-0.5">Konobar</p>
@@ -145,16 +141,16 @@ export function OverviewSection({ jobs, applications, shifts, userName, verifica
       <div className="dash-card p-5">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <h3 className="font-bold text-neutral-900 text-sm">Waiter Passport™ napredak</h3>
+            <h3 className="font-bold text-neutral-900 text-sm">Waiter Passport™ skor</h3>
             <p className="text-xs text-neutral-400">
-              {nextTier ? `Do ${nextTier} nivoa: još ${100 - score} bodova` : "Maksimalni nivo dostignut"}
+              {nextStep ?? "Identitet je u potpunosti potvrđen"}
             </p>
           </div>
           <span className="text-orange-500 font-black text-lg">{score}%</span>
         </div>
         <div className="prog-track"><div className="prog-fill" style={{ width: `${score}%` }} /></div>
         <div className="flex justify-between text-[10px] text-neutral-400 mt-1">
-          <span>SILVER</span><span>GOLD</span><span>PLATINUM</span>
+          <span>0</span><span>50</span><span>100</span>
         </div>
       </div>
     </>

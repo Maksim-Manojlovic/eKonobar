@@ -1,9 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import type { Session } from "next-auth";
 
-vi.mock("@/lib/passport/tier-cache", () => ({ getEffectiveTierCached: vi.fn() }));
-
-import { getEffectiveTierCached } from "@/lib/passport/tier-cache";
 import {
   getRedAlertCutoff,
   redAlertVisibilityFilter,
@@ -15,49 +12,23 @@ const session = (role: string, id = "u-1") =>
   ({ user: { id, role } }) as unknown as Session;
 
 describe("getRedAlertCutoff", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("unauthenticated → cutoff applied (a FREE waiter must not bypass by signing out)", async () => {
-    const cutoff = await getRedAlertCutoff(null);
-    expect(cutoff).toBeInstanceOf(Date);
-    expect(getEffectiveTierCached).not.toHaveBeenCalled();
+  it("unauthenticated → cutoff applied (public surfaces must not serve fresh Red Alerts)", () => {
+    expect(getRedAlertCutoff(null)).toBeInstanceOf(Date);
   });
 
-  it("FREE waiter → cutoff applied", async () => {
-    vi.mocked(getEffectiveTierCached).mockResolvedValue("FREE");
-    expect(await getRedAlertCutoff(session("WAITER"))).toBeInstanceOf(Date);
-  });
-
-  it("PRO waiter → no cutoff", async () => {
-    vi.mocked(getEffectiveTierCached).mockResolvedValue("PRO");
-    expect(await getRedAlertCutoff(session("WAITER"))).toBeUndefined();
-  });
-
-  it("PRO_PLUS waiter → no cutoff", async () => {
-    vi.mocked(getEffectiveTierCached).mockResolvedValue("PRO_PLUS");
-    expect(await getRedAlertCutoff(session("WAITER"))).toBeUndefined();
-  });
-
-  it.each(["VENUE_OWNER", "HEADHUNTER", "ADMIN"])(
-    "%s → no cutoff, tier never resolved",
-    async (role) => {
-      expect(await getRedAlertCutoff(session(role))).toBeUndefined();
-      expect(getEffectiveTierCached).not.toHaveBeenCalled();
+  it.each(["WAITER", "VENUE_OWNER", "HEADHUNTER", "ADMIN"])(
+    "signed-in %s → no cutoff",
+    (role) => {
+      expect(getRedAlertCutoff(session(role))).toBeUndefined();
     },
   );
 
-  it("cutoff is exactly RED_ALERT_DELAY_MS in the past", async () => {
+  it("cutoff is exactly RED_ALERT_DELAY_MS in the past", () => {
     const before = Date.now();
-    const cutoff = (await getRedAlertCutoff(null)) as Date;
+    const cutoff = getRedAlertCutoff(null) as Date;
     const after = Date.now();
     expect(cutoff.getTime()).toBeGreaterThanOrEqual(before - RED_ALERT_DELAY_MS);
     expect(cutoff.getTime()).toBeLessThanOrEqual(after - RED_ALERT_DELAY_MS);
-  });
-
-  it("resolves tier by the session user id", async () => {
-    vi.mocked(getEffectiveTierCached).mockResolvedValue("FREE");
-    await getRedAlertCutoff(session("WAITER", "waiter-42"));
-    expect(getEffectiveTierCached).toHaveBeenCalledWith("waiter-42");
   });
 });
 

@@ -12,7 +12,7 @@
  * DOUBLE-CHECK which database DATABASE_URL points at before running — this
  * writes 60+ rows.
  */
-import { PrismaClient, type VenueType, type PassportTier, type VerificationTier, type EngagementType, type TipSystem } from "@prisma/client";
+import { PrismaClient, type VenueType, type VerificationTier, type EngagementType, type TipSystem } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { BELGRADE_MUNICIPALITIES } from "../src/lib/geo/municipalities";
 
@@ -121,12 +121,9 @@ async function seed() {
     posts++;
   }
 
-  // ── 50 waiters with reach, tiers, scores ──────────────────────────────────
-  const now = Date.now();
+  // ── 50 waiters with reach and scores ──────────────────────────────────────
   for (let i = 0; i < 50; i++) {
     const name = `${pick(FIRST, i)} ${pick(LAST, i)}`;
-    const tier: PassportTier = i % 5 === 0 ? "PRO_PLUS" : i % 3 === 0 ? "PRO" : "FREE";
-    const active = tier !== "FREE";
     // Reach: 1–3 opštine, weighted toward the urban core so coverage bars vary.
     const reachCount = 1 + rand(3);
     const reach = Array.from({ length: reachCount }, (_, k) => BELGRADE_MUNICIPALITIES[(i * 2 + k * 3) % 11]);
@@ -150,9 +147,6 @@ async function seed() {
         sanitaryBookValid: i % 2 === 0,
         currentlyAvailable: i % 7 !== 0, // ~43 of 50 available
         workMunicipalities: [...new Set(reach)],
-        passportTier: tier,
-        subscriptionExpiresAt: active ? new Date(now + 30 * 864e5) : null,
-        tierRank: tier === "PRO_PLUS" ? 2 : tier === "PRO" ? 1 : 0,
         bio: "Iskusan član tima, spreman za nove izazove.",
       },
     });

@@ -141,13 +141,7 @@ enum NotificationType {
   REVIEW_PUBLISHED               // review went live → subject
   CLOCKIN_APPROVAL_REQUESTED     // waiter outside geofence → venue owner
   CLOCKIN_RESOLVED               // owner approved/rejected clock-in → waiter
-  RED_ALERT_POSTED               // new Red Alert job in a waiter's reach → matching PRO/PRO_PLUS waiters
-}
-
-enum PassportTier {
-  FREE
-  PRO        // 290 RSD/mo — WhatsApp notifications, priority placement, early Red Alert
-  PRO_PLUS   // 490 RSD/mo — SMS notifications, first in venue search, score report
+  RED_ALERT_POSTED               // new Red Alert job in a waiter's reach → matching available waiters
 }
 
 // ─── User ─────────────────────────────────────────────────────────────────────
@@ -479,19 +473,12 @@ model WaiterPassport {
 
   lastAvailableDate   DateTime?  // set when currentlyAvailable flips true, cleared when flips false
 
-  // Passport Pro subscription
-  passportTier          PassportTier @default(FREE)
-  subscriptionExpiresAt DateTime?    // null = FREE or expired
-  monriPanToken         String?      // stored card token for recurring charges
-  tierRank              Int          @default(0) // 0=FREE, 1=PRO, 2=PRO_PLUS — kept in sync with passportTier
-
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
   trustScore          PassportTrustScore?
 
-  @@index([passportTier])
-  @@index([tierRank, score])
+  @@index([score])
 }
 
 // ─── Trust Score modeli ───────────────────────────────────────────────────────
@@ -844,7 +831,9 @@ model PassportPayment {
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   orderNumber String       @unique  // eKonobar-generated, sent to Monri
-  tier        PassportTier
+  // Historical record only — the waiter subscription product was removed. Kept as a
+  // free-text label so past payment rows stay readable without a live tier enum.
+  tier        String
   amountRsd   Int                   // 29000 = 290.00 RSD (minor units)
 
   status      String       @default("PENDING")  // PENDING | SUCCESS | FAILED | CANCELLED

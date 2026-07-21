@@ -30,7 +30,6 @@ export const GET = withAuth(async (_req, _ctx, session) => {
       where: { userId },
       select: {
         bio: true, skills: true, languages: true, yearsExperience: true,
-        passportTier: true, subscriptionExpiresAt: true,
         score: true, totalEngagements: true, currentlyAvailable: true,
         sanitaryBookValid: true, sanitaryExpiry: true,
         createdAt: true, updatedAt: true,

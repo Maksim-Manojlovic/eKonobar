@@ -11,7 +11,6 @@ const compat = new FlatCompat({
 
 const DBRAW_REQUIRED_GLOBS = [
   "src/app/api/admin/**",
-  "src/app/api/payments/monri/callback/**",
   "src/lib/scoring/sync.ts",
   "src/lib/core/rate-limit.ts",
 ];

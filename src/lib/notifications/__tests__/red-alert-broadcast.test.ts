@@ -8,9 +8,6 @@ import { db } from "@/lib/core/db";
 import { notify } from "@/lib/notifications/notify";
 import { broadcastRedAlert } from "../red-alert-broadcast";
 
-const ACTIVE = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-const EXPIRED = new Date(Date.now() - 1000);
-
 const BROADCAST = {
   jobPostId:    "job-1",
   jobTitle:     "Konobar hitno",
@@ -18,21 +15,17 @@ const BROADCAST = {
   municipality: "Vračar",
 };
 
-function rows(...tiers: Array<{ id: string; tier: string; exp: Date | null }>) {
-  return tiers.map((t) => ({
-    id: t.id,
-    waiterPassport: { passportTier: t.tier, subscriptionExpiresAt: t.exp },
-  }));
-}
+const rows = (...ids: string[]) => ids.map((id) => ({ id }));
 
 describe("broadcastRedAlert", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("filters the query to available PRO/PRO_PLUS waiters in the reach municipality", async () => {
+  it("filters the query to available waiters in the reach municipality", async () => {
     vi.mocked(db.user.findMany).mockResolvedValue([] as never);
     await broadcastRedAlert(BROADCAST);
 
-    const where = vi.mocked(db.user.findMany).mock.calls[0][0]!.where as {
+    const call = vi.mocked(db.user.findMany).mock.calls[0][0]!;
+    const where = call.where as {
       role: string;
       deletedAt: null;
       waiterPassport: Record<string, unknown>;
@@ -42,56 +35,26 @@ describe("broadcastRedAlert", () => {
     expect(where.waiterPassport).toMatchObject({
       currentlyAvailable: true,
       workMunicipalities: { has: "Vračar" },
-      passportTier: { in: ["PRO", "PRO_PLUS"] },
     });
+    // No tier filter — the paid subscription product was removed.
+    expect(where.waiterPassport).not.toHaveProperty("passportTier");
+    expect(call.take).toBe(50);
   });
 
-  it("notifies each active PRO/PRO_PLUS recipient with RED_ALERT_POSTED", async () => {
-    vi.mocked(db.user.findMany).mockResolvedValue(
-      rows(
-        { id: "w-pro", tier: "PRO", exp: ACTIVE },
-        { id: "w-proplus", tier: "PRO_PLUS", exp: ACTIVE },
-      ) as never,
-    );
+  it("notifies each recipient with RED_ALERT_POSTED", async () => {
+    vi.mocked(db.user.findMany).mockResolvedValue(rows("w-1", "w-2") as never);
 
     const count = await broadcastRedAlert(BROADCAST);
 
     expect(count).toBe(2);
     expect(notify).toHaveBeenCalledTimes(2);
     expect(notify).toHaveBeenCalledWith(
-      "w-pro",
+      "w-1",
       "RED_ALERT_POSTED",
       "Red Alert u Vračar",
       expect.stringContaining("Kafana Test"),
       "/jobs/job-1",
     );
-  });
-
-  it("drops an expired subscription that the DB tier filter still returned", async () => {
-    // passportTier=PRO but subscription lapsed → effectively FREE, must not be pinged.
-    vi.mocked(db.user.findMany).mockResolvedValue(
-      rows(
-        { id: "w-active", tier: "PRO", exp: ACTIVE },
-        { id: "w-expired", tier: "PRO", exp: EXPIRED },
-      ) as never,
-    );
-
-    const count = await broadcastRedAlert(BROADCAST);
-
-    expect(count).toBe(1);
-    expect(notify).toHaveBeenCalledTimes(1);
-    expect(notify).toHaveBeenCalledWith("w-active", expect.anything(), expect.anything(), expect.anything(), expect.anything());
-    expect(notify).not.toHaveBeenCalledWith("w-expired", expect.anything(), expect.anything(), expect.anything(), expect.anything());
-  });
-
-  it("caps recipients at 50 even when more match", async () => {
-    const many = Array.from({ length: 80 }, (_, i) => ({ id: `w-${i}`, tier: "PRO", exp: ACTIVE }));
-    vi.mocked(db.user.findMany).mockResolvedValue(rows(...many) as never);
-
-    const count = await broadcastRedAlert(BROADCAST);
-
-    expect(count).toBe(50);
-    expect(notify).toHaveBeenCalledTimes(50);
   });
 
   it("no matching waiters → notifies nobody, returns 0", async () => {
@@ -101,12 +64,7 @@ describe("broadcastRedAlert", () => {
   });
 
   it("one failed notify does not abort the rest (allSettled)", async () => {
-    vi.mocked(db.user.findMany).mockResolvedValue(
-      rows(
-        { id: "w-1", tier: "PRO", exp: ACTIVE },
-        { id: "w-2", tier: "PRO", exp: ACTIVE },
-      ) as never,
-    );
+    vi.mocked(db.user.findMany).mockResolvedValue(rows("w-1", "w-2") as never);
     vi.mocked(notify).mockRejectedValueOnce(new Error("push gateway down"));
 
     const count = await broadcastRedAlert(BROADCAST);

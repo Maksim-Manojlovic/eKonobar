@@ -30,7 +30,6 @@ export async function GET(
       avgRedAlertResponseMinutes: true,
       redAlertResponseCount: true,
       lastAvailableDate: true,
-      passportTier: true,
       createdAt: true,
       shareTokenExpiry: true,
       trustScore: true,
