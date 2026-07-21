@@ -152,6 +152,36 @@ export type LeavePolicyRow = {
   carryOverDeadline: string;
 };
 
+export type LeaveRequestRow = {
+  id: string;
+  type: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  year: number;
+  days: number;
+  /** YYYY-MM-DD */
+  startDate: string;
+  endDate: string;
+  department: "FOH" | "BOH";
+  reason: string | null;
+  attachmentUrl: string | null;
+  rejectReason: string | null;
+  autoApproved: boolean;
+  reviewedAt: string | null;
+  createdAt: string;
+  waiter: { id: string; name: string | null; image: string | null };
+  staff: { position: string };
+  venue: { id: string; name: string };
+  /** Only present on the create response, explaining why it was queued. */
+  pendingReason?: string | null;
+};
+
+export type LeaveRequestsResponse = {
+  requests: LeaveRequestRow[];
+  scope: "own" | "manage";
+  departments?: ("FOH" | "BOH")[];
+  hasKitchen?: boolean;
+};
+
 export type LeavePolicyResponse = {
   policies: LeavePolicyRow[];
   hasKitchen: boolean;

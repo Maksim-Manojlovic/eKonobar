@@ -5,10 +5,11 @@ import { useApi } from "@/hooks/useApi";
 import { DEPARTMENT_LABELS } from "@/lib/formatting/display-maps";
 import { formatDateOnly, parseDateOnly } from "@/lib/leave/dates";
 import { Sk } from "./venue-helpers";
+import VenueLeaveRequests from "./VenueLeaveRequests";
 import type { Venue, BlackoutsResponse, LeavePolicyResponse, LeavePolicyRow } from "./venue-types";
 
 type Dept = "FOH" | "BOH";
-type Tab  = "kalendar" | "podesavanja";
+type Tab  = "zahtevi" | "kalendar" | "podesavanja";
 
 const MONTHS = [
   "Januar", "Februar", "Mart", "April", "Maj", "Jun",
@@ -272,7 +273,7 @@ function PolicyPanel({ venueId, policy, canManage, onSaved }: {
 /* ── Section ─────────────────────────────────────────────────────────────── */
 
 export default function VenueOdmoriSection({ venue }: { venue: Venue | null }) {
-  const [tab, setTab]   = useState<Tab>("kalendar");
+  const [tab, setTab]   = useState<Tab>("zahtevi");
   const [dept, setDept] = useState<Dept>("FOH");
   const [year, setYear] = useState(new Date().getUTCFullYear());
   const [busy, setBusy] = useState(false);
@@ -376,13 +377,13 @@ export default function VenueOdmoriSection({ venue }: { venue: Venue | null }) {
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        {(["kalendar", "podesavanja"] as const).map(tb => (
+        {(["zahtevi", "kalendar", "podesavanja"] as const).map(tb => (
           <button key={tb} onClick={() => setTab(tb)}
             className={`px-3 py-1.5 rounded-full text-xs font-bold border transition ${
               tab === tb ? "bg-orange-500 text-white border-orange-500"
                          : "bg-white text-neutral-600 border-neutral-200 hover:border-orange-300"
             }`}>
-            {tb === "kalendar" ? "Kalendar" : "Pravilnik"}
+            {tb === "zahtevi" ? "Zahtevi" : tb === "kalendar" ? "Kalendar" : "Pravilnik"}
           </button>
         ))}
 
@@ -403,6 +404,11 @@ export default function VenueOdmoriSection({ venue }: { venue: Venue | null }) {
       </div>
 
       {error && <p className="text-sm text-red-600 font-medium">{error}</p>}
+
+      {tab === "zahtevi" && (
+        <VenueLeaveRequests venueId={venue.id} hasKitchen={hasKitchen}
+          department={hasKitchen ? dept : null} />
+      )}
 
       {tab === "kalendar" && (
         <>

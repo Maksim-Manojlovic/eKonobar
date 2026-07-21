@@ -11,6 +11,7 @@ const FILTER_GROUPS = [
   { key: "SHIFTS",        label: "Smene" },
   { key: "SWAPS",         label: "Zamene" },
   { key: "REVIEWS",       label: "Recenzije" },
+  { key: "LEAVE",         label: "Odmori" },
 ];
 
 const FILTER_MAP: Record<string, string[]> = {
@@ -20,6 +21,7 @@ const FILTER_MAP: Record<string, string[]> = {
   SHIFTS:       ["SHIFT_CLAIMED", "SHIFT_ASSIGNED"],
   SWAPS:        ["SWAP_REQUESTED", "SWAP_RESOLVED"],
   REVIEWS:      ["REVIEW_PUBLISHED"],
+  LEAVE:        ["LEAVE_REQUESTED", "LEAVE_RESOLVED", "LEAVE_CANCELLED"],
 };
 
 function dayLabel(iso: string): string {

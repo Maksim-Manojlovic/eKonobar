@@ -2,7 +2,7 @@
 // Runtime display constants live in ./waiter-constants.
 // No JSX — safe to import in both client and server contexts.
 
-export type Section = "overview" | "alerts" | "jobs" | "applications" | "shifts" | "invites" | "reviews" | "passport" | "manage" | "notifications";
+export type Section = "overview" | "alerts" | "jobs" | "applications" | "shifts" | "odmori" | "invites" | "reviews" | "passport" | "manage" | "notifications";
 export type AppFilter = "all" | "accepted" | "pending" | "rejected";
 
 export type ShiftAssignment = {
@@ -192,4 +192,52 @@ export type MarketData = {
   avgSalaryMin: number | null;
   avgSalaryMax: number | null;
   topMunicipalities: { name: string; count: number }[];
+};
+
+/* ── Odmori (GET /api/leave/balance, /api/leave/requests) ────────────────── */
+
+export type LeaveBalanceEntry = {
+  staffId: string;
+  venue: { id: string; name: string; logo: string | null };
+  department: "FOH" | "BOH";
+  position: string;
+  year: number;
+  entitledDays: number;
+  carriedInDays: number;
+  usedDays: number;
+  pendingDays: number;
+  sickDaysTaken: number;
+  /** entitled + carriedIn − used − pending */
+  remainingDays: number;
+  policy: {
+    annualDays: number;
+    minNoticeDays: number;
+    countWeekends: boolean;
+    autoApprove: boolean;
+  };
+};
+
+export type LeaveBalanceResponse = {
+  year: number;
+  balances: LeaveBalanceEntry[];
+};
+
+export type WaiterLeaveRequest = {
+  id: string;
+  type: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  year: number;
+  days: number;
+  /** YYYY-MM-DD */
+  startDate: string;
+  endDate: string;
+  department: "FOH" | "BOH";
+  reason: string | null;
+  attachmentUrl: string | null;
+  rejectReason: string | null;
+  autoApproved: boolean;
+  reviewedAt: string | null;
+  createdAt: string;
+  venue: { id: string; name: string };
+  staff: { position: string };
 };

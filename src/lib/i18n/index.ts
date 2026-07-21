@@ -127,12 +127,12 @@ export const translations = {
     },
     waiterNav: {
       overview: "Pregled", alerts: "Red Alert", jobs: "Poslovi", applications: "Prijave",
-      shifts: "Smene", invites: "Pozivnice", reviews: "Recenzije", passport: "Passport",
+      shifts: "Smene", odmori: "Odmori", invites: "Pozivnice", reviews: "Recenzije", passport: "Passport",
       manage: "Upravljanje", notifications: "Obaveštenja",
     },
     waiterTitles: {
       overview: "Pregled", alerts: "Red Alert", jobs: "Dostupni poslovi",
-      applications: "Moje prijave", shifts: "Smene", invites: "Pozivnice",
+      applications: "Moje prijave", shifts: "Smene", odmori: "Odmori", invites: "Pozivnice",
       reviews: "Recenzije", passport: "Waiter Passport™", manage: "Šef konobara",
       notifications: "Obaveštenja",
     },
@@ -274,12 +274,12 @@ export const translations = {
     },
     waiterNav: {
       overview: "Overview", alerts: "Red Alert", jobs: "Jobs", applications: "Applications",
-      shifts: "Shifts", invites: "Invites", reviews: "Reviews", passport: "Passport",
+      shifts: "Shifts", odmori: "Leave", invites: "Invites", reviews: "Reviews", passport: "Passport",
       manage: "Manage", notifications: "Notifications",
     },
     waiterTitles: {
       overview: "Overview", alerts: "Red Alert", jobs: "Available jobs",
-      applications: "My applications", shifts: "Shifts", invites: "Invites",
+      applications: "My applications", shifts: "Shifts", odmori: "Leave", invites: "Invites",
       reviews: "Reviews", passport: "Waiter Passport™", manage: "Head Waiter",
       notifications: "Notifications",
     },
@@ -421,12 +421,12 @@ export const translations = {
     },
     waiterNav: {
       overview: "Обзор", alerts: "Red Alert", jobs: "Работа", applications: "Заявки",
-      shifts: "Смены", invites: "Приглашения", reviews: "Отзывы", passport: "Паспорт",
+      shifts: "Смены", odmori: "Отпуска", invites: "Приглашения", reviews: "Отзывы", passport: "Паспорт",
       manage: "Управление", notifications: "Уведомления",
     },
     waiterTitles: {
       overview: "Обзор", alerts: "Red Alert", jobs: "Доступные вакансии",
-      applications: "Мои заявки", shifts: "Смены", invites: "Приглашения",
+      applications: "Мои заявки", shifts: "Смены", odmori: "Отпуска", invites: "Приглашения",
       reviews: "Отзывы", passport: "Waiter Passport™", manage: "Старший официант",
       notifications: "Уведомления",
     },
