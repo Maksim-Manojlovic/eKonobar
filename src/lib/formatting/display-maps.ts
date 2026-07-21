@@ -141,6 +141,61 @@ export const ROLE_LABELS: Record<string, string> = {
   ADMIN:       "Admin",
 };
 
+/* ── Staff department (FOH | BOH) ────────────────────────────────────────── */
+//
+// The BOH surface only exists at venues with a kitchen — see hasKitchen() in
+// lib/staff/positions.ts. Don't render a Kuhinja tab for a kafić.
+
+export const DEPARTMENT_LABELS: Record<string, string> = {
+  FOH: "Sala",
+  BOH: "Kuhinja",
+};
+
+export const DEPARTMENT_COLORS: Record<string, string> = {
+  FOH: "text-orange-700 bg-orange-50 border-orange-300",
+  BOH: "text-teal-700   bg-teal-50   border-teal-300",
+};
+
+/* ── Staff position ──────────────────────────────────────────────────────── */
+//
+// Position → department mapping lives in lib/staff/positions.ts (it's logic,
+// not display). This map is labels only.
+
+export const POSITION_LABELS: Record<string, string> = {
+  // FOH — Sala
+  HEAD_WAITER:   "Šef sale",
+  SENIOR_WAITER: "Iskusni konobar",
+  WAITER:        "Konobar",
+  BARTENDER:     "Šanker",
+  BARISTA:       "Barista",
+  SOMMELIER:     "Somelijer",
+  HOST:          "Hostesa",
+  RUNNER:        "Runner",
+
+  // BOH — Kuhinja
+  HEAD_CHEF:   "Šef kuhinje",
+  SOUS_CHEF:   "Su-šef",
+  LINE_COOK:   "Kuvar",
+  GRILL_COOK:  "Roštiljdžija",
+  PASTRY_CHEF: "Poslastičar",
+  PREP_COOK:   "Pomoćni kuvar",
+  DISHWASHER:  "Perač suđa",
+};
+
+/* ── Staff status (ACTIVE | SUSPENDED | ENDED) ───────────────────────────── */
+
+export const STAFF_STATUS_LABELS: Record<string, string> = {
+  ACTIVE:    "Aktivan",
+  SUSPENDED: "Suspendovan",
+  ENDED:     "Više ne radi",
+};
+
+export const STAFF_STATUS_COLORS: Record<string, string> = {
+  ACTIVE:    "text-green-700   bg-green-50   border-green-300",
+  SUSPENDED: "text-amber-700   bg-amber-50   border-amber-300",
+  ENDED:     "text-neutral-500 bg-neutral-50 border-neutral-300",
+};
+
 /* ── Date formatting — Serbian locale ────────────────────────────────────── */
 
 /** Formats ISO date string → "15. maj 2025." in Serbian locale. */

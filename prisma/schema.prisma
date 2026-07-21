@@ -130,6 +130,43 @@ enum SwapRequestStatus {
   CANCELLED
 }
 
+// ─── Osoblje (staff roster) ──────────────────────────────────────────────────
+// Department + position live on the roster, not on Role. Role.WAITER means
+// "hospitality worker" — a cook registers as WAITER and is distinguished here.
+// See lib/staff/positions.ts for the position → department map (source of truth).
+
+enum StaffDepartment {
+  FOH   // Sala
+  BOH   // Kuhinja
+}
+
+enum StaffPosition {
+  // FOH — Sala
+  WAITER            // Konobar
+  SENIOR_WAITER     // Iskusni konobar
+  HEAD_WAITER       // Šef sale
+  BARTENDER         // Šanker
+  BARISTA           // Barista
+  RUNNER            // Runner / pomoćni konobar
+  HOST              // Hostesa
+  SOMMELIER         // Somelijer
+
+  // BOH — Kuhinja
+  HEAD_CHEF         // Šef kuhinje
+  SOUS_CHEF         // Su-šef
+  LINE_COOK         // Kuvar
+  PREP_COOK         // Pomoćni kuvar
+  PASTRY_CHEF       // Poslastičar
+  GRILL_COOK        // Roštiljdžija
+  DISHWASHER        // Perač suđa
+}
+
+enum StaffStatus {
+  ACTIVE
+  SUSPENDED
+  ENDED
+}
+
 enum NotificationType {
   APPLICATION_RECEIVED           // waiter applied → venue owner
   APPLICATION_STATUS_CHANGED     // status updated → waiter
@@ -179,6 +216,8 @@ model User {
   sessions          Session[]
   venues            Venue[]             @relation("VenueOwner")
   headWaiterVenues  Venue[]             @relation("VenueHeadWaiter")
+  headChefVenues    Venue[]             @relation("VenueHeadChef")
+  staffRoles        VenueStaff[]        @relation("VenueStaffMember")
   jobPosts          JobPost[]
   applications      JobApplication[]
   reviewsGiven      Review[]            @relation("ReviewAuthor")
@@ -251,6 +290,15 @@ model Venue {
   headWaiterId String?
   headWaiter   User?   @relation("VenueHeadWaiter", fields: [headWaiterId], references: [id])
 
+  // Šef kuhinje — symmetric to headWaiter, but scoped to BOH shifts/leave.
+  headChefId   String?
+  headChef     User?   @relation("VenueHeadChef", fields: [headChefId], references: [id])
+
+  // null = derive from venueType (see hasKitchen() in lib/staff/positions.ts).
+  // Explicit value overrides: a bar that started serving food, a restaurant
+  // that outsources its kitchen.
+  kitchenEnabled Boolean?
+
   name        String
   description String?   @db.Text
   address     String
@@ -293,6 +341,7 @@ model Venue {
   shiftTemplates    ShiftTemplate[]
   venueTrustScore   VenueTrustScore?
   zones             VenueZoneRelation[]
+  staff             VenueStaff[]
 
   @@index([municipality])
   @@index([venueType])
@@ -662,6 +711,41 @@ model SavedProfile {
 
 // ─── Shift (Smena) ───────────────────────────────────────────────────────────
 
+// ─── VenueStaff (roster) ─────────────────────────────────────────────────────
+// The durable "who works here" record. Before this, a venue's team was derived
+// client-side from ACCEPTED JobApplications, which lost anyone hired off-platform,
+// dropped people once their application went COMPLETED, and carried no start date
+// (so first-year leave could not be pro-rated).
+
+model VenueStaff {
+  id       String @id @default(cuid())
+  venueId  String
+  venue    Venue  @relation(fields: [venueId], references: [id])
+  waiterId String
+  waiter   User   @relation("VenueStaffMember", fields: [waiterId], references: [id])
+
+  position   StaffPosition
+  // Denormalized from position so per-department queries stay indexable.
+  // Always derived via departmentOf() and validated on write — a FOH+HEAD_CHEF
+  // row must be impossible.
+  department StaffDepartment
+
+  status         StaffStatus    @default(ACTIVE)
+  employmentType EngagementType
+  startedAt      DateTime
+  endedAt        DateTime?
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([venueId, waiterId])
+  @@index([venueId, status])
+  @@index([venueId, department, status])
+  @@index([waiterId])
+}
+
 model Shift {
   id        String   @id @default(cuid())
   venueId   String
@@ -673,6 +757,9 @@ model Shift {
   endTime        String   // "02:00" — kept for display
   scheduledStart DateTime? // full UTC DateTime for clock-in window checks (null for legacy rows)
   role           String?
+  // Which department the shift belongs to. Scopes head-waiter vs head-chef
+  // management rights (lib/shifts/auth.ts). Null = legacy row, treated as FOH.
+  department     StaffDepartment?
   requiredCount  Int      @default(1)
   tipEstimate    Float?   // expected RSD tips — shown in marketplace
   pay            Int?

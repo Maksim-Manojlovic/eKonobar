@@ -26,6 +26,7 @@ export const SECTION_TITLES: Record<Section, string> = {
   posts:         "Oglasi",
   "new-post":    "Novi oglas",
   smene:         "Smene",
+  tim:           "Osoblje",
   applications:  "Prijave",
   waiters:       "Konobari",
   discover:      "Pronađi konobara",

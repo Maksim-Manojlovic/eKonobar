@@ -4,7 +4,7 @@ import type { VenueZoneInsights } from "@/lib/geo/analytics";
 // the client and server share one source of truth (the lib has no server deps).
 export type { WaiterAnalytics, WaiterReliability, WaiterFlag, AnalyticsTeamSummary, GuestRating } from "@/lib/analytics/waiter-analytics";
 
-export type Section = "overview" | "posts" | "new-post" | "smene" | "applications" | "waiters" | "discover" | "reviews" | "qr-review" | "analitika" | "profile" | "notifications";
+export type Section = "overview" | "posts" | "new-post" | "smene" | "tim" | "applications" | "waiters" | "discover" | "reviews" | "qr-review" | "analitika" | "profile" | "notifications";
 export type AppFilter = "SVE" | "PENDING" | "SHORTLISTED" | "ACCEPTED" | "REJECTED";
 
 export type VenueShiftAssignment = {
@@ -82,12 +82,41 @@ export type Venue = {
   logo?: string | null;
   headWaiterId: string | null;
   headWaiter: { id: string; name: string | null } | null;
+  headChefId?: string | null;
+  /** null = derive from venueType; see hasKitchen() in lib/staff/positions.ts */
+  kitchenEnabled?: boolean | null;
   _count: { jobPosts: number };
   venueTrustScore: {
     atmosphere: number; organization: number; pay: number;
     tips: number; hygieneStandards: number; management: number;
     composite: number; sampleSize: number;
   } | null;
+};
+
+/* ── Staff roster (GET /api/venues/[id]/staff) ───────────────────────────── */
+
+export type StaffMember = {
+  id: string;
+  position: string;
+  department: "FOH" | "BOH";
+  status: "ACTIVE" | "SUSPENDED" | "ENDED";
+  employmentType: string;
+  startedAt: string;
+  endedAt: string | null;
+  notes: string | null;
+  waiter: {
+    id: string;
+    name: string | null;
+    image: string | null;
+    verificationTier: string;
+    waiterPassport: { score: number; sanitaryBookValid: boolean } | null;
+  };
+};
+
+export type StaffResponse = {
+  staff: StaffMember[];
+  hasKitchen: boolean;
+  canManage: boolean;
 };
 
 export type VenueReview = {
