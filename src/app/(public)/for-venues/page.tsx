@@ -86,9 +86,30 @@ const faqItems: FAQItem[] = [
       </>
     ),
   },
+  {
+    question: "Da li pokrivate kuhinju ili samo konobare?",
+    answer: (
+      <>
+        I kuhinju. Osoblje se vodi kroz dva sektora —{" "}
+        <strong className="font-semibold text-neutral-700">sala (FOH)</strong> i{" "}
+        <strong className="font-semibold text-neutral-700">kuhinja (BOH)</strong> — sa pozicijama od konobara, šankera i šefa sale do šefa kuhinje, su-šefa i kuvara. Svaki sektor ima svoj raspored, kapacitet i pravila za odmore; šef sale i šef kuhinje vode svoj deo, a ti vidiš sve na jednom mestu.
+      </>
+    ),
+  },
+  {
+    question: "Kako radi godišnji odmor u sistemu?",
+    answer: (
+      <>
+        Zaposleni pošalje zahtev iz aplikacije. Sistem računa balans dana po{" "}
+        <strong className="font-semibold text-neutral-700">Zakonu o radu</strong> (26 dana po difoltu, iznad zakonskog minimuma od 20) i{" "}
+        <strong className="font-semibold text-neutral-700">automatski odobrava</strong> ako zahtev prođe tvoja pravila — dovoljno najave, slobodan kapacitet i van blackout dana. Blackout dane postavljaš za špic sezonu (npr. „niko na odmoru za Novu godinu&rdquo;), a ograničiš i koliko ljudi sme biti na odmoru istog dana po sektoru. Bolovanje se vodi zasebno i ne troši godišnji.
+      </>
+    ),
+  },
 ];
 
 const NAV_LINKS_VENUE = [
+  { href: "#operativa", label: "Operativa"        },
   { href: "#kako-radi", label: "Kako funkcioniše" },
   { href: "#cenovnik",  label: "Cenovnik"         },
   { href: "#faq",       label: "FAQ"               },
@@ -179,7 +200,8 @@ export default function ForVenuesPage() {
 
             <p className="text-lg text-neutral-500 font-light leading-relaxed max-w-xl">
               Pronađite iskusne konobare i šankere u Beogradu. Bez agencija i beskrajnih poziva —{" "}
-              <strong className="font-semibold text-neutral-700">plaćate samo odrađenu smenu. Hitna zamena osoblja za 12 minuta.</strong>
+              <strong className="font-semibold text-neutral-700">plaćate samo odrađenu smenu. Hitna zamena osoblja za 12 minuta.</strong>{" "}
+              A za stalnu ekipu — raspored smena, osoblje sale i kuhinje i godišnji odmori na jednom mestu.
             </p>
 
             <div className="flex flex-wrap gap-4 pt-2">
@@ -393,6 +415,89 @@ export default function ForVenuesPage() {
 
       <div className="section-divider max-w-7xl mx-auto" />
 
+      {/* ── OPERATIVA (raspored / osoblje / odmori) ── */}
+      <section id="operativa" className="max-w-7xl mx-auto px-6 py-24">
+        <div className="max-w-3xl mb-14">
+          <span className="inline-flex items-center gap-2 bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">
+            <span className="bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded">NOVO</span>
+            Operativa
+          </span>
+          <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">
+            Ne samo popuna smene — <span className="text-orange-500">ceo tvoj tim.</span>
+          </h2>
+          <p className="mt-4 text-lg text-neutral-500 font-light leading-relaxed">
+            eKonobar više nije samo marketplace za hitne zamene. Vodiš stalnu ekipu, raspored smena i godišnje odmore — sala i kuhinja, na jednom mestu, bez Excel-a.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {/* Raspored & smene */}
+          <div className="bg-white rounded-3xl p-8 border border-neutral-100 flex flex-col gap-5">
+            <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#f97316" strokeWidth="2"/><path d="M3 10h18M8 2v4M16 2v4M9 15l2 2 4-4" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div>
+              <span className="text-[10px] font-black tracking-widest uppercase text-orange-500">Raspored & smene</span>
+              <h3 className="font-bold text-xl text-neutral-900 mt-1 leading-tight">Ceo raspored — templati, ne ručno.</h3>
+            </div>
+            <ul className="flex flex-col gap-2.5 text-sm text-neutral-600 font-light flex-1">
+              {[
+                <>Templati za ponavljajuće smene — generiši ceo mesec za par sekundi</>,
+                <><strong className="font-semibold text-neutral-700">GPS check-in</strong> potvrđuje dolazak — geofencing, bez lažiranja sati</>,
+                <>Zamene bez tvog telefona — konobar traži, ti samo odobriš</>,
+                <>Fali čovek? Smena ide na <strong className="font-semibold text-neutral-700">marketplace</strong> automatski</>,
+              ].map((item, i) => (
+                <li key={i} className="check-row"><CheckOrange />{item}</li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Osoblje — Sala + Kuhinja */}
+          <div className="bg-white rounded-3xl p-8 border border-neutral-100 flex flex-col gap-5">
+            <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div>
+              <span className="text-[10px] font-black tracking-widest uppercase text-orange-500">Osoblje</span>
+              <h3 className="font-bold text-xl text-neutral-900 mt-1 leading-tight">Sala i kuhinja — cela ekipa.</h3>
+            </div>
+            <ul className="flex flex-col gap-2.5 text-sm text-neutral-600 font-light flex-1">
+              {[
+                <>Stalni tim po pozicijama — od konobara i šankera do <strong className="font-semibold text-neutral-700">šefa kuhinje i kuvara</strong></>,
+                <>Sala (FOH) i kuhinja (BOH) odvojeno — svaki sektor svoj raspored i kapacitet</>,
+                <>Šef sale i šef kuhinje vode svoj deo — ti vidiš sve</>,
+                <>Tip angažmana i status po članu — uredna evidencija</>,
+              ].map((item, i) => (
+                <li key={i} className="check-row"><CheckOrange />{item}</li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Godišnji odmori */}
+          <div className="bg-white rounded-3xl p-8 border border-neutral-100 flex flex-col gap-5">
+            <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M8 2v4M16 2v4M3 10h18" stroke="#f97316" strokeWidth="2" strokeLinecap="round"/><rect x="3" y="4" width="18" height="18" rx="2" stroke="#f97316" strokeWidth="2"/><path d="M8 15h3M8 18h5" stroke="#f97316" strokeWidth="2" strokeLinecap="round"/></svg>
+            </div>
+            <div>
+              <span className="text-[10px] font-black tracking-widest uppercase text-orange-500">Godišnji odmori</span>
+              <h3 className="font-bold text-xl text-neutral-900 mt-1 leading-tight">Godišnji po Zakonu o radu — automatski.</h3>
+            </div>
+            <ul className="flex flex-col gap-2.5 text-sm text-neutral-600 font-light flex-1">
+              {[
+                <>Balans dana po zaposlenom — <strong className="font-semibold text-neutral-700">26 dana</strong> po difoltu, iznad zakonskog minimuma</>,
+                <>Zahtev se <strong className="font-semibold text-neutral-700">auto-odobrava</strong> kad prođe tvoja pravila — bez papira</>,
+                <>Blackout dani za špic sezonu — ograniči koliko ljudi sme na odmor istog dana</>,
+                <>Bolovanje se vodi odvojeno — ne troši godišnji</>,
+              ].map((item, i) => (
+                <li key={i} className="check-row"><CheckOrange />{item}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <div className="section-divider max-w-7xl mx-auto" />
+
       {/* ── KAKO RADI ── */}
       <section id="kako-radi" className="max-w-7xl mx-auto px-6 py-24">
         <div className="text-center max-w-2xl mx-auto mb-16">
@@ -461,6 +566,9 @@ export default function ForVenuesPage() {
             ["Geofencing potvrda smene", "Ne", "5km radius ✓"],
             ["Automatska sanitarna provera", "Ne", "Da ✓"],
             ["Generisanje ugovora", "Ručno", "Auto, e-potpis ✓"],
+            ["Raspored i templati smena", "Ručno / Excel", "Auto ✓"],
+            ["Godišnji odmori po Zakonu o radu", "Papir / tabela", "Auto balans ✓"],
+            ["Kuhinja (BOH) u sistemu", "Ne", "Da ✓"],
             ["Cancel u poslednji čas (no-show)", "9–14%", "3.2%"],
             ["Plaćaš za neuspešno popunjenu smenu", "Da (pretplata)", "0 RSD ✓"],
           ].map(([label, agency, ek]) => (
