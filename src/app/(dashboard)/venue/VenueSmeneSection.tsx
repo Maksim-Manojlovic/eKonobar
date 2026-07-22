@@ -7,6 +7,7 @@ import { DAYS_SR, MONTHS_SR } from "@/lib/i18n/constants";
 import { getInitials } from "@/lib/formatting/utils";
 import { shiftsOverlap } from "@/lib/shifts/utils";
 import { Sk, ShiftsSkeleton, EmptyVenue } from "./venue-helpers";
+import { ShiftAssignees } from "@/components/ui/ShiftAssignees";
 import { ShiftModal, TemplateModal, GenerateModal, DAYS_FULL_SR } from "./VenueSmeneModals";
 
 const QUICK_APPLY_PRESETS: Array<{
@@ -651,27 +652,12 @@ export default function VenueSmeneSection({ venue, shifts, loading, acceptedWait
                     </div>
                     <div className="text-right flex-shrink-0 ml-4 min-w-[100px]">
                       <StaffingBar filled={filled} required={s.requiredCount} />
-                      {filled > 0 && (
-                        <div className="flex gap-1 mt-1 flex-wrap justify-end">
-                          {s.assignments.map(a => (
-                            <span key={a.id} title={a.waiter.name ?? "Konobar"}
-                              className="w-5 h-5 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-[9px] font-bold flex-shrink-0">
-                              {getInitials(a.waiter.name)}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                       {s.pay != null && <div className="text-xs font-black text-orange-500 mt-0.5">{s.pay.toLocaleString("sr-RS")} RSD</div>}
                     </div>
                   </div>
-                  {clocked > 0 && (
-                    <div className="mt-1 flex gap-1.5 flex-wrap">
-                      {s.assignments.filter(a => a.clockInAt && !a.clockOutAt).map(a => (
-                        <span key={a.id} className="text-[10px] font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded-full flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                          {a.waiter.name ?? "Konobar"}
-                        </span>
-                      ))}
+                  {filled > 0 && (
+                    <div className="mt-2">
+                      <ShiftAssignees assignments={s.assignments} />
                     </div>
                   )}
                   {s.assignments.some(a => a.pendingClockIn) && (

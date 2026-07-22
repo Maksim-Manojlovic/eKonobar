@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { VERIFICATION_TIER_COLORS, DIRECTION_LABELS, formatDate } from "@/lib/formatting/display-maps";
+import { DIRECTION_LABELS, formatDate } from "@/lib/formatting/display-maps";
+import { VerifiedBadge } from "@/components/ui/PassportWidgets";
 import { useRequireRole } from "@/hooks/useRequireRole";
 import { Stars } from "@/components/ui/Stars";
 
@@ -112,9 +113,7 @@ export default function AdminModerationPage() {
 
                 {/* Author row */}
                 <div className="flex items-center gap-2 mb-4">
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${VERIFICATION_TIER_COLORS[review.author.verificationTier] ?? VERIFICATION_TIER_COLORS.UNVERIFIED}`}>
-                    {review.author.verificationTier.replace("_", " ")}
-                  </span>
+                  <VerifiedBadge tier={review.author.verificationTier} />
                   <span className="text-xs text-neutral-500">{review.author.name ?? review.author.email}</span>
                   <span className="text-xs text-neutral-400">· {formatDate(review.createdAt)}</span>
                 </div>

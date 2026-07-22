@@ -5,6 +5,7 @@ import { useApi } from "@/hooks/useApi";
 import type { WaiterShift, OpenShift, SwapRequest, ManagedShift } from "./waiter-types";
 import { DAYS_SR, MONTHS_SR } from "@/lib/i18n/constants";
 import { Spinner, WaiterShiftsSkeleton } from "./waiter-helpers";
+import { ShiftAssignees } from "@/components/ui/ShiftAssignees";
 /* ── Section: Shifts (waiter calendar + marketplace) ─────────────────────── */
 
 type ShiftsTab = "mine" | "open" | "swaps";
@@ -591,7 +592,7 @@ export function HeadWaiterSmeneSection({ venue, shifts, loading, onRefresh }: {
             {upcoming.map(s => {
               const d = new Date(s.date);
               return (
-                <div key={s.id} className="px-4 py-3 flex items-center gap-3">
+                <div key={s.id} className="px-4 py-3 flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl bg-neutral-100 flex flex-col items-center justify-center flex-shrink-0">
                     <span className="text-[10px] font-bold text-neutral-500">{DAYS_SR[(d.getDay() + 6) % 7]}</span>
                     <span className="text-sm font-black text-neutral-900">{d.getDate()}</span>
@@ -599,8 +600,16 @@ export function HeadWaiterSmeneSection({ venue, shifts, loading, onRefresh }: {
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-bold text-neutral-900 truncate">{s.title}</div>
                     <div className="text-xs text-neutral-400">{s.startTime}–{s.endTime} · {s.assignments.length}/{s.requiredCount} konobara</div>
+                    {s.assignments.length > 0 && (
+                      <div className="mt-1.5">
+                        <ShiftAssignees assignments={s.assignments} />
+                      </div>
+                    )}
+                    {s.assignments.length === 0 && s.status === "OPEN" && (
+                      <div className="text-[11px] text-blue-500 font-semibold mt-1">Niko još nije preuzeo</div>
+                    )}
                   </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
                     s.status === "OPEN" ? "bg-blue-50 text-blue-600" :
                     s.status === "ASSIGNED" ? "bg-green-50 text-green-700" :
                     s.status === "PENDING_SWAP" ? "bg-yellow-50 text-yellow-700" :

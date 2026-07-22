@@ -6,7 +6,7 @@ import { WaitersSection, DiscoverSection } from "./VenueDiscoverSection";
 import { getInitials, formatSalary } from "@/lib/formatting/utils";
 import { formatDate } from "@/lib/formatting/display-maps";
 import { ENGAGEMENT_LABELS } from "@/lib/formatting/display-maps";
-import { PostStatusBadge, AppStatusBadge, TierBadge, ScorePill, PostsSkeleton, ApplicationsSkeleton, EmptyVenue } from "./venue-helpers";
+import { PostStatusBadge, AppStatusBadge, VerifiedBadge, ScorePill, PostsSkeleton, ApplicationsSkeleton, EmptyVenue } from "./venue-helpers";
 /* ── Section: Posts ──────────────────────────────────────────────────────── */
 
 export function PostsSection({ posts, loading, onNavigate, onStatusChange }: {
@@ -280,7 +280,7 @@ export function ApplicationsSection({ applications, loading, onStatusChange }: {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-neutral-900">{a.waiter.name ?? "Konobar"}</span>
-                      <TierBadge tier={a.waiter.verificationTier} />
+                      <VerifiedBadge tier={a.waiter.verificationTier} />
                       {a.waiter.waiterPassport && <ScorePill score={a.waiter.waiterPassport.score} />}
                     </div>
                     <div className="text-xs text-neutral-500 mt-0.5">Oglas: {a.jobPost.title} · {formatDate(a.appliedAt)}</div>

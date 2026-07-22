@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRequireRole } from "@/hooks/useRequireRole";
-import { VERIFICATION_TIER_COLORS, formatDate } from "@/lib/formatting/display-maps";
+import { formatDate } from "@/lib/formatting/display-maps";
+import { VerifiedBadge } from "@/components/ui/PassportWidgets";
 import { Stars } from "@/components/ui/Stars";
 import type { Venue, VenueReview } from "@/app/(dashboard)/venue/venue-types";
 import { VENUE_DIM_LABELS } from "@/app/(dashboard)/venue/venue-constants";
@@ -83,9 +84,7 @@ export default function VenueReviewsPage() {
               <div key={r.id} className="dash-card p-5">
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${VERIFICATION_TIER_COLORS[r.author?.verificationTier ?? "UNVERIFIED"] ?? VERIFICATION_TIER_COLORS.UNVERIFIED}`}>
-                      {(r.author?.verificationTier ?? "UNVERIFIED").replace("_", " ")}
-                    </span>
+                    <VerifiedBadge tier={r.author?.verificationTier ?? "UNVERIFIED"} />
                     <span className="text-sm font-semibold text-neutral-700">{r.author?.name ?? "Konobar"}</span>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
