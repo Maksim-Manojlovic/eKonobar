@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  VERIFICATION_TIER_COLORS,
   INVITE_STATUS_COLORS,
   INVITE_STATUS_LABELS,
   formatDate,
 } from "@/lib/formatting/display-maps";
+import { VerifiedBadge } from "@/components/ui/PassportWidgets";
 import type { SentInvite, VenueInviteWaiter } from "../venue-types";
 import { useWaiterSearch } from "@/hooks/useWaiterSearch";
 
@@ -107,9 +107,7 @@ export default function VenueInvitesPage() {
                       <div>
                         <p className="text-sm font-bold text-neutral-900">{w.name ?? "Konobar"}</p>
                         <div className="flex items-center gap-1.5">
-                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${VERIFICATION_TIER_COLORS[w.verificationTier] ?? VERIFICATION_TIER_COLORS.UNVERIFIED}`}>
-                            {w.verificationTier.replace("_", " ")}
-                          </span>
+                          <VerifiedBadge tier={w.verificationTier} />
                           {w.waiterPassport && (
                             <span className="text-[10px] font-bold text-orange-500">{Math.round(w.waiterPassport.score)}</span>
                           )}

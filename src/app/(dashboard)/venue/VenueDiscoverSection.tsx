@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { OwnPost, IncomingApp, WaiterEntry, Venue } from "./venue-types";
 import { getInitials } from "@/lib/formatting/utils";
-import { TierBadge, ScorePill, DiscoverSkeleton, WaitersSkeleton } from "./venue-helpers";
+import { VerifiedBadge, ScorePill, DiscoverSkeleton, WaitersSkeleton } from "./venue-helpers";
 import { WaiterCard } from "@/components/ui/WaiterCard";
 import { useWaiterSearch } from "@/hooks/useWaiterSearch";
 import { useApi } from "@/hooks/useApi";
@@ -225,7 +225,7 @@ export function WaitersSection({ applications, loading, onInvite, venue }: { app
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-neutral-900">{a.waiter.name ?? "Konobar"}</span>
-                      <TierBadge tier={a.waiter.verificationTier} />
+                      <VerifiedBadge tier={a.waiter.verificationTier} />
                       {venue?.headWaiterId === a.waiter.id && (
                         <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
                           <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>

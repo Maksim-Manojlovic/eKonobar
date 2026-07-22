@@ -17,11 +17,10 @@ export function AppStatusBadge({ status }: { status: string }) {
   return <span className="badge-pending text-xs font-semibold px-2.5 py-0.5 rounded-full">Na čekanju</span>;
 }
 
-export function TierBadge({ tier }: { tier: string }) {
-  if (tier === "GOLD")   return <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full">🥇 GOLD</span>;
-  if (tier === "SILVER") return <span className="bg-neutral-100 text-neutral-600 text-[10px] font-bold px-2 py-0.5 rounded-full">🥈 SILVER</span>;
-  return null;
-}
+// TierBadge (🥇 GOLD / 🥈 SILVER) was removed: verification is not a ladder. It
+// rendered VerificationTier as a medal rank and showed nothing for ID_VERIFIED —
+// the platform's *most* verified users. Use <VerifiedBadge /> (binary) and, where
+// the evidence matters, <VerificationProofChip />. Both re-exported above.
 
 
 import { Sk } from "@/components/ui/Sk";

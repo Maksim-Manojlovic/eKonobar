@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import ReviewWizard from "@/components/review/ReviewWizard";
+import { VerifiedBadge } from "@/components/ui/PassportWidgets";
 import {
-  VERIFICATION_TIER_COLORS,
   APPLICATION_STATUS_COLORS,
   APPLICATION_STATUS_LABELS_VENUE,
   formatDate,
@@ -117,9 +117,7 @@ export default function VenueApplicationsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-bold text-neutral-900 text-sm">{app.waiter.name ?? "Konobar"}</p>
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${VERIFICATION_TIER_COLORS[app.waiter.verificationTier] ?? VERIFICATION_TIER_COLORS.UNVERIFIED}`}>
-                            {app.waiter.verificationTier.replace("_", " ")}
-                          </span>
+                          <VerifiedBadge tier={app.waiter.verificationTier} />
                           {p && (
                             <span className="text-xs font-black text-orange-500 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">
                               {Math.round(p.score)}
