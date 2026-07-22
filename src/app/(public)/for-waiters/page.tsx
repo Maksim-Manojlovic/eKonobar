@@ -383,6 +383,80 @@ export default function ForWaitersPage() {
 
       <div className="section-divider max-w-7xl mx-auto" />
 
+      {/* ── SMENE I ODMORI (waiter side) ── */}
+      <section id="smene" className="max-w-7xl mx-auto px-6 py-24">
+        <div className="max-w-2xl mb-14">
+          <span className="inline-flex items-center gap-2 bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">
+            <span className="bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded">NOVO</span>
+            Smene i odmori
+          </span>
+          <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">
+            Tvoja smena, tvoj <span className="text-orange-500">godišnji</span> — sve iz aplikacije.
+          </h2>
+          <p className="mt-4 text-lg text-neutral-500 font-light leading-relaxed">
+            Kad radiš u stalnoj ekipi lokala, ne moraš da moliš za slobodan dan usmeno. Godišnji, zamene i otvorene smene — sve na telefonu, transparentno.
+          </p>
+        </div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {[
+            {
+              num: "01",
+              title: "Godišnji iz aplikacije",
+              desc: "Pošalji zahtev, vidi svoj balans dana i status odmah. Kad prođe pravila lokala — auto-odobreno. Bez papira i „pitaj šefa u hodu“.",
+            },
+            {
+              num: "02",
+              title: "Zameni smenu",
+              desc: "Ne možeš da dođeš? Pošalji zamenu kolegi kroz aplikaciju; vlasnik potvrdi. Bez grupnih poruka i muke oko pokrivanja.",
+            },
+            {
+              num: "03",
+              title: "Uzmi otvorenu smenu",
+              desc: "Lokali objavljuju slobodne smene na mapi. Uzmeš jednim klikom, GPS check-in potvrdi dolazak — dodatna zarada kad ti odgovara.",
+              dark: true,
+            },
+          ].map((card) => (
+            card.dark ? (
+              <div key={card.num} className="rounded-3xl p-7 relative overflow-hidden"
+                style={{ background: "linear-gradient(160deg, #1c1209 0%, #2a1a08 100%)", border: "1px solid rgba(249,115,22,0.25)" }}>
+                <div className="flex items-start justify-between mb-5 relative z-10">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "rgba(249,115,22,0.18)", border: "1px solid rgba(249,115,22,0.3)" }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z" stroke="#f97316" strokeWidth="2" strokeLinejoin="round"/><circle cx="12" cy="9" r="2.5" fill="#f97316"/></svg>
+                  </div>
+                  <span className="text-[10px] font-black text-orange-300 bg-orange-500/15 px-2 py-0.5 rounded-full tracking-wider border border-orange-500/30">{card.num}</span>
+                </div>
+                <h3 className="font-bold text-lg text-white mb-2 relative z-10">{card.title}</h3>
+                <p className="text-sm text-neutral-400 font-light leading-relaxed relative z-10">{card.desc}</p>
+                <div className="absolute -right-8 -bottom-8 w-32 h-32 rounded-full opacity-30" style={{ background: "radial-gradient(circle, #f97316, transparent 70%)", filter: "blur(20px)" }} />
+              </div>
+            ) : (
+              <div key={card.num} className="bg-white rounded-3xl p-7 border border-neutral-100 hover:border-orange-200 transition-colors">
+                <div className="flex items-start justify-between mb-5">
+                  <div className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#f97316" strokeWidth="1.8"/><path d="M3 10h18M8 2v4M16 2v4M9 15l2 2 4-4" stroke="#f97316" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </div>
+                  <span className="text-[10px] font-black text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full tracking-wider">{card.num}</span>
+                </div>
+                <h3 className="font-bold text-lg text-neutral-900 mb-2">{card.title}</h3>
+                <p className="text-sm text-neutral-500 font-light leading-relaxed">{card.desc}</p>
+              </div>
+            )
+          ))}
+        </div>
+
+        <div className="mt-6 flex flex-col sm:flex-row items-center gap-3 rounded-2xl bg-orange-50 border border-orange-100 px-5 py-4">
+          <p className="text-sm text-neutral-700 font-medium flex-1 text-center sm:text-left">
+            Držiš se rasporeda? <span className="font-bold text-neutral-900">Pouzdanost raste</span> — i tvoj Passport™ skor s njom.
+          </p>
+          <Link href="/register?role=WAITER" className="btn-primary text-white font-bold px-6 py-2.5 rounded-xl text-sm whitespace-nowrap">
+            Napravi Passport →
+          </Link>
+        </div>
+      </section>
+
+      <div className="section-divider max-w-7xl mx-auto" />
+
       {/* ── ANATOMIJA PASSPORTA ── */}
       <section id="kako-radi" className="max-w-7xl mx-auto px-6 py-24">
         <div className="max-w-2xl mb-14">
@@ -610,78 +684,6 @@ export default function ForWaitersPage() {
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* ── SMENE I ODMORI (waiter side) ── */}
-      <section id="smene" className="max-w-7xl mx-auto px-6 py-24">
-        <div className="max-w-2xl mb-14">
-          <span className="inline-flex items-center gap-2 bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">
-            <span className="bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded">NOVO</span>
-            Smene i odmori
-          </span>
-          <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">
-            Tvoja smena, tvoj <span className="text-orange-500">godišnji</span> — sve iz aplikacije.
-          </h2>
-          <p className="mt-4 text-lg text-neutral-500 font-light leading-relaxed">
-            Kad radiš u stalnoj ekipi lokala, ne moraš da moliš za slobodan dan usmeno. Godišnji, zamene i otvorene smene — sve na telefonu, transparentno.
-          </p>
-        </div>
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[
-            {
-              num: "01",
-              title: "Godišnji iz aplikacije",
-              desc: "Pošalji zahtev, vidi svoj balans dana i status odmah. Kad prođe pravila lokala — auto-odobreno. Bez papira i „pitaj šefa u hodu“.",
-            },
-            {
-              num: "02",
-              title: "Zameni smenu",
-              desc: "Ne možeš da dođeš? Pošalji zamenu kolegi kroz aplikaciju; vlasnik potvrdi. Bez grupnih poruka i muke oko pokrivanja.",
-            },
-            {
-              num: "03",
-              title: "Uzmi otvorenu smenu",
-              desc: "Lokali objavljuju slobodne smene na mapi. Uzmeš jednim klikom, GPS check-in potvrdi dolazak — dodatna zarada kad ti odgovara.",
-              dark: true,
-            },
-          ].map((card) => (
-            card.dark ? (
-              <div key={card.num} className="rounded-3xl p-7 relative overflow-hidden"
-                style={{ background: "linear-gradient(160deg, #1c1209 0%, #2a1a08 100%)", border: "1px solid rgba(249,115,22,0.25)" }}>
-                <div className="flex items-start justify-between mb-5 relative z-10">
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "rgba(249,115,22,0.18)", border: "1px solid rgba(249,115,22,0.3)" }}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z" stroke="#f97316" strokeWidth="2" strokeLinejoin="round"/><circle cx="12" cy="9" r="2.5" fill="#f97316"/></svg>
-                  </div>
-                  <span className="text-[10px] font-black text-orange-300 bg-orange-500/15 px-2 py-0.5 rounded-full tracking-wider border border-orange-500/30">{card.num}</span>
-                </div>
-                <h3 className="font-bold text-lg text-white mb-2 relative z-10">{card.title}</h3>
-                <p className="text-sm text-neutral-400 font-light leading-relaxed relative z-10">{card.desc}</p>
-                <div className="absolute -right-8 -bottom-8 w-32 h-32 rounded-full opacity-30" style={{ background: "radial-gradient(circle, #f97316, transparent 70%)", filter: "blur(20px)" }} />
-              </div>
-            ) : (
-              <div key={card.num} className="bg-white rounded-3xl p-7 border border-neutral-100 hover:border-orange-200 transition-colors">
-                <div className="flex items-start justify-between mb-5">
-                  <div className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#f97316" strokeWidth="1.8"/><path d="M3 10h18M8 2v4M16 2v4M9 15l2 2 4-4" stroke="#f97316" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </div>
-                  <span className="text-[10px] font-black text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full tracking-wider">{card.num}</span>
-                </div>
-                <h3 className="font-bold text-lg text-neutral-900 mb-2">{card.title}</h3>
-                <p className="text-sm text-neutral-500 font-light leading-relaxed">{card.desc}</p>
-              </div>
-            )
-          ))}
-        </div>
-
-        <div className="mt-6 flex flex-col sm:flex-row items-center gap-3 rounded-2xl bg-orange-50 border border-orange-100 px-5 py-4">
-          <p className="text-sm text-neutral-700 font-medium flex-1 text-center sm:text-left">
-            Držiš se rasporeda? <span className="font-bold text-neutral-900">Pouzdanost raste</span> — i tvoj Passport™ skor s njom.
-          </p>
-          <Link href="/register?role=WAITER" className="btn-primary text-white font-bold px-6 py-2.5 rounded-xl text-sm whitespace-nowrap">
-            Napravi Passport →
-          </Link>
         </div>
       </section>
 
