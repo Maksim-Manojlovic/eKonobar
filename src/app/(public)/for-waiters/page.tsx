@@ -3,10 +3,12 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { ShieldCheck, Star, MapPin, Map, ArrowLeftRight, Palmtree, BadgeCheck, Gift } from "lucide-react";
 import { FAQAccordion, type FAQItem } from "@/components/ui/FAQAccordion";
 import { NavAuthButton } from "@/components/ui/NavAuthButton";
 import { PassportProCTA } from "@/components/ui/PassportProCTA";
 import { FlagSwitcher } from "@/components/ui/FlagSwitcher";
+import { FeatureGrid, type FeatureTile } from "@/components/ui/FeatureGrid";
 
 // Real, public job map — the same MapSearch the app uses. Loaded client-side
 // (mapbox-gl is browser-only). Renders a token-missing fallback until configured.
@@ -27,6 +29,18 @@ const CheckCircle = () => (
     <path d="M5 8L7 10L11 6" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+
+// The "what the Passport gives you" overview — one tile per feature.
+const WAITER_FEATURES: FeatureTile[] = [
+  { Icon: ShieldCheck,   title: "Verifikovan identitet", desc: "Lična karta, jedan profil po osobi — bez lažnih duplikata." },
+  { Icon: Star,          title: "Skor 0–100",           desc: "Bayesov skor iz stvarnih recenzija — ne kupuje se, zarađuje." },
+  { Icon: MapPin,        title: "Geofenced smene",       desc: "Check-in u krugu od 5km dokazuje da si stvarno radio." },
+  { Icon: Map,           title: "Živa mapa poslova",     desc: "Otvorene smene i oglasi u realnom vremenu, na mapi." },
+  { Icon: ArrowLeftRight, title: "Zameni smenu",         desc: "Ne možeš da dođeš? Prebaci kolegi kroz aplikaciju." },
+  { Icon: Palmtree,      title: "Godišnji iz app",       desc: "Zahtev + balans dana, auto-odobrenje po pravilima lokala." },
+  { Icon: BadgeCheck,    title: "Sertifikati & badge",   desc: "Sanitarna, somelijer, jezici — uploaduješ jednom, važi svuda." },
+  { Icon: Gift,          title: "Sve besplatno",         desc: "Profil, verifikacija, web push, WhatsApp i SMS — 0 din." },
+];
 
 const faqItems: FAQItem[] = [
   {
@@ -84,10 +98,10 @@ const faqItems: FAQItem[] = [
 ];
 
 const NAV_LINKS = [
-  { href: "#kako-radi", label: "Passport™" },
-  { href: "#verifikacija", label: "Verifikacija" },
-  { href: "#smene",     label: "Smene i odmori" },
-  { href: "#faq",       label: "FAQ"        },
+  { href: "#mogucnosti",  label: "Passport™"      },
+  { href: "#verifikacija", label: "Verifikacija"  },
+  { href: "#smene",       label: "Smene i odmori" },
+  { href: "#faq",         label: "FAQ"            },
 ];
 
 export default function ForWaitersPage() {
@@ -201,7 +215,7 @@ export default function ForWaitersPage() {
                 Napravi svoj Passport™
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M9 4L13 8L9 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </Link>
-              <Link href="#kako-radi" className="btn-secondary font-semibold text-base px-8 py-4 rounded-2xl flex items-center gap-2.5">Vidi kako radi</Link>
+              <Link href="#mogucnosti" className="btn-secondary font-semibold text-base px-8 py-4 rounded-2xl flex items-center gap-2.5">Vidi kako radi</Link>
             </div>
 
             <div className="grid grid-cols-3 gap-6 pt-6 border-t border-neutral-200/60 max-w-lg">
@@ -357,6 +371,17 @@ export default function ForWaitersPage() {
 
       <div className="section-divider max-w-7xl mx-auto" />
 
+      {/* ── MOGUĆNOSTI (feature overview) ── */}
+      <FeatureGrid
+        id="mogucnosti"
+        kicker="Šta dobiješ"
+        heading={<>Sve što ti Passport <span className="text-orange-500">daje</span>.</>}
+        sub="Jedan profil koji te prati kroz svaku smenu — verifikovan, transparentan, i u potpunosti besplatan."
+        tiles={WAITER_FEATURES}
+      />
+
+      <div className="section-divider max-w-7xl mx-auto" />
+
       {/* ── ŽIVA MAPA POSLOVA ── */}
       <section id="mapa" className="max-w-7xl mx-auto px-6 py-24">
         <div className="max-w-2xl mb-14">
@@ -455,58 +480,6 @@ export default function ForWaitersPage() {
         </div>
       </section>
 
-      <div className="section-divider max-w-7xl mx-auto" />
-
-      {/* ── ANATOMIJA PASSPORTA ── */}
-      <section id="kako-radi" className="max-w-7xl mx-auto px-6 py-24">
-        <div className="max-w-2xl mb-14">
-          <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Anatomija passporta</span>
-          <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">
-            Šta je <span className="text-orange-500">unutra</span>, i zašto se ne može lažirati.
-          </h2>
-          <p className="mt-4 text-lg text-neutral-500 font-light leading-relaxed">
-            Passport ima šest komponenti. Svaka je verifikovana — sistemom, lokalom, ili oboma.
-          </p>
-        </div>
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[
-            { num: "01", title: "Verifikovani identitet", desc: "Lična karta, broj telefona, jedinstven foto. Jedan profil po osobi — bez lažnih duplikata." },
-            { num: "02", title: "Geofencing istorija smena", desc: "Aplikacija beleži svaki check-in u krugu od 5km od lokala. Ako nisi tu — smena se ne računa." },
-            { num: "03", title: "Recenzije po lokalu", desc: "Vlasnik ocenjuje samo nakon završene smene. Ti ocenjuješ vlasnika. Obe ocene su trajne." },
-            { num: "04", title: "Sertifikati i bedževi", desc: "Sanitarna knjižica, somelijer, jezici, HACCP — uploduješ jednom, eKonobar verifikuje, koristiš svuda." },
-            { num: "05", title: "Pouzdanost (no-show indeks)", desc: "Skor koji prati: zakazane vs. održane smene, kašnjenja, otkazane na poslednji čas. Vlasnici ga vide odmah." },
-            { num: "06", title: "Skor 0–100", desc: "Bayesov algoritam kombinuje sve gore navedeno u jedan broj. Viši skor = prednost na konkurenciji. Ne kupuje se — zarađuje se.", dark: true },
-          ].map((card) => (
-            card.dark ? (
-              <div key={card.num} className="rounded-3xl p-7 relative overflow-hidden"
-                style={{ background: "linear-gradient(160deg, #1c1209 0%, #2a1a08 100%)", border: "1px solid rgba(249,115,22,0.25)" }}>
-                <div className="flex items-start justify-between mb-5 relative z-10">
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "rgba(249,115,22,0.18)", border: "1px solid rgba(249,115,22,0.3)" }}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M12 2L14.09 8.26L21 9.27L16.5 13.64L17.63 20.56L12 17.27L6.37 20.56L7.5 13.64L3 9.27L9.91 8.26L12 2Z" /></svg>
-                  </div>
-                  <span className="text-[10px] font-black text-orange-300 bg-orange-500/15 px-2 py-0.5 rounded-full tracking-wider border border-orange-500/30">{card.num}</span>
-                </div>
-                <h3 className="font-bold text-lg text-white mb-2 relative z-10">{card.title}</h3>
-                <p className="text-sm text-neutral-400 font-light leading-relaxed relative z-10">{card.desc}</p>
-                <div className="absolute -right-8 -bottom-8 w-32 h-32 rounded-full opacity-30" style={{ background: "radial-gradient(circle, #f97316, transparent 70%)", filter: "blur(20px)" }} />
-              </div>
-            ) : (
-              <div key={card.num} className="bg-white rounded-3xl p-7 border border-neutral-100 hover:border-orange-200 transition-colors">
-                <div className="flex items-start justify-between mb-5">
-                  <div className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#f97316" strokeWidth="1.8" /><path d="M8 12L11 15L16 9" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                  </div>
-                  <span className="text-[10px] font-black text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full tracking-wider">{card.num}</span>
-                </div>
-                <h3 className="font-bold text-lg text-neutral-900 mb-2">{card.title}</h3>
-                <p className="text-sm text-neutral-500 font-light leading-relaxed">{card.desc}</p>
-              </div>
-            )
-          ))}
-        </div>
-      </section>
-
       {/* ── VERIFICATION ── */}
       <section id="verifikacija" className="relative py-24 overflow-hidden">
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, #fafaf8 0%, #f5f1ec 100%)" }} />
@@ -575,147 +548,6 @@ export default function ForWaitersPage() {
           <p className="text-center text-xs text-neutral-400 mt-4">
             Bez kartice, bez pretplate. Registracija traje minut.
           </p>
-        </div>
-      </section>
-
-      {/* ── POGLED VLASNIKA (dark) ── */}
-      <section className="relative py-28 overflow-hidden">
-        <div className="absolute inset-0" style={{ background: "linear-gradient(160deg, #1a1209 0%, #2d1a06 50%, #1c110a 100%)" }} />
-        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 70% 60% at 20% 50%, rgba(249,115,22,0.18) 0%, transparent 55%), radial-gradient(ellipse 50% 70% at 80% 30%, rgba(234,88,12,0.12) 0%, transparent 55%)" }} />
-        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "repeating-linear-gradient(0deg, #fff 0px, #fff 1px, transparent 1px, transparent 48px), repeating-linear-gradient(90deg, #fff 0px, #fff 1px, transparent 1px, transparent 48px)" }} />
-
-        <div className="relative max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-[1fr_1.1fr] gap-16 items-center">
-            <div className="flex flex-col gap-7">
-              <span className="inline-block bg-orange-500/20 border border-orange-500/30 text-orange-400 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full self-start">Pogled vlasnika</span>
-              <h2 className="text-4xl xl:text-5xl font-extrabold text-white tracking-tight leading-[1.1]">
-                Vlasnici vide<br />tačno <span className="text-orange-400">isto</span> što i ti.
-              </h2>
-              <p className="text-base text-neutral-400 font-light leading-relaxed max-w-md">
-                Bez skrivenih napomena, bez „off-the-record&rdquo; sistema. Tvoj passport je transparentan dokument koji svi gledaju iz iste tačke.
-              </p>
-              <div className="flex flex-col gap-4">
-                {[
-                  { n: "1", title: "Vlasnik filtrira po Passport™ kriterijumima", desc: "Skor, verifikacija, lokacija, dostupnost, sertifikati. Vidi samo relevantne profile." },
-                  { n: "2", title: "Otvara tvoj profil — bez polovičnih informacija", desc: "Sve recenzije, sve smene, svi bedževi — odmah, bez tela mejlova." },
-                  { n: "3", title: `Šalje ti ponudu — ti potvrđuješ jednim klikom`, desc: `Bez razgovora, bez „pošalji CV". Ako ti odgovara — radiš.` },
-                ].map(step => (
-                  <div key={step.n} className="flex gap-4">
-                    <div className="w-9 h-9 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
-                      <span className="text-orange-400 font-bold text-sm">{step.n}</span>
-                    </div>
-                    <div>
-                      <div className="text-white font-semibold text-base">{step.title}</div>
-                      <div className="text-neutral-400 text-sm font-light mt-1">{step.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Owner view mockup */}
-            <div className="relative">
-              <div className="rounded-3xl overflow-hidden shadow-2xl"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(20px)" }}>
-                <div className="px-5 py-3 flex items-center gap-3" style={{ background: "rgba(0,0,0,0.25)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                  <div className="flex gap-1.5">
-                    {[...Array(3)].map((_, i) => <div key={i} className="w-2.5 h-2.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }} />)}
-                  </div>
-                  <div className="flex-1 text-center text-[10px] font-mono text-neutral-500">ekonobar.rs/lokal/salon-1905/kandidati</div>
-                </div>
-                <div className="p-6 flex flex-col gap-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="text-white font-bold text-sm">Kandidati za smenu · 02. maj</div>
-                    <div className="flex items-center gap-1.5 text-[10px] text-neutral-500">
-                      <span className="w-2 h-2 rounded-full bg-orange-400 blink" />
-                      Filter: Verifikovan, Sanitarna, Engleski
-                    </div>
-                  </div>
-                  <div className="rounded-2xl p-4 relative"
-                    style={{ background: "linear-gradient(135deg, rgba(249,115,22,0.18), rgba(234,88,12,0.10))", border: "1px solid rgba(249,115,22,0.4)" }}>
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full">NAJBOLJI POGODAK</span>
-                      <span className="text-[9px] font-medium text-orange-300/80">match score 98%</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center text-white font-black text-lg flex-shrink-0">M</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-bold text-sm">Marko Milošević</span>
-                          <span className="text-[9px] font-black text-white bg-green-600 px-1.5 py-0.5 rounded">✓ VERIFIKOVAN</span>
-                        </div>
-                        <div className="text-xs text-neutral-400 mt-0.5">98 skor · 127 smena · 4.9★</div>
-                      </div>
-                      <button className="bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors">Pošalji ponudu</button>
-                    </div>
-                    <div className="mt-3 pt-3 flex flex-wrap gap-1.5" style={{ borderTop: "1px solid rgba(249,115,22,0.2)" }}>
-                      {["Sanitarna ✓", "Somelijer ✓", "Engleski B2 ✓", "100% pouzdanost"].map(tag => (
-                        <span key={tag} className="text-[9px] font-semibold text-orange-300 bg-orange-500/15 px-2 py-0.5 rounded-full">{tag}</span>
-                      ))}
-                    </div>
-                  </div>
-                  {[
-                    { init: "JN", name: "Jovana N.", tier: "✓ VERIFIKOVAN", score: "87 skor · 64 smene · 4.7★" },
-                    { init: "SP", name: "Stefan P.", tier: "✓ VERIFIKOVAN", score: "82 skor · 41 smena · 4.6★" },
-                  ].map(c => (
-                    <div key={c.init} className="rounded-2xl p-4 flex items-center gap-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white font-black text-sm flex-shrink-0">{c.init}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-neutral-200 font-semibold text-xs">{c.name}</span>
-                          <span className="text-[8px] font-black text-green-700 bg-green-100 px-1.5 py-0.5 rounded">{c.tier}</span>
-                        </div>
-                        <div className="text-[10px] text-neutral-500 mt-0.5">{c.score}</div>
-                      </div>
-                      <button className="text-neutral-400 hover:text-white text-[10px] font-semibold px-3 py-1.5 rounded-lg" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>Profil</button>
-                    </div>
-                  ))}
-                  <div className="text-[10px] text-neutral-500 text-center pt-2">+ 14 dodatnih kandidata sa nižim skorom</div>
-                </div>
-              </div>
-              <div className="absolute -top-4 -right-4 rounded-2xl px-4 py-2.5 shadow-lg" style={{ background: "white" }}>
-                <div className="flex items-center gap-2">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 3L13 13M13 3L3 13" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" /></svg>
-                  <div>
-                    <div className="text-[11px] font-bold text-neutral-800">Bez CV-a</div>
-                    <div className="text-[9px] text-neutral-400">bez razgovora</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── TESTIMONIALS ── */}
-      <section className="max-w-7xl mx-auto px-6 py-24">
-        <div className="text-center max-w-2xl mx-auto mb-14">
-          <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Konobare pričaju</span>
-          <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">Šta kažu kolege koji već koriste Passport™</h2>
-        </div>
-        <div className="grid lg:grid-cols-3 gap-5">
-          {[
-            { q: "Za dva meseca sam podigao skor sa 48 na 76. Sad me lokali nalaze — ne moram više da šaljem CV svuda. Jednostavno radi.", name: "Aleksandar D.", city: "Konobar · Beograd, Savamala", init: "AD", tier: "76 skor" },
-            { q: "Red Alert notifikacija mi je stigla na WhatsApp dok sam bio na putu. Javio sam se prvi i bio potvrđen za 3 minuta. Bez tog sistema nikad ne bih saznao.", name: "Jelena M.", city: "Šanker · Novi Sad", init: "JM", tier: "91 skor" },
-            { q: "Imam 5 godina iskustva ali nikad nisam imao ništa da pokažem. Passport je to rešio — vlasnik vidi 67 smena i 4.8★ odmah pri prvom kontaktu.", name: "Nikola S.", city: "Konobar · Beograd, Stari Grad", init: "NS", tier: "88 skor" },
-          ].map(t => (
-            <div key={t.init} className="bg-white rounded-3xl p-7 border border-neutral-100 flex flex-col">
-              <div className="flex items-center gap-0.5 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <svg key={i} width="14" height="14" viewBox="0 0 10 10" fill="#f97316"><path d="M5 1L6.18 3.42L9 3.82L7 5.77L7.49 8.58L5 7.24L2.51 8.58L3 5.77L1 3.82L3.82 3.42L5 1Z" /></svg>
-                ))}
-              </div>
-              <p className="text-base text-neutral-700 font-light leading-relaxed flex-1">&ldquo;{t.q}&rdquo;</p>
-              <div className="mt-6 pt-5 border-t border-neutral-100 flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center text-white font-black">{t.init}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm text-neutral-900">{t.name}</div>
-                  <div className="text-xs text-neutral-400">{t.city}</div>
-                </div>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200 flex-shrink-0">{t.tier}</span>
-              </div>
-            </div>
-          ))}
         </div>
       </section>
 
