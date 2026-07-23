@@ -7,22 +7,8 @@ import { FAQAccordion, type FAQItem } from "@/components/ui/FAQAccordion";
 import { NavAuthButton } from "@/components/ui/NavAuthButton";
 import { FlagSwitcher } from "@/components/ui/FlagSwitcher";
 import { FeatureGrid, type FeatureTile } from "@/components/ui/FeatureGrid";
-
-const LogoMark = () => (
-  <div className="logo-mark w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0">
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M10 3C7 3 4.5 5.5 4.5 8.5C4.5 12.5 10 18 10 18C10 18 15.5 12.5 15.5 8.5C15.5 5.5 13 3 10 3Z" fill="white" opacity="0.95" />
-      <circle cx="10" cy="8.5" r="2.2" fill="white" />
-    </svg>
-  </div>
-);
-
-const CheckOrange = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0 mt-0.5">
-    <circle cx="8" cy="8" r="7" fill="#fed7aa" />
-    <path d="M5 8L7 10L11 6" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
+import { LogoMark } from "@/components/ui/LogoMark";
+import { CheckIcon } from "@/components/ui/CheckIcon";
 
 // The "what eKonobar does" overview — scannable, one tile per feature.
 const VENUE_FEATURES: FeatureTile[] = [
@@ -390,7 +376,7 @@ export default function ForVenuesPage() {
                 <>Zamene bez tvog telefona — konobar traži, ti samo odobriš</>,
                 <>Fali čovek? Smena ide na <strong className="font-semibold text-neutral-700">marketplace</strong> automatski</>,
               ].map((item, i) => (
-                <li key={i} className="check-row"><CheckOrange />{item}</li>
+                <li key={i} className="check-row"><CheckIcon />{item}</li>
               ))}
             </ul>
           </div>
@@ -411,7 +397,7 @@ export default function ForVenuesPage() {
                 <>Šef sale i šef kuhinje vode svoj deo — ti vidiš sve</>,
                 <>Tip angažmana i status po članu — uredna evidencija</>,
               ].map((item, i) => (
-                <li key={i} className="check-row"><CheckOrange />{item}</li>
+                <li key={i} className="check-row"><CheckIcon />{item}</li>
               ))}
             </ul>
           </div>
@@ -432,7 +418,7 @@ export default function ForVenuesPage() {
                 <>Blackout dani za špic sezonu — ograniči koliko ljudi sme na odmor istog dana</>,
                 <>Bolovanje se vodi odvojeno — ne troši godišnji</>,
               ].map((item, i) => (
-                <li key={i} className="check-row"><CheckOrange />{item}</li>
+                <li key={i} className="check-row"><CheckIcon />{item}</li>
               ))}
             </ul>
           </div>
@@ -486,7 +472,7 @@ export default function ForVenuesPage() {
             <div className="flex items-baseline gap-1.5 mb-6"><span className="font-extrabold text-5xl text-neutral-900">8%</span><span className="text-sm text-neutral-400">/ smeni</span></div>
             <ul className="flex flex-col gap-2.5 text-sm text-neutral-600 font-light flex-1">
               {["Neograničeno oglasa", "Pristup verifikovanim konobarima", "Geofencing GPS check-in", "Pregled Passport™ profila", "Email podrška (24h)"].map(item => (
-                <li key={item} className="check-row"><CheckOrange />{item}</li>
+                <li key={item} className="check-row"><CheckIcon />{item}</li>
               ))}
             </ul>
             <Link href="/register?plan=starter" className="mt-7 btn-secondary font-semibold text-sm py-3 rounded-xl text-center">Pokreni besplatno</Link>
@@ -516,7 +502,7 @@ export default function ForVenuesPage() {
             <div className="flex items-baseline gap-1.5 mb-6"><span className="font-extrabold text-5xl text-neutral-900">5%</span><span className="text-sm text-neutral-400">/ smeni</span></div>
             <ul className="flex flex-col gap-2.5 text-sm text-neutral-600 font-light flex-1">
               {["Sve iz Pro plana", "Centralni dashboard za sve lokale", "API + integracija sa POS sistemom", "Personalni account manager", "SLA garancija popune (4h)", "Custom ugovorni okvir"].map(item => (
-                <li key={item} className="check-row"><CheckOrange />{item}</li>
+                <li key={item} className="check-row"><CheckIcon />{item}</li>
               ))}
             </ul>
             <Link href="#demo" className="mt-7 btn-secondary font-semibold text-sm py-3 rounded-xl text-center">Kontaktiraj prodaju</Link>
@@ -591,9 +577,7 @@ export default function ForVenuesPage() {
       <footer className="border-t border-neutral-100 bg-white">
         <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="logo-mark w-8 h-8 rounded-xl flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 3C7 3 4.5 5.5 4.5 8.5C4.5 12.5 10 18 10 18C10 18 15.5 12.5 15.5 8.5C15.5 5.5 13 3 10 3Z" fill="white" opacity="0.95" /><circle cx="10" cy="8.5" r="2.2" fill="white" /></svg>
-            </div>
+            <LogoMark className="w-8 h-8" svg={16} />
             <span className="text-sm font-bold text-neutral-700">eKonobar</span>
             <span className="text-xs text-neutral-400">© 2026 — Beograd</span>
           </div>

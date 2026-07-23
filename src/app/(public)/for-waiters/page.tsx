@@ -9,26 +9,12 @@ import { NavAuthButton } from "@/components/ui/NavAuthButton";
 import { PassportProCTA } from "@/components/ui/PassportProCTA";
 import { FlagSwitcher } from "@/components/ui/FlagSwitcher";
 import { FeatureGrid, type FeatureTile } from "@/components/ui/FeatureGrid";
+import { LogoMark } from "@/components/ui/LogoMark";
+import { CheckIcon } from "@/components/ui/CheckIcon";
 
 // Real, public job map — the same MapSearch the app uses. Loaded client-side
 // (mapbox-gl is browser-only). Renders a token-missing fallback until configured.
 const MapSearch = dynamic(() => import("@/components/map/MapSearch"), { ssr: false });
-
-const LogoMark = () => (
-  <div className="logo-mark w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0">
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M10 3C7 3 4.5 5.5 4.5 8.5C4.5 12.5 10 18 10 18C10 18 15.5 12.5 15.5 8.5C15.5 5.5 13 3 10 3Z" fill="white" opacity="0.95" />
-      <circle cx="10" cy="8.5" r="2.2" fill="white" />
-    </svg>
-  </div>
-);
-
-const CheckCircle = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0 mt-0.5">
-    <circle cx="8" cy="8" r="7" fill="#fed7aa" />
-    <path d="M5 8L7 10L11 6" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
 
 // The "what the Passport gives you" overview — one tile per feature.
 const WAITER_FEATURES: FeatureTile[] = [
@@ -202,7 +188,7 @@ export default function ForWaitersPage() {
                 <>Skor 0–100 iz stvarnih recenzija <strong className="font-semibold text-neutral-800">otvara bolje pozicije</strong> i veće zarade — i ne može se kupiti.</>,
               ].map((text, i) => (
                 <div key={i} className="flex items-start gap-3 text-sm text-neutral-600">
-                  <CheckCircle />
+                  <CheckIcon />
                   <span>{text}</span>
                 </div>
               ))}
@@ -583,9 +569,7 @@ export default function ForWaitersPage() {
       <footer className="border-t border-neutral-100 bg-white">
         <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="logo-mark w-8 h-8 rounded-xl flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 3C7 3 4.5 5.5 4.5 8.5C4.5 12.5 10 18 10 18C10 18 15.5 12.5 15.5 8.5C15.5 5.5 13 3 10 3Z" fill="white" opacity="0.95" /><circle cx="10" cy="8.5" r="2.2" fill="white" /></svg>
-            </div>
+            <LogoMark className="w-8 h-8" svg={16} />
             <span className="text-sm font-bold text-neutral-700">eKonobar</span>
             <span className="text-xs text-neutral-400">© 2026 — Beograd</span>
           </div>
