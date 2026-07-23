@@ -28,6 +28,13 @@ Graph-based code quality audit. Findings sourced from Graphify graph (`graphify-
 | CQ-R | Important    | Headhunter dashboard never modularized (SRP; skipped by CQ-G)        | [FIXED]    |
 | CQ-S | Nice-to-have | Server-side bare catch swallow in dispatch.ts (CQ-I recurrence)      | [FIXED]    |
 | CQ-T | Nice-to-have | Tier isActive resolution reinlined in leaderboard vs getEffectiveTier | [FIXED]   |
+| CQ-U | Important    | Marketing pages bypass components/landing module system (SRP/DRY)    | [OPEN]     |
+| CQ-V | Important    | Presentational primitives duplicated (LogoMark ×4, Check icon dupe)  | [OPEN]     |
+| CQ-W | Important    | Landing data arrays fused into page bodies (data≠view; vs convention) | [OPEN]    |
+| CQ-X | Important    | for-venues #demo lead form is a dead handler (discards submissions)  | [OPEN]     |
+| CQ-Y | Nice-to-have | Icon inconsistency: FeatureGrid lucide vs pages hand-inline <svg>    | [OPEN]     |
+| DA-D | Important    | Zero tests on (public) landing pages + new leave/team sections       | [OPEN]     |
+| DA-E | Important    | register/page.tsx borderline CQ-N/CQ-Q grouped-state recurrence      | [OPEN]     |
 
 ---
 
@@ -460,3 +467,100 @@ sentry.server.config.ts`. NOT real: `instrumentation.ts` does `await import("./s
 (Next.js `register()` dynamic-import contract); `sentry.server.config.ts` imports PrismaInstrumentation
 from `@prisma/instrumentation`, not back. Back-edge inferred from "instrumentation" name substring —
 same artifact class as the dismissed `venue/page.tsx` self-cycle (line 224). No action.
+
+---
+
+## Audit Re-run — 2026-07-23 (fresh graph, 3534 nodes, HEAD 07d19ce)
+
+Re-ran graph analysis after the landing-page rework (`FeatureGrid` + `/for-venues` + `/for-waiters`
+restructure) landed on `feat/smene-assignee-names`. Graph: 3534 nodes / 8423 edges / 240 communities.
+
+Recurrence / validation check:
+- God-nodes clean, all legit infra: `db`(210), `dbRaw`(147), `parseBody`(87), `withRole`(87),
+  `useRequireRole`(53), `fireSideEffects`(43), `withAuth`(42). No phantom/duplicate.
+- All 4 reported import cycles = the logged [FALSE POSITIVE] artifacts (`venue/page.tsx` self-cycle,
+  `VenueSmeneSection↔page`, `ProfileSection↔page`, `instrumentation↔sentry.server.config`). Not re-flagged.
+- `VenueSmeneSection` 685 LOC (was 706) — verified still sub-componentised (CQ-G note), NOT a recurrence.
+- Newer leave/team sections (`WaiterOdmoriSection`/`VenueOdmoriSection`/`VenueTimSection`) verified CLEAN:
+  they consume `useApi` (2–3 each) + are sub-componentised. CQ-G/CQ-H pattern propagated correctly.
+- **New signal:** the CQ-G/CQ-R "modularize the god-file" fix never reached the `(public)` marketing
+  pages — a new instance of the same class. See CQ-U.
+
+### CQ-U — Marketing pages bypass the components/landing module system [OPEN]
+
+Severity: Important (borderline Critical — architectural)
+Found: 2026-07-23.
+Problem: `/landing/page.tsx` = 23 LOC composing 9 extracted `components/landing/*` (Navbar, Footer,
+HeroSection, FAQSection, HowItWorksSection, PassportShowcase, B2BSection…). The customer-facing
+money-pages `for-venues/page.tsx` (610 LOC) and `for-waiters/page.tsx` (602 LOC) import NOTHING from
+components/landing (verified) — each reinvents nav, footer, hero, FAQ shell, section scaffolding inline
+in one client component. Same god-file class CQ-G/CQ-R fixed for dashboards; fix stopped at the
+(dashboard) boundary. Two parallel landing architectures; the money-pages use the un-modular one.
+Recommended: decompose each for-* page to a /landing-style thin composition; shared parametrized nav +
+footer; extract page sections to components/landing/.
+Nodes: `ForVenuesPage()`, `ForWaitersPage()`, `Navbar()`, `Footer()`, `FAQSection()`, `landing/page.tsx`.
+
+### CQ-V — Duplicated presentational primitives across files [OPEN]
+
+Severity: Important
+Found: 2026-07-23.
+Problem: `LogoMark` defined 4× with cosmetic drift (for-venues:11 `logo-mark` class; for-waiters:17
+same; Navbar.tsx:12 inline-style bg; (auth)/layout.tsx:4 inline-style, 19px not 20px). `CheckOrange`
+(venue) ≡ `CheckCircle` (waiter) — byte-identical SVG, two names. Footer + mobile-drawer nav copy-pasted
+between the two for-* pages. DRY, cross-file.
+Recommended: shared `LogoMark` (components/ui/, size prop) + `CheckIcon`; delete all inline copies.
+Nodes: `LogoMark` (×4), `CheckOrange`/`CheckCircle`, `Footer()`.
+
+### CQ-W — Landing data arrays fused into page bodies [OPEN]
+
+Severity: Important
+Found: 2026-07-23.
+Problem: `faqItems`, pricing tiers, feature lists, stat strips declared as inline literals inside the
+600-LOC for-* page files, interleaved with JSX. CLAUDE.md mandates co-located `*-constants.ts`(values)/
+`*-types.ts`(types-only); landing never adopted it. Blocks i18n (CQ-K), untestable independent of markup,
+fabricated metrics drift with no single source.
+Recommended: extract data to `for-venues.content.ts`/`for-waiters.content.ts` (+ types), mirror
+waiter-constants.ts/waiter-types.ts.
+Nodes: `ForVenuesPage()`, `ForWaitersPage()`, `faqItems`, `VENUE_FEATURES`, `WAITER_FEATURES`.
+
+### CQ-X — for-venues #demo lead form is a dead handler [OPEN]
+
+Severity: Important
+Found: 2026-07-23.
+Problem: for-venues/page.tsx demo `<form>` does `onSubmit={(e)=>{e.preventDefault(); setSubmitted(true);}}`.
+No fetch/POST/persistence; shows success while discarding the lead. Fake success hides the loss. Primary
+venue conversion CTA captures nothing.
+Recommended: POST to a real endpoint (e.g. POST /api/leads, rate-limited), set submitted only on 2xx,
+surface errors + log. No faked success.
+Nodes: `ForVenuesPage()` (demo form onSubmit, submitted state).
+
+### CQ-Y — Icon inconsistency: FeatureGrid lucide vs pages hand-inline <svg> [OPEN]
+
+Severity: Nice-to-have
+Found: 2026-07-23.
+Problem: FeatureGrid uses lucide-react; the for-* pages hand-inline dozens of raw <svg><path> for the
+same icon concepts (check/pin/calendar/shield/star/arrow) with ad-hoc stroke/size. lucide-react already a
+dep. Bespoke hero/card mockup art is legitimately custom — scope is the repeated icon glyphs only.
+Recommended: replace repeated icon SVGs with lucide equivalents; keep bespoke brand/mockup art.
+Nodes: `ForVenuesPage()`, `ForWaitersPage()`, `FeatureGrid()`.
+
+### DA-D — Zero test coverage on (public) landing pages + new leave/team sections [OPEN]
+
+Severity: Important
+Found: 2026-07-23 devil's-advocate pass.
+Problem: no test targets for for-venues, for-waiters, or the branch-new Odmori/Tim sections. for-* pages
+structurally untestable due to CQ-U (inline logic, propless 600-LOC clients) — second-order cost of the
+monolith.
+Recommended: after CQ-U/CQ-W extraction, add tests for the extracted pure units (content shapes, form
+submit handler).
+Nodes: `ForVenuesPage()`, `ForWaitersPage()`, `WaiterOdmoriSection()`, `VenueOdmoriSection()`, `VenueTimSection()`.
+
+### DA-E — register/page.tsx borderline CQ-N/CQ-Q grouped-state recurrence [OPEN]
+
+Severity: Important (needs verification)
+Found: 2026-07-23 devil's-advocate pass.
+Problem: register/page.tsx 508 LOC, 7 useState in a multi-field role-branching form. If per-field useState
+→ recurrence of the CQ-N/CQ-Q smell fixed in ReviewForm/JobPostForm. Unaudited — CQ-G/CQ-R never touched
+(auth). Top-of-funnel conversion form.
+Recommended: verify the 7 useState are fields; if so collapse to one typed RegisterForm object + setField.
+Nodes: `RegisterPage()`/`(auth)/register/page.tsx`. Refs: `ReviewForm` (CQ-N), `JobPostForm` (CQ-Q).
