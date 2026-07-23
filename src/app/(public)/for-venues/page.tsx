@@ -2,22 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Zap, CalendarDays, MapPin, Users, Palmtree, Search, FileText, ShieldCheck } from "lucide-react";
 import { FAQAccordion, type FAQItem } from "@/components/ui/FAQAccordion";
 import { NavAuthButton } from "@/components/ui/NavAuthButton";
 import { FlagSwitcher } from "@/components/ui/FlagSwitcher";
-import { WaiterCard, type WaiterCardData } from "@/components/ui/WaiterCard";
-
-// Illustrative sample profiles for the marketplace preview — NOT real waiters.
-// Real profiles carry names/photos (PII) and are gated behind an owner account;
-// this teaser shows the format only. `image: null` renders initials, not a face.
-const SAMPLE_WAITERS: WaiterCardData[] = [
-  { id: "s1", name: "Marko N.", image: null, verificationTier: "ID_VERIFIED",
-    waiterPassport: { score: 94, skills: ["fine dining", "cocktails", "sommelier"], yearsExperience: 8, sanitaryBookValid: true, currentlyAvailable: true, reviewCount: 42, totalEngagements: 37 } },
-  { id: "s2", name: "Ana P.", image: null, verificationTier: "GOLD",
-    waiterPassport: { score: 88, skills: ["kafe aparat", "brza usluga"], yearsExperience: 5, sanitaryBookValid: true, currentlyAvailable: true, reviewCount: 28, totalEngagements: 21 } },
-  { id: "s3", name: "Stefan Đ.", image: null, verificationTier: "SILVER",
-    waiterPassport: { score: 76, skills: ["šank", "catering"], yearsExperience: 3, sanitaryBookValid: false, currentlyAvailable: true, reviewCount: 11, totalEngagements: 9 } },
-];
+import { FeatureGrid, type FeatureTile } from "@/components/ui/FeatureGrid";
 
 const LogoMark = () => (
   <div className="logo-mark w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -34,6 +23,18 @@ const CheckOrange = () => (
     <path d="M5 8L7 10L11 6" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+
+// The "what eKonobar does" overview — scannable, one tile per feature.
+const VENUE_FEATURES: FeatureTile[] = [
+  { Icon: Zap,          title: "Hitna zamena",       desc: "Fali čovek? Smena ide na marketplace — prva prijava za ~12 min." },
+  { Icon: CalendarDays, title: "Raspored & templati", desc: "Generiši ceo mesec smena iz šablona, ne ručno." },
+  { Icon: MapPin,       title: "GPS check-in",        desc: "Geofencing potvrđuje dolazak — bez lažiranja sati." },
+  { Icon: Users,        title: "Sala + kuhinja",      desc: "Ceo tim po pozicijama, FOH i BOH odvojeno." },
+  { Icon: Palmtree,     title: "Godišnji odmori",     desc: "Balans po Zakonu o radu, auto-odobrenje po tvojim pravilima." },
+  { Icon: Search,       title: "Passport pretraga",   desc: "Filtriraj konobare po skoru, veštini, sanitarnoj, opštini." },
+  { Icon: FileText,     title: "Ugovori auto",        desc: "Ugovor o privremenim poslovima generisan automatski." },
+  { Icon: ShieldCheck,  title: "Escrow plaćanje",     desc: "Plata zaštićena, isplata konobaru 24h po odrađenoj smeni." },
+];
 
 const faqItems: FAQItem[] = [
   {
@@ -109,10 +110,10 @@ const faqItems: FAQItem[] = [
 ];
 
 const NAV_LINKS_VENUE = [
-  { href: "#operativa", label: "Operativa"        },
-  { href: "#kako-radi", label: "Kako funkcioniše" },
-  { href: "#cenovnik",  label: "Cenovnik"         },
-  { href: "#faq",       label: "FAQ"               },
+  { href: "#mogucnosti", label: "Mogućnosti"       },
+  { href: "#kako-radi",  label: "Kako funkcioniše" },
+  { href: "#cenovnik",   label: "Cenovnik"         },
+  { href: "#faq",        label: "FAQ"              },
 ];
 
 export default function ForVenuesPage() {
@@ -199,17 +200,31 @@ export default function ForVenuesPage() {
             </h1>
 
             <p className="text-lg text-neutral-500 font-light leading-relaxed max-w-xl">
-              Pronađite iskusne konobare i šankere u Beogradu. Bez agencija i beskrajnih poziva —{" "}
-              <strong className="font-semibold text-neutral-700">plaćate samo odrađenu smenu. Hitna zamena osoblja za 12 minuta.</strong>{" "}
-              A za stalnu ekipu — raspored smena, osoblje sale i kuhinje i godišnji odmori na jednom mestu.
+              Pronađite proverene konobare i šankere — bez agencija i beskrajnih poziva.{" "}
+              <strong className="font-semibold text-neutral-700">Plaćate samo odrađenu smenu.</strong>
             </p>
 
-            <div className="flex flex-wrap gap-4 pt-2">
+            <div className="flex flex-wrap gap-4 pt-1">
               <Link href="#demo" className="btn-primary text-white font-bold text-base px-8 py-4 rounded-2xl flex items-center gap-2.5">
                 Zakaži demo (20 min)
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M9 4L13 8L9 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </Link>
               <Link href="/register?role=venue" className="btn-secondary font-semibold text-base px-8 py-4 rounded-2xl flex items-center gap-2.5">Postavi prvi oglas</Link>
+            </div>
+
+            {/* Stats strip (folded in from the old ROI section) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-neutral-200/60 max-w-2xl">
+              {[
+                { value: "10k+",   label: "aktivnih ugostitelja" },
+                { value: "12 min", label: "prosečna popuna"      },
+                { value: "5–8%",   label: "provizija po smeni"   },
+                { value: "182k",   label: "ušteda/mes (RSD)"     },
+              ].map(s => (
+                <div key={s.label}>
+                  <div className="font-extrabold text-2xl text-neutral-900">{s.value}</div>
+                  <div className="text-[11px] text-neutral-400 font-medium mt-0.5">{s.label}</div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -289,7 +304,63 @@ export default function ForVenuesPage() {
         </div>
       </section>
 
-      {/* ── OPERATIVA (raspored / osoblje / odmori) ── */}
+      {/* ── MOGUĆNOSTI (feature overview) ── */}
+      <FeatureGrid
+        id="mogucnosti"
+        kicker="Sve na jednom mestu"
+        heading={<>Ne samo popuna smene — <span className="text-orange-500">ceo tvoj lokal.</span></>}
+        sub="Marketplace za hitne zamene, raspored stalne ekipe, sala i kuhinja, godišnji odmori — bez Excel-a i bez agencija."
+        tiles={VENUE_FEATURES}
+      />
+
+      {/* ── KAKO RADI ── */}
+      <section id="kako-radi" className="max-w-7xl mx-auto px-6 py-24">
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Kako radi</span>
+          <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">Tri koraka. Pet minuta. Smena popunjena.</h2>
+        </div>
+        <div className="grid md:grid-cols-3 gap-5">
+          {[
+            { n: "01", title: "Objavi", desc: "Unesi detalje smene i cenu. Za 90 sekundi.", items: ["Templati za standardne smene", "Filter po verifikaciji, oceni i sanitarnoj", "Invite direktno poznatim konobarima"] },
+            { n: "02", title: "Izaberi", desc: "Pregledaj prijave i ocene kandidata — najbolji prvi.", items: ["Vidiš sve recenzije, ne kuratorisane", "Pouzdanost (no-show istorija)", "Kandidati koji su već radili kod tebe"] },
+          ].map(step => (
+            <div key={step.n} className="bg-white rounded-3xl p-7 border border-neutral-100 relative">
+              <div className="text-7xl font-black text-orange-100 absolute top-4 right-6 select-none leading-none">{step.n}</div>
+              <div className="w-12 h-12 rounded-2xl bg-orange-500 flex items-center justify-center mb-5" style={{ boxShadow: "0 4px 16px rgba(249,115,22,0.32)" }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="white" strokeWidth="2.4" strokeLinecap="round" /></svg>
+              </div>
+              <h3 className="font-bold text-xl text-neutral-900 mb-2 relative z-10">{step.title}</h3>
+              <p className="text-sm text-neutral-500 font-light leading-relaxed mb-5">{step.desc}</p>
+              <div className="flex flex-col gap-2 text-xs text-neutral-600">
+                {step.items.map(item => (
+                  <div key={item} className="flex items-center gap-2">
+                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="#f97316" strokeWidth="1.8" strokeLinecap="round" /></svg>
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div className="rounded-3xl p-7 relative overflow-hidden" style={{ background: "linear-gradient(160deg, #f97316, #ea580c)", boxShadow: "0 8px 32px rgba(249,115,22,0.32)" }}>
+            <div className="text-7xl font-black text-white/15 absolute top-4 right-6 select-none leading-none">03</div>
+            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center mb-5">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 12L10 17L19 7" stroke="#f97316" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </div>
+            <h3 className="font-bold text-xl text-white mb-2 relative z-10">Gotovo</h3>
+            <p className="text-sm text-orange-100 font-light leading-relaxed mb-5">Smena je potvrđena. Ugovor generisan, vidimo se u lokalu.</p>
+            <div className="flex flex-col gap-2 text-xs text-white/90">
+              {["Ugovor o privremenim poslovima — auto", "Plaćanje preko platforme (escrow)", "Faktura sa PDV-om u inboxu"].map(item => (
+                <div key={item} className="flex items-center gap-2">
+                  <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" /></svg>
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── OPERATIVA (deep-dive: raspored / osoblje / odmori) ── */}
       <section id="operativa" className="max-w-7xl mx-auto px-6 py-24">
         <div className="max-w-3xl mb-14">
           <span className="inline-flex items-center gap-2 bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">
@@ -297,10 +368,10 @@ export default function ForVenuesPage() {
             Operativa
           </span>
           <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">
-            Ne samo popuna smene — <span className="text-orange-500">ceo tvoj tim.</span>
+            Vodiš stalnu ekipu — <span className="text-orange-500">bez Excel-a.</span>
           </h2>
           <p className="mt-4 text-lg text-neutral-500 font-light leading-relaxed">
-            eKonobar više nije samo marketplace za hitne zamene. Vodiš stalnu ekipu, raspored smena i godišnje odmore — sala i kuhinja, na jednom mestu, bez Excel-a.
+            Raspored smena, osoblje sale i kuhinje i godišnji odmori — sve na jednom mestu.
           </p>
         </div>
 
@@ -370,179 +441,6 @@ export default function ForVenuesPage() {
         </div>
       </section>
 
-      {/* ── MARKETPLACE KONOBARA (preview) ── */}
-      <section id="konobari" className="max-w-7xl mx-auto px-6 py-24">
-        <div className="max-w-2xl mb-12">
-          <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Marketplace</span>
-          <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">
-            Pretraži konobare kao <span className="text-orange-500">bazu talenata</span>.
-          </h2>
-          <p className="mt-4 text-lg text-neutral-500 font-light leading-relaxed">
-            Filtriraj po oceni, veštinama, sanitarnoj i opštini u kojoj su spremni da rade. Verifikovani profili — pozovi ih jednim klikom.
-          </p>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {SAMPLE_WAITERS.map(w => (
-            <WaiterCard key={w.id} waiter={w} showStats
-              actions={<span className="flex-1 text-center py-1.5 text-xs font-bold text-orange-500 border border-orange-200 rounded-lg bg-orange-50">Pozovi</span>} />
-          ))}
-        </div>
-
-        <div className="mt-6 flex flex-col sm:flex-row items-center gap-3 rounded-2xl bg-neutral-900 px-5 py-4">
-          <p className="text-sm text-white/80 font-medium flex-1 text-center sm:text-left">
-            <span className="text-white font-bold">Primer prikaza.</span> Registruj lokal da pretražiš prave, verifikovane konobare u tvojoj opštini.
-          </p>
-          <Link href="/register?role=VENUE_OWNER" className="btn-primary text-white font-bold px-6 py-2.5 rounded-xl text-sm whitespace-nowrap">
-            Registruj lokal →
-          </Link>
-        </div>
-      </section>
-
-      {/* ── BENEFITS ── */}
-      <section className="max-w-7xl mx-auto px-6 py-24">
-        <div className="max-w-3xl mb-14">
-          <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Zašto eKonobar</span>
-          <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">
-            Tri razloga zašto <span className="text-orange-500">500+ lokala</span> bira eKonobar.
-          </h2>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-3xl p-8 border border-neutral-100 flex flex-col gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center flex-shrink-0">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </div>
-            <div>
-              <span className="text-[10px] font-black tracking-widest uppercase text-orange-500">Brzina</span>
-              <h3 className="font-bold text-xl text-neutral-900 mt-1 leading-tight">Smena je puna pre nego što kafa stigne.</h3>
-            </div>
-            <p className="text-sm text-neutral-500 font-light leading-relaxed">Prosečno vreme do prve prijave konobara je <strong className="font-semibold text-neutral-700">12 minuta</strong>. Red Alert™ šalje push notifikaciju na 50+ konobara u krugu od 5 km — idealno za hitnu zamenu osoblja u Beogradu.</p>
-          </div>
-
-          <div className="bg-white rounded-3xl p-8 border border-neutral-100 flex flex-col gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center flex-shrink-0">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7v7c0 5 4 9 9 10 5-1 9-5 9-10V7L12 2z" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M9 12l2 2 4-4" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </div>
-            <div>
-              <span className="text-[10px] font-black tracking-widest uppercase text-orange-500">Poverenje</span>
-              <h3 className="font-bold text-xl text-neutral-900 mt-1 leading-tight">Svaki profil je verifikovan i ocenjen od strane kolega.</h3>
-            </div>
-            <p className="text-sm text-neutral-500 font-light leading-relaxed"><strong className="font-semibold text-neutral-700">Waiter Passport™</strong> prikazuje kompletnu istoriju smena, ocene svakog poslodavca i sertifikate — konobari Beograd, Novi Sad i Niš na jednom mestu. Verifikovano, ne samo prijavljeno.</p>
-          </div>
-
-          <div className="bg-white rounded-3xl p-8 border border-neutral-100 flex flex-col gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center flex-shrink-0">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 2v6h6M9 13h6M9 17h4" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </div>
-            <div>
-              <span className="text-[10px] font-black tracking-widest uppercase text-orange-500">Bez administracije</span>
-              <h3 className="font-bold text-xl text-neutral-900 mt-1 leading-tight">Mi brinemo o ugovorima, vi o gostima.</h3>
-            </div>
-            <p className="text-sm text-neutral-500 font-light leading-relaxed">Sistem automatski generiše <strong className="font-semibold text-neutral-700">ugovor o privremenim poslovima</strong>, proverava sanitarnu knjižicu i vodi evidenciju sati putem geofencing check-ina — bez Excel-a i gomile papira.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* ── ROI (dark) ── */}
-      <section className="relative py-28 overflow-hidden">
-        <div className="absolute inset-0" style={{ background: "linear-gradient(160deg, #1a1209 0%, #2d1a06 50%, #1c110a 100%)" }} />
-        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 70% 60% at 20% 50%, rgba(249,115,22,0.18) 0%, transparent 55%), radial-gradient(ellipse 50% 70% at 80% 30%, rgba(234,88,12,0.12) 0%, transparent 55%)" }} />
-        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "repeating-linear-gradient(0deg, #fff 0px, #fff 1px, transparent 1px, transparent 48px), repeating-linear-gradient(90deg, #fff 0px, #fff 1px, transparent 1px, transparent 48px)" }} />
-        <div className="relative max-w-7xl mx-auto px-6">
-          <div className="max-w-3xl mb-16">
-            <span className="inline-block bg-orange-500/15 border border-orange-500/30 text-orange-400 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Brojevi koji znače novac</span>
-            <h2 className="text-4xl xl:text-5xl font-extrabold text-white tracking-tight leading-[1.1]">
-              Vodeća platforma za zapošljavanje u <span className="text-orange-400">ugostiteljstvu Srbije.</span>
-            </h2>
-            <p className="mt-5 text-lg text-neutral-400 font-light leading-relaxed">Podaci sa 87 lokala u Beogradu, prvih 6 meseci 2026.</p>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { label: "Aktivnih ugostitelja", value: "10k+", unit: "", sub: "verifikovanih konobara i šankera" },
-              { label: "Prosečno vreme popune", value: "12", unit: "min", sub: "od objave do potvrđene prijave" },
-              { label: "Provizija po smeni", value: "5", unit: "–8%", sub: "vs 22–28% kod agencija" },
-              { label: "Mesečna ušteda", value: "182k", unit: "RSD", sub: "prosek po lokalu (12+ smena/mes)", highlight: true },
-            ].map(stat => (
-              <div key={stat.label} className="rounded-3xl p-7 relative overflow-hidden"
-                style={stat.highlight
-                  ? { background: "linear-gradient(160deg, rgba(249,115,22,0.20), rgba(234,88,12,0.10))", border: "1px solid rgba(249,115,22,0.4)" }
-                  : { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)" }}>
-                <div className="text-[10px] font-bold tracking-widest uppercase text-orange-400 mb-3">{stat.label}</div>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-extrabold text-5xl text-white">{stat.value}</span>
-                  <span className={`text-lg font-bold ${stat.highlight ? "text-orange-300" : "text-neutral-400"}`}>{stat.unit}</span>
-                </div>
-                <div className={`text-xs font-light mt-1 ${stat.highlight ? "text-orange-200" : "text-neutral-500"}`}>{stat.sub}</div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-12 max-w-3xl">
-            <div className="text-3xl text-white font-light leading-relaxed">
-              <span className="text-orange-400 text-5xl leading-none">&ldquo;</span>
-              Pre eKonobara, smo trošili oko <strong className="font-bold">8 sati nedeljno</strong> samo na traženje zamena. Sad to radi sistem. Mi se bavimo lokalom.
-              <span className="text-orange-400 text-5xl leading-none">&rdquo;</span>
-            </div>
-            <div className="mt-5 flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white font-black">NK</div>
-              <div>
-                <div className="text-white font-bold text-sm">Nikola Kovačević</div>
-                <div className="text-neutral-500 text-xs">Vlasnik · Salon 1905, Stari Grad</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="section-divider max-w-7xl mx-auto" />
-
-      {/* ── KAKO RADI ── */}
-      <section id="kako-radi" className="max-w-7xl mx-auto px-6 py-24">
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Kako radi</span>
-          <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">Tri koraka. Pet minuta. Smena popunjena.</h2>
-        </div>
-        <div className="grid md:grid-cols-3 gap-5">
-          {[
-            { n: "01", title: "Objavi", desc: "Unesi detalje smene i cenu. Za 90 sekundi.", items: ["Templati za standardne smene", "Filter po verifikaciji, oceni i sanitarnoj", "Invite direktno poznatim konobarima"] },
-            { n: "02", title: "Izaberi", desc: "Pregledaj prijave i ocene kandidata — najbolji prvi.", items: ["Vidiš sve recenzije, ne kuratorisane", "Pouzdanost (no-show istorija)", "Kandidati koji su već radili kod tebe"] },
-          ].map(step => (
-            <div key={step.n} className="bg-white rounded-3xl p-7 border border-neutral-100 relative">
-              <div className="text-7xl font-black text-orange-100 absolute top-4 right-6 select-none leading-none">{step.n}</div>
-              <div className="w-12 h-12 rounded-2xl bg-orange-500 flex items-center justify-center mb-5" style={{ boxShadow: "0 4px 16px rgba(249,115,22,0.32)" }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="white" strokeWidth="2.4" strokeLinecap="round" /></svg>
-              </div>
-              <h3 className="font-bold text-xl text-neutral-900 mb-2 relative z-10">{step.title}</h3>
-              <p className="text-sm text-neutral-500 font-light leading-relaxed mb-5">{step.desc}</p>
-              <div className="flex flex-col gap-2 text-xs text-neutral-600">
-                {step.items.map(item => (
-                  <div key={item} className="flex items-center gap-2">
-                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="#f97316" strokeWidth="1.8" strokeLinecap="round" /></svg>
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-          <div className="rounded-3xl p-7 relative overflow-hidden" style={{ background: "linear-gradient(160deg, #f97316, #ea580c)", boxShadow: "0 8px 32px rgba(249,115,22,0.32)" }}>
-            <div className="text-7xl font-black text-white/15 absolute top-4 right-6 select-none leading-none">03</div>
-            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center mb-5">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 12L10 17L19 7" stroke="#f97316" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </div>
-            <h3 className="font-bold text-xl text-white mb-2 relative z-10">Gotovo</h3>
-            <p className="text-sm text-orange-100 font-light leading-relaxed mb-5">Smena je potvrđena. Ugovor generisan, vidimo se u lokalu.</p>
-            <div className="flex flex-col gap-2 text-xs text-white/90">
-              {["Ugovor o privremenim poslovima — auto", "Plaćanje preko platforme (escrow)", "Faktura sa PDV-om u inboxu"].map(item => (
-                <div key={item} className="flex items-center gap-2">
-                  <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" /></svg>
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ── COMPARISON TABLE ── */}
       <section className="max-w-7xl mx-auto px-6 py-24">
         <div className="text-center mb-12">
@@ -561,50 +459,14 @@ export default function ForVenuesPage() {
             ["Vreme do popune smene", "2–4 sata", "↓ 11 minuta"],
             ["Provizija", "22–28%", "5–8%"],
             ["Vidiš istoriju kandidata", "Ne", "Pun Passport™ ✓"],
-            ["Geofencing potvrda smene", "Ne", "5km radius ✓"],
-            ["Automatska sanitarna provera", "Ne", "Da ✓"],
-            ["Generisanje ugovora", "Ručno", "Auto, e-potpis ✓"],
             ["Raspored i templati smena", "Ručno / Excel", "Auto ✓"],
             ["Godišnji odmori po Zakonu o radu", "Papir / tabela", "Auto balans ✓"],
-            ["Kuhinja (BOH) u sistemu", "Ne", "Da ✓"],
-            ["Cancel u poslednji čas (no-show)", "9–14%", "3.2%"],
             ["Plaćaš za neuspešno popunjenu smenu", "Da (pretplata)", "0 RSD ✓"],
           ].map(([label, agency, ek]) => (
             <div key={label} className="cmp-row">
               <div className="cmp-cell"><span className="font-medium text-neutral-700">{label}</span></div>
               <div className="cmp-cell text-center cmp-x">{agency}</div>
               <div className="cmp-cell text-center font-bold text-orange-500" style={{ background: "rgba(249,115,22,0.04)" }}>{ek}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── TESTIMONIALS ── */}
-      <section className="max-w-7xl mx-auto px-6 py-24">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Utisci</span>
-          <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">Šta kažu vlasnici lokala</h2>
-        </div>
-        <div className="grid lg:grid-cols-3 gap-5">
-          {[
-            { q: "Imam restoran 14 godina. Prvi alat koji je stvarno rešio problem zamena u sezoni — bez agencija i bez panike.", name: "Aleksandar Pavlović", venue: "Manufaktura · Zemun", init: "AP" },
-            { q: "Passport sistem mi sve govori za 5 sekundi. Vidim da je čovek odradio 80 smena, sa 4.8★ — to je dovoljno. Nema dva razgovora unapred.", name: "Milica Jovanović", venue: "Bar Mixer · Stari Grad", init: "MJ" },
-            { q: "Najlepša stvar — \"Tvoj tim\". 8 stalnih konobara koje uvek prvo pita sistem. Stalna ekipa, ali bez režima radnog odnosa i papirologije.", name: "Dušan Radović", venue: "Freestyler · Savamala", init: "DR" },
-          ].map(t => (
-            <div key={t.init} className="bg-white rounded-3xl p-7 border border-neutral-100 flex flex-col">
-              <div className="flex items-center gap-0.5 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <svg key={i} width="14" height="14" viewBox="0 0 10 10" fill="#f97316"><path d="M5 1L6.18 3.42L9 3.82L7 5.77L7.49 8.58L5 7.24L2.51 8.58L3 5.77L1 3.82L3.82 3.42L5 1Z" /></svg>
-                ))}
-              </div>
-              <p className="text-base text-neutral-700 font-light leading-relaxed flex-1">&ldquo;{t.q}&rdquo;</p>
-              <div className="mt-6 pt-5 border-t border-neutral-100 flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center text-white font-black">{t.init}</div>
-                <div>
-                  <div className="font-bold text-sm text-neutral-900">{t.name}</div>
-                  <div className="text-xs text-neutral-400">{t.venue}</div>
-                </div>
-              </div>
             </div>
           ))}
         </div>
