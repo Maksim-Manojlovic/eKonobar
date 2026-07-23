@@ -3,7 +3,7 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ShieldCheck, Star, MapPin, Map, ArrowLeftRight, Palmtree, BadgeCheck, Gift } from "lucide-react";
+import { ShieldCheck, Star, Map, ArrowLeftRight, Palmtree, BadgeCheck } from "lucide-react";
 import { FAQAccordion, type FAQItem } from "@/components/ui/FAQAccordion";
 import { NavAuthButton } from "@/components/ui/NavAuthButton";
 import { PassportProCTA } from "@/components/ui/PassportProCTA";
@@ -34,12 +34,10 @@ const CheckCircle = () => (
 const WAITER_FEATURES: FeatureTile[] = [
   { Icon: ShieldCheck,   title: "Verifikovan identitet", desc: "Lična karta, jedan profil po osobi — bez lažnih duplikata." },
   { Icon: Star,          title: "Skor 0–100",           desc: "Bayesov skor iz stvarnih recenzija — ne kupuje se, zarađuje." },
-  { Icon: MapPin,        title: "Geofenced smene",       desc: "Check-in u krugu od 5km dokazuje da si stvarno radio." },
   { Icon: Map,           title: "Živa mapa poslova",     desc: "Otvorene smene i oglasi u realnom vremenu, na mapi." },
   { Icon: ArrowLeftRight, title: "Zameni smenu",         desc: "Ne možeš da dođeš? Prebaci kolegi kroz aplikaciju." },
   { Icon: Palmtree,      title: "Godišnji iz app",       desc: "Zahtev + balans dana, auto-odobrenje po pravilima lokala." },
   { Icon: BadgeCheck,    title: "Sertifikati & badge",   desc: "Sanitarna, somelijer, jezici — uploaduješ jednom, važi svuda." },
-  { Icon: Gift,          title: "Sve besplatno",         desc: "Profil, verifikacija, web push, WhatsApp i SMS — 0 din." },
 ];
 
 const faqItems: FAQItem[] = [

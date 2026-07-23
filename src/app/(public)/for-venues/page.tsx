@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Zap, CalendarDays, MapPin, Users, Palmtree, Search, FileText, ShieldCheck } from "lucide-react";
+import { Zap, CalendarDays, MapPin, Users, Palmtree, Search } from "lucide-react";
 import { FAQAccordion, type FAQItem } from "@/components/ui/FAQAccordion";
 import { NavAuthButton } from "@/components/ui/NavAuthButton";
 import { FlagSwitcher } from "@/components/ui/FlagSwitcher";
@@ -32,8 +32,6 @@ const VENUE_FEATURES: FeatureTile[] = [
   { Icon: Users,        title: "Sala + kuhinja",      desc: "Ceo tim po pozicijama, FOH i BOH odvojeno." },
   { Icon: Palmtree,     title: "Godišnji odmori",     desc: "Balans po Zakonu o radu, auto-odobrenje po tvojim pravilima." },
   { Icon: Search,       title: "Passport pretraga",   desc: "Filtriraj konobare po skoru, veštini, sanitarnoj, opštini." },
-  { Icon: FileText,     title: "Ugovori auto",        desc: "Ugovor o privremenim poslovima generisan automatski." },
-  { Icon: ShieldCheck,  title: "Escrow plaćanje",     desc: "Plata zaštićena, isplata konobaru 24h po odrađenoj smeni." },
 ];
 
 const faqItems: FAQItem[] = [
