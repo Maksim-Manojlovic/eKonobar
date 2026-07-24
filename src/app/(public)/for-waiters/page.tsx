@@ -2,89 +2,17 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ShieldCheck, Star, Map, ArrowLeftRight, Palmtree, BadgeCheck } from "lucide-react";
-import { FAQAccordion, type FAQItem } from "@/components/ui/FAQAccordion";
+import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { PassportProCTA } from "@/components/ui/PassportProCTA";
-import { FeatureGrid, type FeatureTile } from "@/components/ui/FeatureGrid";
+import { FeatureGrid } from "@/components/ui/FeatureGrid";
 import { CheckIcon } from "@/components/ui/CheckIcon";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+import { NAV_LINKS, FOOTER_LINKS, HERO_STATS, WAITER_FEATURES, faqItems } from "./content";
 
 // Real, public job map — the same MapSearch the app uses. Loaded client-side
 // (mapbox-gl is browser-only). Renders a token-missing fallback until configured.
 const MapSearch = dynamic(() => import("@/components/map/MapSearch"), { ssr: false });
-
-// The "what the Passport gives you" overview — one tile per feature.
-const WAITER_FEATURES: FeatureTile[] = [
-  { Icon: ShieldCheck,   title: "Verifikovan identitet", desc: "Lična karta, jedan profil po osobi — bez lažnih duplikata." },
-  { Icon: Star,          title: "Skor 0–100",           desc: "Bayesov skor iz stvarnih recenzija — ne kupuje se, zarađuje." },
-  { Icon: Map,           title: "Živa mapa poslova",     desc: "Otvorene smene i oglasi u realnom vremenu, na mapi." },
-  { Icon: ArrowLeftRight, title: "Zameni smenu",         desc: "Ne možeš da dođeš? Prebaci kolegi kroz aplikaciju." },
-  { Icon: Palmtree,      title: "Godišnji iz app",       desc: "Zahtev + balans dana, auto-odobrenje po pravilima lokala." },
-  { Icon: BadgeCheck,    title: "Sertifikati & badge",   desc: "Sanitarna, somelijer, jezici — uploaduješ jednom, važi svuda." },
-];
-
-const faqItems: FAQItem[] = [
-  {
-    question: "Mogu li poneti Passport iz Beograda u Novi Sad ili Zagreb?",
-    answer: (
-      <>
-        Da. Passport je vezan za tebe, ne za grad. Trenutno radimo u Beogradu, Novom Sadu i Nišu — Zagreb stiže u Q3 2026. Skor, verifikacija i sve recenzije se prenose, ne resetuju.
-      </>
-    ),
-  },
-  {
-    question: "Šta ako vlasnik napiše nepravednu negativnu recenziju?",
-    answer: (
-      <>
-        Imaš 14 dana da uložiš prigovor — naš tim moderira spor i može{" "}
-        <strong className="font-semibold text-neutral-700">povući recenziju</strong> ako su dokazi nedosledni. Vlasnici sa istorijom nepravednih ocena gube pravo ocenjivanja.
-      </>
-    ),
-  },
-  {
-    question: "Mogu li sakriti nizak skor od poslodavca?",
-    answer: (
-      <>
-        Ne — to je suština sistema. Ali nizak skor na početku{" "}
-        <strong className="font-semibold text-neutral-700">nije rupa</strong>; svi smo počeli odatle. Lokali koji traže iskusne ljude filtriraju po skoru, ali ima podosta otvorenih ka početnicima.
-      </>
-    ),
-  },
-  {
-    question: "Da li skor opada ako mesec dana ne radim?",
-    answer: (
-      <>
-        Skor ne opada zbog pauze — broj smena i recenzije ostaju. Ali aktivnost u poslednjih 90 dana{" "}
-        <strong className="font-semibold text-neutral-700">poboljšava prioritet</strong> u algoritmu preporuke. Ako planiraš pauzu, postaviš status „nedostupan&rdquo; i ne kvariš statistiku.
-      </>
-    ),
-  },
-  {
-    question: "Koliko košta Passport?",
-    answer: (
-      <>
-        Za konobare je <strong className="font-semibold text-neutral-700">besplatan u celosti</strong> — profil, verifikacija, recenzije, geofenced smene, web push, WhatsApp i SMS notifikacije. Nema pretplate i nema pozicije u pretrazi koja se može kupiti; rangira te skor koji si zaradio. Vlasnici lokala plaćaju samo proviziju pri angažmanu.
-      </>
-    ),
-  },
-  {
-    question: "Mogu li da tražim godišnji odmor preko aplikacije?",
-    answer: (
-      <>
-        Da — ako radiš u stalnoj ekipi lokala. Pošalješ zahtev iz aplikacije, vidiš{" "}
-        <strong className="font-semibold text-neutral-700">svoj balans dana</strong> i status u realnom vremenu. Ako zahtev prođe pravila lokala (dovoljno najave, slobodan kapacitet, van blackout dana) — <strong className="font-semibold text-neutral-700">auto-odobrava se</strong>, bez čekanja. Bolovanje se vodi zasebno i ne troši godišnji. Isto tako možeš da zameniš smenu sa kolegom ili uzmeš otvorenu smenu na mapi.
-      </>
-    ),
-  },
-];
-
-const NAV_LINKS = [
-  { href: "#mogucnosti",  label: "Passport™"      },
-  { href: "#verifikacija", label: "Verifikacija"  },
-  { href: "#smene",       label: "Smene i odmori" },
-  { href: "#faq",         label: "FAQ"            },
-];
 
 export default function ForWaitersPage() {
   return (
@@ -147,18 +75,12 @@ export default function ForWaitersPage() {
             </div>
 
             <div className="grid grid-cols-3 gap-6 pt-6 border-t border-neutral-200/60 max-w-lg">
-              <div>
-                <div className="font-extrabold text-2xl text-neutral-900">2.400+</div>
-                <div className="text-[11px] text-neutral-400 font-medium mt-0.5">aktivnih Passporta</div>
-              </div>
-              <div className="border-l border-neutral-200/60 pl-6">
-                <div className="font-extrabold text-2xl text-neutral-900">43%</div>
-                <div className="text-[11px] text-neutral-400 font-medium mt-0.5">brže do prve smene</div>
-              </div>
-              <div className="border-l border-neutral-200/60 pl-6">
-                <div className="font-extrabold text-2xl text-neutral-900">4.8★</div>
-                <div className="text-[11px] text-neutral-400 font-medium mt-0.5">prosečna ocena</div>
-              </div>
+              {HERO_STATS.map((s, i) => (
+                <div key={s.label} className={i === 0 ? "" : "border-l border-neutral-200/60 pl-6"}>
+                  <div className="font-extrabold text-2xl text-neutral-900">{s.value}</div>
+                  <div className="text-[11px] text-neutral-400 font-medium mt-0.5">{s.label}</div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -510,14 +432,7 @@ export default function ForWaitersPage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <LandingFooter
-        links={[
-          { href: "/", label: "Početna" },
-          { href: "/for-waiters", label: "Passport™" },
-          { href: "/for-venues", label: "Za lokale" },
-          { href: "/login", label: "Prijava" },
-        ]}
-      />
+      <LandingFooter links={FOOTER_LINKS} />
     </div>
   );
 }
