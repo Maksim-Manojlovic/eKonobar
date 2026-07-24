@@ -1,4 +1,4 @@
-import { Zap, CalendarDays, MapPin, Users, Palmtree, Search } from "lucide-react";
+import { Zap, CalendarDays, Users, Palmtree, Search } from "lucide-react";
 import type { FAQItem } from "@/components/ui/FAQAccordion";
 import type { FeatureTile } from "@/components/ui/FeatureGrid";
 import type { NavLink } from "@/components/landing/LandingNav";
@@ -43,8 +43,7 @@ export const COMPARISON_ROWS: [string, string, string][] = [
 // The "what eKonobar does" overview — scannable, one tile per feature.
 export const VENUE_FEATURES: FeatureTile[] = [
   { Icon: Zap,          title: "Hitna zamena",       desc: "Fali čovek? Smena ide na marketplace — prva prijava za ~12 min." },
-  { Icon: CalendarDays, title: "Raspored & templati", desc: "Generiši ceo mesec smena iz šablona, ne ručno." },
-  { Icon: MapPin,       title: "GPS check-in",        desc: "Geofencing potvrđuje dolazak — bez lažiranja sati." },
+  { Icon: CalendarDays, title: "Raspored i smene",   desc: "Generiši ceo mesec smena iz šablona, ne ručno." },
   { Icon: Users,        title: "Sala + kuhinja",      desc: "Ceo tim po pozicijama, FOH i BOH odvojeno." },
   { Icon: Palmtree,     title: "Godišnji odmori",     desc: "Balans po Zakonu o radu, auto-odobrenje po tvojim pravilima." },
   { Icon: Search,       title: "Passport pretraga",   desc: "Filtriraj konobare po skoru, veštini, sanitarnoj, opštini." },
