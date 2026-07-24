@@ -16,6 +16,7 @@ const PUBLIC_API_PATTERNS: RegExp[] = [
   /^\/api\/venues\/geojson$/,                              // GET venue map GeoJSON
   /^\/api\/jobs\/geojson$/,                                // GET jobs map GeoJSON
   /^\/api\/passport\/public\//,                            // GET share-link passport
+  /^\/api\/leads$/,                                         // POST demo lead (public, rate-limited)
 ];
 
 function isPublicApiRoute(pathname: string): boolean {

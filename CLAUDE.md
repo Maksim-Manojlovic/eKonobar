@@ -531,8 +531,24 @@ Three pages under `src/app/(public)/`:
 | `/landing` | `landing/page.tsx` | Original shared landing page (preserved) |
 
 Both `/for-venues` and `/for-waiters` have **page-specific in-page nav menus** (no cross-links). Anchor IDs:
-- for-venues: `#kako-radi`, `#cenovnik`, `#faq`, `#demo`
-- for-waiters: `#kako-radi`, `#tierovi`, `#faq`
+- for-venues: `#mogucnosti`, `#kako-radi`, `#cenovnik`, `#faq`, `#demo`
+- for-waiters: `#mogucnosti`, `#verifikacija`, `#smene`, `#faq`
+
+### Shared landing shell — don't re-inline (CQ-U/CQ-V/CQ-W)
+
+`/for-venues` and `/for-waiters` are **thin views** that compose shared components + a co-located content module. `/landing` composes the richer `components/landing/*` set (`Navbar`, `Footer`, `HeroSection`, …). Do **not** re-inline nav/footer/logo/data into a page — the previous 600-LOC monoliths were the debt.
+
+- **`components/landing/LandingNav.tsx`** (client) — parametrized top nav + mobile drawer. Props: `links: NavLink[]`, `cta: {href,label}`, `badge?`. Owns the `mobileOpen` state, `FlagSwitcher` + `NavAuthButton` slots. Pass page-specific menus via props; never copy the `<nav>`+drawer markup.
+- **`components/landing/LandingFooter.tsx`** — minimal footer (logo + copyright + `links` prop). Distinct from the richer `components/landing/Footer` used by `/landing`.
+- **`components/ui/LogoMark.tsx`** — the eKonobar mark (`className`/`svg` size props, `.logo-mark` bg). **Single source** — was duplicated 4× (both landing pages, `landing/Navbar`, `(auth)/layout`). Never redefine a local `LogoMark`.
+- **`components/ui/CheckIcon.tsx`** — peach-circle check glyph for feature/benefit lists. Replaced the identical `CheckOrange`/`CheckCircle` copies.
+- **`components/ui/FeatureGrid.tsx`** — scannable "what the app does" tile grid (`lucide` icon + title + desc). Both pages render it right after the hero as the feature overview; pass tiles from the content module.
+- **Content modules:** `for-venues/content.tsx` + `for-waiters/content.tsx` hold the page **data** (nav/footer links, `*_FEATURES`, `faqItems`, hero stats, comparison rows) — data separated from view, mirroring the `*-constants.ts` convention. `.tsx` because FAQ answers carry inline JSX. Add/edit copy here, not in `page.tsx`.
+- Icons: prefer `lucide-react` over hand-inlined `<svg>` for icon glyphs (bespoke mockup art — passport card, dashboard mockup — stays hand-authored).
+
+### Demo lead capture — `POST /api/leads`
+
+The `/for-venues` `#demo` form posts here (never fake the submit). Public route (in `PUBLIC_API_PATTERNS`), rate-limited `lead:{ip}` 5/hour via `getClientIp`. Zod-validates `{ venueName, name, phone, venueType? }`, writes a structured `logger.info("demo lead captured")` record, and fires best-effort `sendDemoLeadEmail` (`lib/integrations/email.ts`, no-op without SMTP; recipient `LEADS_EMAIL` ?? `SMTP_USER`). The client awaits the response and only shows success on 2xx.
 
 ### NavAuthButton
 

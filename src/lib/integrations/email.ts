@@ -50,6 +50,29 @@ export async function sendNotificationEmail(opts: {
   });
 }
 
+/**
+ * Notifies the ops inbox of a new "Zakaži demo" lead from the /for-venues page.
+ * Recipient = LEADS_EMAIL (fallback SMTP_USER). No-op when SMTP is unconfigured,
+ * so the route's structured log stays the durable record in dev.
+ */
+export async function sendDemoLeadEmail(lead: {
+  venueName: string;
+  name: string;
+  phone: string;
+  venueType?: string;
+}) {
+  const to = process.env.LEADS_EMAIL ?? process.env.SMTP_USER;
+  if (!process.env.SMTP_HOST || !to) return; // no-op without SMTP / recipient
+
+  const { venueName, name, phone, venueType } = lead;
+  await transporter.sendMail({
+    from:    FROM,
+    to,
+    subject: `Novi demo lead — ${venueName}`,
+    text: `Novi zahtev za demo (/for-venues):\n\nLokal: ${venueName}\nIme: ${name}\nTelefon: ${phone}\nTip: ${venueType ?? "—"}\n\n— eKonobar`,
+  });
+}
+
 export async function sendPasswordResetEmail(
   toEmail: string,
   token: string,

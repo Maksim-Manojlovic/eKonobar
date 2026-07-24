@@ -1,170 +1,29 @@
 "use client";
 
-import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ShieldCheck, Star, Map, ArrowLeftRight, Palmtree, BadgeCheck } from "lucide-react";
-import { FAQAccordion, type FAQItem } from "@/components/ui/FAQAccordion";
-import { NavAuthButton } from "@/components/ui/NavAuthButton";
+import { ArrowRight } from "lucide-react";
+import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { PassportProCTA } from "@/components/ui/PassportProCTA";
-import { FlagSwitcher } from "@/components/ui/FlagSwitcher";
-import { FeatureGrid, type FeatureTile } from "@/components/ui/FeatureGrid";
+import { FeatureGrid } from "@/components/ui/FeatureGrid";
+import { CheckIcon } from "@/components/ui/CheckIcon";
+import { LandingNav } from "@/components/landing/LandingNav";
+import { LandingFooter } from "@/components/landing/LandingFooter";
+import { NAV_LINKS, FOOTER_LINKS, HERO_STATS, WAITER_FEATURES, faqItems } from "./content";
 
 // Real, public job map — the same MapSearch the app uses. Loaded client-side
 // (mapbox-gl is browser-only). Renders a token-missing fallback until configured.
 const MapSearch = dynamic(() => import("@/components/map/MapSearch"), { ssr: false });
 
-const LogoMark = () => (
-  <div className="logo-mark w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0">
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M10 3C7 3 4.5 5.5 4.5 8.5C4.5 12.5 10 18 10 18C10 18 15.5 12.5 15.5 8.5C15.5 5.5 13 3 10 3Z" fill="white" opacity="0.95" />
-      <circle cx="10" cy="8.5" r="2.2" fill="white" />
-    </svg>
-  </div>
-);
-
-const CheckCircle = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0 mt-0.5">
-    <circle cx="8" cy="8" r="7" fill="#fed7aa" />
-    <path d="M5 8L7 10L11 6" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-// The "what the Passport gives you" overview — one tile per feature.
-const WAITER_FEATURES: FeatureTile[] = [
-  { Icon: ShieldCheck,   title: "Verifikovan identitet", desc: "Lična karta, jedan profil po osobi — bez lažnih duplikata." },
-  { Icon: Star,          title: "Skor 0–100",           desc: "Bayesov skor iz stvarnih recenzija — ne kupuje se, zarađuje." },
-  { Icon: Map,           title: "Živa mapa poslova",     desc: "Otvorene smene i oglasi u realnom vremenu, na mapi." },
-  { Icon: ArrowLeftRight, title: "Zameni smenu",         desc: "Ne možeš da dođeš? Prebaci kolegi kroz aplikaciju." },
-  { Icon: Palmtree,      title: "Godišnji iz app",       desc: "Zahtev + balans dana, auto-odobrenje po pravilima lokala." },
-  { Icon: BadgeCheck,    title: "Sertifikati & badge",   desc: "Sanitarna, somelijer, jezici — uploaduješ jednom, važi svuda." },
-];
-
-const faqItems: FAQItem[] = [
-  {
-    question: "Mogu li poneti Passport iz Beograda u Novi Sad ili Zagreb?",
-    answer: (
-      <>
-        Da. Passport je vezan za tebe, ne za grad. Trenutno radimo u Beogradu, Novom Sadu i Nišu — Zagreb stiže u Q3 2026. Skor, verifikacija i sve recenzije se prenose, ne resetuju.
-      </>
-    ),
-  },
-  {
-    question: "Šta ako vlasnik napiše nepravednu negativnu recenziju?",
-    answer: (
-      <>
-        Imaš 14 dana da uložiš prigovor — naš tim moderira spor i može{" "}
-        <strong className="font-semibold text-neutral-700">povući recenziju</strong> ako su dokazi nedosledni. Vlasnici sa istorijom nepravednih ocena gube pravo ocenjivanja.
-      </>
-    ),
-  },
-  {
-    question: "Mogu li sakriti nizak skor od poslodavca?",
-    answer: (
-      <>
-        Ne — to je suština sistema. Ali nizak skor na početku{" "}
-        <strong className="font-semibold text-neutral-700">nije rupa</strong>; svi smo počeli odatle. Lokali koji traže iskusne ljude filtriraju po skoru, ali ima podosta otvorenih ka početnicima.
-      </>
-    ),
-  },
-  {
-    question: "Da li skor opada ako mesec dana ne radim?",
-    answer: (
-      <>
-        Skor ne opada zbog pauze — broj smena i recenzije ostaju. Ali aktivnost u poslednjih 90 dana{" "}
-        <strong className="font-semibold text-neutral-700">poboljšava prioritet</strong> u algoritmu preporuke. Ako planiraš pauzu, postaviš status „nedostupan&rdquo; i ne kvariš statistiku.
-      </>
-    ),
-  },
-  {
-    question: "Koliko košta Passport?",
-    answer: (
-      <>
-        Za konobare je <strong className="font-semibold text-neutral-700">besplatan u celosti</strong> — profil, verifikacija, recenzije, geofenced smene, web push, WhatsApp i SMS notifikacije. Nema pretplate i nema pozicije u pretrazi koja se može kupiti; rangira te skor koji si zaradio. Vlasnici lokala plaćaju samo proviziju pri angažmanu.
-      </>
-    ),
-  },
-  {
-    question: "Mogu li da tražim godišnji odmor preko aplikacije?",
-    answer: (
-      <>
-        Da — ako radiš u stalnoj ekipi lokala. Pošalješ zahtev iz aplikacije, vidiš{" "}
-        <strong className="font-semibold text-neutral-700">svoj balans dana</strong> i status u realnom vremenu. Ako zahtev prođe pravila lokala (dovoljno najave, slobodan kapacitet, van blackout dana) — <strong className="font-semibold text-neutral-700">auto-odobrava se</strong>, bez čekanja. Bolovanje se vodi zasebno i ne troši godišnji. Isto tako možeš da zameniš smenu sa kolegom ili uzmeš otvorenu smenu na mapi.
-      </>
-    ),
-  },
-];
-
-const NAV_LINKS = [
-  { href: "#mogucnosti",  label: "Passport™"      },
-  { href: "#verifikacija", label: "Verifikacija"  },
-  { href: "#smene",       label: "Smene i odmori" },
-  { href: "#faq",         label: "FAQ"            },
-];
-
 export default function ForWaitersPage() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-
   return (
     <div className="hero-bg min-h-screen">
 
       {/* ── NAV ── */}
-      <nav className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between relative">
-        <Link href="/" className="flex items-center gap-3">
-          <LogoMark />
-          <span className="font-bold text-xl tracking-tight text-gray-900">eKonobar</span>
-        </Link>
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-neutral-400">
-          {NAV_LINKS.map(l => (
-            <a key={l.href} href={l.href} className="hover:text-neutral-800 transition-colors">{l.label}</a>
-          ))}
-        </div>
-        <div className="flex items-center gap-3">
-          <FlagSwitcher />
-          <NavAuthButton />
-          <Link href="/register" className="hidden sm:block btn-primary text-white text-sm font-semibold px-5 py-2.5 rounded-2xl">Registracija</Link>
-          <button
-            onClick={() => setMobileOpen(v => !v)}
-            className="md:hidden flex flex-col gap-1.5 p-2 rounded-xl hover:bg-neutral-100 transition-colors"
-            aria-label="Meni"
-          >
-            {mobileOpen ? (
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 4L16 16M16 4L4 16" stroke="#374151" strokeWidth="2" strokeLinecap="round" /></svg>
-            ) : (
-              <>
-                <span className="w-5 h-0.5 bg-neutral-700 rounded-full" />
-                <span className="w-5 h-0.5 bg-neutral-700 rounded-full" />
-                <span className="w-4 h-0.5 bg-neutral-700 rounded-full self-end" />
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Mobile dropdown */}
-        {mobileOpen && (
-          <div className="absolute top-full left-0 right-0 mt-1 mx-4 bg-white rounded-2xl shadow-lg border border-neutral-100 overflow-hidden z-50">
-            {NAV_LINKS.map(l => (
-              <a
-                key={l.href}
-                href={l.href}
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center px-5 py-3.5 text-sm font-medium text-neutral-700 hover:bg-orange-50 hover:text-orange-600 transition-colors border-b border-neutral-50 last:border-0"
-              >
-                {l.label}
-              </a>
-            ))}
-            <div className="p-3">
-              <Link
-                href="/register"
-                onClick={() => setMobileOpen(false)}
-                className="btn-primary w-full text-white text-sm font-semibold py-3 rounded-xl text-center block"
-              >
-                Registracija
-              </Link>
-            </div>
-          </div>
-        )}
-      </nav>
+      <LandingNav
+        links={NAV_LINKS}
+        cta={{ href: "/register", label: "Registracija" }}
+      />
 
       {/* ── HERO ── */}
       <section className="max-w-7xl mx-auto px-6 pt-12 pb-24">
@@ -202,7 +61,7 @@ export default function ForWaitersPage() {
                 <>Skor 0–100 iz stvarnih recenzija <strong className="font-semibold text-neutral-800">otvara bolje pozicije</strong> i veće zarade — i ne može se kupiti.</>,
               ].map((text, i) => (
                 <div key={i} className="flex items-start gap-3 text-sm text-neutral-600">
-                  <CheckCircle />
+                  <CheckIcon />
                   <span>{text}</span>
                 </div>
               ))}
@@ -211,24 +70,18 @@ export default function ForWaitersPage() {
             <div className="flex flex-wrap gap-4 pt-2">
               <Link href="/register" className="btn-primary text-white font-bold text-base px-8 py-4 rounded-2xl flex items-center gap-2.5">
                 Napravi svoj Passport™
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M9 4L13 8L9 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <ArrowRight size={16} strokeWidth={2} />
               </Link>
               <Link href="#mogucnosti" className="btn-secondary font-semibold text-base px-8 py-4 rounded-2xl flex items-center gap-2.5">Vidi kako radi</Link>
             </div>
 
             <div className="grid grid-cols-3 gap-6 pt-6 border-t border-neutral-200/60 max-w-lg">
-              <div>
-                <div className="font-extrabold text-2xl text-neutral-900">2.400+</div>
-                <div className="text-[11px] text-neutral-400 font-medium mt-0.5">aktivnih Passporta</div>
-              </div>
-              <div className="border-l border-neutral-200/60 pl-6">
-                <div className="font-extrabold text-2xl text-neutral-900">43%</div>
-                <div className="text-[11px] text-neutral-400 font-medium mt-0.5">brže do prve smene</div>
-              </div>
-              <div className="border-l border-neutral-200/60 pl-6">
-                <div className="font-extrabold text-2xl text-neutral-900">4.8★</div>
-                <div className="text-[11px] text-neutral-400 font-medium mt-0.5">prosečna ocena</div>
-              </div>
+              {HERO_STATS.map((s, i) => (
+                <div key={s.label} className={i === 0 ? "" : "border-l border-neutral-200/60 pl-6"}>
+                  <div className="font-extrabold text-2xl text-neutral-900">{s.value}</div>
+                  <div className="text-[11px] text-neutral-400 font-medium mt-0.5">{s.label}</div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -571,7 +424,7 @@ export default function ForWaitersPage() {
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-end gap-3">
               <Link href="/register" className="bg-white text-orange-600 hover:bg-orange-50 transition-colors font-bold text-sm px-6 py-3.5 rounded-2xl flex items-center justify-center gap-2 whitespace-nowrap">
                 Napravi Passport™
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M9 4L13 8L9 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <ArrowRight size={14} strokeWidth={2} />
               </Link>
               <Link href="/waiter" className="bg-orange-700/40 hover:bg-orange-700/60 transition-colors text-white font-semibold text-sm px-6 py-3.5 rounded-2xl border border-white/20 text-center whitespace-nowrap">Pregledaj demo</Link>
             </div>
@@ -580,23 +433,7 @@ export default function ForWaitersPage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="border-t border-neutral-100 bg-white">
-        <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="logo-mark w-8 h-8 rounded-xl flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 3C7 3 4.5 5.5 4.5 8.5C4.5 12.5 10 18 10 18C10 18 15.5 12.5 15.5 8.5C15.5 5.5 13 3 10 3Z" fill="white" opacity="0.95" /><circle cx="10" cy="8.5" r="2.2" fill="white" /></svg>
-            </div>
-            <span className="text-sm font-bold text-neutral-700">eKonobar</span>
-            <span className="text-xs text-neutral-400">© 2026 — Beograd</span>
-          </div>
-          <div className="flex items-center gap-6 text-xs text-neutral-500 font-medium">
-            <Link href="/" className="hover:text-orange-500 transition-colors">Početna</Link>
-            <Link href="/for-waiters" className="hover:text-orange-500 transition-colors">Passport™</Link>
-            <Link href="/for-venues" className="hover:text-orange-500 transition-colors">Za lokale</Link>
-            <Link href="/login" className="hover:text-orange-500 transition-colors">Prijava</Link>
-          </div>
-        </div>
-      </footer>
+      <LandingFooter links={FOOTER_LINKS} />
     </div>
   );
 }
