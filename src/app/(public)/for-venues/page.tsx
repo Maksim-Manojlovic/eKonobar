@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { FeatureGrid } from "@/components/ui/FeatureGrid";
@@ -11,6 +11,34 @@ import { NAV_LINKS_VENUE, FOOTER_LINKS, HERO_STATS, COMPARISON_ROWS, VENUE_FEATU
 
 export default function ForVenuesPage() {
   const [submitted, setSubmitted] = useState(false);
+  const [sending,   setSending]   = useState(false);
+  const [error,     setError]     = useState<string | null>(null);
+
+  async function submitLead(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const payload = {
+      venueName: String(fd.get("venueName") ?? ""),
+      name:      String(fd.get("name") ?? ""),
+      phone:     String(fd.get("phone") ?? ""),
+      venueType: String(fd.get("venueType") ?? ""),
+    };
+    setSending(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/leads", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      setSubmitted(true);
+    } catch {
+      setError("Nešto nije u redu. Pokušaj ponovo ili nas pozovi.");
+    } finally {
+      setSending(false);
+    }
+  }
 
   return (
     <div className="page-bg min-h-screen">
@@ -399,16 +427,19 @@ export default function ForVenuesPage() {
                   </div>
                 </div>
               ) : (
-                <form onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }} className="flex flex-col gap-3">
-                  <input type="text" placeholder="Naziv lokala" required className="px-4 py-3 rounded-xl border border-neutral-200 text-sm focus:outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100" />
-                  <input type="text" placeholder="Tvoje ime" required className="px-4 py-3 rounded-xl border border-neutral-200 text-sm focus:outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100" />
-                  <input type="tel" placeholder="Telefon (npr. 064 ...)" required className="px-4 py-3 rounded-xl border border-neutral-200 text-sm focus:outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100" />
-                  <select className="px-4 py-3 rounded-xl border border-neutral-200 text-sm focus:outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 text-neutral-700">
+                <form onSubmit={submitLead} className="flex flex-col gap-3">
+                  <input name="venueName" type="text" placeholder="Naziv lokala" required className="px-4 py-3 rounded-xl border border-neutral-200 text-sm focus:outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100" />
+                  <input name="name" type="text" placeholder="Tvoje ime" required className="px-4 py-3 rounded-xl border border-neutral-200 text-sm focus:outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100" />
+                  <input name="phone" type="tel" placeholder="Telefon (npr. 064 ...)" required className="px-4 py-3 rounded-xl border border-neutral-200 text-sm focus:outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100" />
+                  <select name="venueType" className="px-4 py-3 rounded-xl border border-neutral-200 text-sm focus:outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 text-neutral-700">
                     {["Restoran / fine dining", "Bar / kafe", "Klub / noćni objekat", "Kafana / tradicionalno", "Hotel / više objekata", "Drugo"].map(opt => (
                       <option key={opt}>{opt}</option>
                     ))}
                   </select>
-                  <button type="submit" className="btn-primary text-white font-bold text-sm py-3.5 rounded-xl mt-2 cursor-pointer">Zakaži demo →</button>
+                  <button type="submit" disabled={sending} className="btn-primary text-white font-bold text-sm py-3.5 rounded-xl mt-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+                    {sending ? "Šaljem…" : "Zakaži demo →"}
+                  </button>
+                  {error && <p className="text-[11px] text-red-500 text-center">{error}</p>}
                   <p className="text-[10px] text-neutral-400 text-center mt-1">Tvoje podatke ne delimo. Bez automatskih mejlova.</p>
                 </form>
               )}
