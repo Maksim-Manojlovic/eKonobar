@@ -1,184 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { Zap, CalendarDays, MapPin, Users, Palmtree, Search } from "lucide-react";
-import { FAQAccordion, type FAQItem } from "@/components/ui/FAQAccordion";
-import { NavAuthButton } from "@/components/ui/NavAuthButton";
-import { FlagSwitcher } from "@/components/ui/FlagSwitcher";
-import { FeatureGrid, type FeatureTile } from "@/components/ui/FeatureGrid";
-
-const LogoMark = () => (
-  <div className="logo-mark w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0">
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M10 3C7 3 4.5 5.5 4.5 8.5C4.5 12.5 10 18 10 18C10 18 15.5 12.5 15.5 8.5C15.5 5.5 13 3 10 3Z" fill="white" opacity="0.95" />
-      <circle cx="10" cy="8.5" r="2.2" fill="white" />
-    </svg>
-  </div>
-);
-
-const CheckOrange = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0 mt-0.5">
-    <circle cx="8" cy="8" r="7" fill="#fed7aa" />
-    <path d="M5 8L7 10L11 6" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-// The "what eKonobar does" overview — scannable, one tile per feature.
-const VENUE_FEATURES: FeatureTile[] = [
-  { Icon: Zap,          title: "Hitna zamena",       desc: "Fali čovek? Smena ide na marketplace — prva prijava za ~12 min." },
-  { Icon: CalendarDays, title: "Raspored & templati", desc: "Generiši ceo mesec smena iz šablona, ne ručno." },
-  { Icon: MapPin,       title: "GPS check-in",        desc: "Geofencing potvrđuje dolazak — bez lažiranja sati." },
-  { Icon: Users,        title: "Sala + kuhinja",      desc: "Ceo tim po pozicijama, FOH i BOH odvojeno." },
-  { Icon: Palmtree,     title: "Godišnji odmori",     desc: "Balans po Zakonu o radu, auto-odobrenje po tvojim pravilima." },
-  { Icon: Search,       title: "Passport pretraga",   desc: "Filtriraj konobare po skoru, veštini, sanitarnoj, opštini." },
-];
-
-const faqItems: FAQItem[] = [
-  {
-    question: "Šta ako konobar ne dođe na smenu?",
-    answer: (
-      <>
-        <strong className="font-semibold text-neutral-700">Ne plaćaš ništa</strong> — provizija se naplaćuje samo na verifikovano odrađenu smenu. Sistem automatski aktivira{" "}
-        <strong className="font-semibold text-neutral-700">Red Alert™ rezervu</strong>: ako konobar ne potvrdi check-in 30 minuta pre smene, oglas ide ponovo. Pouzdanost u Passport-u tog konobara pada — što ga isključuje iz tvog filtera u budućnosti.
-      </>
-    ),
-  },
-  {
-    question: "Da li je ovo radni odnos? Imam li obavezu poreza/doprinosa?",
-    answer: (
-      <>
-        eKonobar generiše <strong className="font-semibold text-neutral-700">ugovor o privremenim i povremenim poslovima</strong> (omladinska/studentska zadruga ili honorarni rad — biraš model). Sve poreske obaveze obračunava i prijavljuje sistem. Ti dobijaš jednu fakturu mesečno sa obračunom za svaku smenu.
-      </>
-    ),
-  },
-  {
-    question: "Mogu li da odbijem konobara koji se prijavi?",
-    answer: (
-      <>
-        Naravno. Vidiš sve prijave, biraš koga god hoćeš (ili nikog) — bez obrazloženja, bez kazne. Ako želiš, postaviš filter (Gold+, sanitarna, jezik) — sistem te i ne uznemirava sa kandidatima koji ga ne ispunjavaju.
-      </>
-    ),
-  },
-  {
-    question: "Šta sa konobarima koje već imam — mogu li ih dodati u sistem?",
-    answer: (
-      <>
-        Da. Pošalješ pozivnicu — oni naprave Passport za 5 minuta i postaju deo{" "}
-        <strong className="font-semibold text-neutral-700">&quot;Tvog tima&quot;</strong>. Sledeću smenu prvo vide oni, pa tek onda ide na otvoreno tržište. Ako ne odgovaraju u roku od sat vremena, sistem je automatski objavljuje šire.
-      </>
-    ),
-  },
-  {
-    question: "Šta ako konobar napiše negativnu recenziju o mom lokalu?",
-    answer: (
-      <>
-        Sistem je <strong className="font-semibold text-neutral-700">obostran i transparentan</strong> — gradiš reputaciju kao dobar poslodavac (uredne smene, plaćanje na vreme, atmosfera). Imaš 14 dana za prigovor; nepravedne ocene moderira naš tim. Lokali sa visokom ocenom dobijaju oznaku &quot;Top poslodavac&quot; — i prioritet kod najboljih konobara.
-      </>
-    ),
-  },
-  {
-    question: "Kako tačno funkcioniše plaćanje?",
-    answer: (
-      <>
-        Kada potvrdiš ponudu, iznos plate ide u <strong className="font-semibold text-neutral-700">escrow</strong> (zaštićen na našem računu). Kad sistem verifikuje da je smena završena, novac se prebacuje konobaru u roku od 24h. Ti dobijaš jednu zbirnu fakturu na kraju meseca — provizija + isplate, sa PDV-om.
-      </>
-    ),
-  },
-  {
-    question: "Da li pokrivate kuhinju ili samo konobare?",
-    answer: (
-      <>
-        I kuhinju. Osoblje se vodi kroz dva sektora —{" "}
-        <strong className="font-semibold text-neutral-700">sala (FOH)</strong> i{" "}
-        <strong className="font-semibold text-neutral-700">kuhinja (BOH)</strong> — sa pozicijama od konobara, šankera i šefa sale do šefa kuhinje, su-šefa i kuvara. Svaki sektor ima svoj raspored, kapacitet i pravila za odmore; šef sale i šef kuhinje vode svoj deo, a ti vidiš sve na jednom mestu.
-      </>
-    ),
-  },
-  {
-    question: "Kako radi godišnji odmor u sistemu?",
-    answer: (
-      <>
-        Zaposleni pošalje zahtev iz aplikacije. Sistem računa balans dana po{" "}
-        <strong className="font-semibold text-neutral-700">Zakonu o radu</strong> (26 dana po difoltu, iznad zakonskog minimuma od 20) i{" "}
-        <strong className="font-semibold text-neutral-700">automatski odobrava</strong> ako zahtev prođe tvoja pravila — dovoljno najave, slobodan kapacitet i van blackout dana. Blackout dane postavljaš za špic sezonu (npr. „niko na odmoru za Novu godinu&rdquo;), a ograničiš i koliko ljudi sme biti na odmoru istog dana po sektoru. Bolovanje se vodi zasebno i ne troši godišnji.
-      </>
-    ),
-  },
-];
-
-const NAV_LINKS_VENUE = [
-  { href: "#mogucnosti", label: "Mogućnosti"       },
-  { href: "#kako-radi",  label: "Kako funkcioniše" },
-  { href: "#cenovnik",   label: "Cenovnik"         },
-  { href: "#faq",        label: "FAQ"              },
-];
+import { ArrowRight } from "lucide-react";
+import { FAQAccordion } from "@/components/ui/FAQAccordion";
+import { FeatureGrid } from "@/components/ui/FeatureGrid";
+import { CheckIcon } from "@/components/ui/CheckIcon";
+import { LandingNav } from "@/components/landing/LandingNav";
+import { LandingFooter } from "@/components/landing/LandingFooter";
+import { NAV_LINKS_VENUE, FOOTER_LINKS, HERO_STATS, COMPARISON_ROWS, VENUE_FEATURES, faqItems } from "./content";
 
 export default function ForVenuesPage() {
-  const [submitted,   setSubmitted]   = useState(false);
-  const [mobileOpen,  setMobileOpen]  = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [sending,   setSending]   = useState(false);
+  const [error,     setError]     = useState<string | null>(null);
+
+  async function submitLead(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const payload = {
+      venueName: String(fd.get("venueName") ?? ""),
+      name:      String(fd.get("name") ?? ""),
+      phone:     String(fd.get("phone") ?? ""),
+      venueType: String(fd.get("venueType") ?? ""),
+    };
+    setSending(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/leads", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      setSubmitted(true);
+    } catch {
+      setError("Nešto nije u redu. Pokušaj ponovo ili nas pozovi.");
+    } finally {
+      setSending(false);
+    }
+  }
 
   return (
     <div className="page-bg min-h-screen">
 
       {/* ── NAV ── */}
-      <nav className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between relative">
-        <Link href="/" className="flex items-center gap-3">
-          <LogoMark />
-          <span className="font-bold text-xl tracking-tight text-gray-900">eKonobar</span>
-          <span className="hidden lg:inline-block whitespace-nowrap text-[10px] font-bold tracking-[0.18em] uppercase text-orange-500 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full ml-1">za vlasnike</span>
-        </Link>
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-neutral-400">
-          {NAV_LINKS_VENUE.map(l => (
-            <a key={l.href} href={l.href} className="hover:text-neutral-800 transition-colors">{l.label}</a>
-          ))}
-        </div>
-        <div className="flex items-center gap-3">
-          <FlagSwitcher />
-          <NavAuthButton />
-          <Link href="#demo" className="hidden sm:block btn-primary text-white text-sm font-semibold px-5 py-2.5 rounded-2xl">Zakaži demo</Link>
-          <button
-            onClick={() => setMobileOpen(v => !v)}
-            className="md:hidden flex flex-col gap-1.5 p-2 rounded-xl hover:bg-neutral-100 transition-colors"
-            aria-label="Meni"
-          >
-            {mobileOpen ? (
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 4L16 16M16 4L4 16" stroke="#374151" strokeWidth="2" strokeLinecap="round" /></svg>
-            ) : (
-              <>
-                <span className="w-5 h-0.5 bg-neutral-700 rounded-full" />
-                <span className="w-5 h-0.5 bg-neutral-700 rounded-full" />
-                <span className="w-4 h-0.5 bg-neutral-700 rounded-full self-end" />
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Mobile dropdown */}
-        {mobileOpen && (
-          <div className="absolute top-full left-0 right-0 mt-1 mx-4 bg-white rounded-2xl shadow-lg border border-neutral-100 overflow-hidden z-50">
-            {NAV_LINKS_VENUE.map(l => (
-              <a
-                key={l.href}
-                href={l.href}
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center px-5 py-3.5 text-sm font-medium text-neutral-700 hover:bg-orange-50 hover:text-orange-600 transition-colors border-b border-neutral-50 last:border-0"
-              >
-                {l.label}
-              </a>
-            ))}
-            <div className="p-3">
-              <a
-                href="#demo"
-                onClick={() => setMobileOpen(false)}
-                className="btn-primary w-full text-white text-sm font-semibold py-3 rounded-xl text-center block"
-              >
-                Zakaži demo
-              </a>
-            </div>
-          </div>
-        )}
-      </nav>
+      <LandingNav
+        links={NAV_LINKS_VENUE}
+        cta={{ href: "#demo", label: "Zakaži demo" }}
+        badge="za vlasnike"
+      />
 
       {/* ── HERO ── */}
       <section className="max-w-7xl mx-auto px-6 pt-14 pb-20">
@@ -205,19 +76,14 @@ export default function ForVenuesPage() {
             <div className="flex flex-wrap gap-4 pt-1">
               <Link href="#demo" className="btn-primary text-white font-bold text-base px-8 py-4 rounded-2xl flex items-center gap-2.5">
                 Zakaži demo (20 min)
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M9 4L13 8L9 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <ArrowRight size={16} strokeWidth={2} />
               </Link>
               <Link href="/register?role=venue" className="btn-secondary font-semibold text-base px-8 py-4 rounded-2xl flex items-center gap-2.5">Postavi prvi oglas</Link>
             </div>
 
             {/* Stats strip (folded in from the old ROI section) */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-neutral-200/60 max-w-2xl">
-              {[
-                { value: "10k+",   label: "aktivnih ugostitelja" },
-                { value: "12 min", label: "prosečna popuna"      },
-                { value: "5–8%",   label: "provizija po smeni"   },
-                { value: "182k",   label: "ušteda/mes (RSD)"     },
-              ].map(s => (
+              {HERO_STATS.map(s => (
                 <div key={s.label}>
                   <div className="font-extrabold text-2xl text-neutral-900">{s.value}</div>
                   <div className="text-[11px] text-neutral-400 font-medium mt-0.5">{s.label}</div>
@@ -390,7 +256,7 @@ export default function ForVenuesPage() {
                 <>Zamene bez tvog telefona — konobar traži, ti samo odobriš</>,
                 <>Fali čovek? Smena ide na <strong className="font-semibold text-neutral-700">marketplace</strong> automatski</>,
               ].map((item, i) => (
-                <li key={i} className="check-row"><CheckOrange />{item}</li>
+                <li key={i} className="check-row"><CheckIcon />{item}</li>
               ))}
             </ul>
           </div>
@@ -411,7 +277,7 @@ export default function ForVenuesPage() {
                 <>Šef sale i šef kuhinje vode svoj deo — ti vidiš sve</>,
                 <>Tip angažmana i status po članu — uredna evidencija</>,
               ].map((item, i) => (
-                <li key={i} className="check-row"><CheckOrange />{item}</li>
+                <li key={i} className="check-row"><CheckIcon />{item}</li>
               ))}
             </ul>
           </div>
@@ -432,7 +298,7 @@ export default function ForVenuesPage() {
                 <>Blackout dani za špic sezonu — ograniči koliko ljudi sme na odmor istog dana</>,
                 <>Bolovanje se vodi odvojeno — ne troši godišnji</>,
               ].map((item, i) => (
-                <li key={i} className="check-row"><CheckOrange />{item}</li>
+                <li key={i} className="check-row"><CheckIcon />{item}</li>
               ))}
             </ul>
           </div>
@@ -453,14 +319,7 @@ export default function ForVenuesPage() {
               <span className="text-xs font-extrabold text-orange-500">eKonobar</span>
             </div>
           </div>
-          {[
-            ["Vreme do popune smene", "2–4 sata", "↓ 11 minuta"],
-            ["Provizija", "22–28%", "5–8%"],
-            ["Vidiš istoriju kandidata", "Ne", "Pun Passport™ ✓"],
-            ["Raspored i templati smena", "Ručno / Excel", "Auto ✓"],
-            ["Godišnji odmori po Zakonu o radu", "Papir / tabela", "Auto balans ✓"],
-            ["Plaćaš za neuspešno popunjenu smenu", "Da (pretplata)", "0 RSD ✓"],
-          ].map(([label, agency, ek]) => (
+          {COMPARISON_ROWS.map(([label, agency, ek]) => (
             <div key={label} className="cmp-row">
               <div className="cmp-cell"><span className="font-medium text-neutral-700">{label}</span></div>
               <div className="cmp-cell text-center cmp-x">{agency}</div>
@@ -486,7 +345,7 @@ export default function ForVenuesPage() {
             <div className="flex items-baseline gap-1.5 mb-6"><span className="font-extrabold text-5xl text-neutral-900">8%</span><span className="text-sm text-neutral-400">/ smeni</span></div>
             <ul className="flex flex-col gap-2.5 text-sm text-neutral-600 font-light flex-1">
               {["Neograničeno oglasa", "Pristup verifikovanim konobarima", "Geofencing GPS check-in", "Pregled Passport™ profila", "Email podrška (24h)"].map(item => (
-                <li key={item} className="check-row"><CheckOrange />{item}</li>
+                <li key={item} className="check-row"><CheckIcon />{item}</li>
               ))}
             </ul>
             <Link href="/register?plan=starter" className="mt-7 btn-secondary font-semibold text-sm py-3 rounded-xl text-center">Pokreni besplatno</Link>
@@ -516,7 +375,7 @@ export default function ForVenuesPage() {
             <div className="flex items-baseline gap-1.5 mb-6"><span className="font-extrabold text-5xl text-neutral-900">5%</span><span className="text-sm text-neutral-400">/ smeni</span></div>
             <ul className="flex flex-col gap-2.5 text-sm text-neutral-600 font-light flex-1">
               {["Sve iz Pro plana", "Centralni dashboard za sve lokale", "API + integracija sa POS sistemom", "Personalni account manager", "SLA garancija popune (4h)", "Custom ugovorni okvir"].map(item => (
-                <li key={item} className="check-row"><CheckOrange />{item}</li>
+                <li key={item} className="check-row"><CheckIcon />{item}</li>
               ))}
             </ul>
             <Link href="#demo" className="mt-7 btn-secondary font-semibold text-sm py-3 rounded-xl text-center">Kontaktiraj prodaju</Link>
@@ -569,16 +428,19 @@ export default function ForVenuesPage() {
                   </div>
                 </div>
               ) : (
-                <form onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }} className="flex flex-col gap-3">
-                  <input type="text" placeholder="Naziv lokala" required className="px-4 py-3 rounded-xl border border-neutral-200 text-sm focus:outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100" />
-                  <input type="text" placeholder="Tvoje ime" required className="px-4 py-3 rounded-xl border border-neutral-200 text-sm focus:outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100" />
-                  <input type="tel" placeholder="Telefon (npr. 064 ...)" required className="px-4 py-3 rounded-xl border border-neutral-200 text-sm focus:outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100" />
-                  <select className="px-4 py-3 rounded-xl border border-neutral-200 text-sm focus:outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 text-neutral-700">
+                <form onSubmit={submitLead} className="flex flex-col gap-3">
+                  <input name="venueName" type="text" placeholder="Naziv lokala" required className="px-4 py-3 rounded-xl border border-neutral-200 text-sm focus:outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100" />
+                  <input name="name" type="text" placeholder="Tvoje ime" required className="px-4 py-3 rounded-xl border border-neutral-200 text-sm focus:outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100" />
+                  <input name="phone" type="tel" placeholder="Telefon (npr. 064 ...)" required className="px-4 py-3 rounded-xl border border-neutral-200 text-sm focus:outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100" />
+                  <select name="venueType" className="px-4 py-3 rounded-xl border border-neutral-200 text-sm focus:outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 text-neutral-700">
                     {["Restoran / fine dining", "Bar / kafe", "Klub / noćni objekat", "Kafana / tradicionalno", "Hotel / više objekata", "Drugo"].map(opt => (
                       <option key={opt}>{opt}</option>
                     ))}
                   </select>
-                  <button type="submit" className="btn-primary text-white font-bold text-sm py-3.5 rounded-xl mt-2 cursor-pointer">Zakaži demo →</button>
+                  <button type="submit" disabled={sending} className="btn-primary text-white font-bold text-sm py-3.5 rounded-xl mt-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+                    {sending ? "Šaljem…" : "Zakaži demo →"}
+                  </button>
+                  {error && <p className="text-[11px] text-red-500 text-center">{error}</p>}
                   <p className="text-[10px] text-neutral-400 text-center mt-1">Tvoje podatke ne delimo. Bez automatskih mejlova.</p>
                 </form>
               )}
@@ -588,23 +450,7 @@ export default function ForVenuesPage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="border-t border-neutral-100 bg-white">
-        <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="logo-mark w-8 h-8 rounded-xl flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 3C7 3 4.5 5.5 4.5 8.5C4.5 12.5 10 18 10 18C10 18 15.5 12.5 15.5 8.5C15.5 5.5 13 3 10 3Z" fill="white" opacity="0.95" /><circle cx="10" cy="8.5" r="2.2" fill="white" /></svg>
-            </div>
-            <span className="text-sm font-bold text-neutral-700">eKonobar</span>
-            <span className="text-xs text-neutral-400">© 2026 — Beograd</span>
-          </div>
-          <div className="flex items-center gap-6 text-xs text-neutral-500 font-medium">
-            <Link href="/for-waiters" className="hover:text-orange-500 transition-colors">Za konobare</Link>
-            <Link href="/for-waiters" className="hover:text-orange-500 transition-colors">Passport™</Link>
-            <Link href="/for-venues" className="hover:text-orange-500 transition-colors">Za lokale</Link>
-            <Link href="/login" className="hover:text-orange-500 transition-colors">Prijava</Link>
-          </div>
-        </div>
-      </footer>
+      <LandingFooter links={FOOTER_LINKS} />
     </div>
   );
 }
