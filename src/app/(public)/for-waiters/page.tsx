@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { PassportProCTA } from "@/components/ui/PassportProCTA";
 import { FeatureGrid } from "@/components/ui/FeatureGrid";
@@ -69,7 +70,7 @@ export default function ForWaitersPage() {
             <div className="flex flex-wrap gap-4 pt-2">
               <Link href="/register" className="btn-primary text-white font-bold text-base px-8 py-4 rounded-2xl flex items-center gap-2.5">
                 Napravi svoj Passport™
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M9 4L13 8L9 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <ArrowRight size={16} strokeWidth={2} />
               </Link>
               <Link href="#mogucnosti" className="btn-secondary font-semibold text-base px-8 py-4 rounded-2xl flex items-center gap-2.5">Vidi kako radi</Link>
             </div>
@@ -423,7 +424,7 @@ export default function ForWaitersPage() {
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-end gap-3">
               <Link href="/register" className="bg-white text-orange-600 hover:bg-orange-50 transition-colors font-bold text-sm px-6 py-3.5 rounded-2xl flex items-center justify-center gap-2 whitespace-nowrap">
                 Napravi Passport™
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M9 4L13 8L9 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <ArrowRight size={14} strokeWidth={2} />
               </Link>
               <Link href="/waiter" className="bg-orange-700/40 hover:bg-orange-700/60 transition-colors text-white font-semibold text-sm px-6 py-3.5 rounded-2xl border border-white/20 text-center whitespace-nowrap">Pregledaj demo</Link>
             </div>

@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { FAQAccordion } from "@/components/ui/FAQAccordion";
 import { FeatureGrid } from "@/components/ui/FeatureGrid";
 import { CheckIcon } from "@/components/ui/CheckIcon";
@@ -75,7 +76,7 @@ export default function ForVenuesPage() {
             <div className="flex flex-wrap gap-4 pt-1">
               <Link href="#demo" className="btn-primary text-white font-bold text-base px-8 py-4 rounded-2xl flex items-center gap-2.5">
                 Zakaži demo (20 min)
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M9 4L13 8L9 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <ArrowRight size={16} strokeWidth={2} />
               </Link>
               <Link href="/register?role=venue" className="btn-secondary font-semibold text-base px-8 py-4 rounded-2xl flex items-center gap-2.5">Postavi prvi oglas</Link>
             </div>
