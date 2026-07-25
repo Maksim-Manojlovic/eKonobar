@@ -23,12 +23,6 @@ export const FOOTER_LINKS = [
   { href: "/login",       label: "Prijava"   },
 ];
 
-export const HERO_STATS = [
-  { value: "2.400+", label: "aktivnih Passporta" },
-  { value: "43%",    label: "brže do prve smene" },
-  { value: "4.8★",   label: "prosečna ocena"     },
-];
-
 // The "what the Passport gives you" overview — one tile per feature.
 export const WAITER_FEATURES: FeatureTile[] = [
   { Icon: ShieldCheck,    title: "Verifikovan identitet", desc: "Lična karta, jedan profil po osobi — bez lažnih duplikata." },

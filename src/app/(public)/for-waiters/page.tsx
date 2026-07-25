@@ -9,7 +9,7 @@ import { FeatureGrid } from "@/components/ui/FeatureGrid";
 import { CheckIcon } from "@/components/ui/CheckIcon";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { LandingFooter } from "@/components/landing/LandingFooter";
-import { NAV_LINKS, FOOTER_LINKS, HERO_STATS, WAITER_FEATURES, faqItems } from "./content";
+import { NAV_LINKS, FOOTER_LINKS, WAITER_FEATURES, faqItems } from "./content";
 
 // Real, public job map — the same MapSearch the app uses. Loaded client-side
 // (mapbox-gl is browser-only). Renders a token-missing fallback until configured.
@@ -26,7 +26,7 @@ export default function ForWaitersPage() {
       />
 
       {/* ── HERO ── */}
-      <section className="max-w-7xl mx-auto px-6 pt-12 pb-24">
+      <section className="max-w-7xl mx-auto px-6 pt-12 pb-16">
         <div className="grid lg:grid-cols-[1.1fr_1fr] gap-14 items-center">
 
           {/* LEFT */}
@@ -56,7 +56,6 @@ export default function ForWaitersPage() {
 
             <div className="flex flex-col gap-2.5 max-w-lg">
               {[
-                <>Geofencing potvrđuje da si <strong className="font-semibold text-neutral-800">stvarno radio smenu</strong> — niko ne može lažirati iskustvo.</>,
                 <>Recenzije su vezane za lokal — <strong className="font-semibold text-neutral-800">ne može ih obrisati niko</strong>, ni ti ni vlasnik.</>,
                 <>Skor 0–100 iz stvarnih recenzija <strong className="font-semibold text-neutral-800">otvara bolje pozicije</strong> i veće zarade — i ne može se kupiti.</>,
               ].map((text, i) => (
@@ -73,15 +72,6 @@ export default function ForWaitersPage() {
                 <ArrowRight size={16} strokeWidth={2} />
               </Link>
               <Link href="#mogucnosti" className="btn-secondary font-semibold text-base px-8 py-4 rounded-2xl flex items-center gap-2.5">Vidi kako radi</Link>
-            </div>
-
-            <div className="grid grid-cols-3 gap-6 pt-6 border-t border-neutral-200/60 max-w-lg">
-              {HERO_STATS.map((s, i) => (
-                <div key={s.label} className={i === 0 ? "" : "border-l border-neutral-200/60 pl-6"}>
-                  <div className="font-extrabold text-2xl text-neutral-900">{s.value}</div>
-                  <div className="text-[11px] text-neutral-400 font-medium mt-0.5">{s.label}</div>
-                </div>
-              ))}
             </div>
           </div>
 
@@ -234,7 +224,7 @@ export default function ForWaitersPage() {
       <div className="section-divider max-w-7xl mx-auto" />
 
       {/* ── ŽIVA MAPA POSLOVA ── */}
-      <section id="mapa" className="max-w-7xl mx-auto px-6 py-24">
+      <section id="mapa" className="max-w-7xl mx-auto px-6 py-16">
         <div className="max-w-2xl mb-14">
           <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Uživo</span>
           <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">
@@ -260,7 +250,7 @@ export default function ForWaitersPage() {
       <div className="section-divider max-w-7xl mx-auto" />
 
       {/* ── SMENE I ODMORI (waiter side) ── */}
-      <section id="smene" className="max-w-7xl mx-auto px-6 py-24">
+      <section id="smene" className="max-w-7xl mx-auto px-6 py-16">
         <div className="max-w-2xl mb-14">
           <span className="inline-flex items-center gap-2 bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">
             <span className="bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded">NOVO</span>
@@ -332,7 +322,7 @@ export default function ForWaitersPage() {
       </section>
 
       {/* ── VERIFICATION ── */}
-      <section id="verifikacija" className="relative py-24 overflow-hidden">
+      <section id="verifikacija" className="relative py-16 overflow-hidden">
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, #fafaf8 0%, #f5f1ec 100%)" }} />
         <div className="relative max-w-7xl mx-auto px-6">
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-14">
@@ -403,7 +393,7 @@ export default function ForWaitersPage() {
       </section>
 
       {/* ── FAQ ── */}
-      <section id="faq" className="max-w-4xl mx-auto px-6 py-24">
+      <section id="faq" className="max-w-4xl mx-auto px-6 py-16">
         <div className="text-center mb-12">
           <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">FAQ</span>
           <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">Pitanja o Passport™ sistemu</h2>
@@ -412,7 +402,7 @@ export default function ForWaitersPage() {
       </section>
 
       {/* ── FINAL CTA ── */}
-      <section className="max-w-7xl mx-auto px-6 pb-24">
+      <section className="max-w-7xl mx-auto px-6 pb-16">
         <div className="rounded-[36px] p-10 sm:p-14 relative overflow-hidden"
           style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}>
           <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "repeating-linear-gradient(45deg, white 0px, white 1px, transparent 1px, transparent 32px)" }} />
