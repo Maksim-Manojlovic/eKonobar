@@ -52,8 +52,8 @@ export default function ForVenuesPage() {
       />
 
       {/* ── HERO ── */}
-      <section className="max-w-7xl mx-auto px-6 pt-14 pb-20">
-        <div className="grid lg:grid-cols-[1.05fr_1fr] gap-14 items-center">
+      <section className="max-w-7xl mx-auto px-6 pt-10 pb-12">
+        <div className="grid lg:grid-cols-[1.05fr_1fr] gap-10 items-center">
 
           {/* LEFT */}
           <div className="flex flex-col gap-7">
@@ -178,8 +178,8 @@ export default function ForVenuesPage() {
       />
 
       {/* ── KAKO RADI ── */}
-      <section id="kako-radi" className="max-w-7xl mx-auto px-6 py-24">
-        <div className="text-center max-w-2xl mx-auto mb-16">
+      <section id="kako-radi" className="max-w-7xl mx-auto px-6 py-12">
+        <div className="text-center max-w-2xl mx-auto mb-10">
           <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Kako radi</span>
           <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">Tri koraka. Pet minuta. Smena popunjena.</h2>
         </div>
@@ -225,8 +225,8 @@ export default function ForVenuesPage() {
       </section>
 
       {/* ── OPERATIVA (deep-dive: raspored / osoblje / odmori) ── */}
-      <section id="operativa" className="max-w-7xl mx-auto px-6 py-24">
-        <div className="max-w-3xl mb-14">
+      <section id="operativa" className="max-w-7xl mx-auto px-6 py-12">
+        <div className="max-w-3xl mb-10">
           <span className="inline-flex items-center gap-2 bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">
             <span className="bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded">NOVO</span>
             Operativa
@@ -306,8 +306,8 @@ export default function ForVenuesPage() {
       </section>
 
       {/* ── COMPARISON TABLE ── */}
-      <section className="max-w-7xl mx-auto px-6 py-24">
-        <div className="text-center mb-12">
+      <section className="max-w-7xl mx-auto px-6 py-12">
+        <div className="text-center mb-8">
           <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Poređenje</span>
           <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">eKonobar vs. ono što sad koristiš</h2>
         </div>
@@ -330,8 +330,8 @@ export default function ForVenuesPage() {
       </section>
 
       {/* ── PRICING ── */}
-      <section id="cenovnik" className="max-w-7xl mx-auto px-6 py-24">
-        <div className="text-center max-w-2xl mx-auto mb-14">
+      <section id="cenovnik" className="max-w-7xl mx-auto px-6 py-12">
+        <div className="text-center max-w-2xl mx-auto mb-10">
           <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Cenovnik</span>
           <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">Plaćaš samo <span className="text-orange-500">popunjene smene.</span></h2>
           <p className="mt-5 text-lg text-neutral-500 font-light leading-relaxed">Bez pretplate, bez setup fee-a, bez minimuma. Provizija ide samo na uspešno odrađenu smenu — verifikovanu geofencingom.</p>
@@ -384,8 +384,8 @@ export default function ForVenuesPage() {
       </section>
 
       {/* ── FAQ ── */}
-      <section id="faq" className="max-w-4xl mx-auto px-6 py-24">
-        <div className="text-center mb-12">
+      <section id="faq" className="max-w-4xl mx-auto px-6 py-12">
+        <div className="text-center mb-8">
           <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">FAQ</span>
           <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">Pitanja vlasnika lokala</h2>
         </div>
@@ -393,7 +393,7 @@ export default function ForVenuesPage() {
       </section>
 
       {/* ── DEMO CTA ── */}
-      <section id="demo" className="max-w-7xl mx-auto px-6 pb-24">
+      <section id="demo" className="max-w-7xl mx-auto px-6 pb-12">
         <div className="rounded-[36px] overflow-hidden relative" style={{ background: "linear-gradient(160deg, #1c1209 0%, #2d1a06 100%)" }}>
           <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 60% 60% at 80% 20%, rgba(249,115,22,0.30) 0%, transparent 60%)" }} />
           <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "repeating-linear-gradient(0deg, #fff 0px, #fff 1px, transparent 1px, transparent 48px), repeating-linear-gradient(90deg, #fff 0px, #fff 1px, transparent 1px, transparent 48px)" }} />

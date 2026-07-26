@@ -26,8 +26,8 @@ export default function ForWaitersPage() {
       />
 
       {/* ── HERO ── */}
-      <section className="max-w-7xl mx-auto px-6 pt-12 pb-16">
-        <div className="grid lg:grid-cols-[1.1fr_1fr] gap-14 items-center">
+      <section className="max-w-7xl mx-auto px-6 pt-10 pb-12">
+        <div className="grid lg:grid-cols-[1.1fr_1fr] gap-10 items-center">
 
           {/* LEFT */}
           <div className="flex flex-col gap-7">
@@ -224,8 +224,8 @@ export default function ForWaitersPage() {
       <div className="section-divider max-w-7xl mx-auto" />
 
       {/* ── ŽIVA MAPA POSLOVA ── */}
-      <section id="mapa" className="max-w-7xl mx-auto px-6 py-16">
-        <div className="max-w-2xl mb-14">
+      <section id="mapa" className="max-w-7xl mx-auto px-6 py-12">
+        <div className="max-w-2xl mb-10">
           <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Uživo</span>
           <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">
             Poslovi na <span className="text-orange-500">mapi</span>, u realnom vremenu.
@@ -250,8 +250,8 @@ export default function ForWaitersPage() {
       <div className="section-divider max-w-7xl mx-auto" />
 
       {/* ── SMENE I ODMORI (waiter side) ── */}
-      <section id="smene" className="max-w-7xl mx-auto px-6 py-16">
-        <div className="max-w-2xl mb-14">
+      <section id="smene" className="max-w-7xl mx-auto px-6 py-12">
+        <div className="max-w-2xl mb-10">
           <span className="inline-flex items-center gap-2 bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">
             <span className="bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded">NOVO</span>
             Smene i odmori
@@ -322,10 +322,10 @@ export default function ForWaitersPage() {
       </section>
 
       {/* ── VERIFICATION ── */}
-      <section id="verifikacija" className="relative py-16 overflow-hidden">
+      <section id="verifikacija" className="relative py-12 overflow-hidden">
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, #fafaf8 0%, #f5f1ec 100%)" }} />
         <div className="relative max-w-7xl mx-auto px-6">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-14">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10">
             <div>
               <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">Verifikacija</span>
               <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">
@@ -393,8 +393,8 @@ export default function ForWaitersPage() {
       </section>
 
       {/* ── FAQ ── */}
-      <section id="faq" className="max-w-4xl mx-auto px-6 py-16">
-        <div className="text-center mb-12">
+      <section id="faq" className="max-w-4xl mx-auto px-6 py-12">
+        <div className="text-center mb-8">
           <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">FAQ</span>
           <h2 className="text-4xl xl:text-5xl font-extrabold text-neutral-900 tracking-tight leading-[1.1]">Pitanja o Passport™ sistemu</h2>
         </div>
@@ -402,7 +402,7 @@ export default function ForWaitersPage() {
       </section>
 
       {/* ── FINAL CTA ── */}
-      <section className="max-w-7xl mx-auto px-6 pb-16">
+      <section className="max-w-7xl mx-auto px-6 pb-12">
         <div className="rounded-[36px] p-10 sm:p-14 relative overflow-hidden"
           style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}>
           <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "repeating-linear-gradient(45deg, white 0px, white 1px, transparent 1px, transparent 32px)" }} />
