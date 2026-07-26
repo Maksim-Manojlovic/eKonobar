@@ -22,8 +22,8 @@ interface Props {
  */
 export function FeatureGrid({ id, kicker, heading, sub, tiles }: Props) {
   return (
-    <section id={id} className="max-w-7xl mx-auto px-6 py-20">
-      <div className="max-w-2xl mb-12">
+    <section id={id} className="max-w-7xl mx-auto px-6 py-12">
+      <div className="max-w-2xl mb-8">
         <span className="inline-block bg-orange-50 border border-orange-100 text-orange-500 text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full mb-5">
           {kicker}
         </span>
