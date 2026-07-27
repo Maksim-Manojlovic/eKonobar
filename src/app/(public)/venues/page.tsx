@@ -5,18 +5,12 @@ import dynamic from "next/dynamic";
 import VenueCard, { type VenueCardProps } from "@/components/venue/VenueCard";
 import Navbar from "@/components/layout/Navbar";
 import Spinner from "@/components/ui/Spinner";
+import { VENUE_TYPE_OPTIONS } from "@/lib/formatting/display-maps";
 
 const MapSearch = dynamic(() => import("@/components/map/MapSearch"), { ssr: false });
 
-const VENUE_TYPES = [
-  { value: "",           label: "Svi tipovi" },
-  { value: "RESTAURANT", label: "Restoran"   },
-  { value: "CAFE",       label: "Kafić"      },
-  { value: "BAR",        label: "Bar"        },
-  { value: "CATERING",   label: "Ketering"   },
-  { value: "HOTEL",      label: "Hotel"      },
-  { value: "EVENT",      label: "Event"      },
-];
+// "" = no filter, then every type from the shared taxonomy.
+const VENUE_TYPES = [{ value: "", label: "Svi tipovi" }, ...VENUE_TYPE_OPTIONS];
 
 type Venue = VenueCardProps & { id: string };
 

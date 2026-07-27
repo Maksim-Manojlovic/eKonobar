@@ -37,10 +37,14 @@ enum VerificationTier {
   ID_VERIFIED   // Potvrđen ličnim dokumentom (JMBG) — težina ocene ×1.2
 }
 
+// Taxonomy for display + filtering only. Never branch behavior on this directly —
+// derive a capability flag instead (see hasKitchen() in lib/staff/positions.ts for
+// the pattern: nullable override on Venue, defaulted from the type).
 enum VenueType {
   RESTAURANT
   CAFE
   BAR
+  NIGHT_CLUB    // Noćni klub / splav
   CATERING
   HOTEL
   EVENT
@@ -534,7 +538,10 @@ model WaiterPassport {
   profilePhoto        String?
   galleryPhotos       String[]
 
-  venueTypePreferences String[]  // ["RESTAURANT", "CAFE", "BAR", "NIGHT_CLUB", "HOTEL", "CATERING"]
+  // VenueType values the waiter wants to work in. Untyped String[] (Prisma has no
+  // enum-array default), but the picker is driven by VENUE_TYPE_OPTIONS in
+  // lib/formatting/display-maps.ts — keep it that way so the values stay matchable.
+  venueTypePreferences String[]
 
   // Reach — Belgrade gradske opštine the waiter will work in (canonical list in
   // lib/geo/municipalities.ts). Venue owners filter search by these. No home

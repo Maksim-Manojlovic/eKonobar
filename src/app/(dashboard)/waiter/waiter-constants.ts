@@ -62,14 +62,9 @@ export const BADGE_PROGRESS: Record<string, ((p: PassportData) => BadgeProgress)
 
 /* ── Passport form options ───────────────────────────────────────────────── */
 
-export const VENUE_TYPE_OPTIONS = [
-  { value: "RESTAURANT", label: "Restoran" },
-  { value: "CAFE",       label: "Kafić" },
-  { value: "BAR",        label: "Bar" },
-  { value: "NIGHT_CLUB", label: "Noćni klub" },
-  { value: "HOTEL",      label: "Hotel" },
-  { value: "CATERING",   label: "Ketering" },
-];
+// VENUE_TYPE_OPTIONS lives in lib/formatting/display-maps.ts — import it from
+// there. The copy that used to sit here offered NIGHT_CLUB before the enum had
+// it and omitted EVENT, so both values silently matched nothing.
 
 export const SCORE_DIMS: { key: keyof NonNullable<PassportData["trustScore"]>; label: string }[] = [
   { key: "punctuality",        label: "Tačnost" },

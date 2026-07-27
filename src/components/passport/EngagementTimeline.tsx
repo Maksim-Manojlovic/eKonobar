@@ -1,13 +1,8 @@
-import { ENGAGEMENT_LABELS } from "@/lib/formatting/display-maps";
-
-const VENUE_TYPE_ICONS: Record<string, string> = {
-  RESTAURANT: "🍽️",
-  CAFE:       "☕",
-  BAR:        "🍸",
-  CATERING:   "🥂",
-  HOTEL:      "🏨",
-  EVENT:      "🎉",
-};
+import {
+  ENGAGEMENT_LABELS,
+  VENUE_TYPE_ICONS,
+  VENUE_TYPE_ICON_FALLBACK,
+} from "@/lib/formatting/display-maps";
 
 export interface EngagementRecord {
   id: string;
@@ -67,7 +62,7 @@ export default function EngagementTimeline({ records, compact = false }: Engagem
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-base">
-                      {VENUE_TYPE_ICONS[rec.venue.venueType] ?? "🏢"}
+                      {VENUE_TYPE_ICONS[rec.venue.venueType] ?? VENUE_TYPE_ICON_FALLBACK}
                     </span>
                     <p className="font-bold text-neutral-900 text-sm truncate">{rec.venue.name}</p>
                   </div>

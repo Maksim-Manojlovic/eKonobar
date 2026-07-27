@@ -112,16 +112,44 @@ export const ENGAGEMENT_LABELS: Record<string, string> = {
   CELEBRATION: "Slavlje",
 };
 
-/* ── Venue type (RESTAURANT | CAFE | BAR | CATERING | HOTEL | EVENT) ─────── */
-
+/* ── Venue type ──────────────────────────────────────────────────────────── */
+/**
+ * Single source of truth for the VenueType taxonomy. Every picker, chip row and
+ * icon must derive from these — do not hand-write another venue-type list.
+ *
+ * Three divergent copies previously existed (public venue filter, waiter passport
+ * picker, two icon maps) and drifted: `NIGHT_CLUB` / `NIGHTCLUB` were offered in
+ * the UI while absent from the enum, so selecting them matched nothing, and
+ * `EVENT` was missing from the pickers entirely.
+ *
+ * Key order = enum order = picker order.
+ */
 export const VENUE_TYPE_LABELS: Record<string, string> = {
   RESTAURANT: "Restoran",
   CAFE:       "Kafić",
   BAR:        "Bar",
+  NIGHT_CLUB: "Noćni klub",
   CATERING:   "Ketering",
   HOTEL:      "Hotel",
   EVENT:      "Event",
 };
+
+export const VENUE_TYPE_ICONS: Record<string, string> = {
+  RESTAURANT: "🍽️",
+  CAFE:       "☕",
+  BAR:        "🍸",
+  NIGHT_CLUB: "🎵",
+  CATERING:   "🥂",
+  HOTEL:      "🏨",
+  EVENT:      "🎉",
+};
+
+/** Fallback for legacy/unknown venueType strings. */
+export const VENUE_TYPE_ICON_FALLBACK = "🏢";
+
+/** `{ value, label }` rows for `<select>` / chip pickers, in enum order. */
+export const VENUE_TYPE_OPTIONS: { value: string; label: string }[] =
+  Object.entries(VENUE_TYPE_LABELS).map(([value, label]) => ({ value, label }));
 
 /* ── Review direction (WAITER_TO_VENUE | VENUE_TO_WAITER | GUEST_TO_WAITER | GUEST_TO_VENUE) ── */
 

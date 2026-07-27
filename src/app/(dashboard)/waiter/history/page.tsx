@@ -3,7 +3,11 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import ReviewWizard from "@/components/review/ReviewWizard";
-import { ENGAGEMENT_LABELS } from "@/lib/formatting/display-maps";
+import {
+  ENGAGEMENT_LABELS,
+  VENUE_TYPE_ICONS,
+  VENUE_TYPE_ICON_FALLBACK,
+} from "@/lib/formatting/display-maps";
 
 type Engagement = {
   id: string;
@@ -16,12 +20,6 @@ type Engagement = {
   verified: boolean;
   engagementType: string;
 };
-
-const VENUE_TYPE_ICONS: Record<string, string> = {
-  RESTAURANT: "🍽️", BAR: "🍺", CAFE: "☕", NIGHTCLUB: "🎵",
-  HOTEL: "🏨", CATERING: "🍱", OTHER: "🏢",
-};
-
 
 function formatPeriod(start: string, end: string | null): string {
   const s = new Date(start).toLocaleDateString("sr-Latn-RS", { month: "short", year: "numeric" });
@@ -76,7 +74,7 @@ export default function WaiterHistoryPage() {
                   <div key={eng.id} className="relative flex gap-5 pb-6 last:pb-0">
                     <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-sm
                       ${eng.verified ? "bg-green-100 border-2 border-green-400" : "bg-neutral-100 border-2 border-neutral-300"}`}>
-                      {VENUE_TYPE_ICONS[eng.venueType] ?? "🏢"}
+                      {VENUE_TYPE_ICONS[eng.venueType] ?? VENUE_TYPE_ICON_FALLBACK}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
