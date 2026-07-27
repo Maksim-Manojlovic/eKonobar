@@ -90,6 +90,8 @@ export const VENUE_TYPE_MARKER: Record<string, string> = {
   RESTAURANT: "#f97316", // orange
   CAFE:       "#a16207", // coffee brown
   BAR:        "#8b5cf6", // violet
+  NIGHT_CLUB: "#16a34a", // green — the free hue; indigo would sit between the
+                         // BAR violet and the HOTEL blue and read as either
   CATERING:   "#14b8a6", // teal
   HOTEL:      "#3b82f6", // blue
   EVENT:      "#ec4899", // pink

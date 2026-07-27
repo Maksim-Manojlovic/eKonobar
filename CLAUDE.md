@@ -427,6 +427,10 @@ Each dashboard is split across several co-located files. Do not put shared helpe
 
 **Display maps:** Always import `*_COLORS` and `*_LABELS` constants from `lib/formatting/display-maps.ts`. Do not define them inline in a page.
 
+**Venue type is a taxonomy, not a behavior switch.** `VenueType` (`RESTAURANT | CAFE | BAR | NIGHT_CLUB | CATERING | HOTEL | EVENT`) exists for display, filtering and map color only. Never branch functionality on it directly — add a nullable capability flag on `Venue`, defaulted from the type, and branch on that. `kitchenEnabled` + `hasKitchen()` in `lib/staff/positions.ts` is the reference implementation: null means "derive from `venueType`", an explicit boolean wins, which covers the bar that started serving food without a schema change. Forking a feature per type multiplies every surface and reopens every switch when a type is added.
+
+Pickers, chips and icons all derive from `VENUE_TYPE_LABELS` / `VENUE_TYPE_ICONS` / `VENUE_TYPE_OPTIONS` in `display-maps.ts`. Four hand-written copies previously drifted — `NIGHT_CLUB`/`NIGHTCLUB` were offered in the passport picker and landing art while absent from the enum (so they matched nothing), and `EVENT` was missing from the pickers. `src/lib/formatting/__tests__/display-maps.test.ts` asserts labels, icons and `VENUE_TYPE_MARKER` each cover the enum exactly — a new enum value fails there until all three are filled in.
+
 **Page-level types:** Define API response shapes in the co-located `*-types.ts` file (e.g., `venue-types.ts`, `waiter-types.ts`, `admin-types.ts`), not inline in the page component. `*-types.ts` must contain **type/interface declarations only** — no runtime values. Co-locate runtime display constants (label maps, badge configs, section titles) in a sibling `*-constants.ts` file that imports from the types file. See `waiter-constants.ts` for the pattern.
 
 **Fire-and-forget side effects:** Use `fireSideEffects()` from `lib/notifications/side-effects.ts` instead of calling `notify()` and score-sync functions directly. Keeps route handlers clean and makes tests trivial to write (mock the whole module as `vi.fn()`).

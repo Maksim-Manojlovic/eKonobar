@@ -7,7 +7,7 @@ import DeactivateVenueButton from "@/components/venue/DeactivateVenueButton";
 import VenueInsightsBadge from "@/components/venue/VenueInsightsBadge";
 import type { Venue } from "./venue-types";
 import { getInitials } from "@/lib/formatting/utils";
-import { VENUE_TYPE_LABELS } from "@/lib/formatting/display-maps";
+import { VENUE_TYPE_LABELS, VENUE_TYPE_OPTIONS } from "@/lib/formatting/display-maps";
 import { BELGRADE_MUNICIPALITIES } from "@/lib/geo/municipalities";
 import { Sk, trustDimensions } from "./venue-helpers";
 
@@ -84,12 +84,9 @@ function VenueCreateForm({ onCreated }: { onCreated: () => void }) {
             <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Tip lokala *</label>
             <select required value={form.venueType}
               onChange={e => set("venueType", e.target.value)} className="auth-input">
-              <option value="RESTAURANT">Restoran</option>
-              <option value="CAFE">Kafić</option>
-              <option value="BAR">Bar</option>
-              <option value="CATERING">Ketering</option>
-              <option value="HOTEL">Hotel</option>
-              <option value="EVENT">Event</option>
+              {VENUE_TYPE_OPTIONS.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
             </select>
           </div>
           <div>

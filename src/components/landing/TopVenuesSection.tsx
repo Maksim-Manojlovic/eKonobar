@@ -15,13 +15,16 @@ type ApiVenue = {
 };
 
 
+// Landing-only art. Keys must be VenueType values — `NIGHTCLUB` used to sit here
+// and matched nothing, so every night club fell through to the grey OTHER card.
 const VENUE_TYPE_GRADIENTS: Record<string, string> = {
   RESTAURANT: "linear-gradient(135deg, #c2410c, #9a3412)",
   BAR:        "linear-gradient(135deg, #b45309, #92400e)",
   CAFE:       "linear-gradient(135deg, #a16207, #854d0e)",
-  NIGHTCLUB:  "linear-gradient(135deg, #7c3aed, #5b21b6)",
+  NIGHT_CLUB: "linear-gradient(135deg, #7c3aed, #5b21b6)",
   HOTEL:      "linear-gradient(135deg, #0f766e, #065f46)",
   CATERING:   "linear-gradient(135deg, #be123c, #9f1239)",
+  EVENT:      "linear-gradient(135deg, #a21caf, #701a75)",
   OTHER:      "linear-gradient(135deg, #374151, #1f2937)",
 };
 
@@ -29,16 +32,17 @@ const VENUE_TYPE_TAGS: Record<string, string[]> = {
   RESTAURANT: ["Fine dining", "Stalna mesta"],
   BAR:        ["Vikend smene", "Napojnice ↑"],
   CAFE:       ["Jutarnje smene", "Fleksibilno"],
-  NIGHTCLUB:  ["Noćne smene", "Napojnice ↑"],
+  NIGHT_CLUB: ["Noćne smene", "Napojnice ↑"],
   HOTEL:      ["Stalno", "Benefiti ↑"],
   CATERING:   ["Povremeno", "Brz odgovor"],
+  EVENT:      ["Povremeno", "Slavlja"],
   OTHER:      ["Fleksibilno"],
 };
 
 
 // Hardcoded fallback shown before API data loads
 const FALLBACK = [
-  { name: "Freestyler",    venueType: "NIGHTCLUB",   municipality: "Savamala",    trustScore: 96 },
+  { name: "Freestyler",    venueType: "NIGHT_CLUB",  municipality: "Savamala",    trustScore: 96 },
   { name: "Salon 1905",    venueType: "RESTAURANT",  municipality: "Stari Grad",  trustScore: 98 },
   { name: "Kafeterija Dok",venueType: "CAFE",        municipality: "Savamala",    trustScore: 88 },
   { name: "Manufaktura",   venueType: "RESTAURANT",  municipality: "Zemun",       trustScore: 94 },
