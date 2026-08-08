@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import { hash }         from "bcryptjs";
 import { dbRaw }        from "@/lib/core/db";
@@ -15,7 +14,7 @@ export async function POST(req: Request) {
   if (!parsed.ok) return parsed.response;
   const { token, password } = parsed.data;
 
-  const record = await (dbRaw as any).passwordResetToken.findUnique({
+  const record = await dbRaw.passwordResetToken.findUnique({
     where: { token },
     select: { id: true, userId: true, expiresAt: true, usedAt: true },
   });
@@ -32,12 +31,12 @@ export async function POST(req: Request) {
 
   const hashedPassword = await hash(password, 12);
 
-  await (dbRaw as any).$transaction([
-    (dbRaw as any).user.update({
+  await dbRaw.$transaction([
+    dbRaw.user.update({
       where: { id: record.userId },
       data:  { hashedPassword },
     }),
-    (dbRaw as any).passwordResetToken.update({
+    dbRaw.passwordResetToken.update({
       where: { id: record.id },
       data:  { usedAt: new Date() },
     }),

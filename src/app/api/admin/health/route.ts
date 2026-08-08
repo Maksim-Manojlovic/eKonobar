@@ -3,6 +3,15 @@ import { withRole } from "@/lib/auth/with-role";
 import { dbRaw } from "@/lib/core/db";
 import { redis } from "@/lib/core/redis";
 
+/**
+ * Shape of the Prisma `$metrics` API, which is only present when the `metrics`
+ * preview feature is enabled — so it is absent from the generated client type.
+ * Declared structurally rather than reached for with `any`.
+ */
+type PrismaMetricsApi = {
+  json(): Promise<{ gauges?: { key: string; value: number }[] }>;
+};
+
 export const GET = withRole("ADMIN", async () => {
   const now = new Date();
   const guestEmbargo   = new Date(now.getTime() - 2  * 60 * 60 * 1000);   // 2h
@@ -39,6 +48,9 @@ export const GET = withRole("ADMIN", async () => {
           try {
             await redis.ping();
             return { connected: true, latencyMs: Date.now() - t0 };
+            // This IS the health probe — `connected: false` is the reported result,
+            // not a swallowed failure. Logging here would duplicate the response.
+            // eslint-disable-next-line no-restricted-syntax
           } catch {
             return { connected: false, latencyMs: null };
           }
@@ -54,21 +66,26 @@ export const GET = withRole("ADMIN", async () => {
       try {
         await dbRaw.$queryRaw`SELECT 1`;
         pingMs = Date.now() - t0;
+        // Probe result, not a swallow: a null pingMs is what the endpoint reports.
+        // eslint-disable-next-line no-restricted-syntax
       } catch {
         /* pingMs stays null → probe failed */
       }
       const poolSize = Number(process.env.DATABASE_POOL_SIZE ?? 3);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const metricsApi = (dbRaw as any).$metrics;
+      // `$metrics` only exists when the Prisma `metrics` preview feature is on, so
+      // it is genuinely absent from the generated client type. Narrow structural
+      // interface instead of `any` — keeps the gauge lookup below type-checked.
+      const metricsApi = (dbRaw as unknown as { $metrics?: PrismaMetricsApi }).$metrics;
       let connectionsOpen: number | null = null;
       let connectionsBusy: number | null = null;
       if (metricsApi?.json) {
         try {
           const m = await metricsApi.json();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const gauge = (key: string) => m.gauges?.find((g: any) => g.key === key)?.value ?? null;
+          const gauge = (key: string) => m.gauges?.find((g) => g.key === key)?.value ?? null;
           connectionsOpen = gauge("prisma_pool_connections_open");
           connectionsBusy = gauge("prisma_pool_connections_busy");
+          // Gauges are optional telemetry — nulls are a valid reported state.
+          // eslint-disable-next-line no-restricted-syntax
         } catch {
           /* metrics unavailable — leave nulls */
         }

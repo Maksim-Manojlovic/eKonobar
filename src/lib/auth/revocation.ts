@@ -50,9 +50,10 @@ export async function isTokenRevoked(
         if (cached === "none") return false;
         return tokenIat < Number(cached);
       }
-    } catch {
+    } catch (err) {
       // Transient Redis error — fall through to DB (no in-process cache used
       // when Redis is configured, to avoid serving a stale local copy).
+      logger.warn({ err }, "token revocation: redis lookup failed, falling back to DB");
     }
 
     const row = await dbRaw.tokenRevocation.findUnique({

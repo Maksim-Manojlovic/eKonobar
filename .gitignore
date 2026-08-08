@@ -43,3 +43,11 @@ yarn-error.log*
 public/uploads/
 graphify-out/
 .claude/
+
+# Playwright output. These are failure artifacts (traces, screenshots, videos) —
+# committing them bloats the repo with binaries and they were also being indexed
+# into the Graphify graph, diluting the audit instrument with test noise.
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

@@ -1,4 +1,3 @@
-import { NextRequest } from "next/server";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
@@ -12,20 +11,11 @@ vi.mock("@/lib/core/db", () => ({
   },
 }));
 
-import { getServerSession } from "next-auth";
 import { dbRaw } from "@/lib/core/db";
 import { GET } from "../route";
+import { getReq as makeReq, CTX, mockNoSession, mockSession as setSession } from "@/tests/unit/route-harness";
 
-function mockSession(role = "ADMIN") {
-  vi.mocked(getServerSession).mockResolvedValue({ user: { id: "a-1", role } } as never);
-}
-
-function mockNoSession() {
-  vi.mocked(getServerSession).mockResolvedValue(null);
-}
-function makeReq() {  return new NextRequest("http://localhost");}
-
-const CTX = { params: Promise.resolve({}) };
+const mockSession = (role = "ADMIN") => setSession(role, "a-1");
 
 function setupDefaultMocks() {
   vi.mocked(dbRaw.review.count)

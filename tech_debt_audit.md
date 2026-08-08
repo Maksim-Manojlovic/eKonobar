@@ -35,6 +35,14 @@ Graph-based code quality audit. Findings sourced from Graphify graph (`graphify-
 | CQ-Y | Nice-to-have | Icon inconsistency: FeatureGrid lucide vs pages hand-inline <svg>    | [PARTIALLY FIXED]|
 | DA-D | Important    | Zero tests on (public) landing pages + new leave/team sections       | [FIXED]          |
 | DA-E | Important    | register/page.tsx borderline CQ-N/CQ-Q grouped-state recurrence      | [FALSE POSITIVE] |
+| CQ-Z | Critical     | db soft-delete extension covers 3 of ~12 read methods                | [FIXED]          |
+| CQ-AA | Critical    | CQ-I/CQ-S recurrence: sweep never matched `} catch {` block form     | [FIXED]          |
+| CQ-AB | Important   | `(dbRaw as any)` on the password-reset flow                          | [FIXED]          |
+| CQ-AC | Important   | Route-test harness copy-pasted across half the suite                 | [PARTIALLY FIXED]|
+| CQ-AD | Important   | Venue-type consolidation stops at the seed layer                     | [FIXED]          |
+| CQ-AE | Critical    | resetDb() can TRUNCATE production — no guard on DATABASE_URL         | [FIXED]          |
+| DA-F | Critical     | CQ-F mis-root-caused: phantom god nodes are label collisions         | [FIXED]          |
+| DA-G | Important    | test-results/ neither gitignored nor graph-excluded                  | [FIXED]          |
 
 ---
 
@@ -587,3 +595,268 @@ object with an `f(key)` change-handler factory (the exact CQ-N/CQ-Q pattern). Th
 (grouped) + legit control state (`step`, `role`, `showPassword`, `error`, `loading`). No fix — per-file
 useState count overstated the smell (same lesson as CQ-G/CQ-O: trust per-function structure, not raw counts).
 Nodes: `RegisterPage()`/`(auth)/register/page.tsx` (`form`/`FormState`/`f()`).
+
+---
+
+## Audit Re-run — 2026-08-08 (fresh graph, 3582 nodes, HEAD 9389d2af)
+
+Re-ran graph analysis after the venue-type taxonomy work landed. Graph refreshed via
+`graphify update .` → 3582 nodes / 8555 edges / 229 communities, built from HEAD `9389d2af`.
+
+Recurrence / validation check:
+- All 4 reported import cycles = the logged [FALSE POSITIVE] artifacts. Not re-flagged.
+- **CQ-F does NOT hold — see DA-F.** The god-node table still emits phantoms on a FRESH graph,
+  so "staleness" was the wrong root cause. Every prior run's "god-nodes clean" validation
+  (2026-06-18, 07-09, 07-23) was reasoning from partly-fictional topology.
+- CQ-I/CQ-S both only ever swept `.catch(() => {})` — the `} catch {` form was never in scope. See CQ-AA.
+- Cleared on inspection, do not re-flag: `lib/analytics/waiter-analytics.ts` (427 LOC but 11 pure
+  functions, 0 await, 0 db calls — exemplary); `api/leave/requests/route.ts` (390 LOC but imports
+  ~20 functions from 7 `lib/leave/*` modules — orchestrator, not hoarder); `VenueSmeneSection`
+  685 LOC (sub-componentised per CQ-G).
+
+### CQ-Z — db soft-delete extension covers 3 of ~12 read methods [OPEN]
+
+Severity: Critical
+Found: 2026-08-08 graph re-audit.
+Problem: `lib/core/db.ts` intercepts only findMany/findFirst/findUnique, for 3 models, as 9
+byte-identical 4-line blocks + 9 eslint-disables. `count`/`aggregate`/`groupBy`/`findUniqueOrThrow`/
+`findFirstOrThrow` bypass the filter entirely. CLAUDE.md documents an absolute guarantee ("never
+returns rows where deletedAt IS NOT NULL") that is false for most read ops.
+NO live leak found: the single bypass `db.user.count({where})` (`api/waiters/route.ts:84`) is safe
+only because line 41 hand-writes `deletedAt: null` — a caller re-implementing the filter the
+abstraction claims to own is itself the evidence the abstraction leaks.
+Blast radius: `db` is god-node #1 (210 edges). Failure mode is silent + privacy-shaped.
+Recommended: generate the extension over a `SOFT_DELETE_MODELS × READ_OPS` matrix instead of
+hand-writing 9 blocks; drop the now-redundant manual guard in the waiters route; add a test
+asserting a soft-deleted user is invisible to `db.user.count()`.
+Nodes: `db`(#1), `dbRaw`(#2), `lib/core/db.ts`, `GET /api/waiters`.
+
+### CQ-AA — CQ-I/CQ-S recurrence: sweep matched only `.catch(() => {})`, never `} catch {` [OPEN]
+
+Severity: Critical
+Found: 2026-08-08 graph re-audit.
+Problem: CQ-I [FIXED] (6 sites) and CQ-S [FIXED] (1 site) both swept the arrow form only. 21
+block-form `} catch {` sites remain in `src/app/api` + `src/lib`. The CLAUDE.md rule inherited the
+flaw — it is phrased around `.catch(() => {})` specifically, so the block form was never in scope.
+Classified on inspection (not flagged by count):
+  - LEGITIMATE: `parse-body.ts:25` (JSON parse → 400), `redis-lock.ts:35,48` (discriminated result,
+    commented), `notify.ts:47` (commented cache fall-through).
+  - REAL SWALLOW: `dispatch.ts:76` + `dispatch.ts:101` — WhatsApp/SMS provider errors caught,
+    `return false`, zero logging. Same file CQ-S marked FIXED; CQ-S fixed line 45 and left these two.
+Impact: rejected Meta template / expired WA_ACCESS_TOKEN / Infobip 401 are indistinguishable from
+"user not opted in"; the retry cron then re-fires 3x against an unknowable failure.
+Recommended: log at both sites; re-scope the CLAUDE.md rule to behaviour not syntax.
+Nodes: `dispatchWhatsApp()`, `dispatchSms()` / `lib/notifications/dispatch.ts`. Refs: CQ-I, CQ-S.
+
+### CQ-AB — `(dbRaw as any)` on the password-reset flow [OPEN]
+
+Severity: Important
+Found: 2026-08-08 graph re-audit.
+Problem: 7 `as any` casts, 6 on auth-critical paths — `forgot-password:28,40`,
+`reset-password:18,35,36,40` — covering token lookup, expiry/usedAt validation and the bcrypt-write
+transaction. `dbRaw` is a plain typed PrismaClient and `passwordResetToken` is a real model.
+VERIFIED UNNECESSARY: compiled a probe calling `dbRaw.passwordResetToken.findUnique(...)` and
+`dbRaw.user.findUnique(...)` with no cast → `tsc --noEmit` exit 0, zero errors. Leftovers from
+before the model was generated.
+`admin/health:62` (`$metrics`) is the one legitimate cast — preview API genuinely absent from the type.
+Recommended: delete the 6 auth casts; replace the `$metrics` cast with a narrow local interface.
+Nodes: `POST /api/auth/forgot-password`, `POST /api/auth/reset-password`, `dbRaw`(#2), `GET /api/admin/health`.
+
+### CQ-AC — Route-test harness copy-pasted across half the suite [OPEN]
+
+Severity: Important
+Found: 2026-08-08 graph re-audit.
+Problem: across 126 test files — `makeReq` redefined in 61, `mockSession` in 59, `CTX` in 40,
+`mockNoSession` in 37, `makeCtx` in 29 (~226 copies of 5 functions). No shared unit-test helper
+module: `src/tests/` holds only `integration/`.
+This is CQ-P's finding (triplicated feature → extract shared hook) at 20x scale, in the layer no
+audit has covered. The NextRequest construction contract is frozen into 61 files; session-mock shape
+drifts per file; CLAUDE.md documents the pattern in prose because there is no module to point at.
+Recommended: add `src/tests/unit/route-harness.ts`; migrate incrementally; point CLAUDE.md at it.
+Nodes: `makeReq()`(61), `mockSession()`(59), `CTX`(40), `mockNoSession()`(37), `makeCtx()`(29). Refs: CQ-P.
+
+### CQ-AD — Venue-type consolidation stops at the seed layer [OPEN]
+
+Severity: Important
+Found: 2026-08-08 — immediate recurrence of the drift class fixed the same session (commit 9389d2af).
+Problem: `prisma/seed-demo.ts:38` is a 5th hardcoded venue-type list carrying the PRE-CHANGE six
+values (NIGHT_CLUB missing). Typed `VenueType[]`, so every element is valid and tsc stays silent —
+incomplete, not wrong. The guard added in 9389d2af (`display-maps.test.ts`) does NOT reach `prisma/`.
+Impact: demo/dev databases can never contain a night club, so the new "Noćni klub" filter chip and
+green map marker render against a dataset that structurally cannot exercise them.
+Recommended: `Object.values(VenueType)` in seed-demo so it cannot under-cover.
+Nodes: `VENUE_TYPES` / `prisma/seed-demo.ts:38`, `prisma/seed.ts`, `lib/formatting/display-maps.ts`.
+
+### DA-F — CQ-F mis-root-caused: phantom god nodes are label collisions, not staleness [OPEN]
+
+Severity: Critical
+Found: 2026-08-08 devil's-advocate pass. RECURRENCE + WRONG DIAGNOSIS of CQ-F [FIXED].
+Problem: CQ-F attributed phantom duplicate nodes to graph staleness and closed it by running
+`graphify update .`. Today's FRESH graph (HEAD 9389d2af) still emits phantoms, so staleness was not
+the cause.
+Evidence: god-node #9 is `VENUE_TYPES` at 36 edges, attributed to `(public)/venues/page.tsx:13` —
+a ONE-LINE constant. Its 36 edges are overwhelmingly symbols from a different file: `Section`,
+`AppFilter`, `VenueShift`, `Venue`, `TemplateMeta` … all from `(dashboard)/venue/venue-types.ts`.
+The identifier `VENUE_TYPES` and the module `venue-types.ts` normalize to the same key (nodes carry
+a `norm_label` field), so a trivial constant absorbed an entire type module's edge set.
+Two further phantoms: a `VENUE_TYPES` node at `admin/venues/page.tsx L18` where NO such declaration
+exists (verified by grep), and a duplicate at `(public)/venues/page.tsx L11` beside the real L13 one.
+Cross-check: `graphify explain "VENUE_TYPES"` returns the real node at degree 1 — against 36 in the
+god-node table.
+Why critical: the god-node table is this audit series' primary instrument. Three prior runs opened by
+validating against it and each declared it "clean". `graphify update` regenerates rather than fixes it.
+Recommended: verify per-node degree via `graphify explain` before trusting any god-node entry; inline
+the colliding `VENUE_TYPES` const; record that god-node rank is advisory.
+Nodes: `VENUE_TYPES`(#9, phantom), `venue-types.ts`. Refs: CQ-F.
+
+### DA-G — test-results/ neither gitignored nor graph-excluded [OPEN]
+
+Severity: Important
+Found: 2026-08-08 devil's-advocate pass.
+Problem: Playwright failure artifacts contribute 58 nodes to the graph. `.gitignore` has no
+`test-results` entry — 10 untracked directories plus a tracked, modified `test-results/.last-run.json`.
+No `.graphifyignore` exists.
+Impact: (1) the audit instrument is diluted with failure dumps, inflating the isolated-node count
+(659 → 923 across runs); (2) staging commit 9389d2af required hand-listing 12 paths to avoid
+sweeping traces/screenshots in — one `git add -A` away from committing binary Playwright traces.
+Recommended: gitignore `test-results/`, `playwright-report/`, `blob-report/`; `git rm --cached` the
+tracked file; add `.graphifyignore`.
+Nodes: `test-results/*` (58 nodes), `.gitignore`, `graphify-out/graph.json`. Refs: CQ-F, DA-F.
+
+---
+
+## Fix Pass — 2026-08-08 (branch `fix/audit-cq-z-through-da-g`)
+
+All eight findings from the 2026-08-08 re-audit fixed in one pass, one at a time, each
+verified before the next. Final state: tsc exit 0 · ESLint clean (2 pre-existing warnings)
+· **1357 unit tests / 112 files green** (was 1334/109) · `next build` exit 0.
+Integration tests deliberately NOT run — see CQ-AE.
+
+### CQ-Z — resolution [FIXED]
+
+Replaced the 9 hand-written blocks with one `excludeDeleted` callback applied over a
+`SOFT_DELETE_READ_OPS × SOFT_DELETE_MODELS` matrix. Coverage went from 3 read ops to 8
+(added `findFirstOrThrow`, `findUniqueOrThrow`, `count`, `aggregate`, `groupBy`). The
+9 `eslint-disable @typescript-eslint/no-explicit-any` lines are gone with it.
+Kept the model map explicit (`user/venue/jobPost` spelled out) rather than generated —
+building it with `Object.fromEntries` erases the extension's types and degrades `db` for
+all 210 of its callers. Verified: tsc exit 0 with `db` types intact.
+Removed the hand-rolled `deletedAt: null` from `api/waiters/route.ts` — duplicating the
+invariant is exactly what hid the gap.
+Also handled: an explicit caller-supplied `deletedAt` still wins (admin restore flows).
+Tests: `src/lib/core/__tests__/db-soft-delete-ops.test.ts`, 8 cases, incl. an op-coverage
+assertion that fails when a read op is added to Prisma but not to the array.
+Nodes: `excludeDeleted()` (new), `SOFT_DELETE_READ_OPS` (new), `lib/core/db.ts`, `GET /api/waiters`.
+
+### CQ-AA — resolution [FIXED]
+
+Root fix was the rule shape, not the instance. Added ESLint `no-restricted-syntax` banning
+`CatchClause[param=null]` across `src/lib/**` + `src/app/api/**` (`eslint.config.mjs`).
+`no-empty` does not cover this — it ignores blocks containing comments or statements, which
+is why every prior sweep missed the form.
+Ran the rule and swept all 21 sites it found:
+  - LOGGED (real swallows): `dispatch.ts` whatsapp + sms (the CQ-S leftovers),
+    `forgot-password` email send (`logger.error` — a broken SMTP config previously produced
+    no server signal at all), `notifications/stream` unread poll, `admin/stats`,
+    `notifications`, `waiters/coverage`, `waiters` search, `revocation`, `rate-limit` ×3,
+    `redis-lock` ×2, `notify` prefs cache.
+  - DISCARDED WITH A DOCUMENTED REASON (eslint-disable + why): `admin/health` ×3 (the
+    null/false IS the reported probe result), `parse-body` + `venues/[id]` website
+    (validation-by-exception — the 400 IS the handling), `notifications/stream` ×3
+    (controller closed = normal client disconnect, would log per closed tab).
+No PII in any new log line (no phone numbers).
+CLAUDE.md rule re-scoped to behaviour: "never discard a server-side error — in any syntax".
+Nodes: `eslint.config.mjs`, `dispatchWhatsApp()`, `dispatchSms()`, + 12 route/lib files.
+
+### CQ-AB — resolution [FIXED]
+
+Deleted all 6 auth casts and both file-level `/* eslint-disable @typescript-eslint/no-explicit-any */`
+headers (`forgot-password`, `reset-password`). Replaced the `$metrics` cast with a declared
+`PrismaMetricsApi` structural type, which also removed the inner `(g: any)` in the gauge lookup.
+`any` in non-test `src/`: 23 → 5. `dbRaw as any`: 7 → 0.
+Nodes: `POST /api/auth/forgot-password`, `POST /api/auth/reset-password`, `GET /api/admin/health`.
+
+### CQ-AC — resolution [PARTIALLY FIXED]
+
+Added `src/tests/unit/route-harness.ts` — `getReq`, `jsonReq`, `postReq`/`patchReq`/`putReq`,
+`CTX`, `ctxWith`, `mockSession`, `mockNoSession`. `vi.mock(...)` stays in the caller (Vitest
+hoists it); the harness only removes what follows.
+Migrated 3 files as proof (`admin/health`, `admin/leaderboard`, `admin/activity`) — all green.
+Deliberately PARTIAL: converting the remaining ~58 files is mechanical churn with real
+review cost and no behaviour change. CLAUDE.md now forbids new local copies and asks for
+opportunistic conversion when a test file is touched. Re-scope to [FIXED] once the count is
+near zero; the harness existing is what stops the bleeding.
+Nodes: `src/tests/unit/route-harness.ts` (new), 3 migrated test files.
+
+### CQ-AD — resolution [FIXED]
+
+`prisma/seed-demo.ts` now derives all four enum lists with `Object.values()` — `VENUE_TYPES`,
+`ENGAGEMENTS`, `TIPS`, `VERIF` — after switching `@prisma/client` from `type` imports to value
+imports. Fixed the whole class, not just the venue-type instance: the other three were complete
+today but carried identical drift risk.
+Nodes: `prisma/seed-demo.ts`.
+
+### CQ-AE — NEW, found during the fix pass [FIXED]
+
+Severity: Critical
+Found: 2026-08-08 while verifying CQ-Z — discovered before running anything, not after.
+Problem: `resetDb()` TRUNCATEs every application table and reads whatever `DATABASE_URL` is in
+`.env`. On this machine that is the **production Supabase pooler**. `npm run test:integration`
+would have wiped production with no prompt, no confirmation and no undo. Nothing in the repo
+prevented it; `src/tests/integration/setup.ts` only checks that the URL *connects*.
+This is also why the CQ-Z verification used a unit test rather than the existing
+`db-soft-delete.integration.test.ts`.
+Fix: `assertResettableDatabase()` runs first inside `resetDb()` and throws unless the host is
+loopback / a Docker Compose service name (`localhost`, `127.0.0.1`, `::1`, `db`, `postgres`,
+`postgresql`) or the database name contains `test`. `ALLOW_DESTRUCTIVE_DB_RESET=1` overrides it
+for genuinely ephemeral CI databases. The refusal message names the host and database so the
+mistake is obvious, and points at Docker Compose.
+Tests: `src/tests/unit/__tests__/db-reset-guard.test.ts`, 9 cases (refuses Supabase, allows
+localhost/127.0.0.1/compose host, allows `*_test` DB names, honours the opt-out, refuses unset
+and unparseable URLs). Deliberately a unit test — it must prove we do NOT touch a database.
+One test caught a real subtlety during writing: `assertResettableDatabase(undefined)` falls
+through to the default parameter and reads the env var, so "no URL configured" had to be tested
+by clearing `process.env.DATABASE_URL`, not by passing `undefined`.
+Nodes: `assertResettableDatabase()` (new), `resetDb()` / `src/tests/integration/db-reset.ts`.
+
+### DA-F — resolution [FIXED]
+
+Renamed the colliding constant `VENUE_TYPES` → `TYPE_FILTERS` in `(public)/venues/page.tsx`.
+That alone did NOT clear the phantom, and chasing why produced a much larger finding.
+
+**Corrected root cause — `graphify update` never prunes deleted symbols.** Evidence, in order:
+  1. After the rename, the 36-edge `VENUE_TYPES` node persisted, still sourced at
+     `venues/page.tsx` L13 — which by then was a *comment* mentioning the old name. Comments
+     are indexed, so the explanatory comment recreated the node. Reworded to drop the token.
+  2. The node STILL persisted with the token absent from the file entirely.
+  3. `graphify update . --force` refused: "No code-graph topology changes detected".
+  4. `rm graphify-out/graph.json && graphify update .` finally cleared it.
+
+Measured on the same commit:
+
+| | nodes | edges | communities | `db` edges | test-results nodes |
+|---|---|---|---|---|---|
+| incremental `update` | 3625 | 8624 | 252 | 210 | 58 |
+| clean rebuild | **2407** | **4582** | 177 | **116** | **0** |
+
+**A third of the nodes and nearly half the edges were phantom.** This retroactively invalidates
+every "god-nodes clean, all legit infra" validation in this log (2026-06-18, 07-09, 07-23,
+08-08) — they were reading roughly doubled degrees. CQ-F was right that staleness was the
+problem and wrong about the remedy: `graphify update .` is exactly what does NOT fix it.
+Fix: CLAUDE.md now documents `rm graphify-out/graph.json && graphify update .` as the required
+pre-audit step, keeps `graphify explain` as the per-node cross-check, and records that local
+identifiers (and comments) must avoid module basenames.
+Nodes: `TYPE_FILTERS` (renamed), `(public)/venues/page.tsx`, CLAUDE.md, CQ-F (superseded).
+
+### DA-G — resolution [FIXED]
+
+`.gitignore` now covers `test-results/`, `playwright-report/`, `blob-report/`,
+`playwright/.cache/`; `git rm --cached test-results/.last-run.json` untracked the one tracked
+artifact. `git status` is now clean of Playwright noise — staging no longer requires
+hand-listing paths.
+A `.graphifyignore` was written and then **removed**: the graphify CLI has no such option
+(`graphify --help` lists none), so shipping it would have been dead config that looked load-bearing.
+Graph exclusion is handled by `.gitignore` instead — a clean rebuild honours it, taking
+test-results from 58 nodes to **0**. The earlier incremental refreshes still showed 54 because
+of the DA-F pruning bug, not because the ignore failed.
+Nodes: `.gitignore`, `graphify-out/graph.json`.

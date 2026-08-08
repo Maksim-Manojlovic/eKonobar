@@ -10,7 +10,12 @@ import { VENUE_TYPE_OPTIONS } from "@/lib/formatting/display-maps";
 const MapSearch = dynamic(() => import("@/components/map/MapSearch"), { ssr: false });
 
 // "" = no filter, then every type from the shared taxonomy.
-const VENUE_TYPES = [{ value: "", label: "Svi tipovi" }, ...VENUE_TYPE_OPTIONS];
+// Deliberately NOT named after the venue-type module in the venue dashboard: that
+// basename normalizes to the same graph key, and Graphify merges the two so this
+// one-line constant absorbs the whole module's edge set (DA-F). Keep local
+// identifiers distinct from module basenames — including inside comments, which
+// are indexed too.
+const TYPE_FILTERS = [{ value: "", label: "Svi tipovi" }, ...VENUE_TYPE_OPTIONS];
 
 type Venue = VenueCardProps & { id: string };
 
@@ -59,7 +64,7 @@ export default function VenuesPage() {
             className="auth-input flex-1"
           />
           <div className="flex gap-2 flex-wrap">
-            {VENUE_TYPES.map(({ value, label }) => (
+            {TYPE_FILTERS.map(({ value, label }) => (
               <button
                 key={value}
                 onClick={() => setTypeFilter(value)}

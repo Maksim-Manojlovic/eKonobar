@@ -83,7 +83,26 @@ Three patterns in use:
 
 - **Pure function tests** (co-located `__tests__/` in each `src/lib/` subdirectory) — no mocking; test trust-score and geofence helpers directly.
 - **Route handler unit tests** (`*.test.ts`) — mock `next-auth`, `@/lib/core/db`, and `@/lib/notifications/side-effects`; call the exported handler directly; assert on `Response.status` and mock call args. Mock at module level with `vi.mock(...)` before imports, `vi.clearAllMocks()` in `beforeEach`. Routes that use `notify` directly (not `fireSideEffects`) still need `await new Promise(r => setTimeout(r, 0))` to flush fire-and-forget calls.
-- **Integration tests** (`*.integration.test.ts`) — real PostgreSQL, no DB mocking. Use `resetDb()` in `beforeEach`. Mock only: `next-auth` + `@/lib/auth/config` (session), `@/lib/notifications/side-effects` (fire-and-forget), and pure crypto helpers already covered by unit tests. Seed helpers: `seedUser`, `seedVenue`, `seedPassport` from `@/tests/integration/db-reset`. Route handlers typed as `(req, ctx)` — always pass a second arg: `const CTX = { params: Promise.resolve({}) }` for non-dynamic routes, or `{ params: Promise.resolve({ id }) }` for `[id]` routes.
+- **Integration tests** (`*.integration.test.ts`) — real PostgreSQL, no DB mocking. Use `resetDb()` in `beforeEach`. Mock only: `next-auth` + `@/lib/auth/config` (session), `@/lib/notifications/side-effects` (fire-and-forget), and pure crypto helpers already covered by unit tests. Seed helpers: `seedUser`, `seedVenue`, `seedPassport` from `@/tests/integration/db-reset`. Route handlers typed as `(req, ctx)` — always pass a second arg: `CTX` for non-dynamic routes, or `ctxWith({ id })` for `[id]` routes.
+
+### Route-test harness — do not re-declare the boilerplate
+
+`src/tests/unit/route-harness.ts` is the **single** source for route-test plumbing: `getReq`, `postReq`/`patchReq`/`putReq`/`jsonReq`, `CTX`, `ctxWith`, `mockSession`, `mockNoSession`.
+
+```typescript
+vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));   // stays in the test file — Vitest hoists it
+vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
+
+import { getReq, postReq, CTX, ctxWith, mockSession, mockNoSession } from "@/tests/unit/route-harness";
+```
+
+Before this existed, `makeReq` was hand-defined in 61 test files, `mockSession` in 59, `CTX` in 40 and `mockNoSession` in 37 — ~226 copies of five functions, which froze the `NextRequest` construction contract into every one of them. Never write a local `makeReq`/`mockSession`/`CTX` again. Existing files migrate opportunistically: when you touch a test file, convert it.
+
+### resetDb refuses non-local databases
+
+`resetDb()` TRUNCATEs **every** application table using whatever `DATABASE_URL` is in `.env` — which on a dev machine is routinely the shared Supabase instance. `assertResettableDatabase()` now runs first and throws unless the host is loopback / a Compose service name, or the database name contains `test`.
+
+Run integration tests against Docker Compose (`docker compose up -d && npm run db:push`). `ALLOW_DESTRUCTIVE_DB_RESET=1` overrides the guard — set it only for a genuinely ephemeral CI database, never locally.
 
 ## Critical Patterns
 
@@ -95,6 +114,10 @@ Three patterns in use:
 - `lib/core/rate-limit.ts` — uses `dbRaw` directly
 
 Use `dbRaw` for those cases.
+
+**The filter must cover every read operation.** `SOFT_DELETE_READ_OPS` in `lib/core/db.ts` lists all eight (`findMany`, `findFirst`, `findUnique`, `findFirstOrThrow`, `findUniqueOrThrow`, `count`, `aggregate`, `groupBy`) and `SOFT_DELETE_MODELS` the three models that carry `deletedAt`. It previously covered only the first three, so `count`/`aggregate`/`groupBy` silently returned deleted rows while this file promised they could not — no type error, no exception, just deleted people in a total. If Prisma gains a read op, add it to the array **and** to `db-soft-delete-ops.test.ts`, which asserts the list.
+
+Never hand-write `deletedAt: null` into a `where` passed to `db`. Duplicating the invariant is what hid the gap: `GET /api/waiters` re-added it by hand, which made the missing `count` coverage invisible. Writes are deliberately unfiltered — restoring a soft-deleted row has to reach it.
 
 ### Prisma JSON null
 
@@ -358,7 +381,9 @@ Use `logger` in lib modules and in cron/admin route fire-and-forget callbacks. T
 someAsyncOp().catch(err => logger.error({ err, contextId }, "op failed in route-name"));
 ```
 
-Never swallow a server-side fire-and-forget with bare `.catch(() => {})`. Always log: `logger.warn` for best-effort ops where failure is non-fatal (Redis cache writes/busts, metric counters), `logger.error` for load-bearing ops where a silent failure leaves bad state (e.g. a payment status update). Bare empty catches are acceptable only for genuinely cosmetic client-side UX (clipboard copy, background poll refresh).
+**Never discard a server-side error — in any syntax.** That means both `.catch(() => {})` and `} catch {`. The rule used to name only the arrow form, so two separate audits swept it and left the block form untouched; that is how WhatsApp/SMS provider failures stayed silent through two "fixed" findings. Always log: `logger.warn` for best-effort ops where failure is non-fatal (Redis cache reads/writes/busts, metric counters, lock release), `logger.error` for load-bearing ops where a silent failure leaves bad state (a payment status update, a password-reset email that never sends). Bare empty catches are acceptable only for genuinely cosmetic client-side UX (clipboard copy, background poll refresh).
+
+Enforced by ESLint: `no-restricted-syntax` bans `CatchClause[param=null]` across `src/lib/**` and `src/app/api/**` (`eslint.config.mjs`). `no-empty` does **not** cover this — it ignores blocks containing comments or statements. Binding the error also re-arms `no-unused-vars`, so it has to be used. A deliberate discard stays legal with an `// eslint-disable-next-line no-restricted-syntax` plus the reason; the existing ones are health probes (the null/false *is* the reported result), validation-by-exception (the 400 *is* the handling), and SSE controller closes (fires on every client disconnect).
 
 `console.error` is acceptable only in truly ephemeral callbacks where the context is obvious (e.g. simple client-side fetch handlers). Do **not** use `console.error` in lib modules or cron routes — pino outputs structured JSON in production; `console.error` bypasses it and produces unstructured stderr with no request context. This applies to boot-time code too: `lib/core/env.ts` env-var validation warnings go through `logger.warn`, not `console.warn` (`logger.ts` imports only `pino`, so importing it at module-load is cycle-free).
 
@@ -428,6 +453,8 @@ Each dashboard is split across several co-located files. Do not put shared helpe
 **Display maps:** Always import `*_COLORS` and `*_LABELS` constants from `lib/formatting/display-maps.ts`. Do not define them inline in a page.
 
 **Venue type is a taxonomy, not a behavior switch.** `VenueType` (`RESTAURANT | CAFE | BAR | NIGHT_CLUB | CATERING | HOTEL | EVENT`) exists for display, filtering and map color only. Never branch functionality on it directly — add a nullable capability flag on `Venue`, defaulted from the type, and branch on that. `kitchenEnabled` + `hasKitchen()` in `lib/staff/positions.ts` is the reference implementation: null means "derive from `venueType`", an explicit boolean wins, which covers the bar that started serving food without a schema change. Forking a feature per type multiplies every surface and reopens every switch when a type is added.
+
+Seed data derives too: `prisma/seed-demo.ts` builds `VENUE_TYPES` / `ENGAGEMENTS` / `TIPS` / `VERIF` with `Object.values(<Enum>)` (value imports, not `type` imports). A hand-listed seed array silently under-covers — the old one predated `NIGHT_CLUB`, so no demo or dev database could contain a night club and the new filter chip had nothing to match.
 
 Pickers, chips and icons all derive from `VENUE_TYPE_LABELS` / `VENUE_TYPE_ICONS` / `VENUE_TYPE_OPTIONS` in `display-maps.ts`. Four hand-written copies previously drifted — `NIGHT_CLUB`/`NIGHTCLUB` were offered in the passport picker and landing art while absent from the enum (so they matched nothing), and `EVENT` was missing from the pickers. `src/lib/formatting/__tests__/display-maps.test.ts` asserts labels, icons and `VENUE_TYPE_MARKER` each cover the enum exactly — a new enum value fails there until all three are filled in.
 
@@ -1228,3 +1255,21 @@ Admin surfaces that reported on this product (`stats.payments`, `leaderboard.rev
 `VerificationTier` (`UNVERIFIED | SILVER | GOLD | ID_VERIFIED`) records *which evidence* was checked, not a rank — GOLD (owner invite code) is not "better than" ID_VERIFIED (government ID). Render it as a binary badge plus the named evidence, via `<VerifiedBadge />` and `<VerificationProofChip />` from `components/ui/PassportWidgets.tsx`.
 
 The old `TIER_BADGE` / `NEXT_TIER` display maps (BRONZE → SILVER → GOLD → PLATINUM) are deleted. They never matched the DB: BRONZE and PLATINUM were unreachable enum values while UNVERIFIED and ID_VERIFIED had no entry, so `TIER_BADGE[tier] ?? TIER_BADGE.BRONZE` rendered "BRONZE" for the platform's *most* verified users. `NEXT_VERIFICATION_STEP` in `waiter-constants.ts` replaces `NEXT_TIER` — it holds the next concrete action, not the next metal.
+
+## Graphify graph — read the god-node table as advisory
+
+The technical-debt audits in `tech_debt_audit.md` reason from `graphify-out/`. Three things to know:
+
+**`graphify update .` never prunes deleted symbols — and neither does `--force`.** It adds and refreshes; nodes for code that no longer exists persist forever. Measured on 2026-08-08: the incrementally-updated graph reported **3625 nodes / 8624 edges**, a from-scratch rebuild of the same commit reported **2407 / 4582**. A third of the nodes and nearly half the edges were phantom. Every "god-nodes clean" validation in this log before that date was reading inflated numbers (`db` showed 210 edges; the real figure is 116).
+
+To get a trustworthy graph, delete the file first:
+
+```bash
+rm graphify-out/graph.json && graphify update .
+```
+
+Plain `graphify update .` is still right for day-to-day freshness after edits. **Do a clean rebuild before any audit**, and after any refactor that deletes or renames code.
+
+**God-node rank is advisory — verify per node.** Graphify keys nodes on a normalized label, so a local identifier matching a module basename absorbs that module's edges. Confirm a suspicious hub with `graphify explain "<name>"`, which reports the real per-node degree, before building a finding on it. Keep local identifiers distinct from module basenames — comments are indexed too, so naming the colliding token even in a comment recreates the node.
+
+**A clean rebuild honours `.gitignore`.** `test-results/` contributed 58 nodes before it was ignored and 0 after. There is no `.graphifyignore` — the CLI has no such option; use `.gitignore`.

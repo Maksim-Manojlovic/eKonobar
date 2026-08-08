@@ -12,7 +12,9 @@
  * DOUBLE-CHECK which database DATABASE_URL points at before running — this
  * writes 60+ rows.
  */
-import { PrismaClient, type VenueType, type VerificationTier, type EngagementType, type TipSystem } from "@prisma/client";
+// Value imports (not `type`) — the enum lists below are derived from these at
+// runtime so a new enum member cannot be silently missed by the seed.
+import { PrismaClient, VenueType, VerificationTier, EngagementType, TipSystem } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { BELGRADE_MUNICIPALITIES } from "../src/lib/geo/municipalities";
 
@@ -35,10 +37,14 @@ const OPSTINA_CENTER: Record<string, [number, number]> = {
   "Surčin":       [20.281, 44.796],
 };
 
-const VENUE_TYPES: VenueType[] = ["RESTAURANT", "CAFE", "BAR", "CATERING", "HOTEL", "EVENT"];
-const ENGAGEMENTS: EngagementType[] = ["FULL_TIME", "SEASONAL", "WEEKEND", "CELEBRATION"];
-const TIPS: TipSystem[] = ["INDIVIDUAL", "SHARED", "VENUE_POLICY"];
-const VERIF: VerificationTier[] = ["UNVERIFIED", "SILVER", "GOLD", "ID_VERIFIED"];
+// Derived from the enums, never hand-listed. The hardcoded VENUE_TYPES here was
+// written before NIGHT_CLUB existed and silently kept seeding only six types, so
+// no demo or dev database could ever contain a night club — which made the new
+// filter chip and map marker impossible to exercise against seeded data.
+const VENUE_TYPES: VenueType[]        = Object.values(VenueType);
+const ENGAGEMENTS: EngagementType[]   = Object.values(EngagementType);
+const TIPS: TipSystem[]               = Object.values(TipSystem);
+const VERIF: VerificationTier[]       = Object.values(VerificationTier);
 const SKILLS = ["fine dining", "cocktails", "kafe aparat", "sommelier", "brza usluga", "šank", "catering", "vinska karta"];
 const LANGS = ["srpski", "engleski", "nemački", "ruski", "italijanski"];
 

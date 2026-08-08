@@ -52,8 +52,8 @@ export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async () => {
     try {
       const cached = await redis.get(CACHE_KEY);
       if (cached) return NextResponse.json(JSON.parse(cached));
-    } catch {
-      // Redis error — fall through to a direct DB compute.
+    } catch (err) {
+      logger.warn({ err }, "waiter coverage: redis cache read failed");
     }
   }
 
