@@ -112,6 +112,9 @@ export const PATCH = withRole<Ctx>("VENUE_OWNER", async (req, ctx, session) => {
     try {
       const u = new URL(website);
       if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error();
+      // Validation by exception — the throw above is ours and carries no message.
+      // The 400 is the handling. Deliberately discarded.
+      // eslint-disable-next-line no-restricted-syntax
     } catch {
       return NextResponse.json({ error: "website mora biti http/https URL" }, { status: 400 });
     }

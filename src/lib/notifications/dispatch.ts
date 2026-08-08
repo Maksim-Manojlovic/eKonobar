@@ -73,7 +73,11 @@ export async function dispatchWhatsApp(
         await sendWhatsApp(phone, title, body);
         span.setAttribute("delivered", true);
         return true;
-      } catch {
+      } catch (err) {
+        // Must log: the boolean alone makes a rejected Meta template, an expired
+        // WA_ACCESS_TOKEN and a plain rate-limit indistinguishable from "not
+        // opted in" — and the retry cron then re-fires 3× with no diagnostic.
+        logger.warn({ err, channel: "whatsapp" }, "whatsapp dispatch failed");
         span.setAttribute("delivered", false);
         return false;
       }
@@ -98,7 +102,8 @@ export async function dispatchSms(
         await sendSms(phone, buildSmsText(title, body, link));
         span.setAttribute("delivered", true);
         return true;
-      } catch {
+      } catch (err) {
+        logger.warn({ err, channel: "sms" }, "sms dispatch failed");
         span.setAttribute("delivered", false);
         return false;
       }

@@ -17,8 +17,8 @@ export const GET = withAuth(async (_req, _ctx, session) => {
     try {
       const cached = await redis.get(cacheKey);
       if (cached) return NextResponse.json(JSON.parse(cached));
-    } catch {
-      // Redis error — fall through to DB.
+    } catch (err) {
+      logger.warn({ err }, "notifications: redis cache read failed");
     }
   }
 

@@ -44,8 +44,8 @@ async function getCachedDispatchUser(userId: string): Promise<DispatchUser> {
     try {
       const cached = await redis.get(key);
       if (cached !== null) return JSON.parse(cached) as DispatchUser;
-    } catch {
-      // Redis error — fall through to DB.
+    } catch (err) {
+      logger.warn({ err }, "notify: redis prefs cache read failed");
     }
   }
 

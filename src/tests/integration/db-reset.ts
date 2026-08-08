@@ -1,6 +1,53 @@
 import { dbRaw } from "@/lib/core/db";
 
 /**
+ * Refuses to truncate anything that is not obviously a throwaway database.
+ *
+ * `resetDb()` TRUNCATEs every application table and reads whatever `DATABASE_URL`
+ * happens to be in `.env`. On a developer machine that variable routinely points
+ * at the shared Supabase instance — so a stray `npm run test:integration` wipes
+ * production with no prompt and no undo. The cost of being wrong here is total
+ * and irreversible, so the default is to refuse.
+ *
+ * A host is considered safe when it is loopback, a Docker Compose service name,
+ * or the database name is explicitly marked as a test database. Anything else
+ * (Supabase, RDS, Neon, Railway …) requires `ALLOW_DESTRUCTIVE_DB_RESET=1`,
+ * which CI sets against its own ephemeral database.
+ */
+const SAFE_HOSTS = ["localhost", "127.0.0.1", "::1", "db", "postgres", "postgresql"];
+
+export function assertResettableDatabase(rawUrl = process.env.DATABASE_URL): void {
+  if (process.env.ALLOW_DESTRUCTIVE_DB_RESET === "1") return;
+
+  if (!rawUrl) {
+    throw new Error("[db-reset] DATABASE_URL is not set — refusing to TRUNCATE.");
+  }
+
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    throw new Error("[db-reset] DATABASE_URL is not a parseable URL — refusing to TRUNCATE.");
+  }
+
+  const host   = url.hostname.toLowerCase();
+  const dbName = url.pathname.replace(/^\//, "").toLowerCase();
+
+  const hostIsLocal  = SAFE_HOSTS.includes(host);
+  const nameIsTestDb = dbName.includes("test");
+
+  if (hostIsLocal || nameIsTestDb) return;
+
+  throw new Error(
+    `[db-reset] REFUSING to TRUNCATE every table on host "${host}" (database "${dbName}").\n` +
+    `This does not look like a local or test database, and resetDb() is irreversible.\n` +
+    `Run integration tests against Docker Compose:\n` +
+    `  docker compose up -d && npm run db:push\n` +
+    `If this really is a throwaway database, set ALLOW_DESTRUCTIVE_DB_RESET=1.`,
+  );
+}
+
+/**
  * Truncates every application table in a single PostgreSQL round-trip.
  * RESTART IDENTITY resets sequences; CASCADE resolves FK ordering automatically.
  * ~5 ms on a local PostgreSQL 15 instance with an open connection pool.
@@ -10,6 +57,7 @@ import { dbRaw } from "@/lib/core/db";
  *   beforeEach(async () => { await resetDb(); });
  */
 export async function resetDb(): Promise<void> {
+  assertResettableDatabase();
   await dbRaw.$executeRawUnsafe(`
     TRUNCATE TABLE
       "AuditLog",

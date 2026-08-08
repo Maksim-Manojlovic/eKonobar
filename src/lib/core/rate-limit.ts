@@ -1,5 +1,6 @@
 import { dbRaw } from "@/lib/core/db";
 import { redis } from "@/lib/core/redis";
+import logger from "@/lib/core/logger";
 
 // ── Anonymous / pre-auth limiter ──────────────────────────────────────────────
 //
@@ -23,8 +24,10 @@ export async function rateLimit(
       // Set TTL only on the first increment — avoids resetting expiry on every hit.
       if (count === 1) await redis.pexpire(redisKey, windowMs + 10_000);
       return count <= max;
-    } catch {
-      // Transient Redis error — fall through to DB so requests aren't blocked.
+    } catch (err) {
+      // Fall through to DB so requests aren't blocked — but a silent fallback
+      // here means the DB is quietly absorbing attack traffic Redis should hold.
+      logger.warn({ err, key }, "anon rate limit: redis path failed, using DB");
     }
   }
 
@@ -49,8 +52,8 @@ export async function resetRateLimit(key: string): Promise<void> {
         cursor = next;
         if (keys.length > 0) await redis.del(...keys as [string, ...string[]]);
       } while (cursor !== "0");
-    } catch {
-      // Fall through to DB delete.
+    } catch (err) {
+      logger.warn({ err, key }, "rate limit reset: redis scan/del failed, using DB");
     }
   }
   await dbRaw.anonRateLimit.deleteMany({ where: { key } });
@@ -79,8 +82,8 @@ export async function checkRateLimit(
       const count        = await redis.incr(redisKey);
       if (count === 1) await redis.pexpire(redisKey, windowMs + 10_000);
       return count <= max;
-    } catch {
-      // Transient Redis error — fall through to DB.
+    } catch (err) {
+      logger.warn({ err, userId, action }, "auth rate limit: redis path failed, using DB");
     }
   }
 

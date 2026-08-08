@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
 vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
@@ -12,27 +11,16 @@ vi.mock("@/lib/core/db", () => ({
   },
 }));
 
-import { getServerSession } from "next-auth";
 import { dbRaw } from "@/lib/core/db";
 import { GET } from "../route";
+import { getReq, CTX, mockNoSession, mockSession as setSession } from "@/tests/unit/route-harness";
 
 const NOW = new Date("2025-01-10T12:00:00Z");
 const EARLIER = new Date("2025-01-10T11:00:00Z");
 const EARLIEST = new Date("2025-01-10T10:00:00Z");
 
-function mockSession(role = "ADMIN") {
-  vi.mocked(getServerSession).mockResolvedValue({ user: { id: "admin-1", role } } as never);
-}
-
-function mockNoSession() {
-  vi.mocked(getServerSession).mockResolvedValue(null);
-}
-
-function makeReq() {
-  return new NextRequest("http://localhost/api/admin/activity");
-}
-
-const CTX = { params: Promise.resolve({}) };
+const mockSession = (role = "ADMIN") => setSession(role, "admin-1");
+const makeReq = () => getReq("http://localhost/api/admin/activity");
 
 function setupDefaultMocks() {
   vi.mocked(dbRaw.user.findMany).mockResolvedValue([

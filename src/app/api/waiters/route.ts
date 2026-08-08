@@ -36,9 +36,11 @@ export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async (req, _ctx) => 
   // Reach filter: waiters who declared they will work in this municipality.
   if (municipality)           passportFilter.workMunicipalities = { has: municipality };
 
+  // No `deletedAt: null` here — `db` injects it into every read, `count` included
+  // (lib/core/db.ts). It used to be repeated by hand, which is what hid the fact
+  // that the filter did not actually cover `count`.
   const where = {
     role: "WAITER" as const,
-    deletedAt: null,
     ...(tierParam && Object.values(VerificationTier).includes(tierParam) && {
       verificationTier: tierParam,
     }),
@@ -75,8 +77,10 @@ export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async (req, _ctx) => 
       cacheKey = `search:waiters:${gen}:${filterHash}`;
       const cached = await redis.get(cacheKey);
       if (cached) return NextResponse.json(JSON.parse(cached));
-    } catch {
+    } catch (err) {
+      // Disable the write-back too — if the read failed the key is unusable.
       cacheKey = null;
+      logger.warn({ err }, "waiters search: redis cache read failed");
     }
   }
 

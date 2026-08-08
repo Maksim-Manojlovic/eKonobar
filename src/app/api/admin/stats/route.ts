@@ -84,8 +84,10 @@ async function getCachedStats(): Promise<StatsPayload> {
     try {
       const cached = await redis.get(STATS_CACHE_KEY);
       if (cached) return JSON.parse(cached) as StatsPayload;
-    } catch {
-      // Redis error — fall through to direct DB query.
+    } catch (err) {
+      // Best-effort — fall through to a direct DB query, but never silently:
+      // a permanently unreachable Redis just looks like a slow endpoint.
+      logger.warn({ err }, "admin stats: redis cache read failed");
     }
   }
 

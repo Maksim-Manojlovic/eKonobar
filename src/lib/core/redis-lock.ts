@@ -1,4 +1,5 @@
 import { redis } from "@/lib/core/redis";
+import logger from "@/lib/core/logger";
 import crypto from "crypto";
 
 // Lua script: release lock only if the token matches — prevents a slow holder
@@ -32,7 +33,10 @@ export async function acquireLock(key: string, ttlMs = 5000): Promise<LockResult
     return ok === "OK"
       ? { acquired: true, token }
       : { acquired: false, reason: "contended" };
-  } catch {
+  } catch (err) {
+    // Callers fail-open on "unavailable", so this is the only place the outage
+    // is visible — without it, lost mutual exclusion looks like normal traffic.
+    logger.warn({ err, key }, "distributed lock unavailable — Redis acquire failed");
     return { acquired: false, reason: "unavailable" };
   }
 }
@@ -45,7 +49,8 @@ export async function releaseLock(key: string, token: string): Promise<void> {
   if (!redis) return;
   try {
     await redis.eval(RELEASE_SCRIPT, 1, key, token);
-  } catch {
+  } catch (err) {
     // Non-fatal — lock expires via TTL if release fails.
+    logger.warn({ err, key }, "distributed lock release failed — falling back to TTL expiry");
   }
 }

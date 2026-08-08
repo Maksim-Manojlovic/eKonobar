@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import { randomBytes }  from "crypto";
 import { dbRaw }        from "@/lib/core/db";
@@ -6,6 +5,7 @@ import { sendPasswordResetEmail } from "@/lib/integrations/email";
 import { rateLimit } from "@/lib/core/rate-limit";
 import { getClientIp } from "@/lib/core/ip";
 import { parseBody } from "@/lib/auth/parse-body";
+import logger from "@/lib/core/logger";
 import { z } from "zod";
 
 const ForgotSchema = z.object({
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   const normalized = parsed.data.email.toLowerCase().trim();
 
   // Always return 200 — never reveal if email exists (enumeration prevention)
-  const user = await (dbRaw as any).user.findUnique({
+  const user = await dbRaw.user.findUnique({
     where: { email: normalized },
     select: { id: true, hashedPassword: true },
   });
@@ -37,14 +37,17 @@ export async function POST(req: Request) {
   const token     = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-  await (dbRaw as any).passwordResetToken.create({
+  await dbRaw.passwordResetToken.create({
     data: { userId: user.id, token, expiresAt },
   });
 
   try {
     await sendPasswordResetEmail(normalized, token);
-  } catch {
-    // Don't expose email send failures to the client
+  } catch (err) {
+    // The client still gets 200 (enumeration prevention), but the operator must
+    // be able to see this: a broken SMTP config otherwise presents as "reset
+    // emails never arrive" with nothing at all in the logs.
+    logger.error({ err, userId: user.id }, "password reset email failed to send");
   }
 
   return NextResponse.json({ ok: true });

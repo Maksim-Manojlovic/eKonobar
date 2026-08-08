@@ -22,6 +22,10 @@ export async function parseBody<T>(
 
   try {
     raw = await req.json();
+    // Malformed JSON is a client error, not a server fault. The 400 below IS the
+    // handling; the parser's message adds nothing and would log on every bad bot
+    // request. Deliberately discarded.
+    // eslint-disable-next-line no-restricted-syntax
   } catch {
     return {
       ok: false,
