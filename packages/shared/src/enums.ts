@@ -228,3 +228,20 @@ export const INVITE_STATUSES = {
   DECLINED: "DECLINED",
   EXPIRED:  "EXPIRED",
 } as const satisfies EnumOf<InviteStatus>;
+
+// ── Value-derived types ───────────────────────────────────────────────────────
+//
+// The unions above are also available from @prisma/client, but apps/mobile has no
+// reason to depend on the Prisma package at all — not even for types — so the
+// unions are re-derived from the objects here. Identical by construction, since
+// the objects are `satisfies EnumOf<PrismaEnum>` and the parity test enforces it.
+
+export type RoleValue              = (typeof ROLES)[keyof typeof ROLES];
+export type VerificationTierValue  = (typeof VERIFICATION_TIERS)[keyof typeof VERIFICATION_TIERS];
+export type VenueTypeValue         = (typeof VENUE_TYPES)[keyof typeof VENUE_TYPES];
+export type ApplicationStatusValue = (typeof APPLICATION_STATUSES)[keyof typeof APPLICATION_STATUSES];
+export type ShiftStatusValue       = (typeof SHIFT_STATUSES)[keyof typeof SHIFT_STATUSES];
+export type NotificationTypeValue  = (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES];
+export type ReviewDirectionValue   = (typeof REVIEW_DIRECTIONS)[keyof typeof REVIEW_DIRECTIONS];
+export type InviteStatusValue      = (typeof INVITE_STATUSES)[keyof typeof INVITE_STATUSES];
+export type LeaveStatusValue       = (typeof LEAVE_STATUSES)[keyof typeof LEAVE_STATUSES];

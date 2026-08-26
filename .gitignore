@@ -10,6 +10,13 @@ out/
 # Turborepo task cache
 .turbo/
 
+# Expo (apps/mobile)
+.expo/
+dist/
+*.orig.*
+web-build/
+expo-env.d.ts
+
 # Production build
 build/
 

@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "eKonobar",
+    "slug": "ekonobar",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "ekonobar",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "rs.ekonobar.app"
+    },
+    "android": {
+      "package": "rs.ekonobar.app",
+      "edgeToEdgeEnabled": true
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#f97316"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "eKonobar koristi tvoje fotografije za profilnu sliku i fotografije lokala.",
+          "cameraPermission": "eKonobar koristi kameru za profilnu sliku, fotografije lokala i skeniranje sanitarne knjižice."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

@@ -25,6 +25,14 @@ export const colors = {
     800: "#262626",
     900: "#171717",
   },
+  // Dark dashboard shell. Used by the web venue/waiter/headhunter/admin
+  // dashboards and by every screen in the mobile app, so it lives here rather
+  // than being retyped as a hex literal in either client.
+  shell: {
+    bg:     "#120a00", // page ground, with the orange-brown grid over it
+    nav:    "#0e0700", // sidebar on web, tab bar on mobile
+    border: "rgba(255,255,255,0.08)",
+  },
   surface: {
     light: "#fafaf8",
     warm:  "#fef3e8",

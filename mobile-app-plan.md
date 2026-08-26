@@ -2,7 +2,7 @@
 
 Target: one native app (iOS + Android) built with Expo, reusing the existing Next.js backend, database, credentials and business logic. Web app stays live and unchanged in behaviour.
 
-Status: **Phase 0a + 0b done** (monorepo, `@ekonobar/shared` populated), **Phase 1a done** (bearer auth), **Phase 2 done** (native push). Design prototype is in hand (section 15). Next: **Phase 3** (mobile-shaped endpoints) or **Phase 4** (Expo app skeleton). **Phase 1b** (native OAuth) still outstanding.
+Status: **Phase 0a + 0b done** (monorepo, `@ekonobar/shared` populated), **Phase 1a done** (bearer auth), **Phase 2 done** (native push), **Phase 4 skeleton done** (Expo SDK 57 app boots, signs in against the real backend, role-based tabs). Next: **Phase 5** (waiter screens). **Phase 1b** (native OAuth) and **Phase 3** (bootstrap endpoint, cursor pagination) still outstanding.
 
 ---
 
