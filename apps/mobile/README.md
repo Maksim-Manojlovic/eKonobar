@@ -2,11 +2,44 @@
 
 Expo SDK 57 app for iOS and Android. Shares the backend, database and credentials with `apps/web` — see [../../mobile-app-plan.md](../../mobile-app-plan.md).
 
+## Starting Metro — run it from the right directory
+
+```bash
+npm start --workspace @ekonobar/mobile     # from anywhere in the repo
+# or
+cd apps/mobile && npx expo start
+```
+
+**`npx expo start` from the repo root looks like it works and does not.** Expo treats
+whatever directory it is started in as the project, and the root `package.json` has no
+`main`, so it falls back to the legacy `expo/AppEntry` entry point and tries to resolve
+an `App.js` that this project does not have. Metro starts, the QR appears, and the phone
+gets a 500 on the bundle. Use the workspace script and the question does not arise.
+
+Two symptoms of having done it: the dev server binds **8082** instead of 8081 (because
+something already holds 8081), and the manifest's `launchAsset` points at
+`node_modules/expo/AppEntry.bundle` rather than `node_modules/expo-router/entry.bundle`.
+To check:
+
+```bash
+curl -s -H "expo-platform: ios" http://localhost:8081/ | grep -o "launchAsset[^,]*"
+```
+
 ## Getting it onto a phone
 
-**Expo Go will not work.** `expo-notifications` (and later `@rnmapbox/maps`) carry native code, so you need a **development build** — a real app installed on the device, into which Metro then serves JavaScript.
+There are two ways to run this on a device, and which one you need depends on what
+you are testing.
 
-Everything below has to be run by you: each step needs an interactive login or an account that costs money, so none of it can be scripted ahead of time.
+**Expo Go works today** — see the Expo Go section below. Every native module the app
+currently imports ships inside Expo Go, so it is the fastest way to look at screens.
+
+**A development build is required** as soon as the app uses native code Expo Go does
+not carry: push notifications (`expo-notifications` — remote push was dropped from
+Expo Go in SDK 53) and the map (`@rnmapbox/maps`, phase 8). That is a real app
+installed on the device, into which Metro then serves JavaScript.
+
+The development-build steps below have to be run by you: each needs an interactive
+login or an account that costs money, so none of it can be scripted ahead of time.
 
 ### 0. Accounts (start now — this is the long pole)
 
@@ -38,6 +71,21 @@ eas build --profile development --platform android
 ```
 
 Install the APK, then `npm start --workspace @ekonobar/mobile` and scan the QR.
+
+### Expo Go (iOS) — for screens that use no custom native code
+
+Expo Go can run this today: the app imports nine native modules and all of them ship
+inside Expo Go. It will stop being enough the moment push notifications are wired up —
+Expo Go dropped remote push support in SDK 53.
+
+Expo Go's "Development servers" list relies on local-network discovery that Windows
+Firewall usually blocks, so the server often never appears there. Do not wait for it:
+
+- scan the QR with the **iPhone Camera app** (not Expo Go's scanner), or
+- Expo Go, then "Enter URL manually", then `exp://<your-lan-ip>:8081`
+
+The phone must be on the same Wi-Fi, and iOS will ask once for **Local Network**
+permission — allow it.
 
 ### 3. iOS, once Apple enrollment completes
 
