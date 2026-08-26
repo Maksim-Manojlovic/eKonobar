@@ -2,7 +2,7 @@
 
 Target: one native app (iOS + Android) built with Expo, reusing the existing Next.js backend, database, credentials and business logic. Web app stays live and unchanged in behaviour.
 
-Status: **Phase 0a done** (monorepo layout, build/test/lint green). Phase 0b (populating `packages/shared`) and everything after it is still ahead.
+Status: **Phase 0a done** and committed (`51c5807`) — monorepo layout, everything green. Design prototype is in hand (section 15). **Phase 1 (bearer auth) is next.**
 
 ---
 
@@ -58,7 +58,9 @@ Goal: `apps/web` and `apps/mobile` coexist and both build. No behaviour change t
 Split into two commits so each is independently verifiable:
 
 - **0a — layout only (done).** Move the app under `apps/web`, stand up workspaces + Turborepo, scaffold empty `packages/shared` and `packages/api-client`, fix every config and the Docker build. No source file changes beyond import paths in the Prisma seeds.
-- **0b — populate `packages/shared` (next).** Move the framework-free modules listed below out of `apps/web/src` and update their importers. Deliberately separated: 0a touches ~20 config files and zero application logic, 0b touches application logic across many files. Mixing them would make a regression impossible to bisect.
+- **0b — populate `packages/shared` (deferred).** Move the framework-free modules listed below out of `apps/web/src` and update their importers. Deliberately separated: 0a touches ~20 config files and zero application logic, 0b touches application logic across many files, and mixing them would make a regression impossible to bisect.
+
+  0b is now **deferred behind Phase 1** rather than done next. Nothing consumes `packages/shared` yet, so moving code into it today is a large diff guessing at what the mobile app will need. Doing it per-module as Phases 4–8 actually reach for each one keeps every move small and justified. The scaffold and its rules are already in place, which is the part that had to happen during the restructure.
 
 ### Target layout
 
@@ -394,12 +396,64 @@ No charts, no tables, no user management — those stay on the web dashboard. `r
 
 ---
 
-## 15. Open — blocking Phase 4
+## 15. The design prototype
 
-The mobile design exists in Claude Design but is not published as an artifact on this account, so it is not readable from here. Needed before the app shell is built:
+Lives in `design/` — **gitignored on purpose**: it is a React-over-CDN HTML prototype regenerated wholesale on each design pass, not the source of truth for shipped code. Open `design/eKonobar iOS App.html` in a browser to run it.
 
-1. The design canvas link, or a PNG/PDF export.
-2. Which screens the design covers — waiter only, or owner too.
-3. Whether it keeps the dark `#120a00` dashboard theme or introduces a mobile-specific palette.
+```
+design/
+  eKonobar iOS App.html   entry point
+  ios-frame.jsx           iOS 26 device frame, status bar, keyboard
+  tweaks-panel.jsx        prototype-only tweak controls (not shipped)
+  ui.jsx                  Icon set, Avatar, Pill, Card, ScoreRing, Stars, buttons
+  ui-dark.jsx             dark shell: DarkTabBar, DarkTopBar, SegmentTabs, CalendarMonth
+  data.jsx, data-brief.jsx   mock data
+  screens-auth.jsx        Welcome / Login / Register
+  screens-shared.jsx      Notifications, Settings
+  screens-waiter*.jsx     waiter screens (the *2 / *3 files supersede the light-theme first draft)
+  screens-owner*.jsx      owner screens (same)
+  app.jsx                 root: which screens are actually wired
+```
 
-Everything in Phases 0 through 3 is backend and infrastructure work and can start immediately without any of it.
+`app.jsx` is the inventory that matters — several screens in `screens-waiter.jsx` and `screens-owner.jsx` are a superseded light-theme draft and are not reachable. Build from what `app.jsx` renders.
+
+### Design tokens — already match the web
+
+| Token | Value | Same as web? |
+|---|---|---|
+| Shell background | `#120a00` | yes — the dashboard dark theme |
+| Tab bar / sidebar | `#0e0700` | yes |
+| Accent | `#f97316` | yes |
+| Cards | white `#fff`, radius 18, border `#f0efec` | yes — white `dash-card` on dark ground |
+| Font | Lexend | yes |
+
+So no new palette. `src/design-system/tokens.ts` can drive both apps, as Phase 0b assumes.
+
+### Tab sets (from `WAITER_TABS2` / `OWNER_TABS2`)
+
+- **Waiter:** Pregled · Poslovi · Smene · Recenzije · Passport
+- **Owner:** Pregled · Posao · Smene · Recenzije · Profil
+
+Admin has no design. Its three approval screens (section 11) get built from the same primitives.
+
+### Where the design and the backend disagree
+
+Resolved in favour of the codebase. The prototype was drawn against an older model of the product.
+
+| Prototype | Reality | Resolution |
+|---|---|---|
+| `BRONZE → SILVER → GOLD → PLATINUM` ladder; "Gold → Platinum, 127/150" progress bar (`verificationTierMeta`, `tierColor`, `user.tierNext`) | `VerificationTier` is `UNVERIFIED \| SILVER \| GOLD \| ID_VERIFIED`. BRONZE and PLATINUM are not values; UNVERIFIED and ID_VERIFIED have no entry in the design. This is the exact mismapping that used to render the most-verified users as "BRONZE" | Binary `<VerifiedBadge />` + `<VerificationProofChip />` — what the evidence proves, not a rank. Progress bar becomes `NEXT_VERIFICATION_STEP` (the next concrete action) |
+| FREE / PRO 290 RSD / PRO+ 490 RSD cards on Passport; WhatsApp "Dostupno uz PRO", SMS "Dostupno uz PRO+" | `PassportTier` does not exist in the schema. Waiter monetization was removed deliberately | Delete the pricing row. WhatsApp and SMS become plain opt-in toggles with no gate and no hint text |
+| Settings → "Prebaci na Vlasnik nalog" (switch role) | `POST /api/auth/set-role` 403s for any established user (`role !== "WAITER"` or a passport exists). One role per account | Drop the switcher. The "Nalog vrsta" card comes out of Settings |
+| Owner Pregled shows `Pill {user.plan}` = "Pro" | Venues are commission-only; there is no venue plan tier | Drop the plan pill |
+
+### What the design gets right and should be kept
+
+- `ClockInButton` already models `idle → pending ("Čekamo odobrenje…") → checked_in → clocked_out`. That is exactly the no-GPS path from section 2 — the design anticipated it.
+- `CalendarMonth` + `DayBrief` is a good answer to the "week grid does not fit a phone" problem in section 10: a month grid with an inline expanding day brief, not a scrolling week.
+- `SegmentTabs` inside each tab (Poslovi → Red Alert / Oglasi / Prijave / Pozivnice) keeps five bottom tabs while covering far more surface. Adopt it.
+- `StaffingBar` (filled/required with a red→amber→green ramp) maps directly onto `Shift.requiredCount` vs assignment count.
+
+## 16. Still open
+
+Nothing blocking. Phase 1 can start immediately.
