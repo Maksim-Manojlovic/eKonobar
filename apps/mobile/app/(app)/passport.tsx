@@ -1,6 +1,7 @@
 import { useAuth } from "@/auth/AuthProvider";
 import WaiterPassport from "@/screens/waiter/passport";
 import OwnerPassport from "@/screens/owner/passport";
+import AdminPassport from "@/screens/admin/passport";
 
 /**
  * Route dispatcher.
@@ -11,10 +12,13 @@ import OwnerPassport from "@/screens/owner/passport";
  * what lets a push notification deep-link to /smene without knowing who will
  * open it.
  *
- * ADMIN and HEADHUNTER fall through to the waiter-shaped screen for now; every
- * call underneath is role-guarded server-side, so they see only what they may.
+ * HEADHUNTER falls through to the waiter-shaped screen — that role stays web-only
+ * in v1, and every call underneath is role-guarded server-side, so it sees only
+ * what it may.
  */
 export default function PassportRoute() {
   const { user } = useAuth();
-  return user?.role === "VENUE_OWNER" ? <OwnerPassport /> : <WaiterPassport />;
+  if (user?.role === "ADMIN")       return <AdminPassport />;
+  if (user?.role === "VENUE_OWNER") return <OwnerPassport />;
+  return <WaiterPassport />;
 }

@@ -37,31 +37,9 @@ export type LeaderboardData = {
   revenue: { date: string; revenue: number }[];
 };
 
-/**
- * GET /api/admin/health.
- *
- * Keep this in step with the route. It previously declared `passports.expiredPaid`
- * and `cron.lastRenewalPaymentAt`, which were removed with the waiter subscription
- * product — the route stopped returning `passports` entirely, so the dashboard was
- * reading `undefined.expiredPaid` and throwing on render. TypeScript could not
- * catch it: the response is parsed from JSON and asserted into this type, so a
- * declaration that lies is believed.
- */
-export type HealthData = {
-  reviews: { overdueGuest: number; overdueRegular: number };
-  cron:    { lastPublishedReviewAt: string | null };
-  users:   { softDeleted: number };
-  system:  { rateLimitEntries: number; pendingClockIns: number };
-  /** null when REDIS_URL is not configured. */
-  redis:   { connected: boolean; latencyMs: number | null } | null;
-  db:      {
-    pingMs:           number | null;
-    poolSize:         number;
-    connectionsOpen:  number | null;
-    connectionsBusy:  number | null;
-    saturation:       number | null;
-  } | null;
-};
+// GET /api/admin/health lives in @ekonobar/shared/api/admin so the mobile
+// approvals inbox reads the same declaration. Re-exported for existing importers.
+export type { HealthData } from "@ekonobar/shared/api/admin";
 
 /* ── Activity feed display maps ──────────────────────────────────────────── */
 

@@ -1,6 +1,7 @@
 import { useAuth } from "@/auth/AuthProvider";
 import WaiterRecenzije from "@/screens/waiter/recenzije";
 import OwnerRecenzije from "@/screens/owner/recenzije";
+import AdminRecenzije from "@/screens/admin/recenzije";
 
 /**
  * Route dispatcher.
@@ -11,10 +12,13 @@ import OwnerRecenzije from "@/screens/owner/recenzije";
  * what lets a push notification deep-link to /smene without knowing who will
  * open it.
  *
- * ADMIN and HEADHUNTER fall through to the waiter-shaped screen for now; every
- * call underneath is role-guarded server-side, so they see only what they may.
+ * HEADHUNTER falls through to the waiter-shaped screen — that role stays web-only
+ * in v1, and every call underneath is role-guarded server-side, so it sees only
+ * what it may.
  */
 export default function RecenzijeRoute() {
   const { user } = useAuth();
-  return user?.role === "VENUE_OWNER" ? <OwnerRecenzije /> : <WaiterRecenzije />;
+  if (user?.role === "ADMIN")       return <AdminRecenzije />;
+  if (user?.role === "VENUE_OWNER") return <OwnerRecenzije />;
+  return <WaiterRecenzije />;
 }

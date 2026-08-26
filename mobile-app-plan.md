@@ -2,7 +2,7 @@
 
 Target: one native app (iOS + Android) built with Expo, reusing the existing Next.js backend, database, credentials and business logic. Web app stays live and unchanged in behaviour.
 
-Status: **Phase 0a + 0b done** (monorepo, `@ekonobar/shared` populated), **Phase 1a done** (bearer auth), **Phase 2 done** (native push), **Phase 4 done** (Expo SDK 57 app boots and signs in against the real backend), **Phase 5 done** (waiter screens), **Phase 6 done** (venue owner screens: Pregled, Posao, Smene with clock-in approvals, Recenzije, Profil). Next: **Phase 7** (admin approvals inbox) or **Phase 8** (map). **Phase 1b** (native OAuth) and **Phase 3** (bootstrap endpoint, cursor pagination) still outstanding.
+Status: **Phase 0a + 0b done** (monorepo, `@ekonobar/shared` populated), **Phase 1a done** (bearer auth), **Phase 2 done** (native push), **Phase 4 done** (Expo SDK 57 app boots and signs in against the real backend), **Phase 5 done** (waiter screens), **Phase 6 done** (venue owner screens), **Phase 7 done** (admin approvals inbox), **Phase 9 configured** (eas.json + build profiles; the accounts and `eas init` are yours to run — see `apps/mobile/README.md`). Next: get a **development build onto a device** — nothing has run on real hardware yet. Then **Phase 8** (map), **Phase 1b** (OAuth), **Phase 3** (bootstrap + pagination). **Phase 1b** (native OAuth) and **Phase 3** (bootstrap endpoint, cursor pagination) still outstanding.
 
 ---
 

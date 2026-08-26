@@ -17,6 +17,8 @@ import type {
   VenueReview,
   VenueShift,
 } from "@ekonobar/shared/api/venue";
+import type { DisputedReview, SanitaryPending } from "@ekonobar/shared/api/admin";
+import type { HealthData as AdminHealth } from "@ekonobar/shared/api/admin";
 import { api, apiGet } from "./client";
 
 // GET /api/venues and GET /api/jobs both branch on the session role: a
@@ -113,3 +115,49 @@ export function useSetPostStatus() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["posts"] }),
   });
 }
+
+// ── Admin approvals inbox ─────────────────────────────────────────────────────
+//
+// Three surfaces only. User management, zone analytics and the charts stay on the
+// web dashboard — recharts has no React Native build and none of it is
+// time-sensitive enough to want on a phone.
+
+export const useSanitaryPending = () =>
+  useQuery({
+    queryKey: ["admin", "sanitary"],
+    queryFn:  () => apiGet<SanitaryPending[]>("/api/verification/sanitary"),
+  });
+
+export function useResolveSanitary() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, action, rejectReason }: {
+      id: string; action: "approve" | "reject"; rejectReason?: string;
+    }) => api(`/api/verification/sanitary/${id}`, { method: "PATCH", body: { action, rejectReason } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "sanitary"] }),
+  });
+}
+
+export const useDisputedReviews = () =>
+  useQuery({
+    queryKey: ["admin", "reviews"],
+    queryFn:  () => apiGet<DisputedReview[]>("/api/admin/reviews"),
+  });
+
+export function useResolveDispute() {
+  const qc = useQueryClient();
+  return useMutation({
+    // publish | remove — not approve | reject. The admin route uses different
+    // verbs from the venue-owner one; sending the wrong pair is a 400.
+    mutationFn: ({ id, action }: { id: string; action: "publish" | "remove" }) =>
+      api(`/api/admin/reviews/${id}`, { method: "PATCH", body: { action } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "reviews"] }),
+  });
+}
+
+export const useSystemHealth = () =>
+  useQuery({
+    queryKey: ["admin", "health"],
+    queryFn:  () => apiGet<AdminHealth>("/api/admin/health"),
+    refetchInterval: 60_000,
+  });
