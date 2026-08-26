@@ -5,6 +5,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { useClaimShift, useClockIn, useClockOut, useMyShifts, useOpenShifts, useSwapRequests } from "@/api/queries";
 import { Card, Screen } from "@/ui/Screen";
 import { Avatar, Empty, PrimaryButton, SecondaryButton, SegmentTabs, StaffingBar, TonePill } from "@/ui/primitives";
+import { DayBrief, MonthCalendar, type CalendarShift } from "@/ui/Calendar";
 
 const TABS = [
   { id: "moje",     label: "Moje smene" },
@@ -33,13 +34,70 @@ export default function SmeneScreen() {
 // ── Moje smene ────────────────────────────────────────────────────────────────
 
 function MyShifts() {
+  const { user } = useAuth();
   const { data, isLoading, error } = useMyShifts();
 
   if (isLoading) return <Loading />;
   if (error)     return <Empty text="Smene trenutno nisu dostupne." />;
-  if (!data?.length) return <Empty text="Nemaš zakazanih smena." />;
 
-  return <>{data.map(s => <ShiftCard key={s.id} shift={s} />)}</>;
+  const shifts = data ?? [];
+
+  // The calendar takes a flattened view; the cards below keep the full record.
+  const calendarShifts: CalendarShift[] = shifts.map(s => {
+    const mine = s.assignments.find(a => a.waiterId === user?.id);
+    return {
+      id: s.id, date: s.date, startTime: s.startTime, endTime: s.endTime,
+      status: s.status, requiredCount: s.requiredCount,
+      assignedCount: s.assignments.length,
+      mine: Boolean(mine),
+      clockedIn: Boolean(mine?.clockInAt && !mine.clockOutAt),
+      swapPending: s.status === "PENDING_SWAP",
+    };
+  });
+
+  const byId = new Map(shifts.map(s => [s.id, s]));
+
+  return (
+    <>
+      <MonthCalendar
+        shifts={calendarShifts}
+        renderDay={(day, daysShifts, close) => {
+          const first = daysShifts[0] ? byId.get(daysShifts[0].id) : undefined;
+          if (!first) {
+            return (
+              <View className="py-3.5 items-center">
+                <Text className="text-neutral-400 text-[11.5px] font-normal">
+                  Nema smene {day}.{" "}
+                  <Text onPress={close} className="text-orange-500 font-bold">Zatvori</Text>
+                </Text>
+              </View>
+            );
+          }
+          const mine = first.assignments.find(a => a.waiterId === user?.id);
+          return (
+            <DayBrief
+              title={`${day}. ${first.venue.name}`}
+              subtitle={`${first.role ?? "Konobar"} · ${first.startTime}–${first.endTime}`}
+              stats={[
+                { label: "NAKNADA", value: first.pay ? `${first.pay.toLocaleString("sr-RS")} RSD` : "—", accent: true },
+                { label: "BAKŠIŠ",  value: first.tipEstimate ? `~${first.tipEstimate}` : "—" },
+                { label: "POPUNJENOST", value: `${first.assignments.length}/${first.requiredCount}` },
+              ]}
+              briefing={first.briefingNote}
+              note={first.notes}
+              onClose={close}
+              actions={mine ? <ClockControl shiftId={first.id} assignment={mine} /> : undefined}
+            />
+          );
+        }}
+      />
+
+      <Text className="text-white/85 font-extrabold text-[12.5px] mt-1">Nadolazeće smene</Text>
+      {shifts.length === 0
+        ? <Empty text="Nemaš zakazanih smena." />
+        : shifts.map(s => <ShiftCard key={s.id} shift={s} />)}
+    </>
+  );
 }
 
 function ShiftCard({ shift }: { shift: WaiterShift }) {

@@ -49,7 +49,10 @@ export default function AppLayout() {
   // hidden rather than omitted. expo-router warns about routes that exist on disk
   // with no matching <Tabs.Screen>, and hiding also stops a deep link from
   // dropping an ADMIN onto a waiter tab.
-  const all = ["index", "poslovi", "smene", "recenzije", "passport"];
+  // "notifications" is reachable from the bell in every header but is never a tab,
+  // so it is registered with href: null like any role-hidden route. A route file
+  // that is not registered here gets a tab of its own.
+  const all = ["index", "poslovi", "smene", "recenzije", "passport", "notifications"];
 
   return (
     <Tabs

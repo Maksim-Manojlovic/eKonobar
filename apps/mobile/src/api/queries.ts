@@ -123,3 +123,33 @@ export function useRespondToInvite() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["invites"] }),
   });
 }
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+
+export type NotificationRow = {
+  id:        string;
+  type:      string;
+  title:     string;
+  body:      string;
+  link:      string | null;
+  read:      boolean;
+  createdAt: string;
+};
+
+/** GET /api/notifications answers { notifications, unreadCount } — not a bare array. */
+export const useNotifications = () =>
+  useQuery({
+    queryKey: ["notifications"],
+    queryFn:  () => apiGet<{ notifications: NotificationRow[]; unreadCount: number }>("/api/notifications"),
+    // The bell shows a count, so it needs to move without a manual refresh.
+    refetchInterval: 60_000,
+  });
+
+export function useMarkNotificationsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids?: string[]) =>
+      api("/api/notifications", { method: "PATCH", body: ids ? { ids } : {} }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+}

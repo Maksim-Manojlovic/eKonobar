@@ -3,6 +3,7 @@ import type { VenueShift, VenueShiftAssignment, VenueSwapRequest } from "@ekonob
 import { useManagedShifts, useResolveClockIn, useResolveSwap } from "@/api/venue-queries";
 import { Card, Screen } from "@/ui/Screen";
 import { Avatar, Empty, PrimaryButton, SecondaryButton, StaffingBar, TonePill } from "@/ui/primitives";
+import { DayBrief, MonthCalendar, type CalendarShift } from "@/ui/Calendar";
 
 /**
  * Smene — the owner's agenda.
@@ -33,8 +34,49 @@ export default function OwnerSmeneScreen() {
     s.swapRequests.filter(r => r.status === "PENDING").map(r => ({ shift: s, swap: r })),
   );
 
+  const calendarShifts: CalendarShift[] = shifts.map(s => ({
+    id: s.id, date: s.date, startTime: s.startTime, endTime: s.endTime,
+    status: s.status, requiredCount: s.requiredCount,
+    assignedCount: s.assignments.length,
+    clockedIn: s.assignments.some(a => a.clockInAt && !a.clockOutAt),
+    swapPending: s.swapRequests.some(r => r.status === "PENDING"),
+  }));
+  const byId = new Map(shifts.map(s => [s.id, s]));
+
   return (
     <Screen title="Smene">
+      <MonthCalendar
+        shifts={calendarShifts}
+        renderDay={(day, daysShifts, close) => {
+          const first = daysShifts[0] ? byId.get(daysShifts[0].id) : undefined;
+          if (!first) {
+            return (
+              <View className="py-3.5 items-center">
+                <Text className="text-neutral-400 text-[11.5px] font-normal">
+                  Nema smene {day}.{" "}
+                  <Text onPress={close} className="text-orange-500 font-bold">Zatvori</Text>
+                </Text>
+              </View>
+            );
+          }
+          const onShift = first.assignments.filter(a => a.clockInAt && !a.clockOutAt).length;
+          return (
+            <DayBrief
+              title={`${day}. ${first.title}`}
+              subtitle={`${first.startTime}–${first.endTime}`}
+              stats={[
+                { label: "NAKNADA", value: first.pay ? `${first.pay.toLocaleString("sr-RS")} RSD` : "—", accent: true },
+                { label: "EKIPA", value: `${first.assignments.length}/${first.requiredCount}` },
+                { label: "NA SMENI", value: String(onShift) },
+              ]}
+              briefing={first.briefingNote}
+              note={first.notes}
+              onClose={close}
+            />
+          );
+        }}
+      />
+
       {pendingClockIns.length > 0 && (
         <Card>
           <Text className="text-neutral-900 font-bold mb-1">Čeka odobrenje dolaska</Text>
