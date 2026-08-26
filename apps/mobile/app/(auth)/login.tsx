@@ -1,21 +1,22 @@
 import { useState } from "react";
-import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { colors } from "@ekonobar/shared/design-tokens";
-import { useAuth } from "@/auth/AuthProvider";
+import { useRouter } from "expo-router";
 import { ApiError } from "@/api/client";
+import { useAuth } from "@/auth/AuthProvider";
+import { AUTH_BG, BackChevron, BigButton, Field } from "@/ui/auth-kit";
 
 export default function LoginScreen() {
+  const router = useRouter();
   const { signIn } = useAuth();
-  // One object rather than a useState per field — the grouped-form-state rule
-  // the web side follows (CQ-N/CQ-P/CQ-Q). Loading and error stay separate,
-  // because they are control state, not form data.
-  const [form, setForm]       = useState({ email: "", password: "" });
-  const [busy, setBusy]       = useState(false);
-  const [error, setError]     = useState<string | null>(null);
 
-  const setField = (k: keyof typeof form, v: string) =>
-    setForm(prev => ({ ...prev, [k]: v }));
+  // One object for the form, separate state for loading/error — the grouped
+  // form-state rule the web side follows.
+  const [form, setForm]   = useState({ email: "", password: "" });
+  const [busy, setBusy]   = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const setField = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }));
 
   const submit = async () => {
     setBusy(true);
@@ -23,8 +24,7 @@ export default function LoginScreen() {
     try {
       await signIn(form.email.trim(), form.password);
     } catch (err) {
-      // The server's message is already user-facing Serbian (wrong credentials,
-      // rate limited), so show it rather than inventing a generic one.
+      // The server's message is already user-facing Serbian.
       setError(err instanceof ApiError ? err.message : "Greška u vezi. Pokušaj ponovo.");
     } finally {
       setBusy(false);
@@ -34,46 +34,53 @@ export default function LoginScreen() {
   const canSubmit = form.email.length > 0 && form.password.length > 0 && !busy;
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.shell.bg }}>
-      <View className="flex-1 justify-center px-6 gap-4">
-        <Text className="text-white text-3xl font-bold">eKonobar</Text>
-        <Text className="text-white/50 mb-4 font-normal">Prijavi se na svoj nalog</Text>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: AUTH_BG }}>
+      <View className="flex-1 px-5 pb-5">
+        <BackChevron onPress={() => router.back()} />
 
-        <TextInput
-          value={form.email}
-          onChangeText={v => setField("email", v)}
-          placeholder="Email adresa"
-          placeholderTextColor="rgba(255,255,255,0.35)"
-          autoCapitalize="none"
-          autoComplete="email"
-          keyboardType="email-address"
-          className="rounded-2xl px-4 py-4 text-white"
-          style={{ backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: colors.shell.border }}
-        />
+        <Text className="text-neutral-900 font-black text-[30px] mt-2">Dobrodošao nazad</Text>
+        <Text className="text-neutral-400 text-[13px] mt-1 font-normal">
+          Prijavi se na svoj eKonobar nalog
+        </Text>
 
-        <TextInput
-          value={form.password}
-          onChangeText={v => setField("password", v)}
-          placeholder="Lozinka"
-          placeholderTextColor="rgba(255,255,255,0.35)"
-          secureTextEntry
-          autoComplete="current-password"
-          className="rounded-2xl px-4 py-4 text-white"
-          style={{ backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: colors.shell.border }}
-        />
+        <View className="gap-4 mt-7">
+          <Field
+            label="Email adresa"
+            placeholder="ime@primer.rs"
+            value={form.email}
+            onChangeText={v => setField("email", v)}
+            autoCapitalize="none"
+            autoComplete="email"
+            keyboardType="email-address"
+          />
+          <Field
+            label="Lozinka"
+            placeholder="••••••••"
+            value={form.password}
+            onChangeText={v => setField("password", v)}
+            secureTextEntry
+            autoComplete="current-password"
+          />
 
-        {error && <Text style={{ color: "#fca5a5" }}>{error}</Text>}
+          <Pressable className="self-end">
+            <Text className="text-orange-500 font-semibold text-[12.5px]">Zaboravljena lozinka?</Text>
+          </Pressable>
 
-        <Pressable
-          onPress={submit}
+          {error && <Text className="text-red-500 text-[12.5px] font-normal">{error}</Text>}
+        </View>
+
+        <View className="flex-1" />
+
+        <BigButton
+          label={busy ? "" : "Prijavi se"}
           disabled={!canSubmit}
-          className="rounded-2xl py-4 items-center mt-2"
-          style={{ backgroundColor: canSubmit ? colors.primary[500] : colors.primary[300] }}
-        >
-          {busy
-            ? <ActivityIndicator color="#fff" />
-            : <Text className="text-white font-bold text-base">Prijavi se</Text>}
-        </Pressable>
+          onPress={submit}
+        />
+        {busy && (
+          <View style={{ position: "absolute", bottom: 40, left: 0, right: 0 }} pointerEvents="none">
+            <ActivityIndicator color="#fff" />
+          </View>
+        )}
       </View>
     </SafeAreaView>
   );

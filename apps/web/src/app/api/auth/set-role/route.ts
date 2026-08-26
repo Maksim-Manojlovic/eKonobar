@@ -4,8 +4,16 @@ import { db } from "@/lib/core/db";
 import { parseBody } from "@/lib/auth/parse-body";
 import { z } from "zod";
 
+/**
+ * VENUE_OWNER is deliberately absent.
+ *
+ * This is the role picker a first-time OAuth user sees, and it previously
+ * accepted VENUE_OWNER — which made it the same self-service back door the
+ * register route had. Owner accounts are granted by an admin; see the note in
+ * api/auth/register/route.ts.
+ */
 const SetRoleSchema = z.object({
-  role: z.enum(["WAITER", "VENUE_OWNER", "HEADHUNTER"]),
+  role: z.enum(["WAITER", "HEADHUNTER"]),
 });
 
 export const PATCH = withAuth(async (req, _ctx, session) => {

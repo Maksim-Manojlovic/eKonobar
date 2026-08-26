@@ -35,8 +35,17 @@ describe("POST /api/auth/register", () => {
     expect(json.ok).toBe(true);
   });
 
-  it("valid VENUE_OWNER registration → 200", async () => {
+  it("VENUE_OWNER self-registration → 400", async () => {
+    // Owner accounts are granted by an admin, not chosen on a signup form. This
+    // used to return 200, which meant anyone could hand themselves an account
+    // that can post jobs and read applicants' passports.
     const res = await POST(makeReq({ ...VALID_BODY, role: "VENUE_OWNER" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("omitted role defaults to WAITER → 200", async () => {
+    const { role: _role, ...noRole } = VALID_BODY as Record<string, unknown>;
+    const res = await POST(makeReq(noRole));
     expect(res.status).toBe(200);
   });
 

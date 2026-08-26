@@ -215,9 +215,14 @@ export default function RegisterPage() {
                   <div className="font-bold text-sm text-neutral-800">{t("register", "roleWaiter")}</div>
                   <div className="text-xs text-neutral-400 font-light mt-0.5">{t("register", "roleWaiterSub")}</div>
                 </div>
-                <div
-                  className={`role-card ${role === "VENUE_OWNER" ? "selected" : ""}`}
-                  onClick={() => setRole("VENUE_OWNER")}
+                {/* The venue-owner card was here. Owner accounts are granted by an
+                    admin once the venue is known to be real — an owner can post
+                    jobs, read applicants' passports and verify staff — so the
+                    public path for a venue is the demo form on /for-venues. The
+                    register API no longer accepts VENUE_OWNER either. */}
+                <a
+                  href="/for-venues#demo"
+                  className="role-card block no-underline"
                 >
                   <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center mb-3">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -226,8 +231,8 @@ export default function RegisterPage() {
                     </svg>
                   </div>
                   <div className="font-bold text-sm text-neutral-800">{t("register", "roleOwner")}</div>
-                  <div className="text-xs text-neutral-400 font-light mt-0.5">{t("register", "roleOwnerSub")}</div>
-                </div>
+                  <div className="text-xs text-neutral-400 font-light mt-0.5">Zakaži demo →</div>
+                </a>
               </div>
 
               {/* Social */}

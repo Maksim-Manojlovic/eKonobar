@@ -52,9 +52,9 @@ describe("PATCH /api/auth/set-role", () => {
     expect(json.role).toBe("WAITER");
   });
 
-  it("sets VENUE_OWNER role → 200", async () => {
+  it("VENUE_OWNER → 400, the onboarding picker is not a back door", async () => {
     const res = await PATCH(makeReq({ role: "VENUE_OWNER" }), CTX);
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(400);
   });
 
   it("sets HEADHUNTER role → 200", async () => {
@@ -84,9 +84,9 @@ describe("PATCH /api/auth/set-role", () => {
   });
 
   it("updates correct user id", async () => {
-    await PATCH(makeReq({ role: "VENUE_OWNER" }), CTX);
+    await PATCH(makeReq({ role: "HEADHUNTER" }), CTX);
     expect(vi.mocked(db.user.update)).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: USER_ID }, data: { role: "VENUE_OWNER" } }),
+      expect.objectContaining({ where: { id: USER_ID }, data: { role: "HEADHUNTER" } }),
     );
   });
 });
