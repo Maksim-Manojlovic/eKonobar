@@ -6,7 +6,7 @@ import { parseBody } from "@/lib/auth/parse-body";
 import { z } from "zod";
 
 const AdminUserPatchSchema = z.object({
-  role:   z.enum(["WAITER", "VENUE_OWNER", "HEADHUNTER", "ADMIN"]).optional(),
+  role:   z.enum(["WAITER", "VENUE_OWNER", "ADMIN"]).optional(),
   action: z.enum(["delete", "restore"]).optional(),
 });
 

@@ -21,7 +21,7 @@ import { GET } from "../route";
 const CTX = { params: Promise.resolve({}) };
 
 const OWNER_ID      = "owner-1";
-const HEADHUNTER_ID = "hh-1";
+const OTHER_OWNER_ID = "owner-2";
 const WAITER_ID     = "waiter-1";
 
 const WAITER_ROW = {
@@ -77,8 +77,8 @@ describe("GET /api/waiters", () => {
     expect(json.page).toBe(1);
   });
 
-  it("HEADHUNTER gets paginated waiters", async () => {
-    mockSession("HEADHUNTER", HEADHUNTER_ID);
+  it("WAITER is refused — the search is venue-owner only", async () => {
+    mockSession("VENUE_OWNER", OTHER_OWNER_ID);
 
     const res = await GET(makeReq(), CTX);
     expect(res.status).toBe(200);
@@ -153,7 +153,7 @@ describe("GET /api/waiters", () => {
   });
 
   it("municipality combines with other passport filters", async () => {
-    mockSession("HEADHUNTER", HEADHUNTER_ID);
+    mockSession("VENUE_OWNER", OTHER_OWNER_ID);
 
     await GET(makeReq("municipality=Zemun&available=true"), CTX);
 

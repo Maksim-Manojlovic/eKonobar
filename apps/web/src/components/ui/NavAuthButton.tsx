@@ -6,7 +6,6 @@ import Link from "next/link";
 const DASH_PATHS: Record<string, string> = {
   VENUE_OWNER: "/venue",
   WAITER: "/waiter",
-  HEADHUNTER: "/headhunter",
   ADMIN: "/admin",
 };
 

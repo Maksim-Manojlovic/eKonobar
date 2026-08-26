@@ -55,7 +55,7 @@ describe("PATCH /api/admin/users/[id]", () => {
   });
 
   it("ADMIN changes role → 200", async () => {
-    const res = await PATCH(makeReq({ role: "HEADHUNTER" }), makeCtx());
+    const res = await PATCH(makeReq({ role: "VENUE_OWNER" }), makeCtx());
     expect(res.status).toBe(200);
     expect(vi.mocked(dbRaw.$transaction)).toHaveBeenCalledOnce();
   });
@@ -102,7 +102,7 @@ describe("PATCH /api/admin/users/[id]", () => {
   });
 
   it("role change triggers tokenRevocation upsert", async () => {
-    await PATCH(makeReq({ role: "HEADHUNTER" }), makeCtx());
+    await PATCH(makeReq({ role: "VENUE_OWNER" }), makeCtx());
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const txCall = vi.mocked(dbRaw.$transaction).mock.calls[0][0] as any;

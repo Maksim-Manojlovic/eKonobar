@@ -6,7 +6,7 @@ import logger from "@/lib/core/logger";
 import { VerificationTier } from "@prisma/client";
 import crypto from "crypto";
 
-export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async (req, _ctx) => {
+export const GET = withRole("VENUE_OWNER", async (req, _ctx) => {
   const { searchParams } = new URL(req.url);
 
   const available       = searchParams.get("available");

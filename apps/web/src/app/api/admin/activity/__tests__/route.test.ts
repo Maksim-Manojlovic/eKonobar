@@ -189,15 +189,4 @@ describe("GET /api/admin/activity", () => {
     const reg = json.find((e: { type: string }) => e.type === "registration");
     expect(reg.sub).toBe("Vlasnik lokala");
   });
-
-  it("HEADHUNTER role maps to correct sub label", async () => {
-    vi.mocked(dbRaw.user.findMany).mockResolvedValue([
-      { id: "h-1", name: "Ana", email: "a@test.com", role: "HEADHUNTER", createdAt: NOW },
-    ] as never);
-
-    const res = await GET(makeReq(), CTX);
-    const json = await res.json();
-    const reg = json.find((e: { type: string }) => e.type === "registration");
-    expect(reg.sub).toBe("Headhunter");
-  });
 });

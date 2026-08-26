@@ -57,9 +57,9 @@ describe("PATCH /api/auth/set-role", () => {
     expect(res.status).toBe(400);
   });
 
-  it("sets HEADHUNTER role → 200", async () => {
+  it("HEADHUNTER → 400, the role no longer exists", async () => {
     const res = await PATCH(makeReq({ role: "HEADHUNTER" }), CTX);
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(400);
   });
 
   it("unauthenticated → 401", async () => {
@@ -84,9 +84,9 @@ describe("PATCH /api/auth/set-role", () => {
   });
 
   it("updates correct user id", async () => {
-    await PATCH(makeReq({ role: "HEADHUNTER" }), CTX);
+    await PATCH(makeReq({ role: "WAITER" }), CTX);
     expect(vi.mocked(db.user.update)).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: USER_ID }, data: { role: "HEADHUNTER" } }),
+      expect.objectContaining({ where: { id: USER_ID }, data: { role: "WAITER" } }),
     );
   });
 });

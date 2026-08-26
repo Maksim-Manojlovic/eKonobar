@@ -152,7 +152,7 @@ export async function seedPassport(
  */
 export async function seedUser(overrides: {
   email?: string;
-  role?: "WAITER" | "VENUE_OWNER" | "HEADHUNTER" | "ADMIN";
+  role?: "WAITER" | "VENUE_OWNER" | "ADMIN";
   name?: string;
   /** Pass a bcrypt hash to make the user able to sign in (password login tests). */
   hashedPassword?: string;

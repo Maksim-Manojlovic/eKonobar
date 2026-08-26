@@ -78,15 +78,6 @@ export default withAuth(
       return withTrace(NextResponse.redirect(new URL("/login", req.url)));
     }
 
-    // Headhunter dashboard — only HEADHUNTER
-    if (
-      pathname.startsWith("/headhunter") &&
-      token?.role !== "HEADHUNTER" &&
-      token?.role !== "ADMIN"
-    ) {
-      return withTrace(NextResponse.redirect(new URL("/login", req.url)));
-    }
-
     return passThrough();
   },
   {
@@ -107,7 +98,6 @@ export const config = {
     // Page routes (existing)
     "/waiter/:path*",
     "/venue/:path*",
-    "/headhunter/:path*",
     "/admin/:path*",
     // API routes — all paths; public ones are exempted inside the middleware function
     "/api/:path*",

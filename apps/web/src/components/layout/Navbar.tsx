@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react";
 function dashboardUrl(role: string | undefined): string {
   if (role === "VENUE_OWNER") return "/venue";
   if (role === "ADMIN") return "/admin";
-  if (role === "HEADHUNTER") return "/headhunter";
   return "/waiter";
 }
 

@@ -59,7 +59,6 @@ export default function LoginPage() {
 
     if (role === "ADMIN") router.push("/admin");
     else if (role === "VENUE_OWNER") router.push("/venue");
-    else if (role === "HEADHUNTER") router.push("/headhunter");
     else router.push("/waiter");
 
     router.refresh();

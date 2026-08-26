@@ -40,7 +40,7 @@ export const GET = withRole("ADMIN", async () => {
       id: `reg-${u.id}`,
       type: "registration",
       title: `Novi korisnik: ${u.name ?? u.email}`,
-      sub: u.role === "WAITER" ? "Konobar" : u.role === "VENUE_OWNER" ? "Vlasnik lokala" : u.role === "HEADHUNTER" ? "Headhunter" : u.role,
+      sub: u.role === "WAITER" ? "Konobar" : u.role === "VENUE_OWNER" ? "Vlasnik lokala" : u.role,
       ts: u.createdAt,
       link: `/admin/users`,
     })),

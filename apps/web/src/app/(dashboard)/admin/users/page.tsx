@@ -14,7 +14,7 @@ type User = {
   waiterPassport: Passport | null;
 };
 
-const ROLES = ["", "WAITER", "VENUE_OWNER", "HEADHUNTER", "ADMIN"];
+const ROLES = ["", "WAITER", "VENUE_OWNER", "ADMIN"];
 
 export default function AdminUsersPage() {
   const { status } = useRequireRole("ADMIN");

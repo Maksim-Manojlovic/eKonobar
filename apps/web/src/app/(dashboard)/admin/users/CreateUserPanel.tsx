@@ -17,7 +17,7 @@ import { ROLE_LABELS } from "@/lib/formatting/display-maps";
  */
 
 /** ADMIN is absent on purpose — see the note on the API route. */
-const CREATABLE_ROLES = ["VENUE_OWNER", "HEADHUNTER", "WAITER"] as const;
+const CREATABLE_ROLES = ["VENUE_OWNER", "WAITER"] as const;
 
 type Created = {
   user: { id: string; name: string | null; email: string; role: string };

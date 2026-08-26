@@ -17,30 +17,17 @@ const ROLES = [
     ),
     onboarding: "/onboarding/waiter",
   },
-  {
-    value: "VENUE_OWNER",
-    label: "Vlasnik lokala",
-    desc: "Objavite oglase, pronađite verifikovan kadar i upravljajte smenama.",
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-        <path d="M3 9L12 3L21 9V20C21 20.5523 20.5523 21 20 21H15V15H9V21H4C3.44772 21 3 20.5523 3 20V9Z" stroke="#f97316" strokeWidth="2" strokeLinejoin="round" />
-      </svg>
-    ),
-    onboarding: "/onboarding/venue",
-  },
-  {
-    value: "HEADHUNTER",
-    label: "Headhunter",
-    desc: "Pretražite verifikovan talent, sačuvajte profile i kreirajte shortliste.",
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-        <circle cx="11" cy="11" r="7" stroke="#f97316" strokeWidth="2" />
-        <path d="M16.5 16.5L21 21" stroke="#f97316" strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    ),
-    onboarding: "/onboarding/headhunter",
-  },
 ];
+
+/**
+ * Only WAITER remains.
+ *
+ * VENUE_OWNER was removed because nothing here proves the person runs a venue —
+ * those accounts are created by an admin after a check, and PATCH
+ * /api/auth/set-role refuses the role outright. HEADHUNTER was removed with the
+ * role itself. The page stays because NextAuth points first-time OAuth users at
+ * it (pages.newUser), and it still has to confirm and route them onward.
+ */
 
 export default function SelectRolePage() {
   const { update }   = useSession();

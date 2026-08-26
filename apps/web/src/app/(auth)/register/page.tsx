@@ -15,7 +15,7 @@ import { useLang } from "@/components/providers/LanguageProvider";
  * accounts are created by an admin after the venue is verified — the public path
  * is the contact panel below. The register API refuses VENUE_OWNER too.
  */
-type Role = "WAITER" | "HEADHUNTER";
+type Role = "WAITER";
 
 /**
  * Rendered only when set, so a placeholder number can never reach production.
@@ -165,7 +165,7 @@ export default function RegisterPage() {
       redirect: false,
     });
 
-    router.push(role === "HEADHUNTER" ? "/onboarding/headhunter" : "/onboarding/waiter");
+    router.push("/onboarding/waiter");
   }
 
   return (

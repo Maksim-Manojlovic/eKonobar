@@ -47,7 +47,7 @@ async function computeCoverage(): Promise<CoverageCell[]> {
   return BELGRADE_MUNICIPALITIES.map((m) => ({ municipality: m, availableCount: counts.get(m)! }));
 }
 
-export const GET = withRole(["VENUE_OWNER", "HEADHUNTER"], async () => {
+export const GET = withRole("VENUE_OWNER", async () => {
   if (redis) {
     try {
       const cached = await redis.get(CACHE_KEY);

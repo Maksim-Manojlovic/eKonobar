@@ -5,15 +5,16 @@ import { parseBody } from "@/lib/auth/parse-body";
 import { z } from "zod";
 
 /**
- * VENUE_OWNER is deliberately absent.
+ * WAITER is the only role a person can give themselves.
  *
- * This is the role picker a first-time OAuth user sees, and it previously
- * accepted VENUE_OWNER — which made it the same self-service back door the
- * register route had. Owner accounts are granted by an admin; see the note in
- * api/auth/register/route.ts.
+ * This is the picker a first-time OAuth user sees. It used to accept
+ * VENUE_OWNER, which made it the same self-service back door the register route
+ * had; owner accounts are granted by an admin (see api/auth/register/route.ts).
+ * With only one option left the picker is a formality, but the endpoint stays so
+ * the OAuth onboarding flow has something to call.
  */
 const SetRoleSchema = z.object({
-  role: z.enum(["WAITER", "HEADHUNTER"]),
+  role: z.literal("WAITER"),
 });
 
 export const PATCH = withAuth(async (req, _ctx, session) => {

@@ -55,15 +55,14 @@ export const GET = withRole("ADMIN", async (req) => {
  *
  * VENUE_OWNER exists on this route precisely because it does NOT exist on the
  * public signup: nothing on a form proves someone runs the venue they name, so
- * the account is created after a human has checked. HEADHUNTER is the same kind
- * of curated role. ADMIN is deliberately absent — an admin promoting someone to
- * admin should be a deliberate, separately reviewed act, and PATCH
- * /api/admin/users/[id] already exists for role changes.
+ * the account is created after a human has checked. ADMIN is deliberately
+ * absent — promoting someone to admin should be a deliberate, separately
+ * reviewed act, and PATCH /api/admin/users/[id] already exists for role changes.
  */
 const CreateUserSchema = z.object({
   name:  z.string().min(1, "Ime je obavezno").trim(),
   email: z.string().email("Nevažeća email adresa"),
-  role:  z.enum(["VENUE_OWNER", "HEADHUNTER", "WAITER"]),
+  role:  z.enum(["VENUE_OWNER", "WAITER"]),
   phone: z.string().trim().max(20).optional(),
 });
 

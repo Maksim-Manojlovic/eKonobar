@@ -37,7 +37,7 @@ describe("GET /api/waiters/coverage", () => {
     expect((await GET(makeReq(), CTX)).status).toBe(401);
   });
 
-  it.each(["VENUE_OWNER", "HEADHUNTER"])("%s → 200", async (role) => {
+  it.each(["VENUE_OWNER"])("%s → 200", async (role) => {
     session(role);
     expect((await GET(makeReq(), CTX)).status).toBe(200);
   });
