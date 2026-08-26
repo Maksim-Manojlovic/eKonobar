@@ -2,7 +2,7 @@
 
 Target: one native app (iOS + Android) built with Expo, reusing the existing Next.js backend, database, credentials and business logic. Web app stays live and unchanged in behaviour.
 
-Status: **Phase 0a done**, **Phase 1a done** (bearer auth: login / refresh / logout / me, and all ~74 existing routes now accept a bearer token). Design prototype is in hand (section 15). Next: **Phase 1b** (native OAuth) or **Phase 2** (push).
+Status: **Phase 0a done**, **Phase 1a done** (bearer auth), **Phase 2 done** (native push via Expo, wired into notify() and the retry cron). Design prototype is in hand (section 15). Next: **Phase 3** (mobile-shaped endpoints) or **Phase 4** (Expo app skeleton). **Phase 1b** (native OAuth) still outstanding.
 
 ---
 

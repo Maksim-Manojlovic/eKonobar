@@ -5,11 +5,13 @@ vi.mock("@/lib/core/db", () => ({
     user:             { findUnique: vi.fn() },
     notification:     { create: vi.fn(), update: vi.fn() },
     pushSubscription: { delete: vi.fn() },
+    deviceToken:      { deleteMany: vi.fn() },
   },
 }));
 vi.mock("@/lib/integrations/webpush",   () => ({ sendPush:     vi.fn() }));
 vi.mock("@/lib/integrations/whatsapp",  () => ({ sendWhatsApp: vi.fn() }));
 vi.mock("@/lib/integrations/sms",       () => ({ sendSms:      vi.fn() }));
+vi.mock("@/lib/integrations/expo-push", () => ({ sendExpoPush: vi.fn(), isExpoPushToken: () => true }));
 vi.mock("@prisma/client",  () => ({
   NotificationType: { APPLICATION_RECEIVED: "APPLICATION_RECEIVED" },
 }));
@@ -18,6 +20,7 @@ import { db } from "@/lib/core/db";
 import { sendPush }     from "@/lib/integrations/webpush";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { sendSms }      from "@/lib/integrations/sms";
+import { sendExpoPush } from "@/lib/integrations/expo-push";
 import { notify }       from "../notify";
 
 const NOTIF_ID = "n-1";
@@ -29,6 +32,7 @@ function makeUser(overrides: Record<string, unknown> = {}) {
     smsOptIn: true,
     waOptIn: true,
     pushSubscriptions: [],
+    deviceTokens: [],
     ...overrides,
   };
 }
@@ -42,6 +46,7 @@ describe("notify", () => {
     vi.mocked(sendPush).mockResolvedValue(undefined);
     vi.mocked(sendWhatsApp).mockResolvedValue(undefined);
     vi.mocked(sendSms).mockResolvedValue(undefined);
+    vi.mocked(sendExpoPush).mockResolvedValue({ delivered: 1, invalidTokens: [] });
   });
 
   it("returns early when user not found (soft-deleted)", async () => {

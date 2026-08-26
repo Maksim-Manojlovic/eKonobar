@@ -63,7 +63,7 @@ Optional in development (all features degrade gracefully when `REDIS_URL` is not
 | `rl:{key}:{bucket}` | `lib/core/rate-limit.ts` | `windowMs + 10s` | TTL only |
 | `rl:auth:{userId}:{action}:{bucket}` | `lib/core/rate-limit.ts` | `windowMs + 10s` | TTL only |
 | `notif:cache:{userId}` | `api/notifications/route.ts` | 60s | `notify()`, mark-read PATCH |
-| `notif:dispatch:prefs:{userId}` | `lib/notifications/notify.ts` | 300s | notification-prefs PATCH, push subscribe/unsubscribe |
+| `notif:dispatch:prefs:v2:{userId}` | `lib/notifications/notify.ts` | 300s | notification-prefs PATCH, push subscribe/unsubscribe, mobile push register/unregister |
 | `cache:admin:stats` | `api/admin/stats/route.ts` | 60s | TTL only |
 | `waiter:search:gen` | `api/waiters/route.ts` | no TTL (counter) | `INCR` after every `syncPassportScore` |
 | `search:waiters:{gen}:{hash}` | `api/waiters/route.ts` | 120s | counter change (old keys expire via TTL) |
@@ -290,14 +290,19 @@ notify(userId, "APPLICATION_RECEIVED", "Nova prijava", "Marko se prijavio...", "
 
 `notify()` always writes a `Notification` DB row, then dispatches:
 1. **Web push** — if the user has a `PushSubscription` row (free, via VAPID)
-2. **WhatsApp** — if `user.waOptIn && user.phone` and `WA_ACCESS_TOKEN` is set
-3. **Infobip SMS** — if `user.smsOptIn && user.phone` and `INFOBIP_API_KEY` is set
+2. **Native push** — if the user has a `DeviceToken` row (Expo → APNs/FCM)
+3. **WhatsApp** — if `user.waOptIn && user.phone` and `WA_ACCESS_TOKEN` is set
+4. **Infobip SMS** — if `user.smsOptIn && user.phone` and `INFOBIP_API_KEY` is set
+
+Web push and native push are **independent** — a user may have a desktop browser and a phone, and both should ring. `pushSent` tracks the browser, `devicePushSent` the phone; neither implies the other.
+
+**The dispatch-prefs cache key is versioned** (`notif:dispatch:prefs:v2:{userId}`). Adding a field to `fetchDispatchUser`'s selection changes the cached payload's shape, and entries written by the previous deploy would be read back missing it — which is a `TypeError` inside `notify()`, not a cache miss. Bump `PREFS_CACHE_VERSION` whenever that selection changes.
 
 Providers are no-ops when env vars are missing — safe in development.
 
 **No tier gating.** Every recipient gets every channel they opted into. The paid PRO / PRO_PLUS subscription that used to gate WhatsApp and SMS was removed; cost stays zero until the provider env vars are configured. Do not reintroduce a tier check here.
 
-**Internal architecture:** Channel dispatchers (`dispatchPush`, `dispatchWhatsApp`, `dispatchSms`) perform the network send only and return a boolean. The coordinator collects all results, then does a single `await db.notification.update` with all status flags (`pushSent`, `waSent`, `smsSent`) and retry counters (`waRetries`, `smsRetries`) in one batched write. No fire-and-forget DB writes inside dispatchers.
+**Internal architecture:** Channel dispatchers (`dispatchPush`, `dispatchDevicePush`, `dispatchWhatsApp`, `dispatchSms`) perform the network send only and return a boolean. The coordinator collects all results, then does a single `await db.notification.update` with all status flags (`pushSent`, `waSent`, `smsSent`) and retry counters (`waRetries`, `smsRetries`) in one batched write. No fire-and-forget DB writes inside dispatchers.
 
 `NotificationType` enum values: `APPLICATION_RECEIVED`, `APPLICATION_STATUS_CHANGED`, `SWAP_REQUESTED`, `SWAP_RESOLVED`, `SHIFT_CLAIMED`, `SHIFT_ASSIGNED`, `REVIEW_RECEIVED`, `REVIEW_PUBLISHED`, `CLOCKIN_APPROVAL_REQUESTED`, `CLOCKIN_RESOLVED`, `RED_ALERT_POSTED`.
 
@@ -554,6 +559,8 @@ The Prisma client is cached on `globalThis._prisma`. After every `db:push` that 
 - `PassportPayment` — **historical only.** Payment rows from the removed waiter subscription product. Nothing writes to it now; kept so past payment history survives for accounting. `tier` is a plain `String` (the `PassportTier` enum is gone).
 - `Notification` — in-app notification record. Has `type NotificationType`, `title`, `body`, `link`, `read`, `pushSent`, `waSent`, `smsSent`.
 - `PushSubscription` — browser Web Push subscription per user. Has `endpoint` (unique), `p256dh`, `auth`.
+- `DeviceToken` — Expo push token for one native install. Has `token` (unique), `platform`, `deviceId`. **Unique on `token`, not on `(userId, deviceId)`** — a phone handed to another person must move the token, not duplicate it across both accounts.
+- `MobileRefreshToken` — rotating refresh token for one native install. Stores `tokenHash` (sha256) only.
 
 ## i18n (Language Switcher)
 
@@ -688,9 +695,10 @@ export async function GET(req: NextRequest) {
 
 ### Notification retry cron
 
-`POST /api/cron/retry-notifications` — hourly job that retries failed WhatsApp and SMS sends.
+`POST /api/cron/retry-notifications` — hourly job that retries failed WhatsApp, SMS and native push sends.
 
-- Queries `Notification` where `waSent=false AND waRetries<3` (or same for SMS), `createdAt` within last 24h, user not deleted, still opted in
+- Queries `Notification` where `waSent=false AND waRetries<3` (or the same for SMS / device push), `createdAt` within last 24h, user not deleted, still opted in. For device push there is no opt-in flag — **having a `DeviceToken` row is the opt-in**, exactly as having a `PushSubscription` row is on the web.
+- Device push is retried **before** the `if (!user.phone) return` guard, because it does not depend on a phone number. Web push is deliberately **not** retried: a browser that missed one is usually closed, whereas native push is often the only channel that reaches a mobile user.
 - On success: sets `waSent`/`smsSent = true`
 - On failure: increments `waRetries`/`smsRetries`; stops retrying once count reaches 3
 - Returns `{ checked, waSent, waFailed, smsSent, smsFailed }`
@@ -708,7 +716,8 @@ Both functions apply the same role-bypass logic as `notify()` (non-WAITER roles 
 `notify()` increments `waRetries`/`smsRetries` on initial send failure instead of silently swallowing the error.
 
 **Notification module structure:**
-- `lib/notifications/dispatch.ts` — `dispatchPush`, `dispatchWhatsApp`, `dispatchSms`, `buildSmsText` (pure network, no DB writes, no tier checks)
+- `lib/notifications/dispatch.ts` — `dispatchPush`, `dispatchDevicePush`, `dispatchWhatsApp`, `dispatchSms`, `buildSmsText` (pure network, no DB writes, no tier checks)
+- `lib/integrations/expo-push.ts` — `sendExpoPush`, `isExpoPushToken`. Batches to 100 (Expo's cap) and reports `DeviceNotRegistered` tokens back so the dispatcher deletes them — the native equivalent of deleting a web subscription on 410. No env var configures it: it is only ever called with tokens, and no `DeviceToken` rows exist until a real install registers one, so dev and tests make zero network calls. `EXPO_ACCESS_TOKEN` is optional and enables Expo's enhanced-security mode.
 - `lib/notifications/notify.ts` — `notify()` coordinator (DB create + tier check + dispatch orchestration + email fallback)
 - `lib/notifications/retry.ts` — `retryWhatsApp`, `retrySms` (used only by retry-notifications cron)
 
@@ -931,6 +940,15 @@ That single line is why all ~74 routes serve the mobile app **without being edit
 **`src/middleware.ts` lets bearer requests through** (`hasBearer`) — the native app sends no cookie, so without that check every mobile request would be 401'd at the Edge before the handler ran. It does **not** verify the header: the middleware only filters obviously anonymous traffic, exactly as it does for cookies, and a forged header is rejected a moment later by `withRole`. Verification stays in one place, on the Node side.
 
 **Not built yet:** `POST /api/mobile/auth/oauth` (native Google / Facebook sign-in). Credentials login is the only mobile path today.
+
+### Mobile push registration
+
+| Route | Notes |
+|---|---|
+| `POST /api/mobile/push/register` | `{ token, platform, deviceId }`. Upserts on `token`. Called after permission is granted **and on every cold start** — Expo tokens rotate, so re-registering is the normal case, not an error. |
+| `DELETE /api/mobile/push/unregister` | `{ token }`. Scoped to the caller's own rows, so a token string cannot unregister somebody else's device. Returns 204 for an unknown token rather than 404 — the endpoint must not confirm that a token exists. |
+
+Both must call `bustNotifyPrefsCache(userId)`, the same as the web subscribe route.
 
 ### parseBody / parseQuery
 

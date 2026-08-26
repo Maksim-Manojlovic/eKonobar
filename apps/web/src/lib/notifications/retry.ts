@@ -9,7 +9,12 @@
  */
 
 import { db } from "@/lib/core/db";
-import { dispatchWhatsApp, dispatchSms } from "@/lib/notifications/dispatch";
+import {
+  dispatchWhatsApp,
+  dispatchSms,
+  dispatchDevicePush,
+  type DeviceTokenRow,
+} from "@/lib/notifications/dispatch";
 
 export async function retryWhatsApp(
   notificationId: string,
@@ -36,6 +41,31 @@ export async function retrySms(
   await db.notification.update({
     where: { id: notificationId },
     data:  ok ? { smsSent: true } : { smsRetries: { increment: 1 } },
+  });
+  return ok ? "sent" : "failed";
+}
+
+/**
+ * Retries a native push.
+ *
+ * Web push has no retry — a browser that missed one is usually closed anyway.
+ * Native push does, because for a mobile user it is the only channel that
+ * actually reaches them, and the common failure is a transient Expo outage
+ * rather than a dead device. Permanently dead tokens never reach here: they are
+ * deleted by dispatchDevicePush on DeviceNotRegistered, which drops the user out
+ * of the cron's query.
+ */
+export async function retryDevicePush(
+  notificationId: string,
+  tokens: DeviceTokenRow[],
+  title: string,
+  body: string,
+  link?: string | null,
+): Promise<"sent" | "failed"> {
+  const ok = await dispatchDevicePush(tokens, { title, body, link: link ?? undefined });
+  await db.notification.update({
+    where: { id: notificationId },
+    data:  ok ? { devicePushSent: true } : { devicePushRetries: { increment: 1 } },
   });
   return ok ? "sent" : "failed";
 }

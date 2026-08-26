@@ -4,9 +4,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Unit test mocked db.user.findUnique, so tier gating was never checked
 // against real passport rows. This test proves runtime resolution from DB.
 vi.mock("@/lib/notifications/dispatch", () => ({
-  dispatchPush:     vi.fn().mockResolvedValue(false),
-  dispatchWhatsApp: vi.fn().mockResolvedValue(true),
-  dispatchSms:      vi.fn().mockResolvedValue(true),
+  dispatchPush:       vi.fn().mockResolvedValue(false),
+  dispatchDevicePush: vi.fn().mockResolvedValue(false),
+  dispatchWhatsApp:   vi.fn().mockResolvedValue(true),
+  dispatchSms:        vi.fn().mockResolvedValue(true),
 }));
 vi.mock("@/lib/integrations/email", () => ({
   sendNotificationEmail: vi.fn().mockResolvedValue(undefined),

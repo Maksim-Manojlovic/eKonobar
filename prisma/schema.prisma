@@ -264,6 +264,7 @@ model User {
   tokenRevocation      TokenRevocation?
   auditLogs            AuditLog[]
   mobileRefreshTokens  MobileRefreshToken[]
+  deviceTokens         DeviceToken[]
 
   @@index([role])
   @@index([verificationTier])
@@ -1055,9 +1056,15 @@ model Notification {
   waSent   Boolean @default(false)
   smsSent  Boolean @default(false)
 
+  // Native (Expo -> APNs/FCM) push. Separate from pushSent, which is browser
+  // web-push: a user can have both a desktop browser and a phone, and one
+  // channel failing says nothing about the other.
+  devicePushSent Boolean @default(false)
+
   // Retry counters — incremented on send failure; cron skips when >= 3
-  waRetries  Int @default(0)
-  smsRetries Int @default(0)
+  waRetries         Int @default(0)
+  smsRetries        Int @default(0)
+  devicePushRetries Int @default(0)
 
   createdAt DateTime @default(now())
 
@@ -1199,4 +1206,30 @@ model MobileRefreshToken {
   @@index([userId])
   @@index([userId, deviceId])
   @@index([expiresAt])
+}
+
+/// Expo push token for one native app install.
+///
+/// The browser equivalent is PushSubscription (VAPID web push); this is its
+/// native counterpart. Both are kept: a user may have a phone and a desktop
+/// browser, and notify() fans out to whichever exist.
+///
+/// Delivery goes through Expo's push service, which fronts both APNs and FCM
+/// behind one token format and one HTTP call — so no Apple .p8 key or FCM
+/// credential lives in application code.
+model DeviceToken {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// "ExponentPushToken[...]" — unique across users, because reinstalling or
+  /// handing a phone to someone else must move the token, not duplicate it.
+  token    String @unique
+  platform String // "ios" | "android"
+  deviceId String // stable per-install id, matches MobileRefreshToken.deviceId
+
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  @@index([userId])
 }

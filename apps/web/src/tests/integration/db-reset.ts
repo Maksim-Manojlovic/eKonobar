@@ -67,6 +67,7 @@ export async function resetDb(): Promise<void> {
       "AnonRateLimit",
       "RateLimit",
       "PushSubscription",
+      "DeviceToken",
       "Notification",
       "PassportPayment",
       "ShiftSwapRequest",

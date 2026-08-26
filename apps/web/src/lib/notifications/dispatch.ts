@@ -12,10 +12,12 @@ import { db } from "@/lib/core/db";
 import logger from "@/lib/core/logger";
 import { withSpan } from "@/lib/core/observability";
 import { sendPush } from "@/lib/integrations/webpush";
+import { sendExpoPush } from "@/lib/integrations/expo-push";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { sendSms } from "@/lib/integrations/sms";
 
 export type PushSub = { id: string; endpoint: string; p256dh: string; auth: string };
+export type DeviceTokenRow = { id: string; token: string };
 
 /**
  * Canonical SMS body formatter (≤160 chars).
@@ -104,6 +106,51 @@ export async function dispatchSms(
         return true;
       } catch (err) {
         logger.warn({ err, channel: "sms" }, "sms dispatch failed");
+        span.setAttribute("delivered", false);
+        return false;
+      }
+    },
+  );
+}
+
+/**
+ * Sends a native push to every registered device of one user, via Expo.
+ *
+ * Mirrors dispatchPush: network only, returns whether anything was delivered,
+ * and prunes tokens the provider reports as permanently dead — the native
+ * equivalent of deleting a web subscription on 410/404. Without that pruning a
+ * user who uninstalls the app leaves a row that is retried forever.
+ */
+export async function dispatchDevicePush(
+  tokens: DeviceTokenRow[],
+  payload: { title: string; body: string; link?: string },
+): Promise<boolean> {
+  if (tokens.length === 0) return false;
+
+  return withSpan(
+    {
+      name: "notification.device_push",
+      op: "notification.dispatch",
+      attributes: { channel: "device-push", tokens: tokens.length },
+    },
+    async (span) => {
+      try {
+        const outcome = await sendExpoPush(tokens.map(t => t.token), payload);
+
+        if (outcome.invalidTokens.length > 0) {
+          await db.deviceToken
+            .deleteMany({ where: { token: { in: outcome.invalidTokens } } })
+            .catch(err => logger.warn({ err }, "dead device-token cleanup failed"));
+        }
+
+        const delivered = outcome.delivered > 0;
+        span.setAttribute("delivered", delivered);
+        return delivered;
+      } catch (err) {
+        // Same reasoning as WhatsApp: the boolean alone cannot distinguish an
+        // Expo outage from "no devices registered", and the retry cron would
+        // then re-fire three times with no diagnostic.
+        logger.warn({ err, channel: "device-push" }, "device push dispatch failed");
         span.setAttribute("delivered", false);
         return false;
       }

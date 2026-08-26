@@ -5,6 +5,7 @@ import logger from "@/lib/core/logger";
 import { sendNotificationEmail } from "@/lib/integrations/email";
 import {
   dispatchPush,
+  dispatchDevicePush,
   dispatchWhatsApp,
   dispatchSms,
 } from "@/lib/notifications/dispatch";
@@ -15,12 +16,25 @@ import {
 // info and push subscriptions — to avoid a multi-join DB read on every
 // notification send.
 //
-// Push subscriptions are included in the cache. Stale endpoints (browser cleared
-// or expired) are auto-cleaned by dispatchPush when it receives a 410 response.
+// Push subscriptions and device tokens are included in the cache. Stale browser
+// endpoints are auto-cleaned by dispatchPush on a 410; dead device tokens are
+// auto-cleaned by dispatchDevicePush on DeviceNotRegistered.
 //
-// Busted by: notification-prefs PATCH, push subscribe/unsubscribe.
+// Busted by: notification-prefs PATCH, push subscribe/unsubscribe,
+// mobile push register/unregister.
+//
+// The key carries a version segment. Adding a field to the cached payload
+// changes its shape, and entries written by the previous deploy would otherwise
+// be read back missing that field — here that would mean `deviceTokens`
+// undefined and a TypeError inside notify(). Bump PREFS_CACHE_VERSION whenever
+// fetchDispatchUser's selection changes.
 
-const DISPATCH_PREFS_TTL = 300; // seconds
+const DISPATCH_PREFS_TTL   = 300; // seconds
+const PREFS_CACHE_VERSION  = "v2";
+
+function prefsCacheKey(userId: string): string {
+  return `notif:dispatch:prefs:${PREFS_CACHE_VERSION}:${userId}`;
+}
 
 type DispatchUser = Awaited<ReturnType<typeof fetchDispatchUser>>;
 
@@ -33,12 +47,13 @@ async function fetchDispatchUser(userId: string) {
       smsOptIn: true,
       waOptIn:  true,
       pushSubscriptions: { select: { id: true, endpoint: true, p256dh: true, auth: true } },
+      deviceTokens:      { select: { id: true, token: true } },
     },
   });
 }
 
 async function getCachedDispatchUser(userId: string): Promise<DispatchUser> {
-  const key = `notif:dispatch:prefs:${userId}`;
+  const key = prefsCacheKey(userId);
 
   if (redis) {
     try {
@@ -64,7 +79,7 @@ async function getCachedDispatchUser(userId: string): Promise<DispatchUser> {
 export function bustNotifyPrefsCache(userId: string): void {
   if (!redis) return;
   redis
-    .del(`notif:dispatch:prefs:${userId}`)
+    .del(prefsCacheKey(userId))
     .catch((err) => logger.warn({ err, userId }, "notify: dispatch-prefs cache bust failed"));
 }
 
@@ -107,9 +122,12 @@ export async function notify(
   const shouldWA  = !!user.waOptIn  && !!user.phone;
   const shouldSms = !!user.smsOptIn && !!user.phone;
 
-  // Dispatch push + WhatsApp + SMS in parallel; failures in one channel don't block others
-  const [pushResult, waResult, smsResult] = await Promise.allSettled([
+  // Dispatch every channel in parallel; failures in one don't block the others.
+  // Web push and device push are independent: a user may have a desktop browser
+  // and a phone, and both should ring.
+  const [pushResult, devicePushResult, waResult, smsResult] = await Promise.allSettled([
     dispatchPush(user.pushSubscriptions, { title, body, link }),
+    dispatchDevicePush(user.deviceTokens, { title, body, link }),
     shouldWA  ? dispatchWhatsApp(user.phone!, title, body)      : Promise.resolve(false),
     shouldSms ? dispatchSms(user.phone!, title, body, link)     : Promise.resolve(false),
   ]);
@@ -120,6 +138,15 @@ export async function notify(
 
   const pushSent = pushResult.status === "fulfilled" && pushResult.value;
   if (pushSent) statusUpdate.pushSent = true;
+
+  // Unlike web push, device push has a retry counter: it is the primary channel
+  // for a mobile user, so a transient Expo outage must not silently drop the
+  // only notification they were going to get.
+  if (user.deviceTokens.length > 0) {
+    const devicePushSent = devicePushResult.status === "fulfilled" && devicePushResult.value;
+    if (devicePushSent) statusUpdate.devicePushSent = true;
+    else                statusUpdate.devicePushRetries = { increment: 1 };
+  }
 
   if (shouldWA) {
     const waSent = waResult.status === "fulfilled" && waResult.value;
@@ -140,7 +167,7 @@ export async function notify(
   // Email fallback: only when no channel attempted delivery.
   // Push and WA are considered "attempted" if the conditions were met (retry handles failures).
   // SMS counts only when it actually delivered (no retry for email).
-  const pushAttempted = user.pushSubscriptions.length > 0;
+  const pushAttempted = user.pushSubscriptions.length > 0 || user.deviceTokens.length > 0;
   const smsDelivered  = smsResult.status === "fulfilled" && smsResult.value === true;
   const anyDelivered  = pushAttempted || shouldWA || smsDelivered;
 
