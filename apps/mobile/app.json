@@ -34,17 +34,6 @@
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "updates": {
-      "url": "https://u.expo.dev/PLACEHOLDER-PROJECT-ID"
-    },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "PLACEHOLDER-PROJECT-ID"
-      }
     }
   }
 }

@@ -21,11 +21,23 @@
 import Constants from "expo-constants";
 import { clearSession, loadSession, saveSession, type Session } from "@/auth/storage";
 
-/** Set via EXPO_PUBLIC_API_URL; falls back to the value baked into app.json extra. */
-const BASE_URL: string =
+/**
+ * Where the API lives. Set EXPO_PUBLIC_API_URL (see apps/mobile/.env.local for dev,
+ * eas.json for builds).
+ *
+ * The localhost fallback is dev-only and deliberately loud in production: on a
+ * device "localhost" is the phone itself, so a missing value would otherwise show
+ * up as every request failing to connect, with nothing pointing at the cause.
+ */
+const CONFIGURED_URL =
   process.env.EXPO_PUBLIC_API_URL ??
-  (Constants.expoConfig?.extra?.apiUrl as string | undefined) ??
-  "http://localhost:3000";
+  (Constants.expoConfig?.extra?.apiUrl as string | undefined);
+
+if (!CONFIGURED_URL && !__DEV__) {
+  throw new Error("[api] EXPO_PUBLIC_API_URL is not set — the app cannot reach the backend.");
+}
+
+const BASE_URL: string = CONFIGURED_URL ?? "http://localhost:3000";
 
 export class ApiError extends Error {
   constructor(

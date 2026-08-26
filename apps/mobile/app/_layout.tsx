@@ -45,8 +45,11 @@ function AuthGate() {
 
     const inAuthGroup = segments[0] === "(auth)";
 
-    if (!user && !inAuthGroup)     router.replace("/(auth)/login");
-    else if (user && inAuthGroup)  router.replace("/(app)");
+    // Route groups in parentheses do not appear in the URL: (auth)/login.tsx is
+    // "/login" and (app)/index.tsx is "/". Navigating to "/(app)" happens to work
+    // in some expo-router versions and silently does nothing in others.
+    if (!user && !inAuthGroup)    router.replace("/login");
+    else if (user && inAuthGroup) router.replace("/");
   }, [user, segments, router]);
 
   if (user === undefined) {

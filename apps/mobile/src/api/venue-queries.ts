@@ -40,12 +40,23 @@ export const useOwnPosts = () =>
 export const useIncomingApps = () =>
   useQuery({ queryKey: ["applications", "incoming"], queryFn: () => apiGet<IncomingApp[]>("/api/jobs/applications") });
 
+/**
+ * The owner's shifts.
+ *
+ * Plain `/api/shifts` with no view parameter: GET /api/shifts branches on role,
+ * and for a VENUE_OWNER it returns a flat array of that venue's shifts with
+ * assignments and pending swap requests included. `view` is read only on the
+ * WAITER path — `view=manage` there is the *head-waiter* view, keyed off
+ * Venue.headWaiterId, which an owner is not. Asking for it as an owner silently
+ * returns the owner array anyway, so the bug was invisible until the response
+ * was actually inspected.
+ *
+ * Defaults to shifts from the last 30 days onward; pass ?from=/&to= to widen.
+ */
 export const useManagedShifts = () =>
   useQuery({
-    queryKey: ["shifts", "manage"],
-    // Returns 200 { venue: null, shifts: [] } for someone who manages nothing —
-    // managing nothing is not "forbidden", so this is never a 403 to handle.
-    queryFn:  () => apiGet<{ venue: { id: string } | null; shifts: VenueShift[] }>("/api/shifts?view=manage"),
+    queryKey: ["shifts", "owner"],
+    queryFn:  () => apiGet<VenueShift[]>("/api/shifts"),
   });
 
 export const useVenueReviews = (venueId: string | undefined) =>

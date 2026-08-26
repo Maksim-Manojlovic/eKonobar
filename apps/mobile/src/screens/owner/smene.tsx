@@ -24,12 +24,7 @@ export default function OwnerSmeneScreen() {
   }
   if (error) return <Screen title="Smene"><Empty text="Smene trenutno nisu dostupne." /></Screen>;
 
-  const shifts = data?.shifts ?? [];
-
-  // A 200 with venue: null means this account manages no venue — not an error.
-  if (!data?.venue) {
-    return <Screen title="Smene"><Empty text="Ne upravljaš nijednim lokalom." /></Screen>;
-  }
+  const shifts = data ?? [];
 
   const pendingClockIns = shifts.flatMap(s =>
     s.assignments.filter(a => a.pendingClockIn).map(a => ({ shift: s, assignment: a })),

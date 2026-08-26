@@ -78,6 +78,23 @@ Expo Go can run this today: the app imports nine native modules and all of them 
 inside Expo Go. It will stop being enough the moment push notifications are wired up —
 Expo Go dropped remote push support in SDK 53.
 
+**Expo Go supports exactly one SDK, and the App Store build lags npm.** This project is
+pinned to whatever `expoGoSdkVersion` reports, currently **SDK 54** — not `expo@latest`,
+which is several SDKs ahead and produces "incompatible versions" on the device with no
+update available to fix it. Before bumping the SDK, check what Expo Go actually runs:
+
+```bash
+curl -s https://api.expo.dev/v2/versions/latest | grep -o "\"expoGoSdkVersion\":\"[^\"]*\""
+```
+
+**iOS Expo Go has no manual URL entry and no QR scanner.** Scan the QR from the terminal
+with the system **Camera app**; it deep-links into Expo Go. If you need a QR without a
+terminal, `npx qrcode -o qr.png "exp://<lan-ip>:8081"`.
+
+**If `expo start` dies with `TypeError: fetch failed`**, it is the dependency-version
+check calling Expo's API, not your code. Start with `EXPO_OFFLINE=1` to skip it
+(`--offline` cannot be combined with `--lan`).
+
 Expo Go's "Development servers" list relies on local-network discovery that Windows
 Firewall usually blocks, so the server often never appears there. Do not wait for it:
 

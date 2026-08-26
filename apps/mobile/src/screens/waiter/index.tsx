@@ -1,17 +1,8 @@
 import { Pressable, Text, View } from "react-native";
-import { useQuery } from "@tanstack/react-query";
 import { ROLE_LABELS, VERIFICATION_LABELS, isVerified } from "@ekonobar/shared/formatting/labels";
-import { apiGet } from "@/api/client";
+import { useMarket } from "@/api/queries";
 import { useAuth } from "@/auth/AuthProvider";
 import { Card, Pending, Screen } from "@/ui/Screen";
-
-type MarketInsights = {
-  openPositions:     number;
-  redAlertCount:     number;
-  avgSalaryMin:      number | null;
-  avgSalaryMax:      number | null;
-  topMunicipalities: string[];
-};
 
 /**
  * Pregled — the first screen behind the tab bar.
@@ -24,10 +15,10 @@ type MarketInsights = {
 export default function PregledScreen() {
   const { user, signOut } = useAuth();
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["insights", "market"],
-    queryFn:  () => apiGet<MarketInsights>("/api/insights/market"),
-  });
+  // MarketData comes from @ekonobar/shared/api/waiter. The local copy this
+  // replaced declared topMunicipalities as string[]; the API returns
+  // { name, count }[], and nothing failed only because it was never rendered.
+  const { data, isLoading, error } = useMarket();
 
   return (
     <Screen title="Pregled" subtitle={user?.name ?? user?.email}>

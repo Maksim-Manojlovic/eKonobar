@@ -55,8 +55,19 @@ export const useSwapRequests = () =>
 export const usePassport = () =>
   useQuery({ queryKey: ["passport"], queryFn: () => apiGet<PassportData>("/api/passport") });
 
-export const useReviews = () =>
-  useQuery({ queryKey: ["reviews"], queryFn: () => apiGet<WaiterReview[]>("/api/reviews") });
+/**
+ * Reviews received by one waiter.
+ *
+ * `subjectId` is mandatory: GET /api/reviews answers 400 with
+ * "venueId or subjectId required" rather than defaulting to the caller, because
+ * the same route serves the public published-review feed.
+ */
+export const useReviews = (subjectId: string | undefined) =>
+  useQuery({
+    queryKey: ["reviews", "subject", subjectId],
+    queryFn:  () => apiGet<WaiterReview[]>(`/api/reviews?subjectId=${subjectId}`),
+    enabled:  Boolean(subjectId),
+  });
 
 // ── Writes ────────────────────────────────────────────────────────────────────
 

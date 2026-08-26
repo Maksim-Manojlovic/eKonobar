@@ -20,7 +20,12 @@ export function Screen({ title, subtitle, children }: {
         <Text className="text-white text-2xl font-extrabold">{title}</Text>
         {subtitle && <Text className="text-white/40 text-xs mt-0.5">{subtitle}</Text>}
       </View>
-      <ScrollView contentContainerClassName="px-5 pb-8 gap-3">{children}</ScrollView>
+      {/* contentContainerStyle rather than contentContainerClassName: NativeWind
+          types className on the component itself, not on the content container,
+          so the class variant does not typecheck against ScrollViewProps. */}
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32, gap: 12 }}>
+        {children}
+      </ScrollView>
     </SafeAreaView>
   );
 }

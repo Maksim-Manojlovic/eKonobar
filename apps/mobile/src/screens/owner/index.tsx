@@ -21,7 +21,7 @@ export default function OwnerHomeScreen() {
 
   const pendingApps     = (apps.data ?? []).filter(a => a.status === "PENDING").length;
   const activePosts     = (posts.data ?? []).filter(p => p.status === "ACTIVE").length;
-  const pendingClockIns = (shifts.data?.shifts ?? [])
+  const pendingClockIns = (shifts.data ?? [])
     .flatMap(s => s.assignments)
     .filter(a => a.pendingClockIn).length;
 
@@ -69,7 +69,7 @@ export default function OwnerHomeScreen() {
         <View className="flex-row justify-around">
           <Stat label="aktivni oglasi" value={activePosts} />
           <Stat label="prijave"        value={apps.data?.length ?? 0} />
-          <Stat label="smene"          value={shifts.data?.shifts.length ?? 0} />
+          <Stat label="smene"          value={shifts.data?.length ?? 0} />
         </View>
       </Card>
 

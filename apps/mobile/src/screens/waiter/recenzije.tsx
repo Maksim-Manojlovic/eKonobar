@@ -2,11 +2,13 @@ import { ActivityIndicator, Text, View } from "react-native";
 import { DIRECTION_LABELS } from "@ekonobar/shared/formatting/labels";
 import { timeAgo } from "@ekonobar/shared/formatting/utils";
 import { useReviews } from "@/api/queries";
+import { useAuth } from "@/auth/AuthProvider";
 import { Card, Screen } from "@/ui/Screen";
 import { Avatar, Empty, TonePill, VerifiedBadge } from "@/ui/primitives";
 
 export default function RecenzijeScreen() {
-  const { data, isLoading, error } = useReviews();
+  const { user } = useAuth();
+  const { data, isLoading, error } = useReviews(user?.id);
 
   return (
     <Screen title="Recenzije">
