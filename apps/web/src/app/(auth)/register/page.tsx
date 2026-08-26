@@ -6,7 +6,22 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLang } from "@/components/providers/LanguageProvider";
 
-type Role = "WAITER" | "VENUE_OWNER" | "HEADHUNTER";
+/**
+ * Roles a person can give themselves.
+ *
+ * VENUE_OWNER is absent by design: there is no way to check from a signup form
+ * that whoever filled it in actually runs the venue they name, and an owner
+ * account can post jobs, read applicants' passports and verify staff. Those
+ * accounts are created by an admin after the venue is verified — the public path
+ * is the contact panel below. The register API refuses VENUE_OWNER too.
+ */
+type Role = "WAITER" | "HEADHUNTER";
+
+/**
+ * Rendered only when set, so a placeholder number can never reach production.
+ * Set NEXT_PUBLIC_CONTACT_PHONE to show a call button next to the email one.
+ */
+const CONTACT_PHONE = process.env.NEXT_PUBLIC_CONTACT_PHONE ?? "";
 
 interface FormState {
   firstName: string;
@@ -122,7 +137,6 @@ export default function RegisterPage() {
   async function handleSubmit() {
     if (!form.acceptTerms)                         { setError(t("register", "errTerms"));      return; }
     if (role === "WAITER" && !form.experience)     { setError(t("register", "errExperience")); return; }
-    if (role === "VENUE_OWNER" && !form.venueName) { setError(t("register", "errVenueName")); return; }
 
     setError("");
     setLoading(true);
@@ -151,11 +165,7 @@ export default function RegisterPage() {
       redirect: false,
     });
 
-    router.push(
-      role === "WAITER"      ? "/onboarding/waiter"
-      : role === "HEADHUNTER" ? "/onboarding/headhunter"
-      : "/onboarding/venue"
-    );
+    router.push(role === "HEADHUNTER" ? "/onboarding/headhunter" : "/onboarding/waiter");
   }
 
   return (
@@ -215,24 +225,56 @@ export default function RegisterPage() {
                   <div className="font-bold text-sm text-neutral-800">{t("register", "roleWaiter")}</div>
                   <div className="text-xs text-neutral-400 font-light mt-0.5">{t("register", "roleWaiterSub")}</div>
                 </div>
-                {/* The venue-owner card was here. Owner accounts are granted by an
-                    admin once the venue is known to be real — an owner can post
-                    jobs, read applicants' passports and verify staff — so the
-                    public path for a venue is the demo form on /for-venues. The
-                    register API no longer accepts VENUE_OWNER either. */}
-                <a
-                  href="/for-venues#demo"
-                  className="role-card block no-underline"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center mb-3">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              </div>
+
+              {/* ── Venue owners ─────────────────────────────────────────────
+                  Not a role you can pick. Nothing on a signup form proves the
+                  person filling it in runs the venue they name, and an owner
+                  account can post jobs, read applicants' passports and verify
+                  staff. So this is a contact panel, not an option. */}
+              <div className="rounded-2xl border border-orange-100 bg-orange-50/60 p-4 mb-6">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 shrink-0 rounded-xl bg-white border border-orange-100 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                       <rect x="3" y="6" width="18" height="14" rx="3" stroke="#f97316" strokeWidth="2" fill="none" />
                       <path d="M3 10H21M9 6V4C9 3.45 9.45 3 10 3H14C14.55 3 15 3.45 15 4V6" stroke="#f97316" strokeWidth="2" strokeLinecap="round" />
                     </svg>
                   </div>
-                  <div className="font-bold text-sm text-neutral-800">{t("register", "roleOwner")}</div>
-                  <div className="text-xs text-neutral-400 font-light mt-0.5">Zakaži demo →</div>
-                </a>
+                  <div className="min-w-0">
+                    <p className="font-bold text-sm text-neutral-800">Imate lokal?</p>
+                    <p className="text-xs text-neutral-500 font-light mt-1 leading-relaxed">
+                      Naloge za lokale otvara naš tim, nakon provere da je lokal stvarno vaš.
+                      Javite nam se i otvaramo ga isti dan.
+                    </p>
+
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <a
+                        href="mailto:hello@ekonobar.rs?subject=Otvaranje%20naloga%20za%20lokal"
+                        className="inline-flex items-center gap-1.5 rounded-full bg-orange-500 px-3.5 py-2 text-xs font-bold text-white hover:bg-orange-600 transition-colors no-underline"
+                      >
+                        Pošaljite poruku
+                      </a>
+                      {CONTACT_PHONE && (
+                        <a
+                          href={`tel:${CONTACT_PHONE.replace(/[^+\d]/g, "")}`}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-white border border-orange-200 px-3.5 py-2 text-xs font-bold text-orange-600 hover:bg-orange-50 transition-colors no-underline"
+                        >
+                          {CONTACT_PHONE}
+                        </a>
+                      )}
+                      <a
+                        href="/for-venues#demo"
+                        className="inline-flex items-center gap-1.5 rounded-full bg-white border border-neutral-200 px-3.5 py-2 text-xs font-bold text-neutral-600 hover:bg-neutral-50 transition-colors no-underline"
+                      >
+                        Zakažite demo
+                      </a>
+                    </div>
+
+                    <p className="text-[11px] text-neutral-400 font-light mt-2.5">
+                      Već imate nalog za lokal? <a href="/login" className="text-orange-500 font-semibold">Prijavite se</a>.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Social */}
@@ -381,36 +423,23 @@ export default function RegisterPage() {
           {/* ── STEP 3 ─────────────────────────────────────────────────────── */}
           {step === 3 && (
             <div className="slide-in flex flex-col gap-4">
-              {role === "WAITER" ? (
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-600 mb-1.5">{t("register", "experienceLabel")}</label>
-                  <select
-                    className="auth-input"
-                    value={form.experience}
-                    onChange={f("experience")}
-                    style={{
-                      appearance: "none",
-                      backgroundImage: SelectArrow,
-                      backgroundRepeat: "no-repeat",
-                      backgroundPosition: "right 14px center",
-                    }}
-                  >
-                    <option value="" disabled>{t("register", "experiencePlaceholder")}</option>
-                    {EXPERIENCE.map((e) => <option key={e}>{e}</option>)}
-                  </select>
-                </div>
-              ) : (
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-600 mb-1.5">{t("register", "venueLabel")}</label>
-                  <input
-                    type="text"
-                    className="auth-input"
-                    placeholder={t("register", "venuePlaceholder")}
-                    value={form.venueName}
-                    onChange={f("venueName")}
-                  />
-                </div>
-              )}
+              <div>
+                <label className="block text-xs font-semibold text-neutral-600 mb-1.5">{t("register", "experienceLabel")}</label>
+                <select
+                  className="auth-input"
+                  value={form.experience}
+                  onChange={f("experience")}
+                  style={{
+                    appearance: "none",
+                    backgroundImage: SelectArrow,
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right 14px center",
+                  }}
+                >
+                  <option value="" disabled>{t("register", "experiencePlaceholder")}</option>
+                  {EXPERIENCE.map((e) => <option key={e}>{e}</option>)}
+                </select>
+              </div>
 
               {/* Terms */}
               <div className="bg-neutral-50 border border-neutral-100 rounded-2xl p-4 flex flex-col gap-2.5">
