@@ -2,22 +2,12 @@ import { dbRaw } from "@/lib/core/db";
 import { haversineKm } from "@/lib/geo/geofence";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-export interface ZoneInsightItem {
-  zoneId: string;
-  name: string;
-  type: string;
-  distanceKm: number;
-  projectedGrowthPercent: number;
-  operatorTip: string | null;
-}
-
-export interface VenueZoneInsights {
-  insights: ZoneInsightItem[];
-  totalProjectedGrowth: number;
-  hasZoneBadge: boolean;
-  cachedAt: string;
-}
+//
+// Defined in @ekonobar/shared/api/zones: VenueZoneInsights is part of the venue
+// API response, so it has to be reachable from the mobile app too. Re-exported
+// here so every existing importer of this module is unaffected.
+import type { VenueZoneInsights, ZoneInsightItem } from "@ekonobar/shared/api/zones";
+export type { VenueZoneInsights, ZoneInsightItem };
 
 // Zone tipovi koji nose projectedGrowthPercent i prikazuju badge na lokalu.
 const INVESTMENT_ZONE_TYPES = new Set([
