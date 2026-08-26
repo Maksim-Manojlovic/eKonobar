@@ -29,7 +29,7 @@ export default function OwnerProfileScreen() {
         <View className="items-center gap-2">
           <ScoreRing score={venue.trustScore ?? 0} size={88} label="TRUST" />
           <Text className="text-neutral-900 font-bold text-base">{venue.name}</Text>
-          <Text className="text-neutral-400 text-xs">
+          <Text className="text-neutral-400 text-xs font-normal">
             {venue.address}{" · "}{venue.municipality}
           </Text>
           <View className="flex-row gap-1.5">
@@ -54,7 +54,7 @@ export default function OwnerProfileScreen() {
 function Row({ label, value }: { label: string; value: string | null }) {
   return (
     <View className="flex-row justify-between py-1.5">
-      <Text className="text-neutral-400 text-xs">{label}</Text>
+      <Text className="text-neutral-400 text-xs font-normal">{label}</Text>
       <Text className="text-neutral-900 text-xs font-semibold">{value ?? "—"}</Text>
     </View>
   );

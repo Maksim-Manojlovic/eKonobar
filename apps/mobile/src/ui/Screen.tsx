@@ -18,7 +18,7 @@ export function Screen({ title, subtitle, children }: {
     <SafeAreaView edges={["top"]} className="flex-1" style={{ backgroundColor: colors.shell.bg }}>
       <View className="px-5 pb-3 pt-2">
         <Text className="text-white text-2xl font-extrabold">{title}</Text>
-        {subtitle && <Text className="text-white/40 text-xs mt-0.5">{subtitle}</Text>}
+        {subtitle && <Text className="text-white/40 text-xs mt-0.5 font-normal">{subtitle}</Text>}
       </View>
       {/* contentContainerStyle rather than contentContainerClassName: NativeWind
           types className on the component itself, not on the content container,
@@ -44,7 +44,7 @@ export function Pending({ phase }: { phase: string }) {
   return (
     <Card>
       <Text className="text-neutral-900 font-bold">Uskoro</Text>
-      <Text className="text-neutral-500 text-xs mt-1">Ekran stiže u fazi {phase}.</Text>
+      <Text className="text-neutral-500 text-xs mt-1 font-normal">Ekran stiže u fazi {phase}.</Text>
     </Card>
   );
 }

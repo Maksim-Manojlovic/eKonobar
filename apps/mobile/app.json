@@ -30,7 +30,8 @@
           "photosPermission": "eKonobar koristi tvoje fotografije za profilnu sliku i fotografije lokala.",
           "cameraPermission": "eKonobar koristi kameru za profilnu sliku, fotografije lokala i skeniranje sanitarne knjižice."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

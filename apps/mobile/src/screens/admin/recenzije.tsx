@@ -47,7 +47,7 @@ function DisputeRow({ review }: { review: DisputedReview }) {
       </View>
 
       {review.comment && (
-        <Text className="text-neutral-600 text-xs mt-2 italic">{review.comment}</Text>
+        <Text className="text-neutral-600 text-xs mt-2 italic font-normal">{review.comment}</Text>
       )}
 
       <View className="flex-row gap-2 mt-3">

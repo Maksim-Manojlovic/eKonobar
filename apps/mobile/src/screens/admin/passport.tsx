@@ -87,7 +87,7 @@ export default function AdminHealthScreen() {
 function Row({ label, value, bad }: { label: string; value: string; bad?: boolean }) {
   return (
     <View className="flex-row justify-between py-1.5">
-      <Text className="text-neutral-400 text-xs flex-1 pr-2">{label}</Text>
+      <Text className="text-neutral-400 text-xs flex-1 pr-2 font-normal">{label}</Text>
       <Text className={bad ? "text-red-500 text-xs font-bold" : "text-neutral-900 text-xs font-semibold"}>
         {value}
       </Text>

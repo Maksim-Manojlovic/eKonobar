@@ -12,6 +12,11 @@ export default {
     extend: {
       colors,
       borderRadius: radius,
+      // `font-sans` is the regular face. Weights are re-pointed at their real
+      // Lexend families in global.css — see the note there.
+      fontFamily: {
+        sans: ["Lexend_400Regular"],
+      },
     },
   },
   plugins: [],

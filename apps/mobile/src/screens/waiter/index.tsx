@@ -24,11 +24,11 @@ export default function PregledScreen() {
     <Screen title="Pregled" subtitle={user?.name ?? user?.email}>
       <Card>
         <Text className="text-neutral-900 font-bold text-base">{user?.name ?? "—"}</Text>
-        <Text className="text-neutral-500 text-xs mt-1">
+        <Text className="text-neutral-500 text-xs mt-1 font-normal">
           {user ? ROLE_LABELS[user.role] ?? user.role : ""}
         </Text>
         {user && (
-          <Text className="text-neutral-500 text-xs mt-1">
+          <Text className="text-neutral-500 text-xs mt-1 font-normal">
             {isVerified(user.verificationTier)
               ? VERIFICATION_LABELS[user.verificationTier]
               : "Neverifikovan"}
@@ -38,8 +38,8 @@ export default function PregledScreen() {
 
       <Card>
         <Text className="text-neutral-900 font-bold mb-2">Tržište — sada</Text>
-        {isLoading && <Text className="text-neutral-400 text-xs">Učitavanje…</Text>}
-        {error && <Text className="text-neutral-400 text-xs">Podaci trenutno nisu dostupni.</Text>}
+        {isLoading && <Text className="text-neutral-400 text-xs font-normal">Učitavanje…</Text>}
+        {error && <Text className="text-neutral-400 text-xs font-normal">Podaci trenutno nisu dostupni.</Text>}
         {data && (
           <View className="flex-row gap-3">
             <Stat label="otvorene pozicije" value={String(data.openPositions)} />
@@ -59,7 +59,7 @@ export default function PregledScreen() {
       <Pending phase="5" />
 
       <Pressable onPress={signOut} className="items-center py-3">
-        <Text className="text-white/40 text-xs">Odjavi se</Text>
+        <Text className="text-white/40 text-xs font-normal">Odjavi se</Text>
       </Pressable>
     </Screen>
   );
@@ -71,7 +71,7 @@ function Stat({ label, value, accent }: { label: string; value: string; accent?:
       <Text className={accent ? "text-orange-500 font-extrabold" : "text-neutral-900 font-extrabold"}>
         {value}
       </Text>
-      <Text className="text-neutral-400 text-[10px] mt-0.5">{label}</Text>
+      <Text className="text-neutral-400 text-[10px] mt-0.5 font-normal">{label}</Text>
     </View>
   );
 }

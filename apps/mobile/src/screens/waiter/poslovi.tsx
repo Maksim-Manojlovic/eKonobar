@@ -75,7 +75,7 @@ function JobCard({ job }: { job: JobPost }) {
         <Avatar name={job.venue.name} size={38} />
         <View className="flex-1">
           <Text className="text-neutral-900 font-bold text-sm">{job.venue.name}</Text>
-          <Text className="text-neutral-400 text-xs mt-0.5">
+          <Text className="text-neutral-400 text-xs mt-0.5 font-normal">
             {job.venue.municipality} · {job.title}
           </Text>
         </View>
@@ -88,7 +88,7 @@ function JobCard({ job }: { job: JobPost }) {
       </View>
 
       <View className="flex-row items-center justify-between mt-3">
-        <Text className="text-neutral-500 text-xs">{job._count.applications} prijava</Text>
+        <Text className="text-neutral-500 text-xs font-normal">{job._count.applications} prijava</Text>
         <PrimaryButton
           label={apply.isSuccess ? "✓ Prijavljen" : apply.isPending ? "Šaljem…" : "Prijavi se"}
           disabled={apply.isPending || apply.isSuccess}
@@ -97,7 +97,7 @@ function JobCard({ job }: { job: JobPost }) {
       </View>
 
       {apply.error && (
-        <Text className="text-red-500 text-[11px] mt-2">{(apply.error as Error).message}</Text>
+        <Text className="text-red-500 text-[11px] mt-2 font-normal">{(apply.error as Error).message}</Text>
       )}
     </Card>
   );
@@ -140,7 +140,7 @@ function ApplicationRow({ app }: { app: MyApplication }) {
         <Avatar name={app.jobPost.venue.name} size={36} />
         <View className="flex-1">
           <Text className="text-neutral-900 font-bold text-sm">{app.jobPost.venue.name}</Text>
-          <Text className="text-neutral-400 text-xs mt-0.5">{app.jobPost.title}</Text>
+          <Text className="text-neutral-400 text-xs mt-0.5 font-normal">{app.jobPost.title}</Text>
         </View>
         <ApplicationStatusBadge status={app.status} />
       </View>
@@ -175,7 +175,7 @@ function InviteRow({ invite }: { invite: InviteItem }) {
       </View>
 
       {invite.message && (
-        <Text className="text-neutral-600 text-xs mt-2">{invite.message}</Text>
+        <Text className="text-neutral-600 text-xs mt-2 font-normal">{invite.message}</Text>
       )}
 
       {invite.status === "PENDING" && (

@@ -36,7 +36,7 @@ export default function OwnerHomeScreen() {
           <ScoreRing score={venue.trustScore ?? 0} size={72} label="TRUST" />
           <View className="flex-1">
             <Text className="text-neutral-900 font-bold text-sm">{venue.name}</Text>
-            <Text className="text-neutral-400 text-xs mt-0.5">{venue.municipality}</Text>
+            <Text className="text-neutral-400 text-xs mt-0.5 font-normal">{venue.municipality}</Text>
             <View className="flex-row gap-1.5 mt-2">
               <TonePill tone={venue.isActive ? "green" : "neutral"}>
                 {venue.isActive ? "Aktivan" : "Neaktivan"}
@@ -52,7 +52,7 @@ export default function OwnerHomeScreen() {
           <Text className="text-neutral-900 font-bold">
             {pendingClockIns} {pendingClockIns === 1 ? "dolazak čeka" : "dolazaka čeka"} odobrenje
           </Text>
-          <Text className="text-neutral-400 text-[11px] mt-1">
+          <Text className="text-neutral-400 text-[11px] mt-1 font-normal">
             Otvori Smene da odobriš ili odbiješ.
           </Text>
         </Card>
@@ -61,7 +61,7 @@ export default function OwnerHomeScreen() {
       {pendingApps > 0 && (
         <Card>
           <Text className="text-neutral-900 font-bold">{pendingApps} prijava čeka odgovor</Text>
-          <Text className="text-neutral-400 text-[11px] mt-1">Otvori Posao, pa Prijave.</Text>
+          <Text className="text-neutral-400 text-[11px] mt-1 font-normal">Otvori Posao, pa Prijave.</Text>
         </Card>
       )}
 
@@ -74,7 +74,7 @@ export default function OwnerHomeScreen() {
       </Card>
 
       <Pressable onPress={signOut} className="items-center py-3">
-        <Text className="text-white/40 text-xs">Odjavi se</Text>
+        <Text className="text-white/40 text-xs font-normal">Odjavi se</Text>
       </Pressable>
     </Screen>
   );
@@ -84,7 +84,7 @@ function Stat({ label, value }: { label: string; value: number }) {
   return (
     <View className="items-center">
       <Text className="text-neutral-900 font-extrabold text-lg">{value}</Text>
-      <Text className="text-neutral-400 text-[10px] mt-0.5">{label}</Text>
+      <Text className="text-neutral-400 text-[10px] mt-0.5 font-normal">{label}</Text>
     </View>
   );
 }

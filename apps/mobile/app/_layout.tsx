@@ -1,5 +1,5 @@
 import "../global.css";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -8,8 +8,25 @@ import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SplashScreen from "expo-splash-screen";
+import {
+  useFonts,
+  Lexend_400Regular,
+  Lexend_500Medium,
+  Lexend_600SemiBold,
+  Lexend_700Bold,
+  Lexend_800ExtraBold,
+  Lexend_900Black,
+} from "@expo-google-fonts/lexend";
 import { colors } from "@ekonobar/shared/design-tokens";
 import { AuthProvider, useAuth } from "@/auth/AuthProvider";
+
+// Hold the native splash until Lexend is in memory. Without this the first
+// frame renders in the iOS system font and then reflows once the font lands,
+// which reads as a broken screen rather than a loading one.
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // Already hidden, or the module is unavailable — not worth failing a launch over.
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,6 +81,25 @@ function AuthGate() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    Lexend_400Regular,
+    Lexend_500Medium,
+    Lexend_600SemiBold,
+    Lexend_700Bold,
+    Lexend_800ExtraBold,
+    Lexend_900Black,
+  });
+
+  const onReady = useCallback(() => {
+    // Hide on font error too: shipping the system font is far better than a
+    // splash screen that never goes away.
+    if (fontsLoaded || fontError) SplashScreen.hideAsync().catch(() => {});
+  }, [fontsLoaded, fontError]);
+
+  useEffect(() => { onReady(); }, [onReady]);
+
+  if (!fontsLoaded && !fontError) return null;
+
   return (
     <SafeAreaProvider>
       <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>

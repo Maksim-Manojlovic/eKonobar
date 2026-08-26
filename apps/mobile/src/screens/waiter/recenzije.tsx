@@ -25,7 +25,7 @@ export default function RecenzijeScreen() {
               <Text className="text-neutral-900 font-bold text-xs">
                 {r.author?.name ?? "Gost"}
               </Text>
-              <Text className="text-neutral-400 text-[10px]">
+              <Text className="text-neutral-400 text-[10px] font-normal">
                 {r.publishedAt ? timeAgo(r.publishedAt) : "Čeka objavu"}
               </Text>
             </View>
@@ -38,7 +38,7 @@ export default function RecenzijeScreen() {
           </View>
 
           {r.comment && (
-            <Text className="text-neutral-600 text-xs mt-2 italic">&ldquo;{r.comment}&rdquo;</Text>
+            <Text className="text-neutral-600 text-xs mt-2 italic font-normal">&ldquo;{r.comment}&rdquo;</Text>
           )}
         </Card>
       ))}

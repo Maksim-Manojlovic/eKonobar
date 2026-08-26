@@ -49,7 +49,7 @@ function ReviewRow({ review }: { review: VenueReview }) {
       </View>
 
       {review.comment && (
-        <Text className="text-neutral-600 text-xs mt-2 italic">{review.comment}</Text>
+        <Text className="text-neutral-600 text-xs mt-2 italic font-normal">{review.comment}</Text>
       )}
 
       {actionable && (

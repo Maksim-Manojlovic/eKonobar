@@ -57,7 +57,7 @@ export default function PassportScreen() {
           <Dim label="Higijena"     value={data.trustScore.personalHygiene} />
           <Dim label="Tim"          value={data.trustScore.teamwork} />
           <Dim label="Brzina"       value={data.trustScore.speed} />
-          <Text className="text-neutral-400 text-[10px] mt-2">
+          <Text className="text-neutral-400 text-[10px] mt-2 font-normal">
             Na osnovu {data.trustScore.sampleSize} recenzija.
           </Text>
         </Card>
@@ -87,7 +87,7 @@ function Reach({ data }: { data: PassportData }) {
   return (
     <Card>
       <Text className="text-neutral-900 font-bold mb-1">Gde radiš</Text>
-      <Text className="text-neutral-400 text-[11px] mb-2">
+      <Text className="text-neutral-400 text-[11px] mb-2 font-normal">
         Opštine u kojima prihvataš smene.
       </Text>
       <View className="flex-row flex-wrap gap-1.5">
@@ -101,7 +101,7 @@ function Stat({ label, value }: { label: string; value: number }) {
   return (
     <View className="items-center">
       <Text className="text-neutral-900 font-extrabold text-base">{value}</Text>
-      <Text className="text-neutral-400 text-[10px]">{label}</Text>
+      <Text className="text-neutral-400 text-[10px] font-normal">{label}</Text>
     </View>
   );
 }

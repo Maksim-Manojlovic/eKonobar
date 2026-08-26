@@ -57,12 +57,12 @@ function PostRow({ post }: { post: OwnPost }) {
         </TonePill>
       </View>
 
-      <Text className="text-neutral-400 text-xs mt-1">
+      <Text className="text-neutral-400 text-xs mt-1 font-normal">
         {formatSalary(post)}{post.redAlert ? " · ⚡ Red Alert" : ""}
       </Text>
 
       <View className="flex-row items-center justify-between mt-3">
-        <Text className="text-neutral-500 text-xs">{post._count.applications} prijava</Text>
+        <Text className="text-neutral-500 text-xs font-normal">{post._count.applications} prijava</Text>
         <SecondaryButton
           label={setStatus.isPending ? "…" : paused ? "Aktiviraj" : "Pauziraj"}
           disabled={setStatus.isPending}
@@ -126,7 +126,7 @@ function AppRow({ app }: { app: IncomingApp }) {
         <Avatar name={app.waiter.name} size={38} />
         <View className="flex-1">
           <Text className="text-neutral-900 font-bold text-sm">{app.waiter.name ?? "Konobar"}</Text>
-          <Text className="text-neutral-400 text-[11px] mt-0.5">
+          <Text className="text-neutral-400 text-[11px] mt-0.5 font-normal">
             {passport ? `${Math.round(passport.score)} skor` : "Bez pasoša"}
             {passport?.sanitaryBookValid ? " · Sanitarna ✓" : ""}
             {` · ${timeAgo(app.appliedAt)}`}
@@ -162,7 +162,7 @@ function AppRow({ app }: { app: IncomingApp }) {
       )}
 
       {setStatus.error && (
-        <Text className="text-red-500 text-[11px] mt-2">{(setStatus.error as Error).message}</Text>
+        <Text className="text-red-500 text-[11px] mt-2 font-normal">{(setStatus.error as Error).message}</Text>
       )}
     </Card>
   );

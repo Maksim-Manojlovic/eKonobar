@@ -46,7 +46,7 @@ function SanitaryRow({ item }: { item: SanitaryPending }) {
           <Text className="text-neutral-900 font-bold text-sm">
             {item.user.name ?? item.user.email}
           </Text>
-          <Text className="text-neutral-400 text-[11px] mt-0.5">
+          <Text className="text-neutral-400 text-[11px] mt-0.5 font-normal">
             Poslato {timeAgo(item.uploadedAt)}
           </Text>
         </View>
@@ -66,7 +66,7 @@ function SanitaryRow({ item }: { item: SanitaryPending }) {
       {/* An already-expired book is the one case worth refusing outright, so it
           is called out rather than left for the admin to spot in a date. */}
       {expired && (
-        <Text className="text-red-500 text-[11px] mt-2">
+        <Text className="text-red-500 text-[11px] mt-2 font-normal">
           Knjižica je već istekla — odobravanje bi odmah bilo nevažeće.
         </Text>
       )}
@@ -99,7 +99,7 @@ function SanitaryRow({ item }: { item: SanitaryPending }) {
       </View>
 
       {resolve.error && (
-        <Text className="text-red-500 text-[11px] mt-2">{(resolve.error as Error).message}</Text>
+        <Text className="text-red-500 text-[11px] mt-2 font-normal">{(resolve.error as Error).message}</Text>
       )}
     </Card>
   );

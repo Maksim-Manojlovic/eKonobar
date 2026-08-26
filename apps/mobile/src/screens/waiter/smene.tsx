@@ -52,7 +52,7 @@ function ShiftCard({ shift }: { shift: WaiterShift }) {
         <DateChip date={shift.date} />
         <View className="flex-1">
           <Text className="text-neutral-900 font-bold text-sm">{shift.venue.name}</Text>
-          <Text className="text-neutral-400 text-xs mt-0.5">
+          <Text className="text-neutral-400 text-xs mt-0.5 font-normal">
             {shift.startTime}–{shift.endTime}
             {shift.pay ? ` · ${shift.pay.toLocaleString("sr-RS")} RSD` : ""}
           </Text>
@@ -64,7 +64,7 @@ function ShiftCard({ shift }: { shift: WaiterShift }) {
       {shift.briefingNote && (
         <View className="rounded-xl px-3 py-2 mt-3" style={{ backgroundColor: "#fff7ed", borderWidth: 1, borderColor: "#fed7aa" }}>
           <Text className="text-[9px] font-bold text-orange-700">BRIFING</Text>
-          <Text className="text-neutral-600 text-xs mt-0.5">{shift.briefingNote}</Text>
+          <Text className="text-neutral-600 text-xs mt-0.5 font-normal">{shift.briefingNote}</Text>
         </View>
       )}
 
@@ -146,7 +146,7 @@ function OpenShiftCard({ shift }: { shift: OpenShift }) {
         <Avatar name={shift.venue.name} size={36} />
         <View className="flex-1">
           <Text className="text-neutral-900 font-bold text-sm">{shift.venue.name}</Text>
-          <Text className="text-neutral-400 text-xs mt-0.5">
+          <Text className="text-neutral-400 text-xs mt-0.5 font-normal">
             {shift.date} · {shift.startTime}–{shift.endTime}
             {shift.role ? ` · ${shift.role}` : ""}
           </Text>
@@ -172,7 +172,7 @@ function OpenShiftCard({ shift }: { shift: OpenShift }) {
       </View>
 
       {claim.error && (
-        <Text className="text-red-500 text-[11px] mt-2">{(claim.error as Error).message}</Text>
+        <Text className="text-red-500 text-[11px] mt-2 font-normal">{(claim.error as Error).message}</Text>
       )}
     </Card>
   );
@@ -196,7 +196,7 @@ function SwapRow({ swap }: { swap: SwapRequest }) {
       <Text className="text-neutral-900 font-bold text-sm">
         {swap.fromAssignment.waiter.name ?? "Kolega"} želi da preuzmeš smenu
       </Text>
-      <Text className="text-neutral-500 text-xs mt-1">
+      <Text className="text-neutral-500 text-xs mt-1 font-normal">
         {swap.shift.venue.name} · {swap.shift.date} · {swap.shift.startTime}–{swap.shift.endTime}
       </Text>
       {/* Read-only on purpose: a swap is resolved by the venue owner, not by the

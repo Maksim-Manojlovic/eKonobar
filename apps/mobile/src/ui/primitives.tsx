@@ -224,7 +224,7 @@ export function SecondaryButton({ label, onPress, disabled }: {
 export function Empty({ text }: { text: string }) {
   return (
     <View className="items-center py-8">
-      <Text className="text-white/40 text-xs">{text}</Text>
+      <Text className="text-white/40 text-xs font-normal">{text}</Text>
     </View>
   );
 }

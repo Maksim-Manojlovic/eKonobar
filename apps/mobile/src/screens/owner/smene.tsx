@@ -38,7 +38,7 @@ export default function OwnerSmeneScreen() {
       {pendingClockIns.length > 0 && (
         <Card>
           <Text className="text-neutral-900 font-bold mb-1">Čeka odobrenje dolaska</Text>
-          <Text className="text-neutral-400 text-[11px] mb-2">
+          <Text className="text-neutral-400 text-[11px] mb-2 font-normal">
             Konobar je prijavio dolazak bez GPS potvrde.
           </Text>
           {pendingClockIns.map(({ shift, assignment }) => (
@@ -73,7 +73,7 @@ function ClockInRow({ shift, assignment }: { shift: VenueShift; assignment: Venu
         <Text className="text-neutral-700 text-xs font-semibold">
           {assignment.waiter.name ?? "Konobar"}
         </Text>
-        <Text className="text-neutral-400 text-[10px]">
+        <Text className="text-neutral-400 text-[10px] font-normal">
           {shift.date} · {shift.startTime}
         </Text>
       </View>
@@ -102,7 +102,7 @@ function SwapRow({ shift, swap }: { shift: VenueShift; swap: VenueSwapRequest })
         <Text className="text-neutral-700 text-xs font-semibold">
           {swap.fromAssignment.waiter.name ?? "?"} → {swap.toWaiter.name ?? "?"}
         </Text>
-        <Text className="text-neutral-400 text-[10px]">
+        <Text className="text-neutral-400 text-[10px] font-normal">
           {shift.title} · {shift.date}
         </Text>
       </View>
@@ -131,7 +131,7 @@ function ShiftRow({ shift }: { shift: VenueShift }) {
         <Text className="text-neutral-900 font-bold text-sm">{shift.title}</Text>
         {clockedIn > 0 && <TonePill tone="green">{clockedIn} na smeni</TonePill>}
       </View>
-      <Text className="text-neutral-400 text-xs mt-0.5">
+      <Text className="text-neutral-400 text-xs mt-0.5 font-normal">
         {shift.date} · {shift.startTime}–{shift.endTime}
       </Text>
 

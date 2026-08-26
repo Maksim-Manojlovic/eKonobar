@@ -37,7 +37,7 @@ export default function LoginScreen() {
     <SafeAreaView className="flex-1" style={{ backgroundColor: colors.shell.bg }}>
       <View className="flex-1 justify-center px-6 gap-4">
         <Text className="text-white text-3xl font-bold">eKonobar</Text>
-        <Text className="text-white/50 mb-4">Prijavi se na svoj nalog</Text>
+        <Text className="text-white/50 mb-4 font-normal">Prijavi se na svoj nalog</Text>
 
         <TextInput
           value={form.email}
