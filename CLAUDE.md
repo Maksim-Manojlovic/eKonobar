@@ -28,6 +28,19 @@ Three consequences worth knowing before you edit config:
 
 Root scripts delegate into the workspace, so `npm run dev`, `npm test`, `npm run lint` and the `db:*` commands still work unchanged from the repo root.
 
+### apps/mobile (Expo SDK 57)
+
+`npm start --workspace @ekonobar/mobile`. Needs an **EAS development build** on the device, not Expo Go — `expo-notifications` and (later) `@rnmapbox/maps` carry native code.
+
+- **Never hand-pick versions.** Use `npx expo install <pkg>`, and `npm run align` (`expo install --fix`) after an SDK bump. The SDK moves fast enough that a guessed version produces an unbuildable tree.
+- **`metro.config.js` has three workspace settings and all three are load-bearing.** `disableHierarchicalLookup` is the one that bites: without it Metro can resolve `react` from `apps/web`'s tree as well as its own and bundle two copies, which surfaces as *"Invalid hook call"* nowhere near its cause.
+- **`tailwind.config.ts`, not `.js`** — the palette is imported from `@ekonobar/shared/design-tokens`, and a `.js` config cannot require a TypeScript module.
+- **Everything goes through `src/api/client.ts`.** It attaches the bearer token and refreshes once on a 401, single-flight. Do not call `fetch` directly from a screen: concurrent 401s each triggering their own refresh would replay a rotating single-use token, which the server reads as theft and answers by revoking the whole device chain.
+- **Tokens live in `expo-secure-store`, never `AsyncStorage`.** AsyncStorage is for the TanStack Query cache only.
+- `expo export --platform android` is the cheapest full check that the workspace still bundles — worth running after touching `packages/shared`, since Metro consumes it as source with no build step.
+
+**The design prototype in `design/` is stale in three specific ways** — the BRONZE/PLATINUM tier ladder, the PRO/PRO+ subscription, and the role switcher. All three were resolved in favour of the codebase; see `mobile-app-plan.md` §15 before porting a screen that shows any of them.
+
 ## Commands
 
 ```bash
