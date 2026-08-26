@@ -9,7 +9,7 @@ import { NotificationsSection } from "@/components/ui/NotificationsSection";
 import DashboardShell from "@/components/layout/DashboardShell";
 import { useDashboardNav } from "@/hooks/useDashboardNav";
 import type { Section, JobPost, MyApplication, WaiterShift, InviteItem, PassportData, ManagedShift } from "./waiter-types";
-import { getInitials } from "@/lib/formatting/utils";
+import { getInitials } from "@ekonobar/shared/formatting/utils";
 import { OverviewSection } from "./WaiterOverviewSection";
 import { PosloviHub } from "./WaiterJobsSection";
 import { ReviewsSection } from "./WaiterReviewsSection";

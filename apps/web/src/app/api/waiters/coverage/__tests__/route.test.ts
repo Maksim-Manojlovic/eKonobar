@@ -11,7 +11,7 @@ vi.mock("@/lib/core/logger", () => ({ default: { warn: vi.fn(), error: vi.fn() }
 import { getServerSession } from "next-auth";
 import { db } from "@/lib/core/db";
 import { GET } from "../route";
-import { BELGRADE_MUNICIPALITIES } from "@/lib/geo/municipalities";
+import { BELGRADE_MUNICIPALITIES } from "@ekonobar/shared/geo/municipalities";
 
 const CTX = { params: Promise.resolve({}) };
 const makeReq = () => new NextRequest("http://localhost/api/waiters/coverage");

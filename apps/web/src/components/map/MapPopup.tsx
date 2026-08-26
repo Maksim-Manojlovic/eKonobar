@@ -3,7 +3,7 @@
 import { Popup } from "react-map-gl/mapbox";
 import Link from "next/link";
 import { ENGAGEMENT_LABELS, VENUE_TYPE_LABELS } from "@/lib/formatting/display-maps";
-import { formatSalary } from "@/lib/formatting/utils";
+import { formatSalary } from "@ekonobar/shared/formatting/utils";
 import { isJob } from "./map-constants";
 import { mapThemeTokens } from "./map-theme";
 import type { MapTheme, PopupState } from "./map-types";

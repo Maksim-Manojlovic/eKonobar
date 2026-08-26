@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Lang, TranslationNamespace, translations } from "@/lib/i18n";
+import { Lang, TranslationNamespace, translations } from "@ekonobar/shared/i18n";
 
 interface LanguageContextValue {
   lang: Lang;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useApi } from "@/hooks/useApi";
-import { getInitials } from "@/lib/formatting/utils";
+import { getInitials } from "@ekonobar/shared/formatting/utils";
 import { ANALYTICS_PERIODS, FLAG_STYLES } from "./venue-constants";
 import { AnalyticsSkeleton } from "./venue-helpers";
 import type { Venue, WaiterAnalytics, WaiterReliability, WaiterFlag, GuestRating } from "./venue-types";

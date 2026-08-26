@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import type { JobPost, MyApplication, AppFilter, InviteItem, Section } from "./waiter-types";
 import { InvitesSection } from "./WaiterInvitesSection";
 import { ENGAGEMENT_LABELS, formatDate } from "@/lib/formatting/display-maps";
-import { formatSalary } from "@/lib/formatting/utils";
+import { formatSalary } from "@ekonobar/shared/formatting/utils";
 import { AlertsSkeleton, JobsSkeleton, WaiterApplicationsSkeleton, ApplyButton, StatusBadge, appStatusKey } from "./waiter-helpers";
 
 // mapbox-gl is browser-only — load the map component client-side, same as /jobs.

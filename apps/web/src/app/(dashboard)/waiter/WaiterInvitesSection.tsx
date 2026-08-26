@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { InviteItem } from "./waiter-types";
 import { formatDate } from "@/lib/formatting/display-maps";
-import { getInitials } from "@/lib/formatting/utils";
+import { getInitials } from "@ekonobar/shared/formatting/utils";
 import { InvitesSkeleton } from "./waiter-helpers";
 
 /* ── Section: Invites ────────────────────────────────────────────────────── */

@@ -1,4 +1,4 @@
-import { getInitials } from "@/lib/formatting/utils";
+import { getInitials } from "@ekonobar/shared/formatting/utils";
 
 /**
  * Assignee name chips for a shift, shown to whoever manages the schedule

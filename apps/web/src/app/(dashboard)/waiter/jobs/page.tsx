@@ -8,7 +8,7 @@ import {
   ENGAGEMENT_LABELS,
   formatDate,
 } from "@/lib/formatting/display-maps";
-import { formatSalary } from "@/lib/formatting/utils";
+import { formatSalary } from "@ekonobar/shared/formatting/utils";
 
 type JobPost = {
   id: string;

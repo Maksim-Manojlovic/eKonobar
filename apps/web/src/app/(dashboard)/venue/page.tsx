@@ -12,7 +12,7 @@ import DashboardShell, { type DashboardShellHandle } from "@/components/layout/D
 import type { Section, Venue, OwnPost, IncomingApp, WaiterEntry, VenueShift } from "./venue-types";
 import { useLang } from "@/components/providers/LanguageProvider";
 import { FlagSwitcher } from "@/components/ui/FlagSwitcher";
-import { getInitials } from "@/lib/formatting/utils";
+import { getInitials } from "@ekonobar/shared/formatting/utils";
 import { ENGAGEMENT_LABELS, VENUE_TYPE_LABELS } from "@/lib/formatting/display-maps";
 import { PostStatusBadge, AppStatusBadge, OverviewSkeleton, EmptyVenue, trustDimensions } from "./venue-helpers";
 import ProfileSection from "./ProfileSection";

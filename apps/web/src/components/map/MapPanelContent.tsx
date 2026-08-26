@@ -1,7 +1,7 @@
 "use client";
 
 import { ENGAGEMENT_LABELS, VENUE_TYPE_LABELS } from "@/lib/formatting/display-maps";
-import { formatSalary } from "@/lib/formatting/utils";
+import { formatSalary } from "@ekonobar/shared/formatting/utils";
 import { EMPTY_STATE, isJob, markerColor } from "./map-constants";
 import { mapThemeTokens, type MapThemeTokens } from "./map-theme";
 import type { MapFeature, MapProps, MapTheme } from "./map-types";

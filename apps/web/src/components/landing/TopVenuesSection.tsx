@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { VENUE_TYPE_LABELS } from "@/lib/formatting/display-maps";
-import { getInitials } from "@/lib/formatting/utils";
+import { getInitials } from "@ekonobar/shared/formatting/utils";
 import { Stars } from "@/components/ui/Stars";
 
 type ApiVenue = {

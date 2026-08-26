@@ -3,7 +3,7 @@ import { withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { redis } from "@/lib/core/redis";
 import logger from "@/lib/core/logger";
-import { BELGRADE_MUNICIPALITIES } from "@/lib/geo/municipalities";
+import { BELGRADE_MUNICIPALITIES } from "@ekonobar/shared/geo/municipalities";
 
 /**
  * Waiter reach coverage per Belgrade opština — how many available waiters have

@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useApi } from "@/hooks/useApi";
 import type { Venue, VenueShift, ShiftTemplate, TemplateMeta } from "./venue-types";
-import { DAYS_SR, MONTHS_SR } from "@/lib/i18n/constants";
-import { getInitials } from "@/lib/formatting/utils";
+import { DAYS_SR, MONTHS_SR } from "@ekonobar/shared/i18n/constants";
+import { getInitials } from "@ekonobar/shared/formatting/utils";
 import { shiftsOverlap } from "@/lib/shifts/utils";
 import { Sk, ShiftsSkeleton, EmptyVenue } from "./venue-helpers";
 import { ShiftAssignees } from "@/components/ui/ShiftAssignees";

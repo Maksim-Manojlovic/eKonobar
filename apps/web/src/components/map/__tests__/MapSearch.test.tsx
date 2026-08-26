@@ -37,7 +37,7 @@ vi.mock("react-map-gl/mapbox", () => {
   };
 });
 
-vi.mock("@/lib/geo/cities", () => ({
+vi.mock("@ekonobar/shared/geo/cities", () => ({
   DEFAULT_CITY: { id: "BEOGRAD", label: "Beograd", center: { longitude: 20.46, latitude: 44.81 }, zoom: 12 },
 }));
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { translations, FLAGS } from "..";
-import type { Lang, TranslationNamespace } from "..";
+import { translations, FLAGS } from "@ekonobar/shared/i18n";
+import type { Lang, TranslationNamespace } from "@ekonobar/shared/i18n";
 
 // Pure translation-map tests — no rendering needed.
 

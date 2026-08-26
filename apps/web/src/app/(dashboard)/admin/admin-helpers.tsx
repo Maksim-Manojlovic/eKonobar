@@ -1,6 +1,6 @@
 "use client";
 
-export { timeAgo } from "@/lib/formatting/utils";
+export { timeAgo } from "@ekonobar/shared/formatting/utils";
 
 /* ── Skeleton ────────────────────────────────────────────────────────────── */
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { getInitials } from "@/lib/formatting/utils";
+import { getInitials } from "@ekonobar/shared/formatting/utils";
 import { isVerified, VERIFICATION_LABELS } from "@/lib/formatting/display-maps";
 
 // ── Initials avatar ───────────────────────────────────────────────────────────

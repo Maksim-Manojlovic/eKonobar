@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { timeAgo } from "@/lib/formatting/utils";
+import { timeAgo } from "@ekonobar/shared/formatting/utils";
 
 export type NotificationItem = {
   id: string;

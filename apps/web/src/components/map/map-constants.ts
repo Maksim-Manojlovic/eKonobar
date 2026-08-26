@@ -1,4 +1,4 @@
-import { DEFAULT_CITY } from "@/lib/geo/cities";
+import { DEFAULT_CITY } from "@ekonobar/shared/geo/cities";
 import { ENGAGEMENT_LABELS, VENUE_TYPE_LABELS } from "@/lib/formatting/display-maps";
 import type { JobProps, MapFilters, MapMode, MapProps } from "./map-types";
 

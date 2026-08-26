@@ -3,7 +3,7 @@
 import type { Section, JobPost, MyApplication, WaiterShift, PassportData } from "./waiter-types";
 import { NEXT_VERIFICATION_STEP } from "./waiter-constants";
 import { ENGAGEMENT_LABELS } from "@/lib/formatting/display-maps";
-import { formatSalary } from "@/lib/formatting/utils";
+import { formatSalary } from "@ekonobar/shared/formatting/utils";
 import { VerifiedBadge, VerificationProofChip } from "@/components/ui/PassportWidgets";
 import { ApplyButton, MarketInsights, OverviewSkeleton, StatusBadge } from "./waiter-helpers";
 

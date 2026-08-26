@@ -4,7 +4,7 @@ import { fireSideEffects } from "@/lib/notifications/side-effects";
 import { isInsideVenueRadius, createGeolocationHash, parseGuestCoordinates } from "@/lib/geo/geofence";
 import { rateLimit } from "@/lib/core/rate-limit";
 import { getClientIp } from "@/lib/core/ip";
-import { clampRating } from "@/lib/formatting/utils";
+import { clampRating } from "@ekonobar/shared/formatting/utils";
 import { parseBody } from "@/lib/auth/parse-body";
 import { z } from "zod";
 

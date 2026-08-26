@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useApi } from "@/hooks/useApi";
 import type { WaiterShift, OpenShift, SwapRequest, ManagedShift } from "./waiter-types";
-import { DAYS_SR, MONTHS_SR } from "@/lib/i18n/constants";
+import { DAYS_SR, MONTHS_SR } from "@ekonobar/shared/i18n/constants";
 import { Spinner, WaiterShiftsSkeleton } from "./waiter-helpers";
 import { ShiftAssignees } from "@/components/ui/ShiftAssignees";
 /* ── Section: Shifts (waiter calendar + marketplace) ─────────────────────── */

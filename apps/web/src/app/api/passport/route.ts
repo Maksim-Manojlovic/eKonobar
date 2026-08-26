@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { parseBody } from "@/lib/auth/parse-body";
-import { sanitizeMunicipalities } from "@/lib/geo/municipalities";
+import { sanitizeMunicipalities } from "@ekonobar/shared/geo/municipalities";
 import { z } from "zod";
 
 const PassportPutSchema = z.object({

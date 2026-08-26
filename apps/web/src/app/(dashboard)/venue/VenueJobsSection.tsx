@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Section, AppFilter, OwnPost, IncomingApp, Venue, WaiterEntry } from "./venue-types";
 import { WaitersSection, DiscoverSection } from "./VenueDiscoverSection";
-import { getInitials, formatSalary } from "@/lib/formatting/utils";
+import { getInitials, formatSalary } from "@ekonobar/shared/formatting/utils";
 import { formatDate } from "@/lib/formatting/display-maps";
 import { ENGAGEMENT_LABELS } from "@/lib/formatting/display-maps";
 import { PostStatusBadge, AppStatusBadge, VerifiedBadge, ScorePill, PostsSkeleton, ApplicationsSkeleton, EmptyVenue } from "./venue-helpers";

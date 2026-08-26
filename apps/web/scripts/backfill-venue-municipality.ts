@@ -16,7 +16,7 @@
  * for manual review — never guessed.
  */
 import { PrismaClient } from "@prisma/client";
-import { normalizeMunicipality } from "../src/lib/geo/municipalities";
+import { normalizeMunicipality } from "../../../packages/shared/src/geo/municipalities";
 
 const APPLY = process.argv.includes("--apply");
 const db = new PrismaClient();

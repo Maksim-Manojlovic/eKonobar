@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Venue, VenueShift, ShiftTemplate } from "./venue-types";
-import { getInitials } from "@/lib/formatting/utils";
+import { getInitials } from "@ekonobar/shared/formatting/utils";
 /* ── Shift modal ─────────────────────────────────────────────────────────── */
 
 export function ShiftModal({ shift, date, venue, waiters, onSave, onDelete, onClose }: {

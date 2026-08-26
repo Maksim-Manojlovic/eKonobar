@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useLang } from "@/components/providers/LanguageProvider";
-import { Lang } from "@/lib/i18n";
+import { Lang } from "@ekonobar/shared/i18n";
 
 const SerbiaFlag = () => (
   <svg viewBox="0 0 3 2" className="w-full h-full">

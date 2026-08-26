@@ -8,7 +8,7 @@ import {
 } from "@/lib/geo/geofence";
 import { checkRateLimit } from "@/lib/core/rate-limit";
 import { fireSideEffects } from "@/lib/notifications/side-effects";
-import { clampRating } from "@/lib/formatting/utils";
+import { clampRating } from "@ekonobar/shared/formatting/utils";
 import { ReviewDirection } from "@prisma/client";
 import { parseBody } from "@/lib/auth/parse-body";
 import { z } from "zod";

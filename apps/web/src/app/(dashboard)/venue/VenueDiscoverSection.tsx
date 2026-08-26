@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import type { OwnPost, IncomingApp, WaiterEntry, Venue } from "./venue-types";
-import { getInitials } from "@/lib/formatting/utils";
+import { getInitials } from "@ekonobar/shared/formatting/utils";
 import { VerifiedBadge, ScorePill, DiscoverSkeleton, WaitersSkeleton } from "./venue-helpers";
 import { WaiterCard } from "@/components/ui/WaiterCard";
 import { useWaiterSearch } from "@/hooks/useWaiterSearch";
 import { useApi } from "@/hooks/useApi";
-import { BELGRADE_MUNICIPALITIES } from "@/lib/geo/municipalities";
+import { BELGRADE_MUNICIPALITIES } from "@ekonobar/shared/geo/municipalities";
 /* ── InviteModal ─────────────────────────────────────────────────────────── */
 
 export function InviteModal({ waiter, posts, onClose, onSent }: {

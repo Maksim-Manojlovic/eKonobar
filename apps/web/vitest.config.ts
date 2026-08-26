@@ -2,7 +2,13 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
-const alias = { "@": path.resolve(__dirname, "./src") };
+// Vite does not resolve the array export target packages/shared/package.json uses
+// ("./x" -> src/x.ts OR src/x/index.ts), so point the workspace package straight
+// at its source. Next.js resolves it correctly on its own via transpilePackages.
+const alias = {
+  "@ekonobar/shared": path.resolve(__dirname, "../../packages/shared/src"),
+  "@":                path.resolve(__dirname, "./src"),
+};
 const sharedPlugins = [react()];
 
 // Two projects:

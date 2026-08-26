@@ -4,7 +4,7 @@ import {
   isKnownMunicipality,
   sanitizeMunicipalities,
   normalizeMunicipality,
-} from "../municipalities";
+} from "@ekonobar/shared/geo/municipalities";
 
 describe("BELGRADE_MUNICIPALITIES", () => {
   it("has the 17 official gradske opštine", () => {

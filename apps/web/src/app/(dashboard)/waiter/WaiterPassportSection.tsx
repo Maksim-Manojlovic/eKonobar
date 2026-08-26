@@ -6,7 +6,7 @@ import TagInput from "@/components/ui/TagInput";
 import type { PassportData } from "./waiter-types";
 import { BADGE_META, BADGE_PROGRESS, SCORE_DIMS } from "./waiter-constants";
 import { VENUE_TYPE_OPTIONS } from "@/lib/formatting/display-maps";
-import { BELGRADE_MUNICIPALITIES } from "@/lib/geo/municipalities";
+import { BELGRADE_MUNICIPALITIES } from "@ekonobar/shared/geo/municipalities";
 import { useNotifPrefs } from "./useNotifPrefs";
 import { useSanitaryBook } from "./useSanitaryBook";
 

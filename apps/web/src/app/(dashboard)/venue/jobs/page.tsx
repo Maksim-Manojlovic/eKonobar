@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { JOB_STATUS_COLORS, JOB_STATUS_LABELS, ENGAGEMENT_LABELS } from "@/lib/formatting/display-maps";
-import { formatSalary } from "@/lib/formatting/utils";
+import { formatSalary } from "@ekonobar/shared/formatting/utils";
 
 type JobPost = {
   id: string;

@@ -3,7 +3,7 @@ import { withOptionalAuth, withRole } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { VenueType } from "@prisma/client";
 import { parseBody } from "@/lib/auth/parse-body";
-import { normalizeMunicipality } from "@/lib/geo/municipalities";
+import { normalizeMunicipality } from "@ekonobar/shared/geo/municipalities";
 import { z } from "zod";
 
 const VenueCreateSchema = z.object({
