@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ROLE_LABELS } from "@/lib/formatting/display-maps";
+import { CreateUserPanel } from "./CreateUserPanel";
 import { timeAgo, Sk } from "../admin-helpers";
 import { useRequireRole } from "@/hooks/useRequireRole";
 
@@ -73,6 +74,11 @@ export default function AdminUsersPage() {
           <h1 className="text-xl font-black text-white">Upravljanje korisnicima</h1>
           <span className="ml-auto text-xs text-white/40 bg-white/5 px-3 py-1 rounded-full">{total} korisnika</span>
         </div>
+
+        {/* Creating an account is the only route to a VENUE_OWNER — public
+            signup refuses that role, because nothing on a form proves the person
+            actually runs the venue. */}
+        <CreateUserPanel onCreated={fetchUsers} />
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">

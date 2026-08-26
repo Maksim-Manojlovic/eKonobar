@@ -44,7 +44,8 @@ describe("POST /api/auth/register", () => {
   });
 
   it("omitted role defaults to WAITER → 200", async () => {
-    const { role: _role, ...noRole } = VALID_BODY as Record<string, unknown>;
+    const noRole: Record<string, unknown> = { ...VALID_BODY };
+    delete noRole.role;
     const res = await POST(makeReq(noRole));
     expect(res.status).toBe(200);
   });
