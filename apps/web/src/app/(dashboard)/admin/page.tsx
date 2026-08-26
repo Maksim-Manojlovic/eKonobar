@@ -449,11 +449,11 @@ export default function AdminDashboard() {
                 <h2 className="text-xs font-black text-white/40 uppercase tracking-widest">System Health</h2>
               </div>
               <span className={`text-[11px] font-black px-2.5 py-1 rounded-full ${
-                (health.reviews.overdueGuest + health.reviews.overdueRegular + health.passports.expiredPaid) === 0
+                (health.reviews.overdueGuest + health.reviews.overdueRegular) === 0
                   ? "bg-emerald-500/15 text-emerald-400"
                   : "bg-orange-500/15 text-orange-400"
               }`}>
-                {(health.reviews.overdueGuest + health.reviews.overdueRegular + health.passports.expiredPaid) === 0
+                {(health.reviews.overdueGuest + health.reviews.overdueRegular) === 0
                   ? "✓ Sve OK"
                   : "Pažnja"}
               </span>
@@ -468,12 +468,6 @@ export default function AdminDashboard() {
                   <p className="text-xs text-white/50 mb-0.5">Poslednja objava recenzije</p>
                   <p className={`text-sm font-bold ${health.cron.lastPublishedReviewAt ? "text-white/80" : "text-red-400"}`}>
                     {health.cron.lastPublishedReviewAt ? timeAgo(health.cron.lastPublishedReviewAt) : "Nikad"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-white/50 mb-0.5">Poslednje obnavljanje pretplate</p>
-                  <p className={`text-sm font-bold ${health.cron.lastRenewalPaymentAt ? "text-white/80" : "text-white/30"}`}>
-                    {health.cron.lastRenewalPaymentAt ? timeAgo(health.cron.lastRenewalPaymentAt) : "Nema plaćanja"}
                   </p>
                 </div>
               </div>
@@ -503,12 +497,6 @@ export default function AdminDashboard() {
               {/* System */}
               <div className="bg-white/5 rounded-xl p-4 flex flex-col gap-3">
                 <p className="text-[11px] font-black text-white/30 uppercase tracking-wider">Sistem</p>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-white/50">Istekle plaćene pretplate (DB stale)</p>
-                  <span className={`text-sm font-black ${health.passports.expiredPaid > 0 ? "text-amber-400" : "text-emerald-400"}`}>
-                    {health.passports.expiredPaid}
-                  </span>
-                </div>
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-white/50">Obrisani korisnici</p>
                   <span className="text-sm font-bold text-white/40">{health.users.softDeleted}</span>
