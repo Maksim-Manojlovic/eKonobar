@@ -6,6 +6,28 @@ Next.js 15 (App Router) hospitality platform for Serbia. Waiters get a verified 
 
 Architecture design notes are in [ekonobar-architecture.md](ekonobar-architecture.md).
 
+## Monorepo layout
+
+This is an npm-workspaces monorepo (Turborepo for task running). The web app is **not** at the repo root any more.
+
+```
+apps/web/          the Next.js app — src/, public/, tests/, scripts/ and every Next/Vitest/Playwright/ESLint config
+apps/mobile/       the Expo app (not created yet — see mobile-app-plan.md)
+packages/shared/   framework-free code both apps import: schemas, enums, labels, geo constants, i18n, tokens
+packages/api-client/  typed HTTP layer + token refresh (filled in during Phase 1 / Phase 4)
+prisma/            schema + migrations + seeds — stays at the repo ROOT, single source
+```
+
+**Every `src/...` path in the rest of this file is relative to `apps/web/`.** `lib/core/db.ts` means `apps/web/src/lib/core/db.ts`.
+
+Three consequences worth knowing before you edit config:
+
+- **One `.env`, at the repo root.** Prisma reads it natively (schema is at the root). Next.js does not — it only looks in its own directory — so `apps/web/next.config.ts` calls `loadEnvConfig(MONOREPO_ROOT, …, forceReload = true)`. The `forceReload` argument is load-bearing: Next loads env for `apps/web` first, finds nothing, and caches that empty result, so without it the call is a silent no-op and the build dies in the page-data workers with `Missing required environment variable: DATABASE_URL`. Vitest has the same problem and solves it with `envDir` in `apps/web/vitest.config.ts`.
+- **`outputFileTracingRoot` is the monorepo root**, because workspace dependencies hoist there. That makes the standalone output mirror the workspace layout: the server entrypoint is `apps/web/server.js`, not `server.js`. `Dockerfile` and `deploy/app-entrypoint.sh` both depend on this.
+- **`packages/*` ship as TypeScript source, with no build step.** `apps/web` compiles them via `transpilePackages`; the mobile app will pick them up through the Metro workspace resolver. Nothing in `packages/shared` may import `next/*`, `react-dom`, a Node built-in, or `@prisma/client` at runtime — React Native has none of them. Type-only Prisma imports are fine; runtime enum values must be redeclared as `as const` objects with a test asserting they match.
+
+Root scripts delegate into the workspace, so `npm run dev`, `npm test`, `npm run lint` and the `db:*` commands still work unchanged from the repo root.
+
 ## Commands
 
 ```bash

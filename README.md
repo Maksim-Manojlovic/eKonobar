@@ -134,6 +134,16 @@ App runs at [http://localhost:3000](http://localhost:3000).
 
 ## Project Structure
 
+npm-workspaces monorepo. The web app lives in `apps/web`; the tree below is relative to it.
+
+```
+apps/web/            # this Next.js app
+apps/mobile/         # Expo app (not created yet — see mobile-app-plan.md)
+packages/shared/     # framework-free code shared with mobile
+packages/api-client/ # typed HTTP layer + token refresh
+prisma/              # schema, migrations, seeds — at the repo root
+```
+
 ```
 src/
   app/

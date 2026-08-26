@@ -13,8 +13,8 @@
  * DOUBLE-CHECK which database DATABASE_URL points at before running.
  */
 import { PrismaClient, type StaffPosition, type StaffDepartment } from "@prisma/client";
-import { departmentOf, hasKitchen, FOH_POSITIONS, BOH_POSITIONS } from "../src/lib/staff/positions";
-import { countLeaveDays, parseDateOnly } from "../src/lib/leave/dates";
+import { departmentOf, hasKitchen, FOH_POSITIONS, BOH_POSITIONS } from "../apps/web/src/lib/staff/positions";
+import { countLeaveDays, parseDateOnly } from "../apps/web/src/lib/leave/dates";
 
 const db = new PrismaClient();
 const DEMO_DOMAIN = "demo.ekonobar.rs";

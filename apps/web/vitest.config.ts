@@ -14,6 +14,10 @@ const sharedPlugins = [react()];
 //   npm run test:integration   vitest run --project integration
 //   npm test                   vitest run  (both)
 export default defineConfig({
+  // The single .env lives at the monorepo root (see next.config.ts). Vitest loads
+  // dotenv files from its own root by default, which is apps/web — without this
+  // the integration project would start with no DATABASE_URL and fail in setup.ts.
+  envDir: path.resolve(__dirname, "../.."),
   test: {
     projects: [
       {

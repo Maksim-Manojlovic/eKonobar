@@ -1,12 +1,16 @@
-node_modules
-.next
+# Workspace-aware globs: a bare `node_modules` only matches the root copy, which
+# would leak apps/web/node_modules and packages/*/node_modules into the build context.
+**/node_modules
+**/.next
+**/.turbo
 .git
 .env*
 !.env.example
 coverage
-playwright-report
-test-results
+**/playwright-report
+**/test-results
 graphify-out
+design
 *.md
 !README.md
 Dockerfile

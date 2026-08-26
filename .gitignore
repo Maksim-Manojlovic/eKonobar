@@ -7,6 +7,9 @@ node_modules/
 .next/
 out/
 
+# Turborepo task cache
+.turbo/
+
 # Production build
 build/
 
@@ -51,3 +54,8 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+
+# Local design prototypes (Claude Design exports, mockups, iOS/Android HTML prototypes).
+# Kept out of the repo deliberately: they are large, regenerated wholesale on every
+# design pass, and are not the source of truth for any shipped code.
+design/

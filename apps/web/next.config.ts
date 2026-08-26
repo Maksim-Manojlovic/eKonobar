@@ -1,5 +1,21 @@
+import path from "node:path";
 import type { NextConfig } from "next";
+import { loadEnvConfig } from "@next/env";
 import { withSentryConfig } from "@sentry/nextjs";
+
+// Monorepo root — one directory above apps/. Used for two things below.
+const MONOREPO_ROOT = path.join(process.cwd(), "..", "..");
+
+// The single .env lives at the monorepo root so Prisma (schema is at the root)
+// and Next.js (running from apps/web) read the same file. Next only looks in its
+// own directory, so load the root file explicitly before the config object is
+// evaluated — `experimental.serverActions.allowedOrigins` below reads from it.
+//
+// forceReload (4th arg) is mandatory, not defensive: Next calls loadEnvConfig for
+// apps/web *before* it loads this file, finds no .env there, and caches that empty
+// result. Without forceReload this call is a silent no-op and the build dies in the
+// page-data workers with "Missing required environment variable: DATABASE_URL".
+loadEnvConfig(MONOREPO_ROOT, process.env.NODE_ENV === "development", undefined, true);
 
 const CSP = [
   "default-src 'self'",
@@ -31,6 +47,14 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // Self-contained server bundle for Docker deploys (node server.js, no next CLI)
   output: "standalone",
+  // In a workspace, dependencies are hoisted to the monorepo root, so file
+  // tracing must start there — otherwise the standalone bundle ships without
+  // node_modules and the container exits on the first require().
+  // The emitted entrypoint is apps/web/server.js, not server.js.
+  outputFileTracingRoot: MONOREPO_ROOT,
+  // Workspace packages are shipped as TypeScript source (no build step), so
+  // Next has to compile them itself.
+  transpilePackages: ["@ekonobar/shared", "@ekonobar/api-client"],
   serverExternalPackages: ["cloudinary", "pino", "thread-stream", "sonic-boom", "pino-pretty"],
   images: {
     remotePatterns: [
