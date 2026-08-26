@@ -2,7 +2,7 @@
 
 Target: one native app (iOS + Android) built with Expo, reusing the existing Next.js backend, database, credentials and business logic. Web app stays live and unchanged in behaviour.
 
-Status: **Phase 0a done**, **Phase 1a done** (bearer auth), **Phase 2 done** (native push via Expo, wired into notify() and the retry cron). Design prototype is in hand (section 15). Next: **Phase 3** (mobile-shaped endpoints) or **Phase 4** (Expo app skeleton). **Phase 1b** (native OAuth) still outstanding.
+Status: **Phase 0a + 0b done** (monorepo, `@ekonobar/shared` populated), **Phase 1a done** (bearer auth), **Phase 2 done** (native push). Design prototype is in hand (section 15). Next: **Phase 3** (mobile-shaped endpoints) or **Phase 4** (Expo app skeleton). **Phase 1b** (native OAuth) still outstanding.
 
 ---
 
@@ -58,7 +58,7 @@ Goal: `apps/web` and `apps/mobile` coexist and both build. No behaviour change t
 Split into two commits so each is independently verifiable:
 
 - **0a — layout only (done).** Move the app under `apps/web`, stand up workspaces + Turborepo, scaffold empty `packages/shared` and `packages/api-client`, fix every config and the Docker build. No source file changes beyond import paths in the Prisma seeds.
-- **0b — populate `packages/shared` (deferred).** Move the framework-free modules listed below out of `apps/web/src` and update their importers. Deliberately separated: 0a touches ~20 config files and zero application logic, 0b touches application logic across many files, and mixing them would make a regression impossible to bisect.
+- **0b — populate `packages/shared` (done).** Move the framework-free modules listed below out of `apps/web/src` and update their importers. Deliberately separated: 0a touches ~20 config files and zero application logic, 0b touches application logic across many files, and mixing them would make a regression impossible to bisect.
 
   0b is now **deferred behind Phase 1** rather than done next. Nothing consumes `packages/shared` yet, so moving code into it today is a large diff guessing at what the mobile app will need. Doing it per-module as Phases 4–8 actually reach for each one keeps every move small and justified. The scaffold and its rules are already in place, which is the part that had to happen during the restructure.
 
