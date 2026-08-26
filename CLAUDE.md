@@ -899,6 +899,39 @@ export const GET = withAuth(async (req, ctx, session) => {
 
 Returns 401 when no session, 403 when wrong role.
 
+### Two transports, one session — bearer auth for the native app
+
+`withRole` / `withAuth` / `withOptionalAuth` resolve the session from **either** an `Authorization: Bearer` header or the NextAuth cookie:
+
+```typescript
+// lib/auth/with-role.ts — the only place this decision is made
+function resolveSession(req: NextRequest): Promise<Session | null> {
+  return getBearerSession(req).then(s => s ?? getServerSession(authOptions));
+}
+```
+
+That single line is why all ~74 routes serve the mobile app **without being edited**. Never add a per-route bearer check — if a route uses the wrappers, it already works.
+
+**The access token is a NextAuth JWT**, signed with `NEXTAUTH_SECRET` and carrying the payload `buildJwtToken()` produces (plus `email`/`name`). Do not invent a second token format: reusing this one means `buildSessionUser` and `isTokenRevoked` work unchanged, `TokenRevocation` covers web and mobile at once, and an ADMIN mobile token inherits the shorter 5s revocation-cache TTL.
+
+| Route | Notes |
+|---|---|
+| `POST /api/mobile/auth/login` | `{ email, password, deviceId, deviceName?, platform }`. Reuses `checkLoginRateLimit` + `verifyCredentials` — the mobile transport must never be a way around the login rate limits. |
+| `POST /api/mobile/auth/refresh` | Rotating. Returns a new pair; the presented token is revoked in the same transaction. |
+| `POST /api/mobile/auth/logout` | Per-device, unauthenticated, idempotent, always 204 (an expired access token must still be able to clean up). |
+| `GET /api/mobile/me` | `withAuth`. The app's cold-start "resume or show login" check. |
+
+`lib/auth/mobile-tokens.ts` owns issuing and rotation. Rules that are load-bearing:
+
+- **Refresh tokens are stored hashed** (`sha256`), never in plaintext. `issueRefreshToken` returns the raw value once.
+- **Rotation is single-use.** Presenting an already-revoked token means replay or theft, so `rotateRefreshToken` revokes the entire `deviceId` chain rather than one row — the attacker's copy and the victim's copy die together.
+- **Refresh 401s are deliberately indistinguishable** (unknown / expired / reused all return the same body). Differentiating them hands an attacker a probing oracle, and the client's reaction is identical anyway.
+- `MobileRefreshToken` must stay in the `resetDb()` TRUNCATE list, or tokens leak across integration test files.
+
+**`src/middleware.ts` lets bearer requests through** (`hasBearer`) — the native app sends no cookie, so without that check every mobile request would be 401'd at the Edge before the handler ran. It does **not** verify the header: the middleware only filters obviously anonymous traffic, exactly as it does for cookies, and a forged header is rejected a moment later by `withRole`. Verification stays in one place, on the Node side.
+
+**Not built yet:** `POST /api/mobile/auth/oauth` (native Google / Facebook sign-in). Credentials login is the only mobile path today.
+
 ### parseBody / parseQuery
 
 `lib/auth/parse-body.ts` — validates request body or query params against a Zod schema. Returns a discriminated union — check `result.ok` before accessing `result.data`.

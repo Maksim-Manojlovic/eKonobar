@@ -2,7 +2,7 @@
 
 Target: one native app (iOS + Android) built with Expo, reusing the existing Next.js backend, database, credentials and business logic. Web app stays live and unchanged in behaviour.
 
-Status: **Phase 0a done** and committed (`51c5807`) — monorepo layout, everything green. Design prototype is in hand (section 15). **Phase 1 (bearer auth) is next.**
+Status: **Phase 0a done**, **Phase 1a done** (bearer auth: login / refresh / logout / me, and all ~74 existing routes now accept a bearer token). Design prototype is in hand (section 15). Next: **Phase 1b** (native OAuth) or **Phase 2** (push).
 
 ---
 
@@ -153,7 +153,7 @@ model MobileRefreshToken {
 | `POST /api/mobile/auth/login` | public | `{ email, password, deviceId, deviceName, platform }`. Reuses `checkLoginRateLimit(ip, email)` and `verifyCredentials` from `lib/auth/helpers.ts` verbatim — same two rate limits, same bcrypt. Returns `{ accessToken, refreshToken, user }`. |
 | `POST /api/mobile/auth/refresh` | public | Rotating refresh: validates the hash, revokes the old row, issues a new pair. A reused revoked token revokes the whole device chain (theft detection). |
 | `POST /api/mobile/auth/logout` | public | Revokes the presented refresh token. Idempotent. |
-| `POST /api/mobile/auth/oauth` | public | `{ provider: "google" or "facebook", idToken }`. Verifies the id_token with the provider, upserts `User` + `Account` the way `PrismaAdapter` would, then issues the token pair. |
+| `POST /api/mobile/auth/oauth` | public | **Not built — phase 1b.** `{ provider: "google" or "facebook", idToken }`. Verifies the id_token with the provider, upserts `User` + `Account` the way `PrismaAdapter` would, then issues the token pair. Deferred because it needs a provider-verification dependency and its own decisions (JWKS caching, the same-email collision that account linking does not handle today); credentials login unblocks the whole app in the meantime. |
 | `GET /api/mobile/me` | bearer | Current user + role + verification tier. Called on cold start to validate a stored token. |
 
 ### Access token — reuse the NextAuth JWT shape

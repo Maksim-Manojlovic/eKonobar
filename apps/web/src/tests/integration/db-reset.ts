@@ -61,6 +61,7 @@ export async function resetDb(): Promise<void> {
   await dbRaw.$executeRawUnsafe(`
     TRUNCATE TABLE
       "AuditLog",
+      "MobileRefreshToken",
       "TokenRevocation",
       "PasswordResetToken",
       "AnonRateLimit",
@@ -152,12 +153,15 @@ export async function seedUser(overrides: {
   email?: string;
   role?: "WAITER" | "VENUE_OWNER" | "HEADHUNTER" | "ADMIN";
   name?: string;
+  /** Pass a bcrypt hash to make the user able to sign in (password login tests). */
+  hashedPassword?: string;
 } = {}): Promise<string> {
   const user = await dbRaw.user.create({
     data: {
-      email: overrides.email ?? `test-${crypto.randomUUID()}@integration.local`,
-      name:  overrides.name  ?? "Integration Test User",
-      role:  overrides.role  ?? "WAITER",
+      email:          overrides.email ?? `test-${crypto.randomUUID()}@integration.local`,
+      name:           overrides.name  ?? "Integration Test User",
+      role:           overrides.role  ?? "WAITER",
+      hashedPassword: overrides.hashedPassword ?? null,
     },
   });
   return user.id;

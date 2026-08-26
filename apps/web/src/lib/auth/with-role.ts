@@ -1,12 +1,25 @@
 import { getServerSession, type Session } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth/config";
+import { getBearerSession } from "@/lib/auth/bearer";
 import logger from "@/lib/core/logger";
 import { REQUEST_ID_HEADER, runWithRequestContext } from "@/lib/core/request-context";
 import type { Role } from "@prisma/client";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type RouteCtx = { params: Promise<any> };
+
+/**
+ * Resolves the caller's session from either transport.
+ *
+ * Bearer first, cookie second — the native app sends an Authorization header and
+ * no cookie, the browser sends a cookie and no header, so in practice only one
+ * path ever runs. This single function is what makes every existing route accept
+ * mobile clients without being edited.
+ */
+function resolveSession(req: NextRequest): Promise<Session | null> {
+  return getBearerSession(req).then(s => s ?? getServerSession(authOptions));
+}
 
 /**
  * Opens an AsyncLocalStorage request scope around the handler so the pino logger
@@ -57,7 +70,7 @@ export function withRole<C extends RouteCtx = RouteCtx>(
   handler: AuthedHandler<C>,
 ) {
   return async (req: NextRequest, ctx: C): Promise<Response> => {
-    const session = await getServerSession(authOptions);
+    const session = await resolveSession(req);
 
     return runScoped(req, session, async () => {
       if (!session) {
@@ -85,7 +98,7 @@ export function withRole<C extends RouteCtx = RouteCtx>(
  */
 export function withAuth<C extends RouteCtx = RouteCtx>(handler: AuthedHandler<C>) {
   return async (req: NextRequest, ctx: C): Promise<Response> => {
-    const session = await getServerSession(authOptions);
+    const session = await resolveSession(req);
 
     return runScoped(req, session, async () => {
       if (!session) {
@@ -109,7 +122,7 @@ export function withAuth<C extends RouteCtx = RouteCtx>(handler: AuthedHandler<C
  */
 export function withOptionalAuth<C extends RouteCtx = RouteCtx>(handler: OptionalAuthHandler<C>) {
   return async (req: NextRequest, ctx: C): Promise<Response> => {
-    const session = await getServerSession(authOptions);
+    const session = await resolveSession(req);
     return runScoped(req, session, async () => {
       try {
         return await handler(req, ctx, session ?? null);

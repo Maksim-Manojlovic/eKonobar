@@ -17,6 +17,7 @@ const PUBLIC_API_PATTERNS: RegExp[] = [
   /^\/api\/jobs\/geojson$/,                                // GET jobs map GeoJSON
   /^\/api\/passport\/public\//,                            // GET share-link passport
   /^\/api\/leads$/,                                         // POST demo lead (public, rate-limited)
+  /^\/api\/mobile\/auth\//,                                 // native app login / refresh / logout
 ];
 
 function isPublicApiRoute(pathname: string): boolean {
@@ -47,8 +48,16 @@ export default withAuth(
     // Public routes pass through; all others return 401 JSON when no session.
     // Individual route handlers still enforce withRole/withAuth as the primary
     // guard — this middleware is a defense-in-depth catch for forgotten wrappers.
+    // The native app sends an Authorization header and no cookie, so `token` is
+    // always null for it — without this check every mobile request would be 401'd
+    // here, before the handler ever ran. The header is deliberately NOT verified:
+    // this middleware runs on the Edge runtime and only filters obviously
+    // anonymous traffic, exactly as it does for cookies. A forged header gets
+    // past this line and is then rejected by withRole/withAuth with a 401, which
+    // is the same outcome. Verification stays in one place, on the Node side.
     if (pathname.startsWith("/api/")) {
-      if (!isPublicApiRoute(pathname) && !token) {
+      const hasBearer = req.headers.get("authorization")?.startsWith("Bearer ") ?? false;
+      if (!isPublicApiRoute(pathname) && !token && !hasBearer) {
         return withTrace(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
       }
       return passThrough();
