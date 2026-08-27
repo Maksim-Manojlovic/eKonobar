@@ -7,6 +7,16 @@ node_modules/
 .next/
 out/
 
+# Turborepo task cache
+.turbo/
+
+# Expo (apps/mobile)
+.expo/
+dist/
+*.orig.*
+web-build/
+expo-env.d.ts
+
 # Production build
 build/
 
@@ -51,3 +61,8 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+
+# Local design prototypes (Claude Design exports, mockups, iOS/Android HTML prototypes).
+# Kept out of the repo deliberately: they are large, regenerated wholesale on every
+# design pass, and are not the source of truth for any shipped code.
+design/

@@ -6,6 +6,41 @@ Next.js 15 (App Router) hospitality platform for Serbia. Waiters get a verified 
 
 Architecture design notes are in [ekonobar-architecture.md](ekonobar-architecture.md).
 
+## Monorepo layout
+
+This is an npm-workspaces monorepo (Turborepo for task running). The web app is **not** at the repo root any more.
+
+```
+apps/web/          the Next.js app — src/, public/, tests/, scripts/ and every Next/Vitest/Playwright/ESLint config
+apps/mobile/       the Expo app (not created yet — see mobile-app-plan.md)
+packages/shared/   framework-free code both apps import: schemas, enums, labels, geo constants, i18n, tokens
+packages/api-client/  typed HTTP layer + token refresh (filled in during Phase 1 / Phase 4)
+prisma/            schema + migrations + seeds — stays at the repo ROOT, single source
+```
+
+**Every `src/...` path in the rest of this file is relative to `apps/web/`.** `lib/core/db.ts` means `apps/web/src/lib/core/db.ts`.
+
+Three consequences worth knowing before you edit config:
+
+- **One `.env`, at the repo root.** Prisma reads it natively (schema is at the root). Next.js does not — it only looks in its own directory — so `apps/web/next.config.ts` calls `loadEnvConfig(MONOREPO_ROOT, …, forceReload = true)`. The `forceReload` argument is load-bearing: Next loads env for `apps/web` first, finds nothing, and caches that empty result, so without it the call is a silent no-op and the build dies in the page-data workers with `Missing required environment variable: DATABASE_URL`. Vitest has the same problem and solves it with `envDir` in `apps/web/vitest.config.ts`.
+- **`outputFileTracingRoot` is the monorepo root**, because workspace dependencies hoist there. That makes the standalone output mirror the workspace layout: the server entrypoint is `apps/web/server.js`, not `server.js`. `Dockerfile` and `deploy/app-entrypoint.sh` both depend on this.
+- **`packages/*` ship as TypeScript source, with no build step.** `apps/web` compiles them via `transpilePackages`; the mobile app will pick them up through the Metro workspace resolver. Nothing in `packages/shared` may import `next/*`, `react-dom`, a Node built-in, or `@prisma/client` at runtime — React Native has none of them. Type-only Prisma imports are fine; runtime enum values must be redeclared as `as const` objects with a test asserting they match.
+
+Root scripts delegate into the workspace, so `npm run dev`, `npm test`, `npm run lint` and the `db:*` commands still work unchanged from the repo root.
+
+### apps/mobile (Expo SDK 57)
+
+`npm start --workspace @ekonobar/mobile`. Needs an **EAS development build** on the device, not Expo Go — `expo-notifications` and (later) `@rnmapbox/maps` carry native code.
+
+- **Never hand-pick versions.** Use `npx expo install <pkg>`, and `npm run align` (`expo install --fix`) after an SDK bump. The SDK moves fast enough that a guessed version produces an unbuildable tree.
+- **`metro.config.js` has three workspace settings and all three are load-bearing.** `disableHierarchicalLookup` is the one that bites: without it Metro can resolve `react` from `apps/web`'s tree as well as its own and bundle two copies, which surfaces as *"Invalid hook call"* nowhere near its cause.
+- **`tailwind.config.ts`, not `.js`** — the palette is imported from `@ekonobar/shared/design-tokens`, and a `.js` config cannot require a TypeScript module.
+- **Everything goes through `src/api/client.ts`.** It attaches the bearer token and refreshes once on a 401, single-flight. Do not call `fetch` directly from a screen: concurrent 401s each triggering their own refresh would replay a rotating single-use token, which the server reads as theft and answers by revoking the whole device chain.
+- **Tokens live in `expo-secure-store`, never `AsyncStorage`.** AsyncStorage is for the TanStack Query cache only.
+- `expo export --platform android` is the cheapest full check that the workspace still bundles — worth running after touching `packages/shared`, since Metro consumes it as source with no build step.
+
+**The design prototype in `design/` is stale in three specific ways** — the BRONZE/PLATINUM tier ladder, the PRO/PRO+ subscription, and the role switcher. All three were resolved in favour of the codebase; see `mobile-app-plan.md` §15 before porting a screen that shows any of them.
+
 ## Commands
 
 ```bash
@@ -41,7 +76,7 @@ Optional in development (all features degrade gracefully when `REDIS_URL` is not
 | `rl:{key}:{bucket}` | `lib/core/rate-limit.ts` | `windowMs + 10s` | TTL only |
 | `rl:auth:{userId}:{action}:{bucket}` | `lib/core/rate-limit.ts` | `windowMs + 10s` | TTL only |
 | `notif:cache:{userId}` | `api/notifications/route.ts` | 60s | `notify()`, mark-read PATCH |
-| `notif:dispatch:prefs:{userId}` | `lib/notifications/notify.ts` | 300s | notification-prefs PATCH, push subscribe/unsubscribe |
+| `notif:dispatch:prefs:v2:{userId}` | `lib/notifications/notify.ts` | 300s | notification-prefs PATCH, push subscribe/unsubscribe, mobile push register/unregister |
 | `cache:admin:stats` | `api/admin/stats/route.ts` | 60s | TTL only |
 | `waiter:search:gen` | `api/waiters/route.ts` | no TTL (counter) | `INCR` after every `syncPassportScore` |
 | `search:waiters:{gen}:{hash}` | `api/waiters/route.ts` | 120s | counter change (old keys expire via TTL) |
@@ -268,14 +303,19 @@ notify(userId, "APPLICATION_RECEIVED", "Nova prijava", "Marko se prijavio...", "
 
 `notify()` always writes a `Notification` DB row, then dispatches:
 1. **Web push** — if the user has a `PushSubscription` row (free, via VAPID)
-2. **WhatsApp** — if `user.waOptIn && user.phone` and `WA_ACCESS_TOKEN` is set
-3. **Infobip SMS** — if `user.smsOptIn && user.phone` and `INFOBIP_API_KEY` is set
+2. **Native push** — if the user has a `DeviceToken` row (Expo → APNs/FCM)
+3. **WhatsApp** — if `user.waOptIn && user.phone` and `WA_ACCESS_TOKEN` is set
+4. **Infobip SMS** — if `user.smsOptIn && user.phone` and `INFOBIP_API_KEY` is set
+
+Web push and native push are **independent** — a user may have a desktop browser and a phone, and both should ring. `pushSent` tracks the browser, `devicePushSent` the phone; neither implies the other.
+
+**The dispatch-prefs cache key is versioned** (`notif:dispatch:prefs:v2:{userId}`). Adding a field to `fetchDispatchUser`'s selection changes the cached payload's shape, and entries written by the previous deploy would be read back missing it — which is a `TypeError` inside `notify()`, not a cache miss. Bump `PREFS_CACHE_VERSION` whenever that selection changes.
 
 Providers are no-ops when env vars are missing — safe in development.
 
 **No tier gating.** Every recipient gets every channel they opted into. The paid PRO / PRO_PLUS subscription that used to gate WhatsApp and SMS was removed; cost stays zero until the provider env vars are configured. Do not reintroduce a tier check here.
 
-**Internal architecture:** Channel dispatchers (`dispatchPush`, `dispatchWhatsApp`, `dispatchSms`) perform the network send only and return a boolean. The coordinator collects all results, then does a single `await db.notification.update` with all status flags (`pushSent`, `waSent`, `smsSent`) and retry counters (`waRetries`, `smsRetries`) in one batched write. No fire-and-forget DB writes inside dispatchers.
+**Internal architecture:** Channel dispatchers (`dispatchPush`, `dispatchDevicePush`, `dispatchWhatsApp`, `dispatchSms`) perform the network send only and return a boolean. The coordinator collects all results, then does a single `await db.notification.update` with all status flags (`pushSent`, `waSent`, `smsSent`) and retry counters (`waRetries`, `smsRetries`) in one batched write. No fire-and-forget DB writes inside dispatchers.
 
 `NotificationType` enum values: `APPLICATION_RECEIVED`, `APPLICATION_STATUS_CHANGED`, `SWAP_REQUESTED`, `SWAP_RESOLVED`, `SHIFT_CLAIMED`, `SHIFT_ASSIGNED`, `REVIEW_RECEIVED`, `REVIEW_PUBLISHED`, `CLOCKIN_APPROVAL_REQUESTED`, `CLOCKIN_RESOLVED`, `RED_ALERT_POSTED`.
 
@@ -532,6 +572,8 @@ The Prisma client is cached on `globalThis._prisma`. After every `db:push` that 
 - `PassportPayment` — **historical only.** Payment rows from the removed waiter subscription product. Nothing writes to it now; kept so past payment history survives for accounting. `tier` is a plain `String` (the `PassportTier` enum is gone).
 - `Notification` — in-app notification record. Has `type NotificationType`, `title`, `body`, `link`, `read`, `pushSent`, `waSent`, `smsSent`.
 - `PushSubscription` — browser Web Push subscription per user. Has `endpoint` (unique), `p256dh`, `auth`.
+- `DeviceToken` — Expo push token for one native install. Has `token` (unique), `platform`, `deviceId`. **Unique on `token`, not on `(userId, deviceId)`** — a phone handed to another person must move the token, not duplicate it across both accounts.
+- `MobileRefreshToken` — rotating refresh token for one native install. Stores `tokenHash` (sha256) only.
 
 ## i18n (Language Switcher)
 
@@ -666,9 +708,10 @@ export async function GET(req: NextRequest) {
 
 ### Notification retry cron
 
-`POST /api/cron/retry-notifications` — hourly job that retries failed WhatsApp and SMS sends.
+`POST /api/cron/retry-notifications` — hourly job that retries failed WhatsApp, SMS and native push sends.
 
-- Queries `Notification` where `waSent=false AND waRetries<3` (or same for SMS), `createdAt` within last 24h, user not deleted, still opted in
+- Queries `Notification` where `waSent=false AND waRetries<3` (or the same for SMS / device push), `createdAt` within last 24h, user not deleted, still opted in. For device push there is no opt-in flag — **having a `DeviceToken` row is the opt-in**, exactly as having a `PushSubscription` row is on the web.
+- Device push is retried **before** the `if (!user.phone) return` guard, because it does not depend on a phone number. Web push is deliberately **not** retried: a browser that missed one is usually closed, whereas native push is often the only channel that reaches a mobile user.
 - On success: sets `waSent`/`smsSent = true`
 - On failure: increments `waRetries`/`smsRetries`; stops retrying once count reaches 3
 - Returns `{ checked, waSent, waFailed, smsSent, smsFailed }`
@@ -686,7 +729,8 @@ Both functions apply the same role-bypass logic as `notify()` (non-WAITER roles 
 `notify()` increments `waRetries`/`smsRetries` on initial send failure instead of silently swallowing the error.
 
 **Notification module structure:**
-- `lib/notifications/dispatch.ts` — `dispatchPush`, `dispatchWhatsApp`, `dispatchSms`, `buildSmsText` (pure network, no DB writes, no tier checks)
+- `lib/notifications/dispatch.ts` — `dispatchPush`, `dispatchDevicePush`, `dispatchWhatsApp`, `dispatchSms`, `buildSmsText` (pure network, no DB writes, no tier checks)
+- `lib/integrations/expo-push.ts` — `sendExpoPush`, `isExpoPushToken`. Batches to 100 (Expo's cap) and reports `DeviceNotRegistered` tokens back so the dispatcher deletes them — the native equivalent of deleting a web subscription on 410. No env var configures it: it is only ever called with tokens, and no `DeviceToken` rows exist until a real install registers one, so dev and tests make zero network calls. `EXPO_ACCESS_TOKEN` is optional and enables Expo's enhanced-security mode.
 - `lib/notifications/notify.ts` — `notify()` coordinator (DB create + tier check + dispatch orchestration + email fallback)
 - `lib/notifications/retry.ts` — `retryWhatsApp`, `retrySms` (used only by retry-notifications cron)
 
@@ -876,6 +920,48 @@ export const GET = withAuth(async (req, ctx, session) => {
 ```
 
 Returns 401 when no session, 403 when wrong role.
+
+### Two transports, one session — bearer auth for the native app
+
+`withRole` / `withAuth` / `withOptionalAuth` resolve the session from **either** an `Authorization: Bearer` header or the NextAuth cookie:
+
+```typescript
+// lib/auth/with-role.ts — the only place this decision is made
+function resolveSession(req: NextRequest): Promise<Session | null> {
+  return getBearerSession(req).then(s => s ?? getServerSession(authOptions));
+}
+```
+
+That single line is why all ~74 routes serve the mobile app **without being edited**. Never add a per-route bearer check — if a route uses the wrappers, it already works.
+
+**The access token is a NextAuth JWT**, signed with `NEXTAUTH_SECRET` and carrying the payload `buildJwtToken()` produces (plus `email`/`name`). Do not invent a second token format: reusing this one means `buildSessionUser` and `isTokenRevoked` work unchanged, `TokenRevocation` covers web and mobile at once, and an ADMIN mobile token inherits the shorter 5s revocation-cache TTL.
+
+| Route | Notes |
+|---|---|
+| `POST /api/mobile/auth/login` | `{ email, password, deviceId, deviceName?, platform }`. Reuses `checkLoginRateLimit` + `verifyCredentials` — the mobile transport must never be a way around the login rate limits. |
+| `POST /api/mobile/auth/refresh` | Rotating. Returns a new pair; the presented token is revoked in the same transaction. |
+| `POST /api/mobile/auth/logout` | Per-device, unauthenticated, idempotent, always 204 (an expired access token must still be able to clean up). |
+| `GET /api/mobile/me` | `withAuth`. The app's cold-start "resume or show login" check. |
+
+`lib/auth/mobile-tokens.ts` owns issuing and rotation. Rules that are load-bearing:
+
+- **Refresh tokens are stored hashed** (`sha256`), never in plaintext. `issueRefreshToken` returns the raw value once.
+- **Rotation is single-use.** Presenting an already-revoked token means replay or theft, so `rotateRefreshToken` revokes the entire `deviceId` chain rather than one row — the attacker's copy and the victim's copy die together.
+- **Refresh 401s are deliberately indistinguishable** (unknown / expired / reused all return the same body). Differentiating them hands an attacker a probing oracle, and the client's reaction is identical anyway.
+- `MobileRefreshToken` must stay in the `resetDb()` TRUNCATE list, or tokens leak across integration test files.
+
+**`src/middleware.ts` lets bearer requests through** (`hasBearer`) — the native app sends no cookie, so without that check every mobile request would be 401'd at the Edge before the handler ran. It does **not** verify the header: the middleware only filters obviously anonymous traffic, exactly as it does for cookies, and a forged header is rejected a moment later by `withRole`. Verification stays in one place, on the Node side.
+
+**Not built yet:** `POST /api/mobile/auth/oauth` (native Google / Facebook sign-in). Credentials login is the only mobile path today.
+
+### Mobile push registration
+
+| Route | Notes |
+|---|---|
+| `POST /api/mobile/push/register` | `{ token, platform, deviceId }`. Upserts on `token`. Called after permission is granted **and on every cold start** — Expo tokens rotate, so re-registering is the normal case, not an error. |
+| `DELETE /api/mobile/push/unregister` | `{ token }`. Scoped to the caller's own rows, so a token string cannot unregister somebody else's device. Returns 204 for an unknown token rather than 404 — the endpoint must not confirm that a token exists. |
+
+Both must call `bustNotifyPrefsCache(userId)`, the same as the web subscribe route.
 
 ### parseBody / parseQuery
 

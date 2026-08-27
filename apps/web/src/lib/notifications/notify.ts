@@ -1,0 +1,180 @@
+import { NotificationType, Prisma } from "@prisma/client";
+import { db } from "@/lib/core/db";
+import { redis } from "@/lib/core/redis";
+import logger from "@/lib/core/logger";
+import { sendNotificationEmail } from "@/lib/integrations/email";
+import {
+  dispatchPush,
+  dispatchDevicePush,
+  dispatchWhatsApp,
+  dispatchSms,
+} from "@/lib/notifications/dispatch";
+
+// ── User dispatch prefs cache ─────────────────────────────────────────────────
+//
+// Caches the full user payload needed for notify() dispatch decisions — contact
+// info and push subscriptions — to avoid a multi-join DB read on every
+// notification send.
+//
+// Push subscriptions and device tokens are included in the cache. Stale browser
+// endpoints are auto-cleaned by dispatchPush on a 410; dead device tokens are
+// auto-cleaned by dispatchDevicePush on DeviceNotRegistered.
+//
+// Busted by: notification-prefs PATCH, push subscribe/unsubscribe,
+// mobile push register/unregister.
+//
+// The key carries a version segment. Adding a field to the cached payload
+// changes its shape, and entries written by the previous deploy would otherwise
+// be read back missing that field — here that would mean `deviceTokens`
+// undefined and a TypeError inside notify(). Bump PREFS_CACHE_VERSION whenever
+// fetchDispatchUser's selection changes.
+
+const DISPATCH_PREFS_TTL   = 300; // seconds
+const PREFS_CACHE_VERSION  = "v2";
+
+function prefsCacheKey(userId: string): string {
+  return `notif:dispatch:prefs:${PREFS_CACHE_VERSION}:${userId}`;
+}
+
+type DispatchUser = Awaited<ReturnType<typeof fetchDispatchUser>>;
+
+async function fetchDispatchUser(userId: string) {
+  return db.user.findUnique({
+    where: { id: userId },
+    select: {
+      email:    true,
+      phone:    true,
+      smsOptIn: true,
+      waOptIn:  true,
+      pushSubscriptions: { select: { id: true, endpoint: true, p256dh: true, auth: true } },
+      deviceTokens:      { select: { id: true, token: true } },
+    },
+  });
+}
+
+async function getCachedDispatchUser(userId: string): Promise<DispatchUser> {
+  const key = prefsCacheKey(userId);
+
+  if (redis) {
+    try {
+      const cached = await redis.get(key);
+      if (cached !== null) return JSON.parse(cached) as DispatchUser;
+    } catch (err) {
+      logger.warn({ err }, "notify: redis prefs cache read failed");
+    }
+  }
+
+  const user = await fetchDispatchUser(userId);
+
+  if (user && redis) {
+    redis
+      .set(key, JSON.stringify(user), "EX", DISPATCH_PREFS_TTL)
+      .catch((err) => logger.warn({ err, userId }, "notify: dispatch-prefs cache write failed"));
+  }
+
+  return user;
+}
+
+/** Call after any change to a user's notification-relevant fields. */
+export function bustNotifyPrefsCache(userId: string): void {
+  if (!redis) return;
+  redis
+    .del(prefsCacheKey(userId))
+    .catch((err) => logger.warn({ err, userId }, "notify: dispatch-prefs cache bust failed"));
+}
+
+// ── Coordinator ───────────────────────────────────────────────────────────────
+
+/**
+ * Creates an in-app notification record and dispatches to all eligible channels
+ * in parallel (push, WhatsApp, SMS, email fallback).
+ *
+ * Every recipient gets every channel they opted into — no tier gating. WhatsApp
+ * and SMS additionally require a phone number, and their providers are no-ops
+ * when the relevant env vars are unset, so cost stays zero until configured.
+ *
+ * Always call fire-and-forget from request handlers:
+ *   notify(userId, ...).catch(console.error);
+ */
+export async function notify(
+  userId: string,
+  type: NotificationType,
+  title: string,
+  body: string,
+  link?: string,
+): Promise<void> {
+  const user = await getCachedDispatchUser(userId);
+
+  // db already filters deletedAt; null means soft-deleted or missing
+  if (!user) return;
+
+  const notification = await db.notification.create({
+    data: { userId, type, title, body, link: link ?? null },
+  });
+
+  // Bust the notification list cache so the next poll reflects the new item.
+  if (redis) {
+    redis
+      .del(`notif:cache:${userId}`)
+      .catch((err) => logger.warn({ err, userId }, "notify: notif-list cache bust failed"));
+  }
+
+  const shouldWA  = !!user.waOptIn  && !!user.phone;
+  const shouldSms = !!user.smsOptIn && !!user.phone;
+
+  // Dispatch every channel in parallel; failures in one don't block the others.
+  // Web push and device push are independent: a user may have a desktop browser
+  // and a phone, and both should ring.
+  const [pushResult, devicePushResult, waResult, smsResult] = await Promise.allSettled([
+    dispatchPush(user.pushSubscriptions, { title, body, link }),
+    dispatchDevicePush(user.deviceTokens, { title, body, link }),
+    shouldWA  ? dispatchWhatsApp(user.phone!, title, body)      : Promise.resolve(false),
+    shouldSms ? dispatchSms(user.phone!, title, body, link)     : Promise.resolve(false),
+  ]);
+
+  // Build a single batched status update so delivery tracking is always consistent
+  // and observable — no fire-and-forget DB writes scattered across dispatchers.
+  const statusUpdate: Prisma.NotificationUpdateInput = {};
+
+  const pushSent = pushResult.status === "fulfilled" && pushResult.value;
+  if (pushSent) statusUpdate.pushSent = true;
+
+  // Unlike web push, device push has a retry counter: it is the primary channel
+  // for a mobile user, so a transient Expo outage must not silently drop the
+  // only notification they were going to get.
+  if (user.deviceTokens.length > 0) {
+    const devicePushSent = devicePushResult.status === "fulfilled" && devicePushResult.value;
+    if (devicePushSent) statusUpdate.devicePushSent = true;
+    else                statusUpdate.devicePushRetries = { increment: 1 };
+  }
+
+  if (shouldWA) {
+    const waSent = waResult.status === "fulfilled" && waResult.value;
+    if (waSent) statusUpdate.waSent = true;
+    else        statusUpdate.waRetries = { increment: 1 };
+  }
+
+  if (shouldSms) {
+    const smsSent = smsResult.status === "fulfilled" && smsResult.value;
+    if (smsSent) statusUpdate.smsSent = true;
+    else         statusUpdate.smsRetries = { increment: 1 };
+  }
+
+  if (Object.keys(statusUpdate).length > 0) {
+    await db.notification.update({ where: { id: notification.id }, data: statusUpdate });
+  }
+
+  // Email fallback: only when no channel attempted delivery.
+  // Push and WA are considered "attempted" if the conditions were met (retry handles failures).
+  // SMS counts only when it actually delivered (no retry for email).
+  const pushAttempted = user.pushSubscriptions.length > 0 || user.deviceTokens.length > 0;
+  const smsDelivered  = smsResult.status === "fulfilled" && smsResult.value === true;
+  const anyDelivered  = pushAttempted || shouldWA || smsDelivered;
+
+  if (!anyDelivered && user.email) {
+    // Last-resort channel — if this also fails the user gets nothing, so surface it.
+    sendNotificationEmail({ toEmail: user.email, title, body, link }).catch((err) =>
+      logger.warn({ err, userId, type }, "notify: email fallback send failed"),
+    );
+  }
+}

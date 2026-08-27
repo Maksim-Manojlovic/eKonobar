@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Lexend, mapped onto the weight utilities.
+ *
+ * @expo-google-fonts ships each weight as its own family name, and NativeWind
+ * does not cascade font-family the way a browser does — so `font-bold` alone
+ * would set fontWeight on a family that has no bold face, and iOS would either
+ * synthesise it or ignore it. Re-pointing each weight utility at the real face
+ * means every existing `font-bold` / `font-semibold` in the app picks up Lexend
+ * with no per-screen change.
+ */
+@layer utilities {
+  .font-normal    { font-family: "Lexend_400Regular"; }
+  .font-medium    { font-family: "Lexend_500Medium"; }
+  .font-semibold  { font-family: "Lexend_600SemiBold"; }
+  .font-bold      { font-family: "Lexend_700Bold"; }
+  .font-extrabold { font-family: "Lexend_800ExtraBold"; }
+  .font-black     { font-family: "Lexend_900Black"; }
+}

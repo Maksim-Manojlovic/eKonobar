@@ -48,7 +48,7 @@ jobs:
         run: npm run db:generate
 
       - name: Typecheck
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Lint
         run: npm run lint
@@ -223,14 +223,14 @@ jobs:
         run: npm run build
 
       - name: Run E2E tests
-        run: npx playwright test
+        run: npm run test:e2e
 
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: playwright-report/
+          path: apps/web/playwright-report/
           retention-days: 7
 
   # ── Gate: single required check for branch protection ────────────────────

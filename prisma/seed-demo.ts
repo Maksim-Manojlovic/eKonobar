@@ -16,7 +16,7 @@
 // runtime so a new enum member cannot be silently missed by the seed.
 import { PrismaClient, VenueType, VerificationTier, EngagementType, TipSystem } from "@prisma/client";
 import { hash } from "bcryptjs";
-import { BELGRADE_MUNICIPALITIES } from "../src/lib/geo/municipalities";
+import { BELGRADE_MUNICIPALITIES } from "../packages/shared/src/geo/municipalities";
 
 const db = new PrismaClient();
 const DEMO_DOMAIN = "demo.ekonobar.rs";
