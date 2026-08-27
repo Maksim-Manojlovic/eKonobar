@@ -20,6 +20,7 @@ import {
 } from "@expo-google-fonts/lexend";
 import { colors } from "@ekonobar/shared/design-tokens";
 import { AuthProvider, useAuth } from "@/auth/AuthProvider";
+import { usePushNotifications } from "@/push/usePushNotifications";
 
 // Hold the native splash until Lexend is in memory. Without this the first
 // frame renders in the iOS system font and then reflows once the font lands,
@@ -56,6 +57,10 @@ function AuthGate() {
   const { user } = useAuth();
   const segments  = useSegments();
   const router    = useRouter();
+
+  // Lives here rather than in AuthProvider: it needs both the session and the
+  // router, and expo-router's hooks are only valid beneath the navigator.
+  usePushNotifications();
 
   useEffect(() => {
     if (user === undefined) return; // still reading the stored session

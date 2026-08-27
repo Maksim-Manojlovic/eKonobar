@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { timeAgo } from "@ekonobar/shared/formatting/utils";
 import { useMarkNotificationsRead, useNotifications, type NotificationRow } from "@/api/queries";
+import { mapNotificationLink } from "@/push/links";
 import { Card, Screen } from "@/ui/Screen";
 import { Empty, TonePill } from "@/ui/primitives";
 
@@ -42,7 +43,7 @@ function Row({ n }: { n: NotificationRow }) {
   const router = useRouter();
 
   return (
-    <Pressable onPress={() => { if (n.link) router.push(mapLink(n.link)); }}>
+    <Pressable onPress={() => router.push(mapNotificationLink(n.link))}>
       <Card>
         <View className="flex-row gap-3">
           <Text className="text-lg font-normal">{TYPE_ICON[n.type] ?? "🔔"}</Text>
@@ -56,17 +57,4 @@ function Row({ n }: { n: NotificationRow }) {
       </Card>
     </Pressable>
   );
-}
-
-/**
- * Server links are web dashboard paths ("/dashboard/venue", "/waiter/smene").
- * The tab names happen to line up, so a suffix match is enough — and anything
- * unrecognised goes home rather than to a route that does not exist.
- */
-function mapLink(link: string): "/" | "/poslovi" | "/smene" | "/recenzije" | "/passport" {
-  if (link.includes("smene") || link.includes("shift")) return "/smene";
-  if (link.includes("poslov") || link.includes("job") || link.includes("application")) return "/poslovi";
-  if (link.includes("recenzij") || link.includes("review")) return "/recenzije";
-  if (link.includes("passport") || link.includes("pasos")) return "/passport";
-  return "/";
 }

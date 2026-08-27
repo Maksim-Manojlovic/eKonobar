@@ -3,6 +3,7 @@ import * as Device from "expo-device";
 import { Platform } from "react-native";
 import { api, onForcedSignOut } from "@/api/client";
 import { clearSession, getDeviceId, loadSession, saveSession, type Session, type SessionUser } from "./storage";
+import { unregisterFromPush } from "@/push/push";
 
 type AuthState = {
   /** undefined while the stored session is still being read on cold start. */
@@ -76,6 +77,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     const stored = await loadSession();
+
+    // Before anything else: /api/mobile/push/unregister is authenticated, so
+    // clearing the session first would 401 the call and strand the token —
+    // leaving this phone receiving notifications for an account nobody is
+    // signed into. It swallows its own failures, so this cannot block sign-out.
+    await unregisterFromPush();
 
     // Best effort: revoke server-side, but never leave the user stuck on a
     // logout screen because the network is down. The local session goes either way.
