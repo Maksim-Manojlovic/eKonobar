@@ -221,3 +221,29 @@ export function useCreateShift() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["shifts"] }),
   });
 }
+
+// ── Venue media ───────────────────────────────────────────────────────────────
+
+/**
+ * PATCH /api/venues/[id] takes the whole `images` array, not a delta — the
+ * caller sends the list it wants to end up with. Callers therefore have to
+ * hold the current array and send `[...images, url]`, which is also what makes
+ * removal a one-line send of the filtered list.
+ */
+export function useSetVenueImages() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ venueId, images }: { venueId: string; images: string[] }) =>
+      api(`/api/venues/${venueId}`, { method: "PATCH", body: { images } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["venues"] }),
+  });
+}
+
+export function useSetVenueLogo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ venueId, logo }: { venueId: string; logo: string | null }) =>
+      api(`/api/venues/${venueId}`, { method: "PATCH", body: { logo } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["venues"] }),
+  });
+}

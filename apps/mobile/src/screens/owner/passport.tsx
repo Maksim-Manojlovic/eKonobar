@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -5,7 +6,10 @@ import {
   VENUE_TYPE_ICON_FALLBACK,
   VENUE_TYPE_LABELS,
 } from "@ekonobar/shared/formatting/labels";
-import { usePrimaryVenue } from "@/api/venue-queries";
+import { usePrimaryVenue, useSetVenueLogo } from "@/api/venue-queries";
+import { pickImage, uploadAsset } from "@/api/upload";
+import { Avatar } from "@/ui/Avatar";
+import { VenuePhotos } from "@/ui/VenuePhotos";
 import { Card, Screen } from "@/ui/Screen";
 import { Empty, ScoreRing, TonePill } from "@/ui/primitives";
 
@@ -18,6 +22,9 @@ import { Empty, ScoreRing, TonePill } from "@/ui/primitives";
 export default function OwnerProfileScreen() {
   const router = useRouter();
   const { venue, isLoading } = usePrimaryVenue();
+  const setLogo = useSetVenueLogo();
+  const [logoBusy, setLogoBusy]   = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
 
   if (isLoading) return <Screen title="Profil"><Empty text="Učitavanje…" /></Screen>;
   if (!venue)    return <Screen title="Profil"><Empty text="Nemaš registrovan lokal." /></Screen>;
@@ -29,7 +36,32 @@ export default function OwnerProfileScreen() {
     <Screen title="Profil" subtitle={venue.name}>
       <Card>
         <View className="items-center gap-2">
+          <View className="flex-row items-center gap-5">
+          <Pressable
+            onPress={async () => {
+              setLogoError(null);
+              setLogoBusy(true);
+              try {
+                const asset = await pickImage();
+                if (!asset) return;
+                const url = await uploadAsset(asset, "avatar");
+                await setLogo.mutateAsync({ venueId: venue.id, logo: url });
+              } catch (err) {
+                setLogoError(err instanceof Error ? err.message : "Otpremanje nije uspelo.");
+              } finally {
+                setLogoBusy(false);
+              }
+            }}
+            className="items-center"
+          >
+            <Avatar uri={venue.logo ?? null} size={68} fallback={venue.name} />
+            <Text className="text-orange-500 text-[10.5px] font-bold mt-1">
+              {logoBusy ? "Otpremam…" : venue.logo ? "Promeni logo" : "Dodaj logo"}
+            </Text>
+          </Pressable>
           <ScoreRing score={venue.trustScore ?? 0} size={88} label="TRUST" />
+          </View>
+          {logoError && <Text className="text-red-500 text-[11px] font-normal">{logoError}</Text>}
           <Text className="text-neutral-900 font-bold text-base">{venue.name}</Text>
           <Text className="text-neutral-400 text-xs font-normal">
             {venue.address}{" · "}{venue.municipality}
@@ -42,6 +74,8 @@ export default function OwnerProfileScreen() {
           </View>
         </View>
       </Card>
+
+      <VenuePhotos venueId={venue.id} images={venue.images ?? []} />
 
       <Card>
         <Text className="text-neutral-900 font-bold mb-2">Podaci</Text>

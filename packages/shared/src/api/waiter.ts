@@ -147,6 +147,7 @@ export type RecentReview = {
 export type PassportData = {
   id: string;
   score: number;
+  profilePhoto: string | null;
   badges: string[];
   reviewCount: number;
   totalEngagements: number;

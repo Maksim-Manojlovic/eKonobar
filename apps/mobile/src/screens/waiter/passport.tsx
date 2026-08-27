@@ -1,7 +1,11 @@
-import { ActivityIndicator, Pressable, Switch, Text, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Image, Pressable, Switch, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import type { PassportData } from "@ekonobar/shared/api/waiter";
 import { usePassport, useSetAvailability } from "@/api/queries";
+import { pickImage, uploadAsset, useSetProfilePhoto } from "@/api/upload";
+import { Avatar } from "@/ui/Avatar";
+import { SanitaryCard } from "@/ui/SanitaryCard";
 import { useAuth } from "@/auth/AuthProvider";
 import { Card, Screen } from "@/ui/Screen";
 import { Empty, ScoreRing, TonePill, VerifiedBadge } from "@/ui/primitives";
@@ -22,6 +26,9 @@ export default function PassportScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const setAvailable = useSetAvailability();
+  const setPhoto = useSetProfilePhoto();
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const { data, isLoading, error } = usePassport();
 
   if (isLoading) return <Screen title="Waiter Passport™"><Loading /></Screen>;
@@ -33,7 +40,34 @@ export default function PassportScreen() {
     <Screen title="Waiter Passport™" subtitle={user?.name ?? undefined}>
       <Card>
         <View className="items-center gap-2">
+          <View className="flex-row items-center gap-5">
+          <Pressable
+            onPress={async () => {
+              setPhotoError(null);
+              setPhotoBusy(true);
+              try {
+                const asset = await pickImage();
+                if (!asset) return;
+                const url = await uploadAsset(asset, "avatar");
+                await setPhoto.mutateAsync(url);
+              } catch (err) {
+                setPhotoError(err instanceof Error ? err.message : "Otpremanje nije uspelo.");
+              } finally {
+                setPhotoBusy(false);
+              }
+            }}
+            className="items-center"
+          >
+            <Avatar uri={data.profilePhoto} size={72} fallback={user?.name} />
+            <Text className="text-orange-500 text-[10.5px] font-bold mt-1">
+              {photoBusy ? "Otpremam…" : data.profilePhoto ? "Promeni sliku" : "Dodaj sliku"}
+            </Text>
+          </Pressable>
           <ScoreRing score={data.score} size={92} />
+          </View>
+          {photoError && (
+            <Text className="text-red-500 text-[11px] font-normal">{photoError}</Text>
+          )}
           <Text className="text-neutral-900 font-bold text-base">{user?.name ?? "—"}</Text>
           <View className="flex-row flex-wrap gap-1.5 justify-center">
             {user && <VerifiedBadge tier={user.verificationTier} />}
@@ -65,6 +99,8 @@ export default function PassportScreen() {
           </Text>
         </Card>
       )}
+
+      <SanitaryCard />
 
       <Skills data={data} />
       <Reach data={data} />
