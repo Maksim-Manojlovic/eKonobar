@@ -234,3 +234,23 @@ export function useSetAvailability() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["passport"] }),
   });
 }
+
+/**
+ * Passport share link.
+ *
+ * POST issues a fresh token and overwrites the previous one, so "regenerate" is
+ * also the only way to revoke: the old link 404s the moment a new one exists.
+ * There is no separate delete endpoint, which is worth saying in the UI — a
+ * waiter who shared a link with a venue they no longer want seeing it needs to
+ * know that pressing this is what cuts it off.
+ */
+export function useShareLink() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api<{ shareToken: string; shareTokenExpiry: string }>("/api/passport/share", {
+        method: "POST",
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["passport"] }),
+  });
+}

@@ -148,6 +148,9 @@ export type PassportData = {
   id: string;
   score: number;
   profilePhoto: string | null;
+  /** Present only on the owner's own passport; null until a link is generated. */
+  shareToken: string | null;
+  shareTokenExpiry: string | null;
   badges: string[];
   reviewCount: number;
   totalEngagements: number;

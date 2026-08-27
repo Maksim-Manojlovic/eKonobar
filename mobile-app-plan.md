@@ -320,13 +320,13 @@ create + clock-in approvals + swaps, Recenzije, Profil), the admin inbox
 sanitary book), Odmori for both roles, Ekipa (roster management) and Pronađi
 konobara (talent search with the reach-coverage panel and invites), and Phase 3
 (`GET /api/mobile/bootstrap` plus cursor paging on jobs and notifications), and
-Šabloni (recurring shift templates + bulk generation).
+Šabloni (recurring shift templates + bulk generation), and the passport share
+link.
 
 **Not built yet**, in the order they are worth doing:
 
 | Gap | Notes |
 |---|---|
-| Passport share link | `POST /api/passport/share`. |
 | Native OAuth | `POST /api/mobile/auth/oauth`, Phase 1b. Credentials login is the only mobile path today. |
 
 ---

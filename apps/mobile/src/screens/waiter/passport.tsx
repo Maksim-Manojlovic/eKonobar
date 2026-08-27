@@ -5,6 +5,7 @@ import type { PassportData } from "@ekonobar/shared/api/waiter";
 import { usePassport, useSetAvailability } from "@/api/queries";
 import { pickImage, uploadAsset, useSetProfilePhoto } from "@/api/upload";
 import { SanitaryCard } from "@/ui/SanitaryCard";
+import { ShareCard } from "@/ui/ShareCard";
 import { useAuth } from "@/auth/AuthProvider";
 import { Card, Screen } from "@/ui/Screen";
 import { Avatar, Empty, ScoreRing, TonePill, VerifiedBadge } from "@/ui/primitives";
@@ -98,6 +99,11 @@ export default function PassportScreen() {
           </Text>
         </Card>
       )}
+
+      <ShareCard
+        shareToken={data.shareToken}
+        shareTokenExpiry={data.shareTokenExpiry}
+      />
 
       <SanitaryCard />
 
