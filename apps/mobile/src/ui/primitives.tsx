@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { colors } from "@ekonobar/shared/design-tokens";
 import { getInitials } from "@ekonobar/shared/formatting/utils";
@@ -87,12 +87,35 @@ export function VerifiedBadge({ tier }: { tier: string }) {
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
 
-export function Avatar({ name, size = 40 }: { name: string | null | undefined; size?: number }) {
+/**
+ * Avatar — a photo when there is one, initials when there isn't.
+ *
+ * `uri` is optional so every existing caller that only has a name keeps working;
+ * a null uri is the normal case, not a failure.
+ */
+export function Avatar({ name, size = 40, uri, round }: {
+  name:   string | null | undefined;
+  size?:  number;
+  uri?:   string | null;
+  /** Circular rather than the default squircle — used for profile headers. */
+  round?: boolean;
+}) {
+  const radius = round ? size / 2 : size * 0.32;
+
+  if (uri) {
+    return (
+      <Image
+        source={{ uri }}
+        style={{ width: size, height: size, borderRadius: radius, backgroundColor: "#f0f0ee" }}
+      />
+    );
+  }
+
   return (
     <View
       className="items-center justify-center"
       style={{
-        width: size, height: size, borderRadius: size * 0.32,
+        width: size, height: size, borderRadius: radius,
         backgroundColor: colors.primary[500],
       }}
     >

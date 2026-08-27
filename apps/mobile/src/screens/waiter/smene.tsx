@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import type { OpenShift, SwapRequest, WaiterShift } from "@ekonobar/shared/api/waiter";
 import { useAuth } from "@/auth/AuthProvider";
 import { useClaimShift, useClockIn, useClockOut, useMyShifts, useOpenShifts, useSwapRequests } from "@/api/queries";
@@ -16,6 +17,7 @@ const TABS = [
 type TabId = (typeof TABS)[number]["id"];
 
 export default function SmeneScreen() {
+  const router = useRouter();
   const [tab, setTab] = useState<TabId>("moje");
 
   return (
@@ -23,6 +25,10 @@ export default function SmeneScreen() {
       <View className="-mx-5">
         <SegmentTabs tabs={TABS} active={tab} onChange={setTab} />
       </View>
+
+      <Pressable onPress={() => router.push("/odmori")} className="self-end -mt-1">
+        <Text className="text-orange-400 text-xs font-bold">Odmori →</Text>
+      </Pressable>
 
       {tab === "moje"     && <MyShifts />}
       {tab === "slobodne" && <OpenShiftsMarket />}

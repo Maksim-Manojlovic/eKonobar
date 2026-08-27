@@ -1,4 +1,4 @@
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import type { VenueShift, VenueShiftAssignment, VenueSwapRequest } from "@ekonobar/shared/api/venue";
 import { useManagedShifts, useResolveClockIn, useResolveSwap } from "@/api/venue-queries";
@@ -48,6 +48,10 @@ export default function OwnerSmeneScreen() {
   return (
     <Screen title="Smene">
       <PrimaryButton label="+ Nova smena" onPress={() => router.push("/new-shift")} />
+
+      <Pressable onPress={() => router.push("/odmori")} className="self-end -mt-1">
+        <Text className="text-orange-400 text-xs font-bold">Odmori →</Text>
+      </Pressable>
 
       <MonthCalendar
         shifts={calendarShifts}

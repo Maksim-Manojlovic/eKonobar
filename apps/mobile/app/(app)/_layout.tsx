@@ -52,7 +52,7 @@ export default function AppLayout() {
   // "notifications" is reachable from the bell in every header but is never a tab,
   // so it is registered with href: null like any role-hidden route. A route file
   // that is not registered here gets a tab of its own.
-  const all = ["index", "poslovi", "smene", "recenzije", "passport", "notifications", "settings", "new-job", "new-shift"];
+  const all = ["index", "poslovi", "smene", "recenzije", "passport", "notifications", "settings", "new-job", "new-shift", "odmori"];
 
   return (
     <Tabs

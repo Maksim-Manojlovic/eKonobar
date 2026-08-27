@@ -4,11 +4,10 @@ import { useRouter } from "expo-router";
 import type { PassportData } from "@ekonobar/shared/api/waiter";
 import { usePassport, useSetAvailability } from "@/api/queries";
 import { pickImage, uploadAsset, useSetProfilePhoto } from "@/api/upload";
-import { Avatar } from "@/ui/Avatar";
 import { SanitaryCard } from "@/ui/SanitaryCard";
 import { useAuth } from "@/auth/AuthProvider";
 import { Card, Screen } from "@/ui/Screen";
-import { Empty, ScoreRing, TonePill, VerifiedBadge } from "@/ui/primitives";
+import { Avatar, Empty, ScoreRing, TonePill, VerifiedBadge } from "@/ui/primitives";
 
 /**
  * Waiter Passport™.
@@ -58,7 +57,7 @@ export default function PassportScreen() {
             }}
             className="items-center"
           >
-            <Avatar uri={data.profilePhoto} size={72} fallback={user?.name} />
+            <Avatar name={user?.name} uri={data.profilePhoto} size={72} round />
             <Text className="text-orange-500 text-[10.5px] font-bold mt-1">
               {photoBusy ? "Otpremam…" : data.profilePhoto ? "Promeni sliku" : "Dodaj sliku"}
             </Text>

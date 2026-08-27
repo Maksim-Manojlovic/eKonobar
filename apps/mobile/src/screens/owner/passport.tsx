@@ -8,10 +8,9 @@ import {
 } from "@ekonobar/shared/formatting/labels";
 import { usePrimaryVenue, useSetVenueLogo } from "@/api/venue-queries";
 import { pickImage, uploadAsset } from "@/api/upload";
-import { Avatar } from "@/ui/Avatar";
 import { VenuePhotos } from "@/ui/VenuePhotos";
 import { Card, Screen } from "@/ui/Screen";
-import { Empty, ScoreRing, TonePill } from "@/ui/primitives";
+import { Avatar, Empty, ScoreRing, TonePill } from "@/ui/primitives";
 
 /**
  * Profil lokala — the owner's fifth tab.
@@ -54,7 +53,7 @@ export default function OwnerProfileScreen() {
             }}
             className="items-center"
           >
-            <Avatar uri={venue.logo ?? null} size={68} fallback={venue.name} />
+            <Avatar name={venue.name} uri={venue.logo} size={68} round />
             <Text className="text-orange-500 text-[10.5px] font-bold mt-1">
               {logoBusy ? "Otpremam…" : venue.logo ? "Promeni logo" : "Dodaj logo"}
             </Text>
