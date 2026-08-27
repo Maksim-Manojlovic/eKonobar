@@ -306,6 +306,32 @@ Build in this order:
 
 ---
 
+## 8b. Build status — what is actually shipped
+
+Kept current as screens land, so the phase tables below stay the *plan* and this
+stays the *state*.
+
+**Done and verified against a running server:** auth (login / refresh / logout /
+cold-start resume), push registration, notifications, the waiter set (Pregled
+map, Poslovi + apply, Smene with claim / clock-in / clock-out / swap, Recenzije,
+Passport), the owner set (Pregled, Oglasi + create, Prijave triage, Smene +
+create + clock-in approvals + swaps, Recenzije, Profil), the admin inbox
+(sanitary, disputed reviews, health), image upload (avatar, venue logo + gallery,
+sanitary book), and Odmori for both roles.
+
+**Not built yet**, in the order they are worth doing:
+
+| Gap | Notes |
+|---|---|
+| `GET /api/mobile/bootstrap` + cursor pagination | Phase 3. Every list still fetches its own endpoint and takes the full page. Fine at current data volume; the cost shows up on a cold start over mobile data. |
+| Shift templates (Šabloni) | `POST /api/shifts/templates/[id]/generate` — owner bulk generation. |
+| Talent search | `GET /api/waiters` + `/coverage` + `POST /api/invites` from the owner side. |
+| Ekipa (roster) | `GET/POST /api/venues/[id]/staff`. Rosters currently have to be built on the web, which also gates Odmori — a worker has no leave balance until someone adds them. |
+| Passport share link | `POST /api/passport/share`. |
+| Native OAuth | `POST /api/mobile/auth/oauth`, Phase 1b. Credentials login is the only mobile path today. |
+
+---
+
 ## 9. Phase 5 — Waiter screens
 
 Mapped to existing endpoints. No new backend work.
