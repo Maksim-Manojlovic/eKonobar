@@ -1,4 +1,5 @@
 import { ActivityIndicator, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import type { VenueShift, VenueShiftAssignment, VenueSwapRequest } from "@ekonobar/shared/api/venue";
 import { useManagedShifts, useResolveClockIn, useResolveSwap } from "@/api/venue-queries";
 import { Card, Screen } from "@/ui/Screen";
@@ -18,6 +19,7 @@ import { DayBrief, MonthCalendar, type CalendarShift } from "@/ui/Calendar";
  * not see them, nobody gets clocked in.
  */
 export default function OwnerSmeneScreen() {
+  const router = useRouter();
   const { data, isLoading, error } = useManagedShifts();
 
   if (isLoading) {
@@ -45,6 +47,8 @@ export default function OwnerSmeneScreen() {
 
   return (
     <Screen title="Smene">
+      <PrimaryButton label="+ Nova smena" onPress={() => router.push("/new-shift")} />
+
       <MonthCalendar
         shifts={calendarShifts}
         renderDay={(day, daysShifts, close) => {

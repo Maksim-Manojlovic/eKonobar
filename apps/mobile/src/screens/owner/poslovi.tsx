@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRouter } from "expo-router";
 import { ActivityIndicator, Text, View } from "react-native";
 import { formatSalary, timeAgo } from "@ekonobar/shared/formatting/utils";
 import { JOB_STATUS_LABELS, APPLICATION_STATUS_LABELS_VENUE } from "@ekonobar/shared/formatting/labels";
@@ -35,13 +36,20 @@ export default function OwnerPosloviScreen() {
 }
 
 function Posts() {
+  const router = useRouter();
   const { data, isLoading, error } = useOwnPosts();
 
   if (isLoading) return <Loading />;
   if (error)     return <Empty text="Oglasi trenutno nisu dostupni." />;
-  if (!data?.length) return <Empty text="Nemaš objavljenih oglasa." />;
 
-  return <>{data.map(p => <PostRow key={p.id} post={p} />)}</>;
+  return (
+    <>
+      <PrimaryButton label="+ Novi oglas" onPress={() => router.push("/new-job")} />
+      {data?.length
+        ? data.map(p => <PostRow key={p.id} post={p} />)
+        : <Empty text="Nemaš objavljenih oglasa." />}
+    </>
+  );
 }
 
 function PostRow({ post }: { post: OwnPost }) {

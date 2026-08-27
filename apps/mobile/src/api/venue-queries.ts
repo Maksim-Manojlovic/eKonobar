@@ -172,3 +172,52 @@ export const useSystemHealth = () =>
     queryFn:  () => apiGet<AdminHealth>("/api/admin/health"),
     refetchInterval: 60_000,
   });
+
+// ── Authoring ─────────────────────────────────────────────────────────────────
+
+export type NewJobPost = {
+  venueId:          string;
+  title:            string;
+  description:      string;
+  engagementType:   string;
+  tipSystem:        string;
+  salaryMin?:       number | null;
+  salaryMax?:       number | null;
+  sanitaryRequired?: boolean;
+  redAlert?:        boolean;
+  redAlertNote?:    string | null;
+};
+
+export function useCreateJobPost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: NewJobPost) => api<{ id: string }>("/api/jobs", { method: "POST", body }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["posts"] });
+      // A Red Alert post also changes what the map shows.
+      qc.invalidateQueries({ queryKey: ["jobs"] });
+    },
+  });
+}
+
+export type NewShift = {
+  venueId:       string;
+  title:         string;
+  date:          string;
+  startTime:     string;
+  endTime:       string;
+  role?:         string | null;
+  pay?:          number | null;
+  tipEstimate?:  number | null;
+  requiredCount?: number;
+  briefingNote?: string | null;
+  swapLocked?:   boolean;
+};
+
+export function useCreateShift() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: NewShift) => api<{ id: string }>("/api/shifts", { method: "POST", body }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["shifts"] }),
+  });
+}
