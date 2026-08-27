@@ -2,10 +2,10 @@ import { useEffect } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { timeAgo } from "@ekonobar/shared/formatting/utils";
-import { useMarkNotificationsRead, useNotifications, type NotificationRow } from "@/api/queries";
+import { useMarkNotificationsRead, useNotificationHistory, type NotificationRow } from "@/api/queries";
 import { mapNotificationLink } from "@/push/links";
 import { Card, Screen } from "@/ui/Screen";
-import { Empty, TonePill } from "@/ui/primitives";
+import { Empty, SecondaryButton, TonePill } from "@/ui/primitives";
 
 const TYPE_ICON: Record<string, string> = {
   APPLICATION_RECEIVED: "📝", APPLICATION_STATUS_CHANGED: "📝",
@@ -18,11 +18,15 @@ const TYPE_ICON: Record<string, string> = {
 };
 
 export default function NotificationsScreen() {
-  const { data, isLoading, error } = useNotifications();
+  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useNotificationHistory();
+  const rows = data?.pages.flatMap(p => p.notifications) ?? [];
   const markRead = useMarkNotificationsRead();
 
-  // Opening the feed is the read receipt, same as the web bell.
-  const unread = data?.unreadCount ?? 0;
+  // Opening the feed is the read receipt, same as the web bell. The count comes
+  // off the first page — every page carries it, and only the first is guaranteed
+  // to have been fetched.
+  const unread = data?.pages[0]?.unreadCount ?? 0;
   useEffect(() => {
     if (unread > 0) markRead.mutate(undefined);
     // Deliberately keyed on the count only: re-running on every mutate would loop.
@@ -33,8 +37,15 @@ export default function NotificationsScreen() {
     <Screen title="Obaveštenja">
       {isLoading && <View className="py-8 items-center"><ActivityIndicator color="#f97316" /></View>}
       {error && <Empty text="Obaveštenja trenutno nisu dostupna." />}
-      {data?.notifications.length === 0 && <Empty text="Nema obaveštenja." />}
-      {data?.notifications.map(n => <Row key={n.id} n={n} />)}
+      {rows.length === 0 && <Empty text="Nema obaveštenja." />}
+      {rows.map(n => <Row key={n.id} n={n} />)}
+      {hasNextPage && (
+        <SecondaryButton
+          label={isFetchingNextPage ? "Učitavam…" : "Prikaži starija"}
+          disabled={isFetchingNextPage}
+          onPress={() => fetchNextPage()}
+        />
+      )}
     </Screen>
   );
 }

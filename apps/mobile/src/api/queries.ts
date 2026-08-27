@@ -9,7 +9,7 @@
  * family (`["shifts"]`) without knowing every variant beneath it.
  */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   InviteItem,
   JobPost,
@@ -28,13 +28,32 @@ import { api, apiGet } from "./client";
 export const useMarket = () =>
   useQuery({ queryKey: ["insights", "market"], queryFn: () => apiGet<MarketData>("/api/insights/market") });
 
+const JOBS_PAGE = 20;
+
+/**
+ * Paged job feed.
+ *
+ * The route returns a bare array and takes `?cursor=&limit=`, so "there is more"
+ * is inferred from getting back a full page. That costs one extra empty request
+ * when the total is an exact multiple of the page size — cheaper than a payload
+ * shape that differs between web and mobile.
+ *
+ * The Red Alert filter is a query param, never a .filter() on the response: the
+ * route caps its result set, so filtering client-side would filter an already
+ * truncated page and quietly under-report.
+ */
 export const useJobs = (opts: { redAlertOnly?: boolean } = {}) =>
-  useQuery({
+  useInfiniteQuery({
     queryKey: ["jobs", opts],
-    // The Red Alert filter is a query param, never a .filter() on the response:
-    // the route caps its result set, so filtering client-side would filter an
-    // already-truncated page and quietly under-report.
-    queryFn:  () => apiGet<JobPost[]>(`/api/jobs${opts.redAlertOnly ? "?redAlert=true" : ""}`),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) => {
+      const q = new URLSearchParams({ limit: String(JOBS_PAGE) });
+      if (opts.redAlertOnly) q.set("redAlert", "true");
+      if (pageParam)         q.set("cursor", pageParam);
+      return apiGet<JobPost[]>(`/api/jobs?${q}`);
+    },
+    getNextPageParam: (last: JobPost[]) =>
+      last.length === JOBS_PAGE ? last[last.length - 1]?.id : undefined,
   });
 
 export const useMyApplications = () =>
@@ -143,6 +162,33 @@ export const useNotifications = () =>
     queryFn:  () => apiGet<{ notifications: NotificationRow[]; unreadCount: number }>("/api/notifications"),
     // The bell shows a count, so it needs to move without a manual refresh.
     refetchInterval: 60_000,
+  });
+
+const NOTIF_PAGE = 25;
+
+/**
+ * The full notification history, for the notifications screen.
+ *
+ * Separate from useNotifications, which the bell owns: the bell wants one small
+ * polled page and a count, this wants to keep walking backwards. They share the
+ * route — the first page is the Redis-cached one either way — but not a query
+ * key, so paging here never disturbs the bell's poll.
+ */
+export const useNotificationHistory = () =>
+  useInfiniteQuery({
+    queryKey: ["notifications", "history"],
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) => {
+      const q = new URLSearchParams({ limit: String(NOTIF_PAGE) });
+      if (pageParam) q.set("cursor", pageParam);
+      return apiGet<{ notifications: NotificationRow[]; unreadCount: number }>(
+        `/api/notifications?${q}`,
+      );
+    },
+    getNextPageParam: (last) =>
+      last.notifications.length === NOTIF_PAGE
+        ? last.notifications[last.notifications.length - 1]?.id
+        : undefined,
   });
 
 export function useMarkNotificationsRead() {

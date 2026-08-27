@@ -318,13 +318,13 @@ Passport), the owner set (Pregled, Oglasi + create, Prijave triage, Smene +
 create + clock-in approvals + swaps, Recenzije, Profil), the admin inbox
 (sanitary, disputed reviews, health), image upload (avatar, venue logo + gallery,
 sanitary book), Odmori for both roles, Ekipa (roster management) and Pronađi
-konobara (talent search with the reach-coverage panel and invites).
+konobara (talent search with the reach-coverage panel and invites), and Phase 3
+(`GET /api/mobile/bootstrap` plus cursor paging on jobs and notifications).
 
 **Not built yet**, in the order they are worth doing:
 
 | Gap | Notes |
 |---|---|
-| `GET /api/mobile/bootstrap` + cursor pagination | Phase 3. Every list still fetches its own endpoint and takes the full page. Fine at current data volume; the cost shows up on a cold start over mobile data. |
 | Shift templates (Šabloni) | `POST /api/shifts/templates/[id]/generate` — owner bulk generation. |
 | Passport share link | `POST /api/passport/share`. |
 | Native OAuth | `POST /api/mobile/auth/oauth`, Phase 1b. Credentials login is the only mobile path today. |

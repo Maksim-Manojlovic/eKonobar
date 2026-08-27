@@ -248,3 +248,49 @@ export type WaiterLeaveRequest = {
   staff: { position: string };
 };
 
+
+/* ── Cold start (GET /api/mobile/bootstrap) ─────────────────────────────── */
+
+export type BootstrapUser = {
+  id: string;
+  role: string;
+  name?: string | null;
+  email?: string | null;
+  verificationTier: string;
+  tourCompleted: boolean;
+};
+
+export type Bootstrap = {
+  user: BootstrapUser;
+  unreadNotifications: number;
+  waiter?: {
+    passport: {
+      score: number;
+      currentlyAvailable: boolean;
+      sanitaryBookValid: boolean;
+      profilePhoto: string | null;
+    } | null;
+    upcomingShifts: number;
+    pendingInvites: number;
+    /** Zero means the Odmori screen has no venue to show a balance for. */
+    staffRosters: number;
+  };
+  owner?: {
+    venue: {
+      id: string;
+      name: string;
+      municipality: string | null;
+      trustScore: number | null;
+      isActive: boolean;
+      logo: string | null;
+    } | null;
+    activePosts: number;
+    pendingApplications: number;
+    pendingClockIns: number;
+    pendingLeaveRequests: number;
+  };
+  admin?: {
+    pendingSanitary: number;
+    disputedReviews: number;
+  };
+};

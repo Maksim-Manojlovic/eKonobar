@@ -24,18 +24,55 @@ const JobPostSchema = z.object({
   applicationDeadline: z.string().nullish(),
 });
 
+/** The public feed has always been capped here; keep it. */
+const PUBLIC_DEFAULT_LIMIT = 50;
+
+/**
+ * The owner's own-posts query had no cap at all, so any number chosen now is a
+ * behaviour change for the web dashboard. 200 is high enough that no real venue
+ * truncates — the largest seeded owner has single digits — while still bounding
+ * a query that otherwise grows forever. Mobile passes a small explicit limit.
+ */
+const OWNER_DEFAULT_LIMIT = 200;
+
+const MAX_LIMIT = 200;
+
+/**
+ * `cursor` is the id of the last post already seen; `limit` caps the page.
+ *
+ * The response stays a bare array in every case, so the web clients are
+ * unaffected. A caller knows there is more when it gets back exactly `limit`
+ * rows and passes the last id as the next cursor — one extra empty request when
+ * the total is an exact multiple, in exchange for not versioning the payload.
+ */
+function readPaging(searchParams: URLSearchParams, fallback: number): { take: number; cursor?: string } {
+  const raw    = Number(searchParams.get("limit"));
+  const take   = Number.isFinite(raw) && raw >= 1 ? Math.min(raw, MAX_LIMIT) : fallback;
+  const cursor = searchParams.get("cursor") ?? undefined;
+  return { take, cursor };
+}
+
 export const GET = withOptionalAuth(async (req, _ctx, session) => {
   const { searchParams } = new URL(req.url);
+  const owner = session?.user.role === "VENUE_OWNER" ? session.user : null;
+  // `skip: 1` steps past the cursor row itself, which the client already holds.
+  const { take, cursor } = readPaging(
+    searchParams,
+    owner ? OWNER_DEFAULT_LIMIT : PUBLIC_DEFAULT_LIMIT,
+  );
+  const cursorArgs = cursor ? { cursor: { id: cursor }, skip: 1 } : {};
 
   // Venue owner sees only their own posts (all statuses)
-  if (session?.user.role === "VENUE_OWNER") {
+  if (owner) {
     const posts = await db.jobPost.findMany({
-      where: { ownerId: session.user.id },
+      where: { ownerId: owner.id },
       include: {
         venue: { select: { id: true, name: true, address: true, municipality: true } },
         _count: { select: { applications: true } },
       },
       orderBy: { createdAt: "desc" },
+      take,
+      ...cursorArgs,
     });
     return NextResponse.json(posts);
   }
@@ -75,7 +112,8 @@ export const GET = withOptionalAuth(async (req, _ctx, session) => {
       _count: { select: { applications: true } },
     },
     orderBy: [{ redAlert: "desc" }, { createdAt: "desc" }],
-    take: 50,
+    take,
+    ...cursorArgs,
   });
 
   return NextResponse.json(posts);

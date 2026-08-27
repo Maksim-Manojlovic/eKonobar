@@ -1,5 +1,5 @@
 import { Text, View } from "react-native";
-import { useIncomingApps, useManagedShifts, useOwnPosts, usePrimaryVenue } from "@/api/venue-queries";
+import { useBootstrap } from "@/api/bootstrap";
 import { Card, Screen } from "@/ui/Screen";
 import { Empty, ScoreRing, TonePill } from "@/ui/primitives";
 
@@ -12,20 +12,25 @@ import { Empty, ScoreRing, TonePill } from "@/ui/primitives";
  * their phone for mid-service.
  */
 export default function OwnerHomeScreen() {
-  const { venue }   = usePrimaryVenue();
-  const posts       = useOwnPosts();
-  const apps        = useIncomingApps();
-  const shifts      = useManagedShifts();
+  // One request carries the whole header and every counter below it. The lists
+  // themselves are not fetched here — this screen only ever showed counts of
+  // them, so pulling three full lists to call .length on them was the cost of
+  // not having an endpoint that counts.
+  const { data, isLoading } = useBootstrap();
+  const b = data?.owner;
+  const venue = b?.venue ?? null;
 
-  const pendingApps     = (apps.data ?? []).filter(a => a.status === "PENDING").length;
-  const activePosts     = (posts.data ?? []).filter(p => p.status === "ACTIVE").length;
-  const pendingClockIns = (shifts.data ?? [])
-    .flatMap(s => s.assignments)
-    .filter(a => a.pendingClockIn).length;
-
+  if (isLoading) {
+    return <Screen title="Pregled"><Empty text="Učitavanje…" /></Screen>;
+  }
   if (!venue) {
     return <Screen title="Pregled"><Empty text="Nemaš registrovan lokal." /></Screen>;
   }
+
+  const pendingApps     = b?.pendingApplications ?? 0;
+  const activePosts     = b?.activePosts ?? 0;
+  const pendingClockIns = b?.pendingClockIns ?? 0;
+  const pendingLeave    = b?.pendingLeaveRequests ?? 0;
 
   return (
     <Screen title="Pregled" subtitle={venue.name}>
@@ -63,11 +68,22 @@ export default function OwnerHomeScreen() {
         </Card>
       )}
 
+      {pendingLeave > 0 && (
+        <Card>
+          <Text className="text-neutral-900 font-bold">
+            {pendingLeave} {pendingLeave === 1 ? "zahtev za odmor" : "zahteva za odmor"} čeka odluku
+          </Text>
+          <Text className="text-neutral-400 text-[11px] mt-1 font-normal">
+            Otvori Smene, pa Odmori.
+          </Text>
+        </Card>
+      )}
+
       <Card>
         <View className="flex-row justify-around">
           <Stat label="aktivni oglasi" value={activePosts} />
-          <Stat label="prijave"        value={apps.data?.length ?? 0} />
-          <Stat label="smene"          value={shifts.data?.length ?? 0} />
+          <Stat label="prijave"        value={pendingApps} />
+          <Stat label="odmori"         value={pendingLeave} />
         </View>
       </Card>
 

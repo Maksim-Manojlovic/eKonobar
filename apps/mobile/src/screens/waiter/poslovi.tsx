@@ -55,15 +55,31 @@ export default function PosloviScreen() {
 // ── Oglasi / Red Alert ────────────────────────────────────────────────────────
 
 function JobList({ redAlertOnly }: { redAlertOnly?: boolean }) {
-  const { data, isLoading, error } = useJobs({ redAlertOnly });
+  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useJobs({ redAlertOnly });
+
+  const jobs = data?.pages.flat() ?? [];
 
   if (isLoading) return <Loading />;
   if (error)     return <Empty text="Oglasi trenutno nisu dostupni." />;
-  if (!data?.length) {
+  if (jobs.length === 0) {
     return <Empty text={redAlertOnly ? "Nema hitnih oglasa." : "Nema otvorenih oglasa."} />;
   }
 
-  return <>{data.map(job => <JobCard key={job.id} job={job} />)}</>;
+  return (
+    <>
+      {jobs.map(job => <JobCard key={job.id} job={job} />)}
+      {/* A button rather than scroll-position detection: this list is rendered
+          inside the Screen ScrollView, so there is no onEndReached to hook. */}
+      {hasNextPage && (
+        <SecondaryButton
+          label={isFetchingNextPage ? "Učitavam…" : "Prikaži još"}
+          disabled={isFetchingNextPage}
+          onPress={() => fetchNextPage()}
+        />
+      )}
+    </>
+  );
 }
 
 function JobCard({ job }: { job: JobPost }) {

@@ -3,17 +3,43 @@ import { withAuth } from "@/lib/auth/with-role";
 import { db } from "@/lib/core/db";
 import { redis } from "@/lib/core/redis";
 import logger from "@/lib/core/logger";
-import { parseBody } from "@/lib/auth/parse-body";
+import { parseBody, parseQuery } from "@/lib/auth/parse-body";
 import { z } from "zod";
 
 const NotificationPatchSchema = z.object({
   ids: z.array(z.string()).optional(),
 });
 
-export const GET = withAuth(async (_req, _ctx, session) => {
-  const cacheKey = `notif:cache:${session.user.id}`;
+const QuerySchema = z.object({
+  /** Id of the last row already seen; rows strictly after it are returned. */
+  cursor: z.string().min(1).optional(),
+  limit:  z.coerce.number().int().min(1).max(50).optional(),
+});
 
-  if (redis) {
+const DEFAULT_LIMIT = 30;
+
+/**
+ * The response shape does not change when paging.
+ *
+ * `notifications` stays a plain array either way, so the web client is
+ * untouched by this. A caller knows there is more when it gets back exactly
+ * `limit` rows and passes the last id as the next `cursor`. That costs one
+ * extra empty request when the total happens to be a multiple of the limit,
+ * which is a better trade than versioning the payload.
+ */
+export const GET = withAuth(async (req, _ctx, session) => {
+  const parsed = parseQuery(QuerySchema, req);
+  if (!parsed.ok) return parsed.response;
+  const { cursor } = parsed.data;
+  const limit = parsed.data.limit ?? DEFAULT_LIMIT;
+
+  // Only the first page is cached. The cache key has no cursor in it and exists
+  // for the 30 s poll, which never pages; caching page 2 under it would serve
+  // page 2 to the next poller.
+  const cacheable = !cursor && limit === DEFAULT_LIMIT;
+  const cacheKey  = `notif:cache:${session.user.id}`;
+
+  if (redis && cacheable) {
     try {
       const cached = await redis.get(cacheKey);
       if (cached) return NextResponse.json(JSON.parse(cached));
@@ -26,7 +52,9 @@ export const GET = withAuth(async (_req, _ctx, session) => {
     db.notification.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
-      take: 30,
+      take: limit,
+      // `skip: 1` steps past the cursor row itself, which the client already has.
+      ...(cursor && { cursor: { id: cursor }, skip: 1 }),
     }),
     db.notification.count({
       where: { userId: session.user.id, read: false },
@@ -35,7 +63,7 @@ export const GET = withAuth(async (_req, _ctx, session) => {
 
   const payload = { notifications, unreadCount };
 
-  if (redis) {
+  if (redis && cacheable) {
     // 60 s TTL — client polls every 30 s, so most polls hit the cache.
     // Cache is busted immediately on new notification (notify.ts) or mark-read.
     redis.set(cacheKey, JSON.stringify(payload), "EX", 60).catch((err) => logger.warn({ err }, "notifications: redis cache write failed"));
