@@ -106,7 +106,12 @@ export const GET = withRole("VENUE_OWNER", async (req, _ctx) => {
             bio: true,
             reviewCount: true,
             totalEngagements: true,
-            shareToken: true,
+            // shareToken is deliberately absent. It is a bearer capability: whoever
+            // holds it reads the full passport — engagements, reviews — with no auth
+            // and can pass it on. Selecting it here handed every waiter's live link
+            // to every owner and headhunter who ran a search, including waiters who
+            // had never shared one, and regenerating did not help because the new
+            // token leaked on the next search. Nothing consumed it.
           },
         },
       },

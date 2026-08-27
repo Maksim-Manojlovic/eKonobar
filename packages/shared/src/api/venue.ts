@@ -306,7 +306,8 @@ export type WaiterSearchRow = {
     currentlyAvailable: boolean;
     sanitaryBookValid: boolean;
     workMunicipalities: string[];
-    shareToken: string | null;
+    // No shareToken: GET /api/waiters must never return the passport's public
+    // link. See the note on the route's select.
   } | null;
 };
 

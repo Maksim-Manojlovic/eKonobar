@@ -96,6 +96,28 @@ describe("GET /api/waiters", () => {
     expect(res.status).toBe(401);
   });
 
+  it("never selects the passport share token", async () => {
+    mockSession("VENUE_OWNER", OWNER_ID);
+
+    await GET(makeReq(""), CTX);
+
+    // The share token is a bearer capability: whoever holds it reads the full
+    // passport with no auth. Selecting it here handed every waiter's live link
+    // to every owner running a search, including waiters who had never shared
+    // one — and regenerating did not help, because the new token leaked on the
+    // next search.
+    const call = vi.mocked(db.user.findMany).mock.calls[0][0] as {
+      select: { waiterPassport: { select: Record<string, unknown> } };
+    };
+    const passportSelect = call.select.waiterPassport.select;
+
+    expect(passportSelect).not.toHaveProperty("shareToken");
+    expect(passportSelect).not.toHaveProperty("shareTokenExpiry");
+    // Guard against the select being replaced by a bare `true`, which would
+    // return every column including the token.
+    expect(passportSelect.score).toBe(true);
+  });
+
   it("available=true filter applied to passportFilter", async () => {
     mockSession("VENUE_OWNER", OWNER_ID);
 
