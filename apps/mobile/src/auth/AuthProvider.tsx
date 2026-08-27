@@ -9,6 +9,7 @@ type AuthState = {
   /** undefined while the stored session is still being read on cold start. */
   user:    SessionUser | null | undefined;
   signIn:  (email: string, password: string) => Promise<void>;
+  signInWithProvider: (provider: "google" | "facebook", token: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -75,6 +76,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(session.user);
   }, []);
 
+  /**
+   * Sign in with a token from a native Google / Facebook flow.
+   *
+   * The provider SDK is not installed yet — it carries native code, so it needs
+   * an EAS development build and, for Google, an iOS and an Android client id
+   * that only exist once the app is registered with Apple and Google. See
+   * mobile-app-plan.md §8b. The server half is finished and tested, so wiring
+   * this up is: install the SDK, put a button on the login screen, hand what it
+   * returns to this function.
+   *
+   * Google's flow yields an ID token; Facebook's an access token. The server
+   * verifies whichever it is with the provider before believing any of it.
+   */
+  const signInWithProvider = useCallback(
+    async (provider: "google" | "facebook", token: string) => {
+      const deviceId = await getDeviceId();
+
+      // anonymous, for the same reason as signIn: a 401 here means the provider
+      // token was rejected, not that a session expired, so it must not kick off
+      // the refresh-or-sign-out path.
+      const session = await api<Session>("/api/mobile/auth/oauth", {
+        method:    "POST",
+        anonymous: true,
+        body: {
+          provider,
+          token,
+          deviceId,
+          deviceName: Device.modelName ?? undefined,
+          platform:   Platform.OS === "ios" ? "ios" : "android",
+        },
+      });
+
+      await saveSession(session);
+      setUser(session.user);
+    },
+    [],
+  );
+
   const signOut = useCallback(async () => {
     const stored = await loadSession();
 
@@ -98,7 +137,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  const value = useMemo(() => ({ user, signIn, signOut }), [user, signIn, signOut]);
+  const value = useMemo(
+    () => ({ user, signIn, signInWithProvider, signOut }),
+    [user, signIn, signInWithProvider, signOut],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

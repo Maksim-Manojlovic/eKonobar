@@ -327,7 +327,7 @@ link.
 
 | Gap | Notes |
 |---|---|
-| Native OAuth | `POST /api/mobile/auth/oauth`, Phase 1b. Credentials login is the only mobile path today. |
+| Native OAuth **buttons** | The server (`POST /api/mobile/auth/oauth`) and the client call (`signInWithProvider` on AuthProvider) are done and tested. What is missing is config nobody can invent: an iOS and an Android Google client id, which exist only once the app is registered with Apple and Google, plus the provider SDK — native code, so it needs an EAS development build and would break the current Expo Go workflow. Set `GOOGLE_CLIENT_ID_IOS` / `GOOGLE_CLIENT_ID_ANDROID` (both public, no secret) and `FACEBOOK_CLIENT_ID` / `FACEBOOK_CLIENT_SECRET`; with any of them blank the server refuses that provider outright rather than verifying against an empty audience list. Then: install the SDK, add a button, hand its token to `signInWithProvider`. |
 
 ---
 
