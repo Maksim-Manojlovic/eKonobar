@@ -9,6 +9,7 @@ import { colors } from "@ekonobar/shared/design-tokens";
 import { useJobsGeoJson, type BBox, type JobFeature, type MapFilters } from "@/api/map";
 import { useApplyToJob } from "@/api/queries";
 import { TonePill } from "@/ui/primitives";
+import { JobSheet } from "@/ui/JobSheet";
 
 /**
  * Pregled — jobs on a map, matching the web marketplace.
@@ -157,20 +158,29 @@ export default function PregledScreen() {
           </Text>
         )}
         {features.map(f => (
-          <JobRow key={f.properties.id} feature={f} highlighted={selected === f.properties.id} />
+          <JobRow
+            key={f.properties.id}
+            feature={f}
+            highlighted={selected === f.properties.id}
+            onOpen={() => setSelected(f.properties.id)}
+          />
         ))}
       </ScrollView>
+
+      {/* Last child so it overlays the map and the list. */}
+      {selected && <JobSheet jobId={selected} onClose={() => setSelected(null)} />}
     </SafeAreaView>
   );
 }
 
-function JobRow({ feature, highlighted }: { feature: JobFeature; highlighted: boolean }) {
+function JobRow({ feature, highlighted, onOpen }: { feature: JobFeature; highlighted: boolean; onOpen: () => void }) {
   const p = feature.properties;
   const apply = useApplyToJob();
   const stripe = p.redAlert ? RED_ALERT_COLOR : (TYPE_COLOR[p.engagementType] ?? colors.primary[500]);
 
   return (
-    <View
+    <Pressable
+      onPress={onOpen}
       className="bg-white rounded-2xl flex-row overflow-hidden"
       style={{
         borderWidth: highlighted ? 2 : 1,
@@ -217,6 +227,6 @@ function JobRow({ feature, highlighted }: { feature: JobFeature; highlighted: bo
           <Text className="text-red-500 text-[11px] mt-2 font-normal">{(apply.error as Error).message}</Text>
         )}
       </View>
-    </View>
+    </Pressable>
   );
 }

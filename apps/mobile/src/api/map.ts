@@ -74,3 +74,53 @@ export function useJobsGeoJson(bbox: BBox | null, filters: MapFilters) {
     staleTime: 15_000,
   });
 }
+
+/**
+ * One job, in full.
+ *
+ * The geojson feature carries only what a pin needs — the description, tip
+ * arrangement and application count are not in it, so tapping a pin fetches the
+ * job itself. Shape confirmed against the running endpoint.
+ *
+ * Note the route is `withOptionalAuth` but is NOT in the middleware's public
+ * patterns, so an anonymous caller gets 401 before the handler runs. That is
+ * fine here — the app is always authenticated — but it is why this cannot be
+ * reused for a public share link without adding the pattern.
+ */
+export type JobDetail = {
+  id:                  string;
+  title:               string;
+  description:         string | null;
+  engagementType:      string;
+  salaryMin:           number | null;
+  salaryMax:           number | null;
+  tipSystem:           string;
+  tipDescription:      string | null;
+  sanitaryRequired:    boolean;
+  startDate:           string | null;
+  applicationDeadline: string | null;
+  redAlert:            boolean;
+  redAlertNote:        string | null;
+  status:              string;
+  createdAt:           string;
+  venue: {
+    id:           string;
+    name:         string;
+    address:      string | null;
+    municipality: string | null;
+    venueType:    string;
+    trustScore:   number | null;
+    phone:        string | null;
+  };
+  _count:     { applications: number };
+  /** Server-computed for the signed-in waiter — never derive this client-side. */
+  hasApplied: boolean;
+};
+
+export function useJob(id: string | null) {
+  return useQuery({
+    queryKey: ["job", id],
+    queryFn:  () => apiGet<JobDetail>(`/api/jobs/${id}`),
+    enabled:  Boolean(id),
+  });
+}

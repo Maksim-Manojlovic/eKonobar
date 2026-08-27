@@ -1,4 +1,4 @@
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import type { PassportData } from "@ekonobar/shared/api/waiter";
 import { usePassport } from "@/api/queries";
 import { useAuth } from "@/auth/AuthProvider";
@@ -18,7 +18,7 @@ import { Empty, ScoreRing, TonePill, VerifiedBadge } from "@/ui/primitives";
  *     free and opt-in. Do not reintroduce either.
  */
 export default function PassportScreen() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { data, isLoading, error } = usePassport();
 
   if (isLoading) return <Screen title="Waiter Passport™"><Loading /></Screen>;
@@ -65,6 +65,12 @@ export default function PassportScreen() {
 
       <Skills data={data} />
       <Reach data={data} />
+
+      {/* Sign-out lives here rather than on the home tab: Pregled became the
+          jobs map, and the account tab is where the design puts Settings. */}
+      <Pressable onPress={signOut} className="items-center py-4">
+        <Text className="text-white/40 text-xs font-normal">Odjavi se</Text>
+      </Pressable>
     </Screen>
   );
 }
