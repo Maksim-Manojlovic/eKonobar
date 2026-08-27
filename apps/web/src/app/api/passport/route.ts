@@ -105,8 +105,15 @@ export const PUT = withRole("WAITER", async (req, _ctx, session) => {
     include: { trustScore: true },
   });
 
-  if (profilePhoto) {
-    await db.user.update({ where: { id: session.user.id }, data: { image: profilePhoto } });
+  // Mirrors the passport field's own condition. Guarding on truthiness instead
+  // left User.image pointing at a photo the waiter had just removed, so the
+  // passport showed initials while every avatar drawn from User.image — the
+  // staff roster, the leave queue, review authors — still showed the old one.
+  if (profilePhoto !== undefined) {
+    await db.user.update({
+      where: { id: session.user.id },
+      data:  { image: profilePhoto ?? null },
+    });
   }
 
   return NextResponse.json(passport);

@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
 
 vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
 vi.mock("@/lib/auth/config", () => ({ authOptions: {} }));
@@ -12,8 +11,10 @@ vi.mock("@/lib/core/db", () => ({
 }));
 vi.mock("@/lib/core/logger", () => ({ default: { error: vi.fn() } }));
 
-import { getServerSession } from "next-auth";
 import { db } from "@/lib/core/db";
+import {
+  getReq, putReq, CTX, mockSession as harnessSession, mockNoSession,
+} from "@/tests/unit/route-harness";
 import { GET, PUT } from "../route";
 
 const WAITER_ID = "waiter-1";
@@ -29,25 +30,9 @@ const BASE_PASSPORT = {
   trustScore: null,
 };
 
-function makeReq() { return new NextRequest("http://localhost/api/test"); }
-
-const CTX = { params: Promise.resolve({}) };
-
-function makePutReq(body: object) {
-  return new NextRequest("http://localhost/api/passport", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-}
-
-function mockSession(role = "WAITER", id = WAITER_ID) {
-  vi.mocked(getServerSession).mockResolvedValue({ user: { id, role } } as never);
-}
-
-function mockNoSession() {
-  vi.mocked(getServerSession).mockResolvedValue(null);
-}
+// The harness takes the role first with no default; every call here is a waiter
+// unless it says otherwise.
+const mockSession = (role = "WAITER", id = WAITER_ID) => harnessSession(role, id);
 
 describe("GET /api/passport", () => {
   beforeEach(() => {
@@ -59,7 +44,7 @@ describe("GET /api/passport", () => {
   it("WAITER gets passport + recentReviews", async () => {
     mockSession();
 
-    const res = await GET(makeReq(), CTX);
+    const res = await GET(getReq(), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.id).toBe("pp-1");
@@ -70,7 +55,7 @@ describe("GET /api/passport", () => {
     mockSession();
     vi.mocked(db.waiterPassport.findUnique).mockResolvedValue(null);
 
-    const res = await GET(makeReq(), CTX);
+    const res = await GET(getReq(), CTX);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toBeNull();
@@ -78,13 +63,13 @@ describe("GET /api/passport", () => {
 
   it("VENUE_OWNER → 403", async () => {
     mockSession("VENUE_OWNER", "owner-1");
-    const res = await GET(makeReq(), CTX);
+    const res = await GET(getReq(), CTX);
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await GET(makeReq(), CTX);
+    const res = await GET(getReq(), CTX);
     expect(res.status).toBe(401);
   });
 });
@@ -101,39 +86,49 @@ describe("PUT /api/passport", () => {
   });
 
   it("WAITER upserts passport → 200", async () => {
-    const res = await PUT(makePutReq({ bio: "Updated bio" }), CTX);
+    const res = await PUT(putReq({ bio: "Updated bio" }), CTX);
     expect(res.status).toBe(200);
     expect(vi.mocked(db.waiterPassport.upsert)).toHaveBeenCalledOnce();
   });
 
   it("VENUE_OWNER → 403", async () => {
     mockSession("VENUE_OWNER", "owner-1");
-    const res = await PUT(makePutReq({ bio: "x" }), CTX);
+    const res = await PUT(putReq({ bio: "x" }), CTX);
     expect(res.status).toBe(403);
   });
 
   it("unauthenticated → 401", async () => {
     mockNoSession();
-    const res = await PUT(makePutReq({ bio: "x" }), CTX);
+    const res = await PUT(putReq({ bio: "x" }), CTX);
     expect(res.status).toBe(401);
   });
 
   it("profilePhoto triggers user.image sync", async () => {
     const PHOTO_URL = "https://res.cloudinary.com/test/image/upload/v1/avatar.jpg";
-    await PUT(makePutReq({ profilePhoto: PHOTO_URL }), CTX);
+    await PUT(putReq({ profilePhoto: PHOTO_URL }), CTX);
 
     expect(vi.mocked(db.user.update)).toHaveBeenCalledWith(
       expect.objectContaining({ data: { image: PHOTO_URL } }),
     );
   });
 
-  it("no profilePhoto → user.update not called", async () => {
-    await PUT(makePutReq({ bio: "no photo" }), CTX);
+  it("no profilePhoto key → user.update not called", async () => {
+    await PUT(putReq({ bio: "no photo" }), CTX);
     expect(vi.mocked(db.user.update)).not.toHaveBeenCalled();
   });
 
+  it("profilePhoto: null clears User.image too", async () => {
+    await PUT(putReq({ profilePhoto: null }), CTX);
+
+    // Guarding on truthiness here left User.image pointing at the removed photo,
+    // so every avatar drawn from it kept showing an image the waiter had deleted.
+    expect(vi.mocked(db.user.update)).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { image: null } }),
+    );
+  });
+
   it("workMunicipalities sanitized — junk dropped, canonical order kept", async () => {
-    await PUT(makePutReq({ workMunicipalities: ["Zemun", "Atlantis", "Vračar"] }), CTX);
+    await PUT(putReq({ workMunicipalities: ["Zemun", "Atlantis", "Vračar"] }), CTX);
 
     const upsertCall = vi.mocked(db.waiterPassport.upsert).mock.calls[0][0] as {
       create: { workMunicipalities: string[] };
@@ -145,7 +140,7 @@ describe("PUT /api/passport", () => {
   });
 
   it("workMunicipalities omitted → not written on update", async () => {
-    await PUT(makePutReq({ bio: "no reach change" }), CTX);
+    await PUT(putReq({ bio: "no reach change" }), CTX);
 
     const upsertCall = vi.mocked(db.waiterPassport.upsert).mock.calls[0][0] as {
       update: Record<string, unknown>;
@@ -155,7 +150,7 @@ describe("PUT /api/passport", () => {
 
   it("galleryPhotos capped at 4", async () => {
     const photos = Array(6).fill("https://img.test/photo.jpg");
-    await PUT(makePutReq({ galleryPhotos: photos }), CTX);
+    await PUT(putReq({ galleryPhotos: photos }), CTX);
 
     const upsertCall = vi.mocked(db.waiterPassport.upsert).mock.calls[0][0] as {
       create: { galleryPhotos: string[] };
@@ -164,7 +159,7 @@ describe("PUT /api/passport", () => {
   });
 
   it("currentlyAvailable=true on previously-false passport sets lastAvailableDate", async () => {
-    await PUT(makePutReq({ currentlyAvailable: true }), CTX);
+    await PUT(putReq({ currentlyAvailable: true }), CTX);
 
     const upsertCall = vi.mocked(db.waiterPassport.upsert).mock.calls[0][0] as {
       update: Record<string, unknown>;
@@ -177,7 +172,7 @@ describe("PUT /api/passport", () => {
       currentlyAvailable: true,
     } as never);
 
-    await PUT(makePutReq({ currentlyAvailable: false }), CTX);
+    await PUT(putReq({ currentlyAvailable: false }), CTX);
 
     const upsertCall = vi.mocked(db.waiterPassport.upsert).mock.calls[0][0] as {
       update: Record<string, unknown>;
