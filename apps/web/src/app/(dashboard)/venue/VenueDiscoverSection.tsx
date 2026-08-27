@@ -33,7 +33,11 @@ export function InviteModal({ waiter, posts, onClose, onSent }: {
     setSending(false);
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error === "Invite already sent" ? "Pozivnica je već poslata ovom konobaru za ovaj oglas." : (data.error ?? "Greška"));
+      // The route speaks Serbian now, so its message is shown as-is. It used to
+      // return "Invite already sent" and this re-worded it client-side — and
+      // said "za ovaj oglas", which was wrong: the dedupe is per sender and
+      // recipient, not per job post.
+      setError(data.error ?? "Greška");
       return;
     }
     setDone(true);

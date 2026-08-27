@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { WaiterSearchResponse } from "@ekonobar/shared/api/venue";
-import { apiGet } from "./client";
+import { api, apiGet } from "./client";
 
 /**
  * GET /api/waiters — the owner/headhunter talent search.
@@ -40,5 +40,30 @@ export function useWaiterSearch(filters: WaiterFilters, enabled = true) {
     queryKey: ["waiters", qs],
     queryFn:  () => apiGet<WaiterSearchResponse>(`/api/waiters${qs ? `?${qs}` : ""}`),
     enabled,
+  });
+}
+
+/**
+ * How many available waiters declared reach into each opština.
+ *
+ * Aggregate only — no names, no coordinates. Redis-caches for 300s server-side,
+ * so this is cheap to keep mounted alongside the result list.
+ */
+export const useCoverage = () =>
+  useQuery({
+    queryKey: ["waiters", "coverage"],
+    queryFn:  () => apiGet<{ municipality: string; availableCount: number }[]>(
+      "/api/waiters/coverage",
+    ),
+    staleTime: 5 * 60 * 1000,
+  });
+
+/** POST /api/invites — rate-limited to 20/hour, and 409s on a duplicate PENDING invite. */
+export function useSendInvite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { waiterId: string; jobPostId?: string; message?: string }) =>
+      api("/api/invites", { method: "POST", body }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["invites"] }),
   });
 }

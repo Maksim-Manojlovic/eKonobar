@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "expo-router";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { formatSalary, timeAgo } from "@ekonobar/shared/formatting/utils";
 import { JOB_STATUS_LABELS, APPLICATION_STATUS_LABELS_VENUE } from "@ekonobar/shared/formatting/labels";
 import type { IncomingApp, OwnPost } from "@ekonobar/shared/api/venue";
@@ -17,11 +17,14 @@ type TabId = (typeof TABS)[number]["id"];
 /**
  * Posao — hiring.
  *
- * The prototype had four segments (Oglasi / Prijave / Konobari / Pronađi). The
- * first two ship here; talent search and the roster are a bigger surface that
- * belongs with the reach-coverage panel, and are deferred rather than stubbed.
+ * The prototype had four segments (Oglasi / Prijave / Konobari / Pronađi).
+ * Oglasi and Prijave are the daily ones and stay as segments here; talent
+ * search carries the reach-coverage panel and the roster is its own editable
+ * surface, so both are pushed routes (/pronadji, /ekipa) rather than a third
+ * and fourth segment nobody would find room to render.
  */
 export default function OwnerPosloviScreen() {
+  const router = useRouter();
   const [tab, setTab] = useState<TabId>("prijave");
 
   return (
@@ -29,6 +32,11 @@ export default function OwnerPosloviScreen() {
       <View className="-mx-5">
         <SegmentTabs tabs={TABS} active={tab} onChange={setTab} />
       </View>
+
+      <Pressable onPress={() => router.push("/pronadji")} className="self-end -mt-1">
+        <Text className="text-orange-400 text-xs font-bold">Pronađi konobara →</Text>
+      </Pressable>
+
       {tab === "oglasi"  && <Posts />}
       {tab === "prijave" && <Applications />}
     </Screen>

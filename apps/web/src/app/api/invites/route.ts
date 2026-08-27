@@ -61,7 +61,7 @@ export const POST = withRole("VENUE_OWNER", async (req, _ctx, session) => {
   const { waiterId, jobPostId, message } = parsed.data;
 
   const waiter = await db.user.findFirst({ where: { id: waiterId, role: "WAITER" } });
-  if (!waiter) return NextResponse.json({ error: "Waiter not found" }, { status: 404 });
+  if (!waiter) return NextResponse.json({ error: "Konobar nije pronađen" }, { status: 404 });
 
   let venueId: string | undefined;
   if (jobPostId) {
@@ -69,7 +69,7 @@ export const POST = withRole("VENUE_OWNER", async (req, _ctx, session) => {
       where: { id: jobPostId, ownerId: session.user.id },
       include: { venue: { select: { id: true } } },
     });
-    if (!jobPost) return NextResponse.json({ error: "Job post not found" }, { status: 404 });
+    if (!jobPost) return NextResponse.json({ error: "Oglas nije pronađen" }, { status: 404 });
     venueId = jobPost.venue.id;
   } else {
     // Use first venue belonging to this owner
@@ -80,7 +80,7 @@ export const POST = withRole("VENUE_OWNER", async (req, _ctx, session) => {
   const existing = await db.invite.findFirst({
     where: { senderId: session.user.id, recipientId: waiterId, type: "JOB_INVITE", status: "PENDING" },
   });
-  if (existing) return NextResponse.json({ error: "Invite already sent" }, { status: 409 });
+  if (existing) return NextResponse.json({ error: "Pozivnica je već poslata ovom konobaru" }, { status: 409 });
 
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
