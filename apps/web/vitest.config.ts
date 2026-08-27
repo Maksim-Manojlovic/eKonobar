@@ -33,6 +33,21 @@ export default defineConfig({
           name: "unit",
           environment: "node",
           globals: true,
+          // Unit tests mock the database, but a few pull lib/core/db in
+          // transitively — with-role imports bearer, which imports helpers,
+          // which imports db — and db builds its connection string at module
+          // load. Supplying a value that only has to parse makes the suite
+          // hermetic instead of dependent on a .env file being picked up, which
+          // is exactly what broke when Vitest 4.1.5 -> 4.1.11 changed how env
+          // files reach process.env. CI already sets these explicitly; this
+          // makes a local run behave the same way.
+          env: {
+            DATABASE_URL: process.env.DATABASE_URL ?? "postgresql://unit:unit@127.0.0.1:5432/unit",
+            DIRECT_URL:   process.env.DIRECT_URL   ?? "postgresql://unit:unit@127.0.0.1:5432/unit",
+            NEXTAUTH_SECRET:     process.env.NEXTAUTH_SECRET     ?? "unit-test-secret",
+            NEXTAUTH_URL:        process.env.NEXTAUTH_URL        ?? "http://localhost:3000",
+            NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+          },
           setupFiles: ["src/test-setup.ts"],
           include: ["src/**/*.{test,spec}.{ts,tsx}"],
           exclude: ["src/**/*.integration.test.ts", "node_modules/**"],
