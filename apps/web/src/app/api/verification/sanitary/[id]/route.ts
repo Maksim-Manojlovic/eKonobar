@@ -18,7 +18,7 @@ export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", asyn
   const { action, rejectReason } = parsed.data;
 
   const book = await dbRaw.sanitaryBook.findUnique({ where: { id } });
-  if (!book) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!book) return NextResponse.json({ error: "Sanitarna knjižica nije pronađena" }, { status: 404 });
 
   const updated = await dbRaw.$transaction(async (tx) => {
     const newStatus = action === "approve" ? "APPROVED" : "REJECTED";

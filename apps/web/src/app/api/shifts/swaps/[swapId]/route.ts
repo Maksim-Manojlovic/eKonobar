@@ -24,7 +24,7 @@ export const PATCH = withRole<{ params: Promise<{ swapId: string }> }>(["VENUE_O
     },
   });
 
-  if (!swapReq) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!swapReq) return NextResponse.json({ error: "Zahtev za zamenu nije pronađen" }, { status: 404 });
 
   const venue = swapReq.shift.venue;
   const canManage =

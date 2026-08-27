@@ -23,7 +23,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export const PATCH = withRole<Ctx>(["VENUE_OWNER", "WAITER"], async (req, ctx, session) => {
   const { id } = await ctx.params;
   const existing = await getManagedTemplate(id, session.user.id, session.user.role);
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: "Šablon nije pronađen" }, { status: 404 });
 
   const parsed = await parseBody(TemplatePatchSchema, req);
   if (!parsed.ok) return parsed.response;
@@ -50,7 +50,7 @@ export const PATCH = withRole<Ctx>(["VENUE_OWNER", "WAITER"], async (req, ctx, s
 export const DELETE = withRole<Ctx>(["VENUE_OWNER", "WAITER"], async (_req, ctx, session) => {
   const { id } = await ctx.params;
   const existing = await getManagedTemplate(id, session.user.id, session.user.role);
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: "Šablon nije pronađen" }, { status: 404 });
 
   await db.shiftTemplate.delete({ where: { id } });
   return NextResponse.json({ ok: true });

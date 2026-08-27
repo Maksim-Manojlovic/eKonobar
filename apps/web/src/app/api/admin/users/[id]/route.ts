@@ -15,7 +15,7 @@ export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", asyn
 
   // Prevent self-modification
   if (id === session.user.id) {
-    return NextResponse.json({ error: "Cannot modify own account" }, { status: 400 });
+    return NextResponse.json({ error: "Ne možete menjati sopstveni nalog" }, { status: 400 });
   }
 
   const parsed = await parseBody(AdminUserPatchSchema, req);
@@ -29,7 +29,7 @@ export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", asyn
   if (action === "restore") data.deletedAt = null;
 
   if (Object.keys(data).length === 0) {
-    return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+    return NextResponse.json({ error: "Nema izmena za čuvanje" }, { status: 400 });
   }
 
   const needsRevocation = data.role !== undefined || data.deletedAt !== undefined;

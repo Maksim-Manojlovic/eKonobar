@@ -17,7 +17,7 @@ export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", asyn
   const { action } = parsed.data;
 
   const review = await dbRaw.review.findUnique({ where: { id } });
-  if (!review) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!review) return NextResponse.json({ error: "Recenzija nije pronađena" }, { status: 404 });
 
   const newStatus = action === "publish" ? "PUBLISHED" : "REMOVED";
 

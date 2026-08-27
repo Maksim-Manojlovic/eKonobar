@@ -23,7 +23,7 @@ export const POST = withRole<{ params: Promise<{ id: string }> }>("WAITER", asyn
       venue: { select: { ownerId: true, name: true } },
     },
   });
-  if (!shift) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!shift) return NextResponse.json({ error: "Smena nije pronađena" }, { status: 404 });
   if (shift.swapLocked) {
     return NextResponse.json({ error: "Zamene su blokirane za ovu smenu" }, { status: 409 });
   }

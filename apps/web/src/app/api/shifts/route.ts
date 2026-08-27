@@ -162,13 +162,13 @@ export const POST = withRole(["VENUE_OWNER", "WAITER"], async (req, _ctx, sessio
     : { id: venueId, headWaiterId: session.user.id };
 
   const venue = await db.venue.findFirst({ where: venueFilter });
-  if (!venue) return NextResponse.json({ error: "Venue not found" }, { status: 404 });
+  if (!venue) return NextResponse.json({ error: "Lokal nije pronađen" }, { status: 404 });
 
   const ids: string[] = Array.isArray(waiterIds) ? waiterIds : [];
   if (ids.length) {
     const found = await db.user.findMany({ where: { id: { in: ids }, role: "WAITER" } });
     if (found.length !== ids.length) {
-      return NextResponse.json({ error: "One or more waiters not found" }, { status: 404 });
+      return NextResponse.json({ error: "Jedan ili više konobara nije pronađeno" }, { status: 404 });
     }
   }
 

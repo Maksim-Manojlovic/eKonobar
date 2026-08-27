@@ -130,7 +130,7 @@ export const POST = withRole("VENUE_OWNER", async (req, _ctx, session) => {
 
   // Verify the venue belongs to this owner
   const venue = await db.venue.findFirst({ where: { id: venueId, ownerId: session.user.id } });
-  if (!venue) return NextResponse.json({ error: "Venue not found" }, { status: 404 });
+  if (!venue) return NextResponse.json({ error: "Lokal nije pronađen" }, { status: 404 });
 
   const post = await db.jobPost.create({
     data: {

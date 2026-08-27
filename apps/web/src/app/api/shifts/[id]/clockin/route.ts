@@ -30,7 +30,7 @@ export const POST = withRole<{ params: Promise<{ id: string }> }>("WAITER", asyn
       assignments: { where: { waiterId: session.user.id } },
     },
   });
-  if (!shift) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!shift) return NextResponse.json({ error: "Smena nije pronađena" }, { status: 404 });
 
   const assignment = shift.assignments[0];
   if (!assignment) return NextResponse.json({ error: "Niste na ovoj smeni" }, { status: 403 });

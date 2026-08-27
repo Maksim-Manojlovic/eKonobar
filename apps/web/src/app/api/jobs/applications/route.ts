@@ -75,7 +75,7 @@ export const POST = withRole("WAITER", async (req, _ctx, session) => {
     include: { venue: { select: { ownerId: true, name: true } } },
   });
   if (!post) {
-    return NextResponse.json({ error: "Job post not found or not active" }, { status: 404 });
+    return NextResponse.json({ error: "Oglas nije pronađen ili više nije aktivan" }, { status: 404 });
   }
 
   // No Red Alert embargo check here: this route is withRole("WAITER"), so every
@@ -87,7 +87,7 @@ export const POST = withRole("WAITER", async (req, _ctx, session) => {
     where: { jobPostId_waiterId: { jobPostId, waiterId: session.user.id } },
   });
   if (existing) {
-    return NextResponse.json({ error: "Already applied" }, { status: 409 });
+    return NextResponse.json({ error: "Već ste se prijavili na ovaj oglas" }, { status: 409 });
   }
 
   const application = await db.jobApplication.create({

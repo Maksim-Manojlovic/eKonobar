@@ -28,7 +28,7 @@ type Ctx = { params: Promise<{ id: string }> };
 export const PATCH = withRole<Ctx>(["VENUE_OWNER", "WAITER"], async (req, ctx, session) => {
   const { id } = await ctx.params;
   const existing = await getManagedShift(id, session.user.id, session.user.role);
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: "Smena nije pronađena" }, { status: 404 });
 
   const parsed = await parseBody(ShiftPatchSchema, req);
   if (!parsed.ok) return parsed.response;
@@ -44,7 +44,7 @@ export const PATCH = withRole<Ctx>(["VENUE_OWNER", "WAITER"], async (req, ctx, s
   if (waiterIds !== undefined && ids.length) {
     const found = await db.user.findMany({ where: { id: { in: ids }, role: "WAITER" } });
     if (found.length !== ids.length) {
-      return NextResponse.json({ error: "One or more waiters not found" }, { status: 404 });
+      return NextResponse.json({ error: "Jedan ili više konobara nije pronađeno" }, { status: 404 });
     }
   }
 
@@ -94,7 +94,7 @@ export const PATCH = withRole<Ctx>(["VENUE_OWNER", "WAITER"], async (req, ctx, s
 export const DELETE = withRole<Ctx>(["VENUE_OWNER", "WAITER"], async (_req, ctx, session) => {
   const { id } = await ctx.params;
   const existing = await getManagedShift(id, session.user.id, session.user.role);
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: "Smena nije pronađena" }, { status: 404 });
 
   await db.shift.delete({ where: { id } });
   return NextResponse.json({ ok: true });

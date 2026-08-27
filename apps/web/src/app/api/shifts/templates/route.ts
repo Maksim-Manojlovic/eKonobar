@@ -45,7 +45,7 @@ export const POST = withRole(["VENUE_OWNER", "WAITER"], async (req, _ctx, sessio
     : { id: venueId, headWaiterId: session.user.id };
 
   const venue = await db.venue.findFirst({ where: venueFilter });
-  if (!venue) return NextResponse.json({ error: "Venue not found" }, { status: 404 });
+  if (!venue) return NextResponse.json({ error: "Lokal nije pronađen" }, { status: 404 });
 
   const template = await db.shiftTemplate.create({
     data: {

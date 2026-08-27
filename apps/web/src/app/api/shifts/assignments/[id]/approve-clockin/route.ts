@@ -25,7 +25,7 @@ export const PATCH = withRole<{ params: Promise<{ id: string }> }>("VENUE_OWNER"
     },
   });
 
-  if (!assignment) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!assignment) return NextResponse.json({ error: "Raspored nije pronađen" }, { status: 404 });
   if (assignment.shift.venue.ownerId !== session.user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

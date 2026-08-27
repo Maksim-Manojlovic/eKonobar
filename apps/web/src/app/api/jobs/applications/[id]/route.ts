@@ -46,7 +46,7 @@ export const PATCH = withAuth<{ params: Promise<{ id: string }> }>(async (req, c
     },
   });
 
-  if (!application) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!application) return NextResponse.json({ error: "Prijava nije pronađena" }, { status: 404 });
 
   const isOwner  = application.jobPost.ownerId === session.user.id;
   const isWaiter = application.waiterId === session.user.id;

@@ -28,7 +28,7 @@ export const PATCH = withRole<{ params: Promise<{ id: string }> }>("ADMIN", asyn
   const body = parsed.data;
 
   const zone = await dbRaw.venueZone.findUnique({ where: { id } });
-  if (!zone) return NextResponse.json({ error: "Zone not found" }, { status: 404 });
+  if (!zone) return NextResponse.json({ error: "Zona nije pronađena" }, { status: 404 });
 
   const updated = await dbRaw.venueZone.update({
     where: { id },
@@ -57,7 +57,7 @@ export const DELETE = withRole<{ params: Promise<{ id: string }> }>("ADMIN", asy
   const { id } = await ctx.params;
 
   const zone = await dbRaw.venueZone.findUnique({ where: { id }, select: { id: true } });
-  if (!zone) return NextResponse.json({ error: "Zone not found" }, { status: 404 });
+  if (!zone) return NextResponse.json({ error: "Zona nije pronađena" }, { status: 404 });
 
   // Clear relations first (no cascade defined on VenueZoneRelation → VenueZone)
   await dbRaw.$transaction([

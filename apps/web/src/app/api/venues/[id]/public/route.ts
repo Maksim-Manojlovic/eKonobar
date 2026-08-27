@@ -18,7 +18,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     },
   });
 
-  if (!venue) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!venue) return NextResponse.json({ error: "Lokal nije pronađen" }, { status: 404 });
 
   // Waiters: accepted applicants at any job for this venue
   const applications = await db.jobApplication.findMany({

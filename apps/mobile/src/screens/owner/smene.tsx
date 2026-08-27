@@ -49,9 +49,14 @@ export default function OwnerSmeneScreen() {
     <Screen title="Smene">
       <PrimaryButton label="+ Nova smena" onPress={() => router.push("/new-shift")} />
 
-      <Pressable onPress={() => router.push("/odmori")} className="self-end -mt-1">
-        <Text className="text-orange-400 text-xs font-bold">Odmori →</Text>
-      </Pressable>
+      <View className="flex-row justify-end gap-4 -mt-1">
+        <Pressable onPress={() => router.push("/sabloni")}>
+          <Text className="text-orange-400 text-xs font-bold">Šabloni →</Text>
+        </Pressable>
+        <Pressable onPress={() => router.push("/odmori")}>
+          <Text className="text-orange-400 text-xs font-bold">Odmori →</Text>
+        </Pressable>
+      </View>
 
       <MonthCalendar
         shifts={calendarShifts}

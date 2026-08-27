@@ -30,7 +30,7 @@ export const PATCH = withAuth(async (req, _ctx, session) => {
     select: { role: true, waiterPassport: { select: { id: true } } },
   });
 
-  if (!current) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!current) return NextResponse.json({ error: "Korisnik nije pronađen" }, { status: 404 });
 
   const isEstablished = current.role !== "WAITER" || current.waiterPassport !== null;
   if (isEstablished) {

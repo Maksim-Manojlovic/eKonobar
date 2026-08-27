@@ -86,14 +86,14 @@ describe("PATCH /api/admin/users/[id]", () => {
     const res = await PATCH(makeReq({ action: "delete" }), makeCtx(ADMIN_ID));
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toMatch(/own account/);
+    expect(json.error).toMatch(/sopstveni nalog/);
   });
 
   it("empty body → 400 (nothing to update)", async () => {
     const res = await PATCH(makeReq({}), makeCtx());
     expect(res.status).toBe(400);
     const json = await res.json();
-    expect(json.error).toMatch(/Nothing to update/);
+    expect(json.error).toMatch(/Nema izmena/);
   });
 
   it("invalid role ignored → nothing to update → 400", async () => {

@@ -24,17 +24,17 @@ export const POST = withRole<{ params: Promise<{ id: string }> }>(["VENUE_OWNER"
   const template = await db.shiftTemplate.findFirst({
     where: { id, ...venueFilter },
   });
-  if (!template) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!template) return NextResponse.json({ error: "Šablon nije pronađen" }, { status: 404 });
 
   const from = new Date(fromDate);
   const to   = new Date(toDate);
   if (isNaN(from.getTime()) || isNaN(to.getTime()) || from > to) {
-    return NextResponse.json({ error: "Invalid date range" }, { status: 400 });
+    return NextResponse.json({ error: "Nevažeći opseg datuma" }, { status: 400 });
   }
 
   const diffDays = Math.round((to.getTime() - from.getTime()) / 86_400_000) + 1;
   if (diffDays > 90) {
-    return NextResponse.json({ error: "Range max 90 days" }, { status: 400 });
+    return NextResponse.json({ error: "Opseg može biti najviše 90 dana" }, { status: 400 });
   }
 
   // Find dates matching: weekdays Mon-Fri (1-5) when weekdaysOnly, else specific dayOfWeek

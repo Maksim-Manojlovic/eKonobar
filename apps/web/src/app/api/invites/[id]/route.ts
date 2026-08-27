@@ -13,10 +13,10 @@ export const PATCH = withRole<{ params: Promise<{ id: string }> }>("WAITER", asy
   const invite = await db.invite.findFirst({
     where: { id, recipientId: session.user.id, type: "JOB_INVITE" },
   });
-  if (!invite) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!invite) return NextResponse.json({ error: "Pozivnica nije pronađena" }, { status: 404 });
 
   if (invite.status !== "PENDING") {
-    return NextResponse.json({ error: "Already responded" }, { status: 400 });
+    return NextResponse.json({ error: "Već ste odgovorili na ovu pozivnicu" }, { status: 400 });
   }
 
   const parsed = await parseBody(InviteRespondSchema, req);

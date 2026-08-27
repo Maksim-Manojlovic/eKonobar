@@ -6,7 +6,7 @@ export const GET = withRole<{ params: Promise<{ id: string }> }>("VENUE_OWNER", 
   const { id } = await ctx.params;
 
   const venue = await db.venue.findUnique({ where: { id }, select: { ownerId: true } });
-  if (!venue) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!venue) return NextResponse.json({ error: "Lokal nije pronađen" }, { status: 404 });
   if (venue.ownerId !== session.user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

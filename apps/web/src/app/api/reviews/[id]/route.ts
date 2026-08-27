@@ -27,12 +27,12 @@ export const PATCH = withRole<{ params: Promise<{ id: string }> }>("VENUE_OWNER"
     },
   });
 
-  if (!review) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!review) return NextResponse.json({ error: "Recenzija nije pronađena" }, { status: 404 });
   if (!review.venue || review.venue.ownerId !== session.user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   if (review.status !== "PENDING") {
-    return NextResponse.json({ error: "Only PENDING reviews can be moderated" }, { status: 400 });
+    return NextResponse.json({ error: "Moderiraju se samo recenzije na čekanju" }, { status: 400 });
   }
 
   if (action === "approve") {
