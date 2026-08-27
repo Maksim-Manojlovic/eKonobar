@@ -1,6 +1,7 @@
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Switch, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import type { PassportData } from "@ekonobar/shared/api/waiter";
-import { usePassport } from "@/api/queries";
+import { usePassport, useSetAvailability } from "@/api/queries";
 import { useAuth } from "@/auth/AuthProvider";
 import { Card, Screen } from "@/ui/Screen";
 import { Empty, ScoreRing, TonePill, VerifiedBadge } from "@/ui/primitives";
@@ -18,7 +19,9 @@ import { Empty, ScoreRing, TonePill, VerifiedBadge } from "@/ui/primitives";
  *     free and opt-in. Do not reintroduce either.
  */
 export default function PassportScreen() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
+  const router = useRouter();
+  const setAvailable = useSetAvailability();
   const { data, isLoading, error } = usePassport();
 
   if (isLoading) return <Screen title="Waiter Passport™"><Loading /></Screen>;
@@ -66,10 +69,28 @@ export default function PassportScreen() {
       <Skills data={data} />
       <Reach data={data} />
 
-      {/* Sign-out lives here rather than on the home tab: Pregled became the
-          jobs map, and the account tab is where the design puts Settings. */}
-      <Pressable onPress={signOut} className="items-center py-4">
-        <Text className="text-white/40 text-xs font-normal">Odjavi se</Text>
+      {/* Availability is what decides whether this waiter appears in owner
+          search at all, so it belongs on the passport rather than buried in
+          settings. */}
+      <Card>
+        <View className="flex-row items-center justify-between">
+          <View className="flex-1 pr-3">
+            <Text className="text-neutral-900 font-bold text-sm">Dostupan za smene</Text>
+            <Text className="text-neutral-400 text-[11px] mt-0.5 font-normal">
+              Isključeno te sklanja iz pretrage lokala.
+            </Text>
+          </View>
+          <Switch
+            value={data.currentlyAvailable}
+            disabled={setAvailable.isPending}
+            onValueChange={v => setAvailable.mutate(v)}
+            trackColor={{ false: "#e5e5e3", true: "#f97316" }}
+          />
+        </View>
+      </Card>
+
+      <Pressable onPress={() => router.push("/settings")} className="items-center py-4">
+        <Text className="text-white/50 text-xs font-semibold">Podešavanja →</Text>
       </Pressable>
     </Screen>
   );

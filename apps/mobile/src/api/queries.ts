@@ -153,3 +153,38 @@ export function useMarkNotificationsRead() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
   });
 }
+
+// ── Notification preferences ──────────────────────────────────────────────────
+
+export type NotificationPrefs = {
+  phone:    string | null;
+  smsOptIn: boolean;
+  waOptIn:  boolean;
+};
+
+export const useNotificationPrefs = () =>
+  useQuery({
+    queryKey: ["prefs", "notifications"],
+    queryFn:  () => apiGet<NotificationPrefs>("/api/user/notification-prefs"),
+  });
+
+export function useUpdateNotificationPrefs() {
+  const qc = useQueryClient();
+  return useMutation({
+    // Partial update — only the keys present are applied, so a toggle does not
+    // have to send the phone number along with it.
+    mutationFn: (patch: Partial<NotificationPrefs>) =>
+      api<NotificationPrefs>("/api/user/notification-prefs", { method: "PATCH", body: patch }),
+    onSuccess: fresh => qc.setQueryData(["prefs", "notifications"], fresh),
+  });
+}
+
+/** Availability drives whether the waiter appears in owner search at all. */
+export function useSetAvailability() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (currentlyAvailable: boolean) =>
+      api("/api/passport", { method: "PUT", body: { currentlyAvailable } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["passport"] }),
+  });
+}

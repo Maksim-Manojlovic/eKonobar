@@ -1,6 +1,5 @@
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { useIncomingApps, useManagedShifts, useOwnPosts, usePrimaryVenue } from "@/api/venue-queries";
-import { useAuth } from "@/auth/AuthProvider";
 import { Card, Screen } from "@/ui/Screen";
 import { Empty, ScoreRing, TonePill } from "@/ui/primitives";
 
@@ -13,7 +12,6 @@ import { Empty, ScoreRing, TonePill } from "@/ui/primitives";
  * their phone for mid-service.
  */
 export default function OwnerHomeScreen() {
-  const { signOut } = useAuth();
   const { venue }   = usePrimaryVenue();
   const posts       = useOwnPosts();
   const apps        = useIncomingApps();
@@ -73,9 +71,6 @@ export default function OwnerHomeScreen() {
         </View>
       </Card>
 
-      <Pressable onPress={signOut} className="items-center py-3">
-        <Text className="text-white/40 text-xs font-normal">Odjavi se</Text>
-      </Pressable>
     </Screen>
   );
 }

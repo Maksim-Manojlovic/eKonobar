@@ -1,4 +1,5 @@
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import {
   VENUE_TYPE_ICONS,
   VENUE_TYPE_ICON_FALLBACK,
@@ -15,6 +16,7 @@ import { Empty, ScoreRing, TonePill } from "@/ui/primitives";
  * dispatches on role, so the tab bar keeps five stable slots for both.
  */
 export default function OwnerProfileScreen() {
+  const router = useRouter();
   const { venue, isLoading } = usePrimaryVenue();
 
   if (isLoading) return <Screen title="Profil"><Empty text="Učitavanje…" /></Screen>;
@@ -47,6 +49,10 @@ export default function OwnerProfileScreen() {
         <Row label="Adresa"  value={venue.address} />
         <Row label="Tip"     value={typeLabel} />
       </Card>
+
+      <Pressable onPress={() => router.push("/settings")} className="items-center py-4">
+        <Text className="text-white/50 text-xs font-semibold">Podešavanja →</Text>
+      </Pressable>
     </Screen>
   );
 }
