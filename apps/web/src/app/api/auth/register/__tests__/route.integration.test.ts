@@ -42,13 +42,15 @@ describe("POST /api/auth/register — integration", () => {
     expect(user!.role).toBe("WAITER");
   });
 
-  it("VENUE_OWNER registration: 200 + User row created", async () => {
+  it("VENUE_OWNER registration: 400 and no User row", async () => {
+    // Owner accounts are created by an admin after the venue is verified — see
+    // the note on the route. Asserted against the database as well as the status,
+    // because a rejected request must leave nothing behind.
     const res = await POST(makeReq({ ...VALID_WAITER, email: "owner@test.local", role: "VENUE_OWNER" }));
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(400);
 
     const user = await dbRaw.user.findUnique({ where: { email: "owner@test.local" } });
-    expect(user).not.toBeNull();
-    expect(user!.role).toBe("VENUE_OWNER");
+    expect(user).toBeNull();
   });
 
   // ── Real unique constraint ──────────────────────────────────────────────────
