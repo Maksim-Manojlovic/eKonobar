@@ -83,6 +83,14 @@ export default function OwnerProfileScreen() {
         <Row label="Tip"     value={typeLabel} />
       </Card>
 
+      <Pressable
+        onPress={() => router.push("/ekipa")}
+        className="rounded-2xl items-center py-3.5"
+        style={{ backgroundColor: "rgba(255,255,255,0.06)", borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" }}
+      >
+        <Text className="text-white font-bold text-sm">Ekipa →</Text>
+      </Pressable>
+
       <Pressable onPress={() => router.push("/settings")} className="items-center py-4">
         <Text className="text-white/50 text-xs font-semibold">Podešavanja →</Text>
       </Pressable>

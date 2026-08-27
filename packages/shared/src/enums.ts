@@ -169,6 +169,24 @@ export const STAFF_POSITIONS = {
   DISHWASHER:    "DISHWASHER",
 } as const satisfies EnumOf<StaffPosition>;
 
+/**
+ * Positions per department, seniority-first.
+ *
+ * Order is the picker order, so the roles an owner assigns most deliberately
+ * come before the entry-level ones. Kept here rather than in the web app because
+ * both the roster screen and the mobile Ekipa screen render the same picker;
+ * `apps/web/src/lib/staff/positions.ts` re-exports these.
+ */
+export const FOH_POSITIONS = [
+  "HEAD_WAITER", "SENIOR_WAITER", "WAITER", "BARTENDER",
+  "BARISTA", "SOMMELIER", "HOST", "RUNNER",
+] as const satisfies readonly StaffPosition[];
+
+export const BOH_POSITIONS = [
+  "HEAD_CHEF", "SOUS_CHEF", "LINE_COOK", "GRILL_COOK",
+  "PASTRY_CHEF", "PREP_COOK", "DISHWASHER",
+] as const satisfies readonly StaffPosition[];
+
 export const STAFF_STATUSES = {
   ACTIVE:    "ACTIVE",
   SUSPENDED: "SUSPENDED",

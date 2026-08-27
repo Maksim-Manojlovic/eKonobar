@@ -285,3 +285,34 @@ export type VenueInviteWaiter = {
   verificationTier: string;
   waiterPassport: { score: number; currentlyAvailable: boolean; sanitaryBookValid: boolean } | null;
 };
+
+
+/* ── Pretraga konobara (GET /api/waiters) ────────────────────────────────── */
+
+export type WaiterSearchRow = {
+  id: string;
+  name: string | null;
+  image: string | null;
+  verificationTier: string;
+  waiterPassport: {
+    score: number;
+    bio: string | null;
+    badges: string[];
+    skills: string[];
+    languages: string[];
+    yearsExperience: number;
+    reviewCount: number;
+    totalEngagements: number;
+    currentlyAvailable: boolean;
+    sanitaryBookValid: boolean;
+    workMunicipalities: string[];
+    shareToken: string | null;
+  } | null;
+};
+
+export type WaiterSearchResponse = {
+  waiters: WaiterSearchRow[];
+  total: number;
+  page: number;
+  pages: number;
+};

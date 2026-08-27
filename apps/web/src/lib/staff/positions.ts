@@ -15,6 +15,7 @@
  * the roles an owner assigns most deliberately before the entry-level ones.
  */
 import type { StaffDepartment, StaffPosition, VenueType } from "@prisma/client";
+import { BOH_POSITIONS, FOH_POSITIONS } from "@ekonobar/shared/enums";
 
 // ─── Position → department ────────────────────────────────────────────────────
 
@@ -44,17 +45,11 @@ export function departmentOf(position: StaffPosition): StaffDepartment {
 }
 
 /** Positions belonging to a department, in picker order. */
-export const FOH_POSITIONS: StaffPosition[] = [
-  "HEAD_WAITER", "SENIOR_WAITER", "WAITER", "BARTENDER",
-  "BARISTA", "SOMMELIER", "HOST", "RUNNER",
-];
+// Declared in @ekonobar/shared so the mobile Ekipa picker renders the same
+// order; re-exported here because every existing caller imports from this file.
+export { FOH_POSITIONS, BOH_POSITIONS } from "@ekonobar/shared/enums";
 
-export const BOH_POSITIONS: StaffPosition[] = [
-  "HEAD_CHEF", "SOUS_CHEF", "LINE_COOK", "GRILL_COOK",
-  "PASTRY_CHEF", "PREP_COOK", "DISHWASHER",
-];
-
-export function positionsForDepartment(department: StaffDepartment): StaffPosition[] {
+export function positionsForDepartment(department: StaffDepartment): readonly StaffPosition[] {
   return department === "BOH" ? BOH_POSITIONS : FOH_POSITIONS;
 }
 
