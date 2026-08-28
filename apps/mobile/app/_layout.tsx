@@ -47,6 +47,21 @@ const queryClient = new QueryClient({
 const persister = createAsyncStoragePersister({ storage: AsyncStorage });
 
 /**
+ * Bump whenever a cached query's *shape* changes — not when its data changes.
+ *
+ * The persisted cache is keyed by query key, and nothing about a query key says
+ * what shape the value has. Turning `useJobs` from a `useQuery` returning
+ * `JobPost[]` into a `useInfiniteQuery` returning `{ pages, pageParams }` left
+ * every already-installed app restoring the old array under the new key, and
+ * TanStack read `.pages` off it and threw `Cannot read property 'length' of
+ * undefined` before the screen could paint. A stale cache must never be able to
+ * crash a newer build; `buster` is what discards it.
+ *
+ * v2 — useJobs and the notifications history became infinite queries.
+ */
+const CACHE_VERSION = "v2";
+
+/**
  * Sends the user to the right half of the app whenever the session changes.
  *
  * Kept in a child of AuthProvider rather than in AuthProvider itself, because
@@ -111,7 +126,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
+      <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, buster: CACHE_VERSION }}>
         <AuthProvider>
           {/* The shell is dark on every screen, so the status bar is light everywhere. */}
           <StatusBar style="light" />
